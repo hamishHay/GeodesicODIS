@@ -4,6 +4,7 @@
 #include "field.h"
 #include "globals.h"
 #include "mesh.h"
+#include "mass.h"
 
 class Solver {
 private:
@@ -15,7 +16,7 @@ public:
 	int orbitNumber = 1;
 	int iteration = 0;
 
-	double radConv = pi / 180.;
+	//double radConv = pi / 180.;
 
 	Globals * consts;
 	Mesh * grid;
@@ -24,12 +25,13 @@ public:
 	Field * eta;
 	Field * v;
 	Field * u;
+	Mass * mass;
 
 	Field * etaNew;
 	Field * vNew;
 	Field * uNew;
 
-	Solver(int type, int dump, Globals *, Mesh *, Field *, Field*, Field *, Field *, Field *);
+	Solver(int type, int dump, Globals *, Mesh *, Field *, Field*, Field *, Field *, Field *, Mass * mass);
 
 	void Solve();
 	

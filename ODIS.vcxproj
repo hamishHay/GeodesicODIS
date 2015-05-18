@@ -132,6 +132,7 @@
     <ClCompile Include="field.cpp" />
     <ClCompile Include="globals.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="mass.cpp" />
     <ClCompile Include="mathRoutines.cpp" />
     <ClCompile Include="mesh.cpp" />
     <ClCompile Include="solver.cpp" />
@@ -141,6 +142,7 @@
     <ClInclude Include="field.h" />
     <ClInclude Include="globals.h" />
     <ClInclude Include="globalVar.h" />
+    <ClInclude Include="mass.h" />
     <ClInclude Include="mathRoutines.h" />
     <ClInclude Include="mesh.h" />
     <ClInclude Include="solver.h" />

@@ -8,6 +8,7 @@
 //#include "boost/variant.hpp"
 
 extern double pi;
+extern double radConv;
 
 //Class stores all global values
 class Globals {

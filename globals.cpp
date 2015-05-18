@@ -7,6 +7,7 @@
 #include <algorithm>
 
 double pi = 3.1415926535897932384626433832795028841971693993751058;
+double radConv = pi / 180;
 
 Globals::Globals() :Globals(1) {};
 

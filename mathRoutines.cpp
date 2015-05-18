@@ -4,8 +4,6 @@
 
 using namespace std;
 
-double radConv = pi / 180.;
-
 double linearInterp(Field * field, int i, int j) {
 	if (i < field->fieldLatLen / 2) {
 		return field->solution[i + 1][j] - (-3 * field->solution[i + 1][j] + 4 * field->solution[i + 2][j] - field->solution[i + 3][j]) / (2 * field->dLat*radConv)*field->dLat*radConv;

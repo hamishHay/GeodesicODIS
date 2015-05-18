@@ -36,6 +36,9 @@
     <ClCompile Include="energy.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="mass.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="field.h">
@@ -60,6 +63,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="energy.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

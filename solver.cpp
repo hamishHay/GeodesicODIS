@@ -3,13 +3,14 @@
 #include "field.h"
 #include "mesh.h"
 #include "mathRoutines.h"
+#include "mass.h"
 #include <math.h>
 #include <iostream>
 #include <fstream>
 #include <iomanip>
 #include <string>
 
-Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradLon, Field * UGradLat, Field * VelU, Field * VelV, Field * Eta) {
+Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradLon, Field * UGradLat, Field * VelU, Field * VelV, Field * Eta, Mass * MassField) {
 	solverType = type;
 	dumpTime = dump;
 
@@ -21,6 +22,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 	u = VelU;
 	v = VelV;
 	eta = Eta;
+	mass = MassField;
 
 	etaNew = new Field(grid,0,0);
 	uNew = new Field(grid,0,1);
@@ -214,6 +216,9 @@ void Solver::Explicit() {
 	int output = 0;
 
 	DumpSolutions(-1);
+
+	//Find total mass before calculations begin
+	mass->UpdateTotalMass();
 	
 	while (simulationTime <= consts->endTime.Value()) {
 
