@@ -8,23 +8,6 @@
 //#include "boost/variant.hpp"
 
 extern double pi;
-/*
-template<class TYPE>
-class GlobalVar {
-public:
-
-	std::string stringID;
-	TYPE inputValue;
-	bool isEnd = false;
-
-	GlobalVar * first;
-	GlobalVar * next;
-
-	GlobalVar();
-	GlobalVar(std::string);
-
-	TYPE Val(void);
-};*/
 
 //Class stores all global values
 class Globals {

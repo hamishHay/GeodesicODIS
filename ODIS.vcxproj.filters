@@ -33,6 +33,9 @@
     <ClCompile Include="solver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="energy.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="field.h">
@@ -54,6 +57,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="verbose.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="energy.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
