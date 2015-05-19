@@ -11,13 +11,15 @@ Mass::Mass(Mesh * mesh, int lat, int lon, Globals * Consts, Field * Eta) : Field
 	UpdateMass();
 };
 
-void Mass::UpdateMass() {
+void Mass::UpdateMass(void) {
 
 	for (int i = 0; i < fieldLatLen; i++) {		
 		for (int j = 0; j < fieldLonLen; j++) {
 			UpdateCellMass(i, j);
 		}
 	}
+
+	UpdateTotalMass();
 };
 
 void Mass::UpdateCellMass(int i, int j) {

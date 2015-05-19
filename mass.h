@@ -8,15 +8,17 @@
 
 class Mass : public Field {
 private:
-	double totalMass=0;
-	void UpdateCellMass(int i, int j);
-public:
-	Mass(Mesh *, int, int, Globals * Consts, Field * Eta);
-
 	Globals * consts;
 	Field * eta;
 
+	double totalMass=0;
+
+	void UpdateCellMass(int i, int j);
 	void UpdateTotalMass(void);
+
+public:
+	Mass(Mesh *, int, int, Globals * Consts, Field * Eta);
+	
 	void UpdateMass();
 };
 

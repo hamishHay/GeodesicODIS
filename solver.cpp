@@ -4,13 +4,15 @@
 #include "mesh.h"
 #include "mathRoutines.h"
 #include "mass.h"
+#include "energy.h"
 #include <math.h>
 #include <iostream>
 #include <fstream>
 #include <iomanip>
 #include <string>
+#include <cstdio>
 
-Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradLon, Field * UGradLat, Field * VelU, Field * VelV, Field * Eta, Mass * MassField) {
+Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradLon, Field * UGradLat, Field * VelU, Field * VelV, Field * Eta, Mass * MassField, Energy * EnergyField) {
 	solverType = type;
 	dumpTime = dump;
 
@@ -23,6 +25,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 	v = VelV;
 	eta = Eta;
 	mass = MassField;
+	energy = EnergyField;
 
 	etaNew = new Field(grid,0,0);
 	uNew = new Field(grid,0,1);
@@ -215,10 +218,16 @@ void Solver::Explicit() {
 	double surfaceheight = 0;
 	int output = 0;
 
+	
+	int outputTime = 46080;
+	int inc = outputTime;
 	DumpSolutions(-1);
 
-	//Find total mass before calculations begin
-	mass->UpdateTotalMass();
+	//Update mass before calculations begin
+	mass->UpdateMass();
+
+	//Update cell energies and globally averaged energy
+	energy->UpdateKinE();
 	
 	while (simulationTime <= consts->endTime.Value()) {
 
@@ -290,20 +299,35 @@ void Solver::Explicit() {
 			etaNew->solution[0][j] = npoleSum;
 			etaNew->solution[etaNew->fieldLatLen - 1][j] = spoleSum;
 		}
+
+		//Overwite previous timestep solutions at end of iteration.
+		*eta = *etaNew;
+		*u = *uNew;
+		*v = *vNew;
+
 		
+
+		if (fmod(iteration, (outputTime / inc)) == 0) {
+			//Update mass
+			mass->UpdateMass();
+
+			//Update Kinetic Energy Field
+			energy->UpdateKinE();
+
+			//Update Globally Avergaed Kinetic Energy 
+			energy->UpdateDtKinEAvg();
+		}
+
 		//Check for output
-		if (fmod(iteration, 11520*4) == 0) {//11520/10/2
+		if (fmod(iteration, outputTime) == 0) {//11520/10/2
+			energy->UpdateOrbitalKinEAvg(inc);
+
 			std::cout << std::fixed << std::setprecision(2) << simulationTime / 86400.0 << " days: \t" << 100 * (simulationTime / consts->endTime.Value()) << "%\t" << output << std::endl;
 			DumpSolutions(output);
 			output++;
 		}
 		if (simulationTime >= iteration*consts->period.Value()) orbitNumber++;
 		iteration++;
-
-		//Overwite previous timestep solutions at end of iteration.
-		*eta = *etaNew;
-		*u = *uNew;
-		*v = *vNew;
 	}
 
 	
@@ -321,6 +345,8 @@ void Solver::DumpSolutions(int out_num) {
 
 	std::string path = "C:\\Users\\Hamish\\Google Drive\\LPL\\Icy Satellites\\Results\\Working\\";
 	if (out_num == -1) {
+
+		remove("C:\\Users\\Hamish\\Google Drive\\LPL\\Icy Satellites\\Results\\Working\\diss.txt");
 
 		std::ofstream uLat(path+"u_lat.txt", std::ofstream::out);
 		std::ofstream uLon(path+"u_lon.txt", std::ofstream::out);
@@ -345,6 +371,11 @@ void Solver::DumpSolutions(int out_num) {
 		//std::ofstream uLon("u_lon.txt", std::ofstream::out);
 		std::ofstream etaFile(path + "eta_" + out + ".txt", std::ofstream::out);
 		//std::ofstream dULonFile("dU_lon_" + out + ".txt", std::ofstream::out);
+
+		
+		std::ofstream dissFile(path + "diss.txt", std::ofstream::app);
+
+		dissFile << energy->orbitDissEAvg[energy->orbitDissEAvg.size() - 1] << std::endl;
 
 		//for (int j = 0; j < u->ReturnFieldLonLen(); j++) {
 		//	uLon << u->grid->lon[j * 2] << '\t';

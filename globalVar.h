@@ -23,8 +23,6 @@ public:
 		stringID = n;
 	};
 
-
-
 protected:
 	std::string stringID; //name of variable
 	std::string type; //variable type

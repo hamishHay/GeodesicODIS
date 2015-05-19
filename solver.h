@@ -5,6 +5,7 @@
 #include "globals.h"
 #include "mesh.h"
 #include "mass.h"
+#include "energy.h"
 
 class Solver {
 private:
@@ -26,12 +27,13 @@ public:
 	Field * v;
 	Field * u;
 	Mass * mass;
+	Energy * energy;
 
 	Field * etaNew;
 	Field * vNew;
 	Field * uNew;
 
-	Solver(int type, int dump, Globals *, Mesh *, Field *, Field*, Field *, Field *, Field *, Mass * mass);
+	Solver(int type, int dump, Globals *, Mesh *, Field *, Field*, Field *, Field *, Field *, Mass *, Energy *);
 
 	void Solve();
 	

@@ -8,6 +8,7 @@
 #include "globals.h"
 #include "solver.h"
 #include "mass.h"
+#include "energy.h"
 
 using namespace std;
 
@@ -31,9 +32,10 @@ void main(void)
 
 	//conserved quantities:
 	Mass * mass = new Mass(grid, 1, 1, constants, eta);
+	Energy * energy = new Energy(grid, 1, 1, constants, u, v, mass);
 
 	// Enter solver/time loop
-	Solver * solution = new Solver(0, 1, constants, grid, dUlon, dUlat,  u, v, eta, mass);
+	Solver * solution = new Solver(0, 1, constants, grid, dUlon, dUlat,  u, v, eta, mass, energy);
 	solution->Solve();
 	// Simulation end
 
