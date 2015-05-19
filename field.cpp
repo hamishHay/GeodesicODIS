@@ -142,14 +142,3 @@ double Field::NorthEastAvg(int i, int j) {
 	return (this->CenterP(i, j) + this->EastP(i, j) + this->NorthP(i, j) + this->NorthP(i, j + 1))*0.25;
 };
 
-
-double Field::forwDiffLat(int i, int j, double opt=1) {
-	//Forward difference: (x(i+1)-x(i))/dx
-	return (this->CenterP(i, j)*opt - this->SouthP(i, j)*opt) / (grid->CenterP(i*2, j*2)[0] - grid->SouthP(i*2, j*2)[0]);
-};
-
-double Field::forwDiffLon(int i, int j, double opt=1) {
-	//Forward difference: (y(j+1)-y(j))/dy
-	return (this->EastP(i, j)*opt - this->CenterP(i, j)*opt) / (grid->EastP(i*2, j*2)[1] - grid->CenterP(i*2, j*2)[1]);
-};
-

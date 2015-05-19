@@ -259,14 +259,6 @@ void Solver::Explicit() {
 				UpdateEastVel(i, j, lat, lon);
 			}
 		}
-		/*
-		for (int j = 0; j < eta->fieldLonLen; j++) {
-			//uNew->solution[1][j] = lagrangeInterp(uNew, 1, j);
-			//uNew->solution[u->fieldLatLen - 2][j] = lagrangeInterp(uNew, u->fieldLatLen - 2, j);
-			//vNew->solution[0][j] = linearInterp(vNew, 0, j);
-			//vNew->solution[v->fieldLatLen - 1][j] = linearInterp(vNew, v->fieldLatLen - 1, j);
-		}*/
-
 		
 		//Solve for eta 
 		for (int i = 1; i < eta->fieldLatLen-1; i++) {
@@ -363,26 +355,15 @@ void Solver::DumpSolutions(int out_num) {
 	else {
 		std::string out = std::to_string(out_num);
 
-		//std::string uVelString = "u_vel_" + out + ".txt";
-
 		std::ofstream uFile(path + "u_vel_" + out + ".txt", std::ofstream::out);
 		std::ofstream vFile(path + "v_vel_" + out + ".txt", std::ofstream::out);
-		//std::ofstream uLat("u_lat.txt", std::ofstream::out);
-		//std::ofstream uLon("u_lon.txt", std::ofstream::out);
 		std::ofstream etaFile(path + "eta_" + out + ".txt", std::ofstream::out);
-		//std::ofstream dULonFile("dU_lon_" + out + ".txt", std::ofstream::out);
-
 		
 		std::ofstream dissFile(path + "diss.txt", std::ofstream::app);
 
 		dissFile << energy->orbitDissEAvg[energy->orbitDissEAvg.size() - 1] << std::endl;
 
-		//for (int j = 0; j < u->ReturnFieldLonLen(); j++) {
-		//	uLon << u->grid->lon[j * 2] << '\t';
-		//}
-
 		for (int i = 0; i < u->ReturnFieldLatLen(); i++) {
-			//uLat << u->grid->lat[i * 2] << '\t';
 			for (int j = 0; j < u->ReturnFieldLonLen(); j++) {
 				uFile << uNew->solution[i][j] << '\t';
 				etaFile << etaNew->solution[i][j] << '\t';
@@ -392,7 +373,6 @@ void Solver::DumpSolutions(int out_num) {
 		}
 
 		for (int i = 0; i < v->fieldLatLen; i++) {
-			//uLat << u->grid->lat[i * 2] << '\t';
 			for (int j = 0; j < v->fieldLonLen; j++) {
 				vFile << vNew->solution[i][j] << '\t';
 			}

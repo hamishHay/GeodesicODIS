@@ -26,9 +26,6 @@ public:
 
 	Field(Mesh *,int,int); //Constructor 
 
-	double forwDiffLat(int,int,double);
-	double forwDiffLon(int,int,double);
-
 	int ReturnFieldLatLen();
 	int ReturnFieldLonLen();
 

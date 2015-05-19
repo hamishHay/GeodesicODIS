@@ -124,10 +124,6 @@ int Globals::ReadGlobals(void) {
 	bool valBool;
 	bool added=false;
 
-	//std::vector<double> allGlobals;
-
-	//allGlobals.push_back(radius.inputValue);
-
 	if (inputFile.is_open())
 	{
 		std::cout << "Found input file." << std::endl << std::endl;
@@ -182,7 +178,6 @@ int Globals::ReadGlobals(void) {
 			};
 		}
 		
-
 	}
 	else {
 		std::cout << "Unable to open 'input.in' file." << std::endl << std::endl;
