@@ -28,9 +28,9 @@ double lagrangeInterp(Field * field, int i, int j) {
 	}
 	//define x positions (i.e. colat) in radians
 	count = 1;
-	x[0] = (90 - field->lat[i]) * radConv;
+	x[0] = (90 - field->lat[i]);// *radConv;
 	for (int n = inc/abs(inc); abs(n) <= abs(inc*3); n+=inc) {
-		x[count] = (90 - field->lat[i+n]) * radConv;
+		x[count] = (90 - field->lat[i + n]);// *radConv;
 		count++;
 	}
 

@@ -130,7 +130,7 @@ double Field::SouthWestP(int i, int j){
 };
 
 double Field::SouthWestAvg(int i, int j) {
-	if (i == 0) return (this->CenterP(i, j) + this->SouthP(i, j) + this->WestP(i, j) + this->WestP(i + 1, j - 1))*0.25;//this->SouthP(i, j - 1))*0.5;
+	if (i == 0) return (this->CenterP(i, j) + this->SouthP(i, j) + this->WestP(i, j) + this->SouthP(i, j - 1))*0.25;//this->SouthP(i, j - 1))*0.5;
 	//else if (i == this->fieldLatLen - 1) return (this->CenterP(i, j) + this->SouthP(i, j) + this->WestP(i, j) + this->SouthP(i, j - 1))*0.25;
 	else return (this->CenterP(i, j) + this->SouthP(i, j) + this->WestP(i, j) + this->SouthP(i, j - 1))*0.25;
 	//return (this->CenterP(i, j) + this->SouthP(i, j) + this->WestP(i, j) + this->SouthP(i, j - 1))*0.5;

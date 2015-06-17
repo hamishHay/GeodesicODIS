@@ -101,24 +101,42 @@ void Solver::UpdateEastVel(int i, int j, double lat, double lon){
 
 	double eastEta = 0;
 	double westEta = 0;
-	/*
-	if (i == 0 || i == eta->fieldLatLen - 1) {
-		eastEta = eta->EastP(i, j);
-		westEta = eta->CenterP(i, j);
+
+	if (j == 0) {
+		westEta = eta->solution[i][eta->fieldLonLen - 1] + eta->solution[i][0];
+		eastEta = eta->solution[i][1] + eta->solution[i][2];
+	}
+	else if (j == eta->fieldLonLen - 2) {
+		westEta = eta->solution[i][j - 1] + eta->solution[i][j];
+		eastEta = eta->solution[i][j+1] + eta->solution[i][0];
+	}
+	else if (j == eta->fieldLonLen - 1) {
+		westEta = eta->solution[i][j-1] + eta->solution[i][j];
+		eastEta = eta->solution[i][0] + eta->solution[i][1];
+	}
+	else {
+		westEta = eta->solution[i][j-1] + eta->solution[i][j];
+		eastEta = eta->solution[i][j+1] + eta->solution[i][j+2];
+	}
+
+	
+	/*if (i == 1 || i == eta->fieldLatLen - 2) {
+		//eastEta = eta->EastP(i, j);
+		//westEta = eta->CenterP(i, j);
 		dSurfLon = (eastEta - westEta) / (eta->dLon*radConv);
 	}
 	else {
 		eastEta = (eta->EastP(i, j) + eta->EastP(i, j + 1))*0.5;
 		westEta = (eta->CenterP(i, j) + eta->WestP(i, j))*0.5;
 		dSurfLon = (eastEta - westEta) / (2*eta->dLon*radConv);
-	}*/
+	}
 	//eastEta = (eta->EastP(i, j) + eta->EastP(i, j + 1))*0.5;
 	//westEta = (eta->CenterP(i, j) + eta->WestP(i, j))*0.5;
-	eastEta = eta->EastP(i, j);
-	westEta = eta->CenterP(i, j);
+	//eastEta = eta->EastP(i, j);
+	//westEta = eta->CenterP(i, j);*/
 
 
-	dSurfLon = (eastEta - westEta) / (eta->dLon*radConv);
+	dSurfLon = (eastEta*0.5 - westEta*0.5) / (2*eta->dLon*radConv);
 
 	surfHeight = (consts->g.Value() / (consts->radius.Value()*cos(lat)))*dSurfLon;
 
@@ -138,21 +156,25 @@ void Solver::UpdateNorthVel(int i, int j, double lat, double lon){
 	
 	/*
 	if (i == 0){
-		northEta = (eta->CenterP(i, j) + eta->CenterP(i, eta->opp[j]))*0.5;
+		//northEta = (eta->CenterP(i, j) + eta->CenterP(i, eta->opp[j]))*0.5;
+		northEta = (eta->solution[i][j] + eta->solution[i+1][eta->opp[j]])*0.5;
 		//northEta = eta->CenterP(i, j);
 		//southEta = eta->SouthP(i, j);
 		//dSurfLat = (northEta - southEta) / (eta->dLat*radConv);
 
 	}
 	else {
-		northEta = (eta->CenterP(i, j) + eta->NorthP(i, j))*0.5;
+		//northEta = (eta->CenterP(i, j) + eta->NorthP(i, j))*0.5;
+		northEta = (eta->solution[i][j] + eta->solution[i-1][j])*0.5;
 	}
 	if (i == v->fieldLatLen - 1){
-		southEta = (eta->CenterP(i + 1, j) + eta->SouthP(i+1, j))*0.5;
-		//northEta = eta->CenterP(i,j)
+		//southEta = (eta->CenterP(i + 1, j) + eta->SouthP(i+1, j))*0.5;
+		southEta = (eta->solution[i + 1][j] + eta->solution[i][eta->opp[j]])*0.5;
 	}
-	else southEta = (eta->SouthP(i, j) + eta->SouthP(i + 1, j))*0.5;*/
-
+	else {
+		//southEta = (eta->SouthP(i, j) + eta->SouthP(i + 1, j))*0.5;
+		southEta = (eta->solution[i + 1][j] + eta->solution[i + 2][j])*0.5;
+	}*/
 	northEta = eta->CenterP(i, j);
 	southEta = eta->SouthP(i, j);
 
@@ -177,41 +199,72 @@ void Solver::UpdateSurfaceHeight(int i, int j, double lat, double lon){
 	double southv = 0;
 	double eastu = 0;
 	double westu = 0;
-
+	/*
+	//CentralDifferencing
 	if (i == 0) {
-		northv = vNew->NorthP(i, j)*cos(v->lat[i] * radConv);
-		//northv = (vNew->NorthP(i, j)*cos(v->lat[i] * radConv) + vNew->NorthP(i - 1, j)*cos(v->lat[i+1] * radConv))*0.5;
+		northv = (vNew->solution[i][v->opp[j]] * cos(v->lat[i] * radConv) + vNew->solution[i + 1][v->opp[j]] * cos(v->lat[i + 1] * radConv))*0.5;
 	}
-	//else if (i == 1) {
-	//	northv = (vNew->CenterP(i - 1, j)*cos(v->lat[i - 1] * radConv) + vNew->NorthP(i - 1, j)*cos(v->lat[i - 1] * radConv))*0.5;
-	//}
+	else if (i == 1) {
+		northv = (vNew->solution[i - 1][j] * cos(v->lat[i - 1] * radConv) + vNew->solution[i-1][v->opp[j]] * cos(v->lat[i - 1] * radConv))*0.5;
+	}
 	else {
-		northv = vNew->CenterP(i-1, j)*cos(v->lat[i - 1] * radConv);
-		//northv = (vNew->CenterP(i - 1, j)*cos(v->lat[i - 1] * radConv) + vNew->NorthP(i - 1, j)*cos(v->lat[i - 2] * radConv))*0.5;
+		northv = (vNew->solution[i - 1][j] * cos(v->lat[i - 1] * radConv) + vNew->solution[i - 2][j] * cos(v->lat[i - 2] * radConv))*0.5;
 	}
 
 	if (i == v->fieldLatLen - 1) { 
+		southv = (vNew->solution[i][j] * cos(v->lat[i] * radConv) + vNew->solution[i][v->opp[j]] * cos(v->lat[i] * radConv))*0.5;
+	}
+	else if (i == v->fieldLatLen) {
+		southv = (vNew->solution[i-1][v->opp[j]] * cos(v->lat[i - 1] * radConv) + vNew->solution[i-2][v->opp[j]] * cos(v->lat[i - 2] * radConv))*0.5;
+	}
+	else {
+		southv = (vNew->solution[i][j] * cos(v->lat[i] * radConv) + vNew->solution[i+1][j] * cos(v->lat[i + 1] * radConv))*0.5;
+	}*/
+
+	//NormalDifferencing
+	if (i == 0) {
+		northv = vNew->NorthP(i, j)*cos(v->lat[i] * radConv);
+	}
+	else {
+		northv = vNew->CenterP(i-1, j)*cos(v->lat[i - 1] * radConv);
+	}
+
+	if (i == v->fieldLatLen - 1) {
 		southv = vNew->CenterP(i, j)*cos(v->lat[i] * radConv);
-		//southv = (vNew->CenterP(i, j)*cos(v->lat[i] * radConv) + vNew->SouthP(i, j)*cos(v->lat[i] * radConv))*0.5;
 	}
 	else if (i == v->fieldLatLen) {
 		southv = vNew->SouthP(i -1 , j)*cos(v->lat[i - 1] * radConv);
-		//southv = (vNew->SouthP(i-1, j)*cos(v->lat[i - 1] * radConv) + vNew->SouthP(i-2, j)*cos(v->lat[i - 2] * radConv))*0.5;
 	}
 	else {
 		southv = vNew->CenterP(i, j)*cos(v->lat[i] * radConv);
-		//southv = (vNew->CenterP(i, j)*cos(v->lat[i] * radConv)+vNew->SouthP(i,j)*cos(v->lat[i+1]*radConv))*0.5;
 	}
 
 	vGrad = (northv - southv)/(v->dLat*radConv);
 
+	if (j == 0) {
+		westu = uNew->solution[i][uNew->fieldLonLen - 1] + uNew->solution[i][uNew->fieldLonLen - 2];
+		eastu = uNew->solution[i][0] + uNew->solution[i][1];
+	}
+	else if (j == 1) {
+		westu = uNew->solution[i][uNew->fieldLonLen - 1] + uNew->solution[i][0];
+		eastu = uNew->solution[i][j] + uNew->solution[i][j+1];
+	}
+	else if (j == uNew->fieldLonLen - 1) {
+		westu = uNew->solution[i][j - 2] + uNew->solution[i][j-1];
+		eastu = uNew->solution[i][j] + uNew->solution[i][0];
+	}
+	else {
+		westu = uNew->solution[i][j - 2] + uNew->solution[i][j-1];
+		eastu = uNew->solution[i][j] + uNew->solution[i][j + 1];
+	}
+
 	//eastu = (uNew->CenterP(i, j) + uNew->EastP(i, j))*0.5;
 	//westu = (uNew->WestP(i, j) + uNew->WestP(i, j-1))*0.5;
 
-	eastu = uNew->CenterP(i, j);
-	westu = uNew->WestP(i, j);
+	//eastu = uNew->CenterP(i, j);
+	//westu = uNew->WestP(i, j);
 
-	uGrad = (eastu - westu) / (u->dLon*radConv);
+	uGrad = (eastu*0.5 - westu*0.5) / (2*u->dLon*radConv);
 
 	etaNew->solution[i][j] = consts->h.Value() / (consts->radius.Value()*cos(lat))*(-vGrad - uGrad)*consts->timeStep.Value() + eta->solution[i][j];
 
