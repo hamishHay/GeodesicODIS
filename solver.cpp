@@ -65,7 +65,7 @@ void Solver::UpdateEccPotential() {
 	double B = consts->angVel.Value()*simulationTime;
 
 	//CHECK FOR ECCENTRICITY OR OBLIQUITY!
-	double potential = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->e.Value();//consts->theta.Value();//
+	double potential = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->theta.Value();//consts->theta.Value();//
 
 	for (int i = 0; i < dUlat->fieldLatLen; i++) {
 		lat = dUlat->lat[i] * radConv;
@@ -101,7 +101,7 @@ void Solver::UpdateEastVel(int i, int j, double lat, double lon){
 
 	double eastEta = 0;
 	double westEta = 0;
-
+	/*
 	if (j == 0) {
 		westEta = eta->solution[i][eta->fieldLonLen - 1] + eta->solution[i][0];
 		eastEta = eta->solution[i][1] + eta->solution[i][2];
@@ -117,7 +117,7 @@ void Solver::UpdateEastVel(int i, int j, double lat, double lon){
 	else {
 		westEta = eta->solution[i][j-1] + eta->solution[i][j];
 		eastEta = eta->solution[i][j+1] + eta->solution[i][j+2];
-	}
+	}*/
 
 	
 	/*if (i == 1 || i == eta->fieldLatLen - 2) {
@@ -131,12 +131,12 @@ void Solver::UpdateEastVel(int i, int j, double lat, double lon){
 		dSurfLon = (eastEta - westEta) / (2*eta->dLon*radConv);
 	}
 	//eastEta = (eta->EastP(i, j) + eta->EastP(i, j + 1))*0.5;
-	//westEta = (eta->CenterP(i, j) + eta->WestP(i, j))*0.5;
-	//eastEta = eta->EastP(i, j);
-	//westEta = eta->CenterP(i, j);*/
+	//westEta = (eta->CenterP(i, j) + eta->WestP(i, j))*0.5;*/
+	eastEta = eta->EastP(i, j);
+	westEta = eta->CenterP(i, j);
 
 
-	dSurfLon = (eastEta - westEta) / (4*eta->dLon*radConv);
+	dSurfLon = (eastEta - westEta) / (eta->dLon*radConv);
 
 	surfHeight = (consts->g.Value() / (consts->radius.Value()*cos(lat)))*dSurfLon;
 
@@ -238,6 +238,7 @@ void Solver::UpdateSurfaceHeight(int i, int j, double lat, double lon){
 
 	vGrad = (northv - southv)/(v->dLat*radConv);
 
+	/*
 	if (j == 0) {
 		westu = uNew->solution[i][uNew->fieldLonLen - 1] + uNew->solution[i][uNew->fieldLonLen - 2];
 		eastu = uNew->solution[i][0] + uNew->solution[i][1];
@@ -253,15 +254,15 @@ void Solver::UpdateSurfaceHeight(int i, int j, double lat, double lon){
 	else {
 		westu = uNew->solution[i][j - 2] + uNew->solution[i][j-1];
 		eastu = uNew->solution[i][j] + uNew->solution[i][j + 1];
-	}
+	}*/
 
 	//eastu = (uNew->CenterP(i, j) + uNew->EastP(i, j))*0.5;
 	//westu = (uNew->WestP(i, j) + uNew->WestP(i, j-1))*0.5;
 
-	//eastu = uNew->CenterP(i, j);
-	//westu = uNew->WestP(i, j);
+	eastu = uNew->CenterP(i, j);
+	westu = uNew->WestP(i, j);
 
-	uGrad = (eastu - westu) / (4*u->dLon*radConv);
+	uGrad = (eastu - westu) / (u->dLon*radConv);
 
 	etaNew->solution[i][j] = consts->h.Value() / (consts->radius.Value()*cos(lat))*(-vGrad - uGrad)*consts->timeStep.Value() + eta->solution[i][j];
 
@@ -291,7 +292,7 @@ void Solver::Explicit() {
 	//Update cell energies and globally averaged energy
 	energy->UpdateKinE();
 	
-	while (simulationTime <= consts->endTime.Value()) {
+	while (simulationTime <= consts->endTime.Value() && !energy->converged) {
 
 		UpdateEccPotential();
 
@@ -370,17 +371,23 @@ void Solver::Explicit() {
 
 			//Update Globally Avergaed Kinetic Energy 
 			energy->UpdateDtKinEAvg();
+
+			
 		}
 
 		//Check for output
 		if (fmod(iteration, outputTime) == 0) {//11520/10/2
 			energy->UpdateOrbitalKinEAvg(inc);
+			//std::cout << energy->isConverged;
+
+			//Check for convergence
+			if (orbitNumber>2) energy->IsConverged();
 
 			std::cout << std::fixed << std::setprecision(2) << simulationTime / 86400.0 << " days: \t" << 100 * (simulationTime / consts->endTime.Value()) << "%\t" << output << std::endl;
 			DumpSolutions(output);
 			output++;
 		}
-		if (simulationTime >= iteration*consts->period.Value()) orbitNumber++;
+		if (fmod(iteration, consts->period.Value()/consts->timeStep.Value()) == 0) orbitNumber++;
 		iteration++;
 	}
 

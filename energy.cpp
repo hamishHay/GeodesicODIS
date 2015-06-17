@@ -4,6 +4,10 @@
 #include "globals.h"
 #include <math.h>
 
+#include <iostream>
+#include <fstream>
+#include <iomanip>
+
 Energy::Energy(Mesh * mesh, int lat, int lon, Globals * Consts, Field * UVel, Field * VVel, Mass * MassField) : Field (mesh, lat, lon) 
 {
 	consts = Consts;
@@ -78,6 +82,14 @@ void Energy::UpdateOrbitalDissEAvg(void) {
 		orbitDissEAvg[orbitKinEAvg.size() - 1] = 2*orbitKinEAvg[orbitKinEAvg.size() - 1]*consts->alpha.Value();
 	}
 
+};
+
+void Energy::IsConverged(void) {
+	if (abs(orbitDissEAvg[orbitKinEAvg.size() - 1] - orbitDissEAvg[orbitKinEAvg.size() - 2]) < 1e-9) converged = true;
+
+	printf("Resdiual: %1.4e \n", abs(orbitDissEAvg[orbitKinEAvg.size() - 1] - orbitDissEAvg[orbitKinEAvg.size() - 2]));
+
+	if (converged) std::cout << "Convergence criteria met.";
 };
 
 

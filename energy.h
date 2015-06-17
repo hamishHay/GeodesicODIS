@@ -29,6 +29,8 @@ private:
 
 public:
 	Energy(Mesh*, int, int, Globals *, Field *, Field *, Mass *);
+
+	bool converged = false;
 	
 	//vector of length n/(period/dt*1000), for average kinetic energy for n timesteps in one orbit.
 	std::vector<double> dtKinEAvg;
@@ -48,6 +50,8 @@ public:
 	//Function finds orbtially and globally averaged kinetic energy at end of the simulation for
 	//the last whole orbit complete
 	void UpdateOrbitalKinEAvg(int inc);
+
+	void IsConverged(void);
 	
 };
 /*

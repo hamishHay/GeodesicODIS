@@ -44,8 +44,8 @@ Globals::Globals(int action) {
 		alpha.SetValue(2.28e-7);
 
 		//Lat and long spacing
-		dLat.SetValue(3);
-		dLon.SetValue(3);
+		dLat.SetValue(2);
+		dLon.SetValue(2);
 
 		//Orbital period
 		period.SetValue(16 * 24 * 60 * 60);
