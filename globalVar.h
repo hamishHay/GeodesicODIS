@@ -55,7 +55,7 @@ public:
 		val = n;
 	};
 
-	T Value(void) {
+	inline T Value(void) {
 		return val;
 	};
 

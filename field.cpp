@@ -57,7 +57,6 @@ int Field::ReturnFieldLonLen(){
 double Field::CenterP(int lat, int lon){
 	if (lat < 0) return NorthP(lat, lon);
 	if (lat >= this->fieldLatLen) return SouthP(lat, lon);
-	double val = solution[lat][lon];
 	return solution[lat][lon];
 };
 
@@ -119,7 +118,7 @@ double Field::SouthP(int lat, int lon){
 	else if (lon < 0) {
 		return solution[lat + 1][(this->fieldLonLen - 1)];
 	}
-	else if (lon > this->fieldLonLen - 1) {
+	else if (lon > (this->fieldLonLen - 1)) {
 		return solution[lat + 1][0];
 	}
 	return solution[lat + 1][lon];
@@ -131,8 +130,8 @@ double Field::SouthWestP(int i, int j){
 };
 
 double Field::SouthWestAvg(int i, int j) {
-	if (i == 0) return (this->CenterP(i, j) + this->SouthP(i, j) + this->WestP(i, j) + this->WestP(i + 1, j - 1))*0.5;//this->SouthP(i, j - 1))*0.5;
-	else if (i == this->fieldLatLen - 1) return (this->CenterP(i, j) + this->SouthP(i, j) + this->WestP(i, j) + this->SouthP(i, j - 1))*0.25;
+	if (i == 0) return (this->CenterP(i, j) + this->SouthP(i, j) + this->WestP(i, j) + this->WestP(i + 1, j - 1))*0.25;//this->SouthP(i, j - 1))*0.5;
+	//else if (i == this->fieldLatLen - 1) return (this->CenterP(i, j) + this->SouthP(i, j) + this->WestP(i, j) + this->SouthP(i, j - 1))*0.25;
 	else return (this->CenterP(i, j) + this->SouthP(i, j) + this->WestP(i, j) + this->SouthP(i, j - 1))*0.25;
 	//return (this->CenterP(i, j) + this->SouthP(i, j) + this->WestP(i, j) + this->SouthP(i, j - 1))*0.5;
 };

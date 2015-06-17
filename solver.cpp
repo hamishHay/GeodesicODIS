@@ -65,31 +65,31 @@ void Solver::UpdateEccPotential() {
 	double B = consts->angVel.Value()*simulationTime;
 
 	//CHECK FOR ECCENTRICITY OR OBLIQUITY!
-	double potential = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->theta.Value();
+	double potential = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->e.Value();//consts->theta.Value();//
 
 	for (int i = 0; i < dUlat->fieldLatLen; i++) {
 		lat = dUlat->lat[i] * radConv;
 		for (int j = 0; j < dUlat->fieldLonLen; j++) {
 			lon = dUlat->lon[j] * radConv;
 			//dUlat->solution[i][j] = potential*(-9.*sin(2*lat)*cos(B)); // P20
-			//dUlat->solution[i][j] = potential*(- 1.5*sin(2*lat) * (7 * cos(2*lon - B) - cos(2*lon + B))); //P22 Negative sign necessary because of diff between finite diff grad sign and analytic sign
-			dUlat->solution[i][j] = -6 * potential*cos(2 * lat)*(cos(lon - B) + cos(lon + B)); //P21 cos(2*lat)*
+			dUlat->solution[i][j] = potential*(- 1.5*sin(2*lat) * (7 * cos(2*lon - B) - cos(2*lon + B))); //P22 Negative sign necessary because of diff between finite diff grad sign and analytic sign
+			//dUlat->solution[i][j] = -6 * potential*cos(2 * lat)*(cos(lon - B) + cos(lon + B)); //P21 cos(2*lat)*
 			//dUlat->solution[i][j] = 0.25*pow(consts->angVel, 2)*pow(consts->radius, 2)*consts->theta*-6 *cos(2 * lat)*(cos(lon - B) + cos(lon + B));
 			//dUlat->solution[i][j] += 0.25*pow(consts->angVel, 2)*pow(consts->radius, 2)*consts->e*(-9.*sin(2 * lat)*cos(B));
 			//dUlat->solution[i][j] += 0.25*pow(consts->angVel, 2)*pow(consts->radius, 2)*consts->e*(-1.5*sin(2 * lat) * (7 * cos(2 * lon - B) - cos(2 * lon + B)));
 		}
 	}
-		// Skip for P20 only as dUlon = 0;
-		for (int i = 0; i < dUlon->fieldLatLen; i++) {
-			lat = dUlon->lat[i] * radConv;
-			for (int j = 0; j < dUlon->fieldLonLen; j++) {
-				lon = dUlon->lon[j] * radConv;
-				//dUlon->solution[i][j] = potential *3* pow(cos(lat), 2)*(-7 * sin(2*lon - B) + sin(2*lon + B)); //P22
-				dUlon->solution[i][j] = 3 * potential * sin(2*lat)*(sin(lon - B) + sin(lon + B)); //P21
-				//dUlon->solution[i][j] = 0.25*pow(consts->angVel, 2)*pow(consts->radius, 2)*consts->theta * 3 * sin(2 * lat)*(sin(lon - B) + sin(lon + B));
-				//dUlon->solution[i][j] += 0.25*pow(consts->angVel, 2)*pow(consts->radius, 2)*consts->e * 3 * pow(cos(lat), 2)*(-7 * sin(2 * lon - B) + sin(2 * lon + B));
-			}
+	// Skip for P20 only as dUlon = 0;
+	for (int i = 0; i < dUlon->fieldLatLen; i++) {
+		lat = dUlon->lat[i] * radConv;
+		for (int j = 0; j < dUlon->fieldLonLen; j++) {
+			lon = dUlon->lon[j] * radConv;
+			dUlon->solution[i][j] = potential *3* pow(cos(lat), 2)*(-7 * sin(2*lon - B) + sin(2*lon + B)); //P22
+			//dUlon->solution[i][j] = 3 * potential * sin(2*lat)*(sin(lon - B) + sin(lon + B)); //P21
+			//dUlon->solution[i][j] = 0.25*pow(consts->angVel, 2)*pow(consts->radius, 2)*consts->theta * 3 * sin(2 * lat)*(sin(lon - B) + sin(lon + B));
+			//dUlon->solution[i][j] += 0.25*pow(consts->angVel, 2)*pow(consts->radius, 2)*consts->e * 3 * pow(cos(lat), 2)*(-7 * sin(2 * lon - B) + sin(2 * lon + B));
 		}
+	}
 }
 
 void Solver::UpdateEastVel(int i, int j, double lat, double lon){
@@ -101,7 +101,17 @@ void Solver::UpdateEastVel(int i, int j, double lat, double lon){
 
 	double eastEta = 0;
 	double westEta = 0;
-
+	/*
+	if (i == 0 || i == eta->fieldLatLen - 1) {
+		eastEta = eta->EastP(i, j);
+		westEta = eta->CenterP(i, j);
+		dSurfLon = (eastEta - westEta) / (eta->dLon*radConv);
+	}
+	else {
+		eastEta = (eta->EastP(i, j) + eta->EastP(i, j + 1))*0.5;
+		westEta = (eta->CenterP(i, j) + eta->WestP(i, j))*0.5;
+		dSurfLon = (eastEta - westEta) / (2*eta->dLon*radConv);
+	}*/
 	//eastEta = (eta->EastP(i, j) + eta->EastP(i, j + 1))*0.5;
 	//westEta = (eta->CenterP(i, j) + eta->WestP(i, j))*0.5;
 	eastEta = eta->EastP(i, j);
@@ -149,10 +159,12 @@ void Solver::UpdateNorthVel(int i, int j, double lat, double lon){
 	dSurfLat = (northEta - southEta) / (eta->dLat*radConv);
 	
 	surfHeight = (consts->g.Value() / consts->radius.Value())*dSurfLat;
-	if (i == v->fieldLatLen - 1) {
-		coriolis = 2. * consts->angVel.Value()*sin(lat)*(u->CenterP(i, j) + u->WestP(i, j))*0.5;
-	}
-	else coriolis = 2. * consts->angVel.Value()*sin(lat)*u->SouthWestAvg(i, j);
+	//if (i == v->fieldLatLen - 1) {
+	//	coriolis = 2. * consts->angVel.Value()*sin(lat)*(u->CenterP(i, j) + u->WestP(i, j))*0.25;
+	//}
+	//else 
+		
+	coriolis = 2. * consts->angVel.Value()*sin(lat)*u->SouthWestAvg(i, j);
 	
 	tidalForce = consts->loveReduct.Value()*(1. / consts->radius.Value())* dUlat->solution[i][j];
 	vNew->solution[i][j] = (-coriolis - surfHeight + tidalForce - v->solution[i][j] * consts->alpha.Value())*consts->timeStep.Value() + v->solution[i][j];
@@ -219,7 +231,7 @@ void Solver::Explicit() {
 	int output = 0;
 
 	
-	int outputTime = 46080;
+	int outputTime = 34560;
 	int inc = outputTime;
 	DumpSolutions(-1);
 
@@ -236,7 +248,7 @@ void Solver::Explicit() {
 		simulationTime = simulationTime + consts->timeStep.Value();
 		
 		//Solve for v
-		for (int i = 1; i < v->fieldLatLen-1; i++) {
+		for (int i = 0; i < v->fieldLatLen; i++) {
 			lat = v->lat[i]* radConv;
 			for (int j = 0; j < v->fieldLonLen; j++) {
 				lon = v->lon[j] * radConv;
@@ -261,7 +273,7 @@ void Solver::Explicit() {
 		}
 		
 		//Solve for eta 
-		for (int i = 1; i < eta->fieldLatLen-1; i++) {
+		for (int i = 0; i < eta->fieldLatLen; i++) {
 			lat = eta->lat[i] * radConv;
 			for (int j = 0; j < eta->fieldLonLen; j++) {
 				lon = eta->lon[j] * radConv;
@@ -301,7 +313,7 @@ void Solver::Explicit() {
 
 		if (fmod(iteration, (outputTime / inc)) == 0) {
 			//Update mass
-			mass->UpdateMass();
+			//mass->UpdateMass();
 
 			//Update Kinetic Energy Field
 			energy->UpdateKinE();

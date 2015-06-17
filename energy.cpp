@@ -15,9 +15,9 @@ Energy::Energy(Mesh * mesh, int lat, int lon, Globals * Consts, Field * UVel, Fi
 void Energy::UpdateKinE(void) {
 	//double cellMass = 0.;
 
-	for (int i = 0; i < fieldLatLen; i++) {
+	for (int i = 0; i < fieldLatLen-1; i++) {
 		for (int j = 0; j < fieldLonLen; j++) {
-			this->solution[i][j] = 0.5*mass->solution[i][j] * (pow(u->solution[i][j], 2) + pow(v->solution[i][j], 2));
+			this->solution[i][j] = 0.5*mass->solution[i][j]* (pow(u->solution[i][j], 2) + pow(v->solution[i][j], 2));
 		}
 	}
 };
@@ -29,13 +29,13 @@ void Energy::UpdateDtKinEAvg(void) {
 	//kineticSum += this->solution[0][0];
 	//kineticSum += this->solution[this->fieldLatLen-1][0];
 	
-	for (int i = 0; i < fieldLatLen; i++) {
+	for (int i = 0; i < fieldLatLen-1; i++) {
 		for (int j = 0; j < fieldLonLen; j++) {
 			kineticSum += this->solution[i][j];
 		}
 	}
-
-	dtKinEAvg.push_back(kineticSum / (4 * pi*consts->radius.Value()*consts->radius.Value())); //Joules per meter^2
+	//kineticSum = kineticSum*(4 / 3)*pi*(pow((consts->radius.Value() + consts->h.Value()), 3) - pow(consts->radius.Value(), 3));
+	dtKinEAvg.push_back(kineticSum / (4 * pi*pow((consts->radius.Value()+consts->h.Value()),2))); //Joules per meter^2
 
 
 	//Automatically update dissipation - ensures vectors of samelength
@@ -48,7 +48,7 @@ void Energy::UpdateDtDissEAvg(void) {
 	switch (dissMode) {
 		//Linear dissipation
 	case 0:
-		dtDissEAvg[dtKinEAvg.size() - 1] = dtKinEAvg[dtKinEAvg.size() - 1] * consts->alpha.Value(); //Joules per meter
+		dtDissEAvg[dtKinEAvg.size() - 1] = 2 * dtKinEAvg[dtKinEAvg.size() - 1] * consts->alpha.Value(); //Joules per meter
 	}
 };
 
@@ -75,7 +75,7 @@ void Energy::UpdateOrbitalDissEAvg(void) {
 	switch (dissMode) {
 		//Linear dissipation
 	case 0:
-		orbitDissEAvg[orbitKinEAvg.size() - 1] = orbitKinEAvg[orbitKinEAvg.size() - 1];// *consts->alpha.Value();
+		orbitDissEAvg[orbitKinEAvg.size() - 1] = 2*orbitKinEAvg[orbitKinEAvg.size() - 1]*consts->alpha.Value();
 	}
 
 };

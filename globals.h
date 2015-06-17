@@ -13,25 +13,6 @@ extern double radConv;
 //Class stores all global values
 class Globals {
 public:
-	/*
-	double angVel;
-	double radius; //Object Radius
-	double loveK2; // k_2 Love Number
-	double loveH2; // h_2 Love Number
-	double loveReduct; //Love's reduction factor
-	double h; //Ocean thickness
-	double g; //Surface Gravity
-	double a; //SemiMajor Axis
-	double e; //Eccentricity
-	double theta; //obliquity
-	double timeStep;
-	double alpha;
-	double dLat;
-	double dLon;
-	double period;
-	int endTime; //End time, in unit of orbits
-	*/
-
 	std::vector<IGlobalVar *> allGlobals;
 	
 	GlobalVar<double> angVel;

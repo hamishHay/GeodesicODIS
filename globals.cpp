@@ -6,7 +6,7 @@
 #include <iostream>
 #include <algorithm>
 
-double pi = 3.1415926535897932384626433832795028841971693993751058;
+double pi = 3.1415926535897932384626433832795028841971693993751058; //change for derrick
 double radConv = pi / 180;
 
 Globals::Globals() :Globals(1) {};
@@ -44,20 +44,20 @@ Globals::Globals(int action) {
 		alpha.SetValue(2.28e-7);
 
 		//Lat and long spacing
-		dLat.SetValue(3);
-		dLon.SetValue(3);
+		dLat.SetValue(5);
+		dLon.SetValue(5);
 
 		//Orbital period
 		period.SetValue(16 * 24 * 60 * 60);
 
 		//Time step
-		timeStep.SetValue(30.);
+		timeStep.SetValue(40.);
 
 		//Angular velocity
 		angVel.SetValue(2 * pi / period.Value());
 
 		//Simulation end time
-		endTime.SetValue(80 * period.Value());
+		endTime.SetValue(45 * period.Value());
 	}
 	else {
 		//Append variable IDs;
