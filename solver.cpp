@@ -72,20 +72,20 @@ void Solver::UpdateEccPotential() {
 		for (int j = 0; j < dUlat->fieldLonLen; j++) {
 			lon = dUlat->lon[j] * radConv;
 			//dUlat->solution[i][j] = potential*(-9.*sin(2*lat)*cos(B)); // P20
-			dUlat->solution[i][j] = potential*(- 1.5*sin(2*lat) * (7 * cos(2*lon - B) - cos(2*lon + B))); //P22 Negative sign necessary because of diff between finite diff grad sign and analytic sign
-			//dUlat->solution[i][j] = -6 * potential*cos(2 * lat)*(cos(lon - B) + cos(lon + B)); //P21 cos(2*lat)*
+			//dUlat->solution[i][j] = potential*(- 1.5*sin(2*lat) * (7 * cos(2*lon - B) - cos(2*lon + B))); //P22 Negative sign necessary because of diff between finite diff grad sign and analytic sign
+			dUlat->solution[i][j] = -6 * potential*cos(2 * lat)*(cos(lon - B) + cos(lon + B)); //P21 cos(2*lat)*
 			//dUlat->solution[i][j] = 0.25*pow(consts->angVel, 2)*pow(consts->radius, 2)*consts->theta*-6 *cos(2 * lat)*(cos(lon - B) + cos(lon + B));
 			//dUlat->solution[i][j] += 0.25*pow(consts->angVel, 2)*pow(consts->radius, 2)*consts->e*(-9.*sin(2 * lat)*cos(B));
 			//dUlat->solution[i][j] += 0.25*pow(consts->angVel, 2)*pow(consts->radius, 2)*consts->e*(-1.5*sin(2 * lat) * (7 * cos(2 * lon - B) - cos(2 * lon + B)));
 		}
-	}
+	} 
 	// Skip for P20 only as dUlon = 0;
 	for (int i = 0; i < dUlon->fieldLatLen; i++) {
 		lat = dUlon->lat[i] * radConv;
 		for (int j = 0; j < dUlon->fieldLonLen; j++) {
 			lon = dUlon->lon[j] * radConv;
-			dUlon->solution[i][j] = potential *3* pow(cos(lat), 2)*(-7 * sin(2*lon - B) + sin(2*lon + B)); //P22
-			//dUlon->solution[i][j] = 3 * potential * sin(2*lat)*(sin(lon - B) + sin(lon + B)); //P21
+			//dUlon->solution[i][j] = potential *3* pow(cos(lat), 2)*(-7 * sin(2*lon - B) + sin(2*lon + B)); //P22
+			dUlon->solution[i][j] = 3 * potential * sin(2*lat)*(sin(lon - B) + sin(lon + B)); //P21
 			//dUlon->solution[i][j] = 0.25*pow(consts->angVel, 2)*pow(consts->radius, 2)*consts->theta * 3 * sin(2 * lat)*(sin(lon - B) + sin(lon + B));
 			//dUlon->solution[i][j] += 0.25*pow(consts->angVel, 2)*pow(consts->radius, 2)*consts->e * 3 * pow(cos(lat), 2)*(-7 * sin(2 * lon - B) + sin(2 * lon + B));
 		}
@@ -136,7 +136,7 @@ void Solver::UpdateEastVel(int i, int j, double lat, double lon){
 	//westEta = eta->CenterP(i, j);*/
 
 
-	dSurfLon = (eastEta*0.5 - westEta*0.5) / (2*eta->dLon*radConv);
+	dSurfLon = (eastEta - westEta) / (4*eta->dLon*radConv);
 
 	surfHeight = (consts->g.Value() / (consts->radius.Value()*cos(lat)))*dSurfLon;
 
@@ -175,16 +175,13 @@ void Solver::UpdateNorthVel(int i, int j, double lat, double lon){
 		//southEta = (eta->SouthP(i, j) + eta->SouthP(i + 1, j))*0.5;
 		southEta = (eta->solution[i + 1][j] + eta->solution[i + 2][j])*0.5;
 	}*/
+
 	northEta = eta->CenterP(i, j);
 	southEta = eta->SouthP(i, j);
 
 	dSurfLat = (northEta - southEta) / (eta->dLat*radConv);
 	
 	surfHeight = (consts->g.Value() / consts->radius.Value())*dSurfLat;
-	//if (i == v->fieldLatLen - 1) {
-	//	coriolis = 2. * consts->angVel.Value()*sin(lat)*(u->CenterP(i, j) + u->WestP(i, j))*0.25;
-	//}
-	//else 
 		
 	coriolis = 2. * consts->angVel.Value()*sin(lat)*u->SouthWestAvg(i, j);
 	
@@ -264,7 +261,7 @@ void Solver::UpdateSurfaceHeight(int i, int j, double lat, double lon){
 	//eastu = uNew->CenterP(i, j);
 	//westu = uNew->WestP(i, j);
 
-	uGrad = (eastu*0.5 - westu*0.5) / (2*u->dLon*radConv);
+	uGrad = (eastu - westu) / (4*u->dLon*radConv);
 
 	etaNew->solution[i][j] = consts->h.Value() / (consts->radius.Value()*cos(lat))*(-vGrad - uGrad)*consts->timeStep.Value() + eta->solution[i][j];
 
