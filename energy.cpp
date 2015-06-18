@@ -2,6 +2,7 @@
 #include "energy.h"
 #include "mass.h"
 #include "globals.h"
+#include "verbose.h"
 #include <math.h>
 
 #include <iostream>
@@ -85,7 +86,26 @@ void Energy::UpdateOrbitalDissEAvg(void) {
 };
 
 void Energy::IsConverged(void) {
-	if (abs(orbitDissEAvg[orbitKinEAvg.size() - 1] - orbitDissEAvg[orbitKinEAvg.size() - 2]) < 1e-10) converged = true;
+	residual.push_back(abs(orbitDissEAvg[orbitKinEAvg.size() - 1] - orbitDissEAvg[orbitKinEAvg.size() - 2]));
+
+	//check latest value for convergence 
+	if (residual[residual.size() - 1] < 1e-8) { 
+		converged = true;
+
+		//check previous two values for convergence also:
+		//Convergence will be reset if convergence is not consistent over three orbits.
+		for (int i = residual.size() - 2; i > residual.size() - 4; i--) {
+			if (residual[i] > 1e-8) {
+				converged = false; //reset of previous two values not converged
+				break;
+			}
+		}
+	}
+
+	else if (residual[residual.size() - 1] > 1) {
+		std::cout << std::endl << "Residual is now greater than 1. Your model would appear to have blown up. Sorry Chum." << std::endl;
+		TerminateODIS();
+	}
 
 	printf("\t Resdiual: %1.4e \n", abs(orbitDissEAvg[orbitKinEAvg.size() - 1] - orbitDissEAvg[orbitKinEAvg.size() - 2]));
 

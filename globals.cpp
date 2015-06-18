@@ -57,7 +57,7 @@ Globals::Globals(int action) {
 		angVel.SetValue(2 * pi / period.Value());
 
 		//Simulation end time
-		endTime.SetValue(45 * period.Value());
+		endTime.SetValue(80 * period.Value());
 
 		//Potential
 		potential.SetValue("ECC_RAD");

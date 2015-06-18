@@ -524,7 +524,7 @@ void Solver::DumpSolutions(int out_num) {
 		errno_t err = fopen_s(&dissFile, strcat(cpath,"diss.txt"), "a");
 
 		//fprintf(pFile, "Name %d [%-10.10s]\n", n + 1, name);
-		fprintf(dissFile, "%.10f \n", energy->orbitDissEAvg[energy->orbitDissEAvg.size() - 1]);
+		fprintf(dissFile, "%.15f \n", energy->orbitDissEAvg[energy->orbitDissEAvg.size() - 1]);
 
 		err = fclose(dissFile);
 		//dissFile << energy->orbitDissEAvg[energy->orbitDissEAvg.size() - 1] << std::endl;

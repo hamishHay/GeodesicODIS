@@ -32,6 +32,8 @@ public:
 
 	bool converged = false;
 	
+	std::vector<double> residual;
+
 	//vector of length n/(period/dt*1000), for average kinetic energy for n timesteps in one orbit.
 	std::vector<double> dtKinEAvg;
 	std::vector<double> dtDissEAvg;
