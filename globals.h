@@ -31,6 +31,7 @@ public:
 	GlobalVar<double> dLon;
 	GlobalVar<double> period;
 	GlobalVar<int> endTime;
+	GlobalVar<std::string> potential;
 
 		
 	Globals();

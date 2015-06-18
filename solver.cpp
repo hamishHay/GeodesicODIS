@@ -5,6 +5,7 @@
 #include "mathRoutines.h"
 #include "mass.h"
 #include "energy.h"
+#include "verbose.h"
 #include <math.h>
 #include <iostream>
 #include <fstream>
@@ -35,11 +36,20 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 	*uNew = *u;
 	*etaNew = *eta;
 
+	if (consts->potential.Value() == "ECC_RAD") tide = ECC_RAD;
+	else if (consts->potential.Value() == "ECC_LIB") tide = ECC_LIB;
+	else if (consts->potential.Value() == "OBLIQ") tide = OBLIQ;
+	else if (consts->potential.Value() == "FULL") tide = FULL;
+	else {
+		std::cout << "No potential forcing found." << std::endl;
+		TerminateODIS();
+	}
+
 };
 
 void Solver::InitialConditions(int action) {
 	if (action) {
-		UpdateEccPotential();
+		UpdatePotential();
 	}
 	else {
 		//Read file
@@ -59,35 +69,110 @@ void Solver::Solve() {
 	}
 };
 
-void Solver::UpdateEccPotential() {
+
+
+void Solver::UpdatePotential() {
+	switch (tide) {
+	case ECC_RAD:
+		UpdateEccRadPotential();
+		break;
+
+	case ECC_LIB:
+		UpdateEccLibPotential();
+		break;
+
+	case OBLIQ:
+		UpdateObliqPotential();
+		break;
+
+	case FULL:
+		UpdateFullPotential();
+		break;
+	}
+}
+
+void Solver::UpdateEccLibPotential(void) {
 	double lat = 0;
 	double lon = 0;
 	double B = consts->angVel.Value()*simulationTime;
-
-	//CHECK FOR ECCENTRICITY OR OBLIQUITY!
-	double potential = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->theta.Value();//consts->theta.Value();//
+	double constant = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->e.Value();
 
 	for (int i = 0; i < dUlat->fieldLatLen; i++) {
 		lat = dUlat->lat[i] * radConv;
 		for (int j = 0; j < dUlat->fieldLonLen; j++) {
 			lon = dUlat->lon[j] * radConv;
-			//dUlat->solution[i][j] = potential*(-9.*sin(2*lat)*cos(B)); // P20
-			//dUlat->solution[i][j] = potential*(- 1.5*sin(2*lat) * (7 * cos(2*lon - B) - cos(2*lon + B))); //P22 Negative sign necessary because of diff between finite diff grad sign and analytic sign
-			dUlat->solution[i][j] = -6 * potential*cos(2 * lat)*(cos(lon - B) + cos(lon + B)); //P21 cos(2*lat)*
-			//dUlat->solution[i][j] = 0.25*pow(consts->angVel, 2)*pow(consts->radius, 2)*consts->theta*-6 *cos(2 * lat)*(cos(lon - B) + cos(lon + B));
-			//dUlat->solution[i][j] += 0.25*pow(consts->angVel, 2)*pow(consts->radius, 2)*consts->e*(-9.*sin(2 * lat)*cos(B));
-			//dUlat->solution[i][j] += 0.25*pow(consts->angVel, 2)*pow(consts->radius, 2)*consts->e*(-1.5*sin(2 * lat) * (7 * cos(2 * lon - B) - cos(2 * lon + B)));
+			dUlat->solution[i][j] = constant*(- 1.5*sin(2*lat) * (7 * cos(2*lon - B) - cos(2*lon + B))); //P22 
 		}
-	} 
-	// Skip for P20 only as dUlon = 0;
+	}
+
 	for (int i = 0; i < dUlon->fieldLatLen; i++) {
 		lat = dUlon->lat[i] * radConv;
 		for (int j = 0; j < dUlon->fieldLonLen; j++) {
 			lon = dUlon->lon[j] * radConv;
-			//dUlon->solution[i][j] = potential *3* pow(cos(lat), 2)*(-7 * sin(2*lon - B) + sin(2*lon + B)); //P22
-			dUlon->solution[i][j] = 3 * potential * sin(2*lat)*(sin(lon - B) + sin(lon + B)); //P21
-			//dUlon->solution[i][j] = 0.25*pow(consts->angVel, 2)*pow(consts->radius, 2)*consts->theta * 3 * sin(2 * lat)*(sin(lon - B) + sin(lon + B));
-			//dUlon->solution[i][j] += 0.25*pow(consts->angVel, 2)*pow(consts->radius, 2)*consts->e * 3 * pow(cos(lat), 2)*(-7 * sin(2 * lon - B) + sin(2 * lon + B));
+			dUlon->solution[i][j] = constant *3* pow(cos(lat), 2)*(-7 * sin(2*lon - B) + sin(2*lon + B)); //P22
+		}
+	}
+}
+
+void Solver::UpdateEccRadPotential(void) {
+	double lat = 0;
+	double lon = 0;
+	double B = consts->angVel.Value()*simulationTime;
+	double constant = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->e.Value();//consts->theta.Value();//
+
+	for (int i = 0; i < dUlat->fieldLatLen; i++) {
+		lat = dUlat->lat[i] * radConv;
+		for (int j = 0; j < dUlat->fieldLonLen; j++) {
+			lon = dUlat->lon[j] * radConv;
+			dUlat->solution[i][j] = constant*(-9.*sin(2*lat)*cos(B)); // P20
+		}
+	}
+}
+
+void Solver::UpdateObliqPotential(void) {
+	double lat = 0;
+	double lon = 0;
+	double B = consts->angVel.Value()*simulationTime;
+	double constant = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->theta.Value();
+
+	for (int i = 0; i < dUlat->fieldLatLen; i++) {
+		lat = dUlat->lat[i] * radConv;
+		for (int j = 0; j < dUlat->fieldLonLen; j++) {
+			lon = dUlat->lon[j] * radConv;
+			dUlat->solution[i][j] = -6 * constant*cos(2 * lat)*(cos(lon - B) + cos(lon + B)); //P21
+		}
+	}
+
+	for (int i = 0; i < dUlon->fieldLatLen; i++) {
+		lat = dUlon->lat[i] * radConv;
+		for (int j = 0; j < dUlon->fieldLonLen; j++) {
+			lon = dUlon->lon[j] * radConv;
+			dUlon->solution[i][j] = 3 * constant * sin(2 * lat)*(sin(lon - B) + sin(lon + B)); //P21
+		}
+	}
+}
+
+void Solver::UpdateFullPotential(void) {
+	double lat = 0;
+	double lon = 0;
+	double B = consts->angVel.Value()*simulationTime;
+
+	for (int i = 0; i < dUlat->fieldLatLen; i++) {
+		lat = dUlat->lat[i] * radConv;
+		for (int j = 0; j < dUlat->fieldLonLen; j++) {
+			lon = dUlat->lon[j] * radConv;
+			dUlat->solution[i][j] = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->theta.Value()*-6 * cos(2 * lat)*(cos(lon - B) + cos(lon + B));
+			dUlat->solution[i][j] += 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->e.Value()*(-9.*sin(2 * lat)*cos(B));
+			dUlat->solution[i][j] += 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->e.Value()*(-1.5*sin(2 * lat) * (7 * cos(2 * lon - B) - cos(2 * lon + B)));
+		}
+	}
+
+	for (int i = 0; i < dUlon->fieldLatLen; i++) {
+		lat = dUlon->lat[i] * radConv;
+		for (int j = 0; j < dUlon->fieldLonLen; j++) {
+			lon = dUlon->lon[j] * radConv;
+			dUlon->solution[i][j] = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->theta.Value() * 3 * sin(2 * lat)*(sin(lon - B) + sin(lon + B));
+			dUlon->solution[i][j] += 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->e.Value() * 3 * pow(cos(lat), 2)*(-7 * sin(2 * lon - B) + sin(2 * lon + B));
 		}
 	}
 }
@@ -275,6 +360,8 @@ void Solver::Explicit() {
 	std::cout << "End time: \t" << consts->endTime.Value() / 86400.0 << " days\n";
 	std::cout << "Time step: \t" << consts->timeStep.Value() << " seconds\n\n";
 
+	
+
 	double lat = 0;
 	double lon = 0;
 
@@ -294,7 +381,7 @@ void Solver::Explicit() {
 	
 	while (simulationTime <= consts->endTime.Value() && !energy->converged) {
 
-		UpdateEccPotential();
+		UpdatePotential();
 
 		simulationTime = simulationTime + consts->timeStep.Value();
 		
@@ -381,7 +468,7 @@ void Solver::Explicit() {
 			//std::cout << energy->isConverged;
 
 			//Check for convergence
-			if (orbitNumber>2) energy->IsConverged();
+			if (orbitNumber>1) energy->IsConverged();
 
 			std::cout << std::fixed << std::setprecision(2) << simulationTime / 86400.0 << " days: \t" << 100 * (simulationTime / consts->endTime.Value()) << "%\t" << output << std::endl;
 			DumpSolutions(output);
@@ -405,6 +492,8 @@ void Solver::Explicit() {
 void Solver::DumpSolutions(int out_num) {
 
 	std::string path = "C:\\Users\\Hamish\\Google Drive\\LPL\\Icy Satellites\\Results\\Working\\";
+	char cpath[100] = "C:\\Users\\Hamish\\Google Drive\\LPL\\Icy Satellites\\Results\\Working\\";
+
 	if (out_num == -1) {
 
 		remove("C:\\Users\\Hamish\\Google Drive\\LPL\\Icy Satellites\\Results\\Working\\diss.txt");
@@ -428,9 +517,17 @@ void Solver::DumpSolutions(int out_num) {
 		std::ofstream vFile(path + "v_vel_" + out + ".txt", std::ofstream::out);
 		std::ofstream etaFile(path + "eta_" + out + ".txt", std::ofstream::out);
 		
-		std::ofstream dissFile(path + "diss.txt", std::ofstream::app);
+		//std::ofstream dissFile(path + "diss.txt", std::ofstream::app);
 
-		dissFile << energy->orbitDissEAvg[energy->orbitDissEAvg.size() - 1] << std::endl;
+		FILE * dissFile;
+
+		errno_t err = fopen_s(&dissFile, strcat(cpath,"diss.txt"), "a");
+
+		//fprintf(pFile, "Name %d [%-10.10s]\n", n + 1, name);
+		fprintf(dissFile, "%.10f \n", energy->orbitDissEAvg[energy->orbitDissEAvg.size() - 1]);
+
+		err = fclose(dissFile);
+		//dissFile << energy->orbitDissEAvg[energy->orbitDissEAvg.size() - 1] << std::endl;
 
 		for (int i = 0; i < u->ReturnFieldLatLen(); i++) {
 			for (int j = 0; j < u->ReturnFieldLonLen(); j++) {

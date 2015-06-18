@@ -58,6 +58,9 @@ Globals::Globals(int action) {
 
 		//Simulation end time
 		endTime.SetValue(45 * period.Value());
+
+		//Potential
+		potential.SetValue("ECC_RAD");
 	}
 	else {
 		//Append variable IDs;
@@ -109,6 +112,9 @@ Globals::Globals(int action) {
 		endTime.SetStringID("simulation end time");
 		allGlobals.push_back(&endTime);
 
+		potential.SetStringID("potential");
+		allGlobals.push_back(&potential);
+
 		ReadGlobals(); //Read globals from input.in file
 	}
 };
@@ -122,6 +128,7 @@ int Globals::ReadGlobals(void) {
 	int valInt;
 	double valDouble;
 	bool valBool;
+	std::string valStr;
 	bool added=false;
 
 	if (inputFile.is_open())
@@ -154,6 +161,12 @@ int Globals::ReadGlobals(void) {
 					else if (allGlobals[i]->IsType("bool")) {
 						value >> valBool;
 						((GlobalVar<bool> *) allGlobals[i])->SetValue(valBool);
+						added = true;
+						allGlobals[i]->Added(added);
+					}
+					else if (allGlobals[i]->IsType("string")) {
+						value >> valStr;
+						((GlobalVar<std::string> *) allGlobals[i])->SetValue(valStr);
 						added = true;
 						allGlobals[i]->Added(added);
 					}

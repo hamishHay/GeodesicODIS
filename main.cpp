@@ -23,6 +23,7 @@ void main(void)
 	//initialiseMesh();
 
 	Globals * constants = new Globals(1);
+	constants->potential.SetValue("OBLIQ");
 	Mesh * grid = new Mesh(constants); //Pass in a pointer to globals instance, and grid using dLat and dLon values.
 	Field * u = new Field(grid,0,1); //Construct velocity storage field based around grid
 	Field * v = new Field(grid,1,0); //Note velocity is staggered and lies on seperate nodes to eta and U

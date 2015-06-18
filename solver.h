@@ -11,13 +11,18 @@ class Solver {
 private:
 	int solverType;
 	int dumpTime;
+	enum Potential {OBLIQ, ECC_RAD, ECC_LIB, FULL};
+
+	void UpdateEccRadPotential(void);
+	void UpdateEccLibPotential(void);
+	void UpdateObliqPotential(void);
+	void UpdateFullPotential(void);
 
 public:
 	double simulationTime = 0;
 	int orbitNumber = 1;
 	int iteration = 0;
-
-	//double radConv = pi / 180.;
+	Potential tide;
 
 	Globals * consts;
 	Mesh * grid;
@@ -43,7 +48,7 @@ public:
 	void Implicit();
 	void CrankNicolson();
 
-	void UpdateEccPotential();
+	void UpdatePotential();
 	void UpdateEastVel(int i, int j, double lat, double lon);
 	void UpdateNorthVel(int i, int j, double lat, double lon);
 	void UpdateSurfaceHeight(int i, int j, double lat, double lon);

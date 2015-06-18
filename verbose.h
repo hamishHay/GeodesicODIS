@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-void TerminateODIS(void) {
+static void TerminateODIS(void) {
 	std::cout << "Terminating ODIS. Press enter to continue." << std::endl;
 	getchar();
 	std::exit(0);
