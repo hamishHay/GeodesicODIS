@@ -12,57 +12,10 @@ double radConv = pi / 180;
 Globals::Globals() :Globals(1) {};
 
 Globals::Globals(int action) {
-	if (action) {
-		//Satellite Radius
-		radius.SetValue(2574.7e3);
-	
-		//k_2 love number
-		loveK2.SetValue(.120);
-
-		//h_2 love number
-		loveH2.SetValue(.2);
-
-		//Love reduction factor
-		loveReduct.SetValue(1 + loveK2.Value() - loveH2.Value());
-		
-		//Ocean thickness
-		h.SetValue(400); 
-
-		//Surface gravity
-		g.SetValue(1.3);
-
-		//Semimajor axis
-		a.SetValue(1221865e3);
-
-		//Eccentricity
-		e.SetValue(0.0288);
-
-		//Obliquity 
-		theta.SetValue(0.32*pi / 180);
-
-		//Coefficient of linear friction
-		alpha.SetValue(2.28e-7);
-
-		//Lat and long spacing
-		dLat.SetValue(2);
-		dLon.SetValue(2);
-
-		//Orbital period
-		period.SetValue(16 * 24 * 60 * 60);
-
-		//Time step
-		timeStep.SetValue(40.);
-
-		//Angular velocity
-		angVel.SetValue(2 * pi / period.Value());
-
-		//Simulation end time
-		endTime.SetValue(80 * period.Value());
-
-		//Potential
-		potential.SetValue("ECC_RAD");
-	}
+	if (action) SetDefault();
 	else {
+		SetDefault();
+
 		//Append variable IDs;
 		radius.SetStringID("radius");
 		allGlobals.push_back(&radius);
@@ -199,4 +152,55 @@ int Globals::ReadGlobals(void) {
 
 
 	return 0;
+};
+
+void Globals::SetDefault(void) {
+	//Satellite Radius
+	radius.SetValue(2574.7e3);
+
+	//k_2 love number
+	loveK2.SetValue(.120);
+
+	//h_2 love number
+	loveH2.SetValue(.2);
+
+	//Love reduction factor
+	loveReduct.SetValue(1 + loveK2.Value() - loveH2.Value());
+
+	//Ocean thickness
+	h.SetValue(400);
+
+	//Surface gravity
+	g.SetValue(1.3);
+
+	//Semimajor axis
+	a.SetValue(1221865e3);
+
+	//Eccentricity
+	e.SetValue(0.0288);
+
+	//Obliquity 
+	theta.SetValue(0.32*pi / 180);
+
+	//Coefficient of linear friction
+	alpha.SetValue(2.28e-7);
+
+	//Lat and long spacing
+	dLat.SetValue(2);
+	dLon.SetValue(2);
+
+	//Orbital period
+	period.SetValue(16 * 24 * 60 * 60);
+
+	//Time step
+	timeStep.SetValue(40.);
+
+	//Angular velocity
+	angVel.SetValue(2 * pi / period.Value());
+
+	//Simulation end time
+	endTime.SetValue(80 * period.Value());
+
+	//Potential
+	potential.SetValue("ECC_RAD");
 };

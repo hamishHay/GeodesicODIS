@@ -12,6 +12,8 @@ extern double radConv;
 
 //Class stores all global values
 class Globals {
+private:
+	void SetDefault(void);
 public:
 	std::vector<IGlobalVar *> allGlobals;
 	
