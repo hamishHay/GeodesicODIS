@@ -233,3 +233,4 @@ __pycache__/node.cpython-34.pyc
 *.vcxproj
 ODIS.vcxproj
 *.filters
+*.sln

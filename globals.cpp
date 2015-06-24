@@ -80,7 +80,7 @@ int Globals::ReadGlobals(void) {
 	//Avoids the need to recompile for each different model setup.
 	std::ifstream inputFile("input.in",std::ifstream::in);
 	std::string line, varStr, varVal;
-	double value;
+
 	int valInt;
 	double valDouble;
 	bool valBool;
