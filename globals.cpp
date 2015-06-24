@@ -12,6 +12,12 @@ double radConv = pi / 180;
 Globals::Globals() :Globals(1) {};
 
 Globals::Globals(int action) {
+	char buffer[MAX_PATH];
+	GetModuleFileName(NULL, buffer, MAX_PATH);
+	std::string::size_type pos = std::string(buffer).find_last_of("\\/");
+	path = std::string(buffer).substr(0, pos);
+
+	strcpy(cpath, path.c_str());
 
 	if (action) SetDefault();
 	else {

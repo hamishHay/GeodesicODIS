@@ -13,6 +13,7 @@
 #include <string>
 #include <sstream>
 #include <cstdio>
+#include <Windows.h>
 
 Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradLon, Field * UGradLat, Field * VelU, Field * VelV, Field * Eta, Mass * MassField, Energy * EnergyField) {
 	solverType = type;
@@ -449,8 +450,6 @@ void Solver::Explicit() {
 		*u = *uNew;
 		*v = *vNew;
 
-		
-
 		if (fmod(iteration, (outputTime / inc)) == 0) {
 			//Update mass
 			//mass->UpdateMass();
@@ -496,17 +495,21 @@ void Solver::Explicit() {
 
 void Solver::DumpSolutions(int out_num) {
 
-	std::string path = "";//"C:\\Users\\Hamish\\Google Drive\\LPL\\Icy Satellites\\Results\\Working\\";
-	char cpath[100] = "";// "C:\\Users\\Hamish\\Google Drive\\LPL\\Icy Satellites\\Results\\Working\\";
-
 	if (out_num == -1) {
+
+		//Only for windows
+		CreateDirectory(&(consts->path + "\\EastVelocity\\")[0], NULL);
+		CreateDirectory(&(consts->path + "\\NorthVelocity\\")[0], NULL);
+		CreateDirectory(&(consts->path + "\\Displacement\\")[0], NULL);
+		CreateDirectory(&(consts->path + "\\Grid\\")[0], NULL);
+
 
 		//remove("C:\\Users\\Hamish\\Google Drive\\LPL\\Icy Satellites\\Results\\Working\\diss.txt");
 
-		std::ofstream uLat(path+"u_lat.txt", std::ofstream::out);
-		std::ofstream uLon(path+"u_lon.txt", std::ofstream::out);
-		std::ofstream vLat(path + "v_lat.txt", std::ofstream::out);
-		std::ofstream vLon(path + "v_lon.txt", std::ofstream::out);
+		std::ofstream uLat(consts->path+"\\Grid\\u_lat.txt", std::ofstream::out);
+		std::ofstream uLon(consts->path+"\\Grid\\u_lon.txt", std::ofstream::out);
+		std::ofstream vLat(consts->path + "\\Grid\\v_lat.txt", std::ofstream::out);
+		std::ofstream vLon(consts->path + "\\Grid\\v_lon.txt", std::ofstream::out);
 
 		for (int j = 0; j < u->ReturnFieldLonLen(); j++) uLon << u->lon[j] << '\t';
 		for (int i = 0; i < u->ReturnFieldLatLen(); i++) uLat << u->lat[i] << '\t';
@@ -518,15 +521,15 @@ void Solver::DumpSolutions(int out_num) {
 	else {
 		std::string out = std::to_string(out_num);
 
-		std::ofstream uFile(path + "u_vel_" + out + ".txt", std::ofstream::out);
-		std::ofstream vFile(path + "v_vel_" + out + ".txt", std::ofstream::out);
-		std::ofstream etaFile(path + "eta_" + out + ".txt", std::ofstream::out);
+		std::ofstream uFile(consts->path + "\\EastVelocity\\u_vel_" + out + ".txt", std::ofstream::out);
+		std::ofstream vFile(consts->path + "\\NorthVelocity\\v_vel_" + out + ".txt", std::ofstream::out);
+		std::ofstream etaFile(consts->path + "\\Displacement\\eta_" + out + ".txt", std::ofstream::out);
 		
-		//std::ofstream dissFile(path + "diss.txt", std::ofstream::app);
+		//std::ofstream dissFile(consts->path + "diss.txt", std::ofstream::app);
 
 		FILE * dissFile;
 
-		errno_t err = fopen_s(&dissFile, strcat(cpath,"diss.txt"), "a");
+		errno_t err = fopen_s(&dissFile, &(consts->path + "\\diss.txt")[0], "a");
 
 		//fprintf(pFile, "Name %d [%-10.10s]\n", n + 1, name);
 		fprintf(dissFile, "%.15f \n", energy->orbitDissEAvg[energy->orbitDissEAvg.size() - 1]);
@@ -548,9 +551,7 @@ void Solver::DumpSolutions(int out_num) {
 				vFile << vNew->solution[i][j] << '\t';
 			}
 			vFile << std::endl;
-		}
-
-		
+		}	
 	}
 }
 

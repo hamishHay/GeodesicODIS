@@ -1,9 +1,15 @@
 #include "outFiles.h"
 #include <sstream>
+#include <Windows.h>
 
 OutFiles::OutFiles() {
-	outName = "OUTPUT.txt";
-	errName = "ERROR.txt";
+	char buffer[MAX_PATH];
+	GetModuleFileName(NULL, buffer, MAX_PATH);
+	std::string::size_type pos = std::string(buffer).find_last_of("\\/");
+	path = std::string(buffer).substr(0, pos);
+
+	outName = path + "\\OUTPUT.txt";
+	errName = path + "\\ERROR.txt";
 
 	remove(&outName[0]); //Converts std::string to char array
 	output.open(&outName[0], std::ofstream::out | std::ofstream::app);

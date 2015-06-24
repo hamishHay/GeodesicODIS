@@ -10,6 +10,8 @@ enum mess_type{ OUT_MESSAGE, ERR_MESSAGE, GRID_MESSAGE };
 
 class OutFiles {
 private:
+	std::string path;
+
 	std::string outName;
 	std::string errName;
 	std::ofstream output;
