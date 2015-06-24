@@ -54,7 +54,10 @@ void OutFiles::Write(mess_type message, std::ostringstream * sstream) {
 };
 
 void OutFiles::TerminateODIS(void) {
-	std::cout << "Terminating ODIS." << std::endl;
+	std::ostringstream sstream;
+
+	sstream << "Terminating ODIS." << std::endl;
+	WriteError(&sstream);
 	std::exit(0);
 };
 

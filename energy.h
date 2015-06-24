@@ -7,13 +7,6 @@
 #include "mass.h"
 #include "globals.h"
 
-/*
-class IEnergy
-{
-public:
-	virtual void Update() = 0;
-};*/
-
 class Energy : public Field {
 private:
 	Globals * consts;
@@ -21,7 +14,6 @@ private:
 	Field * v;
 	Mass * mass;
 
-	
 	int dissMode = 0; //dissipation type i.e., 0 for linear
 
 	void UpdateDtDissEAvg(void);
@@ -56,12 +48,5 @@ public:
 	void IsConverged(void);
 	
 };
-/*
-class DissipatedEnergy : public Field {
-public:
-	DissipatedEnergy(Mesh *, int, int);
-
-
-};*/
 
 #endif
