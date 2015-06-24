@@ -135,6 +135,7 @@
     <ClCompile Include="mass.cpp" />
     <ClCompile Include="mathRoutines.cpp" />
     <ClCompile Include="mesh.cpp" />
+    <ClCompile Include="outFiles.cpp" />
     <ClCompile Include="solver.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -146,7 +147,7 @@
     <ClInclude Include="mathRoutines.h" />
     <ClInclude Include="mesh.h" />
     <ClInclude Include="solver.h" />
-    <ClInclude Include="verbose.h" />
+    <ClInclude Include="outFiles.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

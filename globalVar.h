@@ -37,6 +37,7 @@ private:
 		if (std::is_same<T, int>::value) type = "int";
 		else if (std::is_same<T, double>::value) type = "double";
 		else if (std::is_same<T, bool>::value) type = "bool";
+		else if (std::is_same<T, std::string>::value) type = "string";
 	}
 public:
 	GlobalVar() { //Constructor calls function to define class type;

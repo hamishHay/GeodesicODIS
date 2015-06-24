@@ -6,6 +6,7 @@
 #include "mesh.h"
 #include "mass.h"
 #include "energy.h"
+#include "outFiles.h"
 
 class Solver {
 private:
@@ -22,6 +23,11 @@ public:
 	double simulationTime = 0;
 	int orbitNumber = 1;
 	int iteration = 0;
+
+	std::ostringstream outstring;
+
+	OutFiles * Out;
+
 	Potential tide;
 
 	Globals * consts;

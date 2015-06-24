@@ -5,7 +5,7 @@
 #include <array>
 #include <vector>
 #include "globalVar.h"
-//#include "boost/variant.hpp"
+#include "outFiles.h"
 
 extern double pi;
 extern double radConv;
@@ -15,7 +15,10 @@ class Globals {
 private:
 	void SetDefault(void);
 public:
+	OutFiles Output;
 	std::vector<IGlobalVar *> allGlobals;
+
+	std::ostringstream outstring;
 	
 	GlobalVar<double> angVel;
 	GlobalVar<double> radius; //Object Radius

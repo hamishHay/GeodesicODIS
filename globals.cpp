@@ -1,5 +1,5 @@
 #include "globals.h"
-#include "verbose.h"
+#include "outFiles.h"
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -12,6 +12,7 @@ double radConv = pi / 180;
 Globals::Globals() :Globals(1) {};
 
 Globals::Globals(int action) {
+
 	if (action) SetDefault();
 	else {
 		SetDefault();
@@ -24,10 +25,10 @@ Globals::Globals(int action) {
 		allGlobals.push_back(&angVel);
 
 		loveK2.SetStringID("k2");
-		allGlobals.push_back(&angVel);
+		allGlobals.push_back(&loveK2);
 
 		loveH2.SetStringID("h2");
-		allGlobals.push_back(&angVel);
+		allGlobals.push_back(&loveH2);
 
 		loveReduct.SetStringID("love reduction factor");
 		allGlobals.push_back(&loveReduct);
@@ -50,7 +51,7 @@ Globals::Globals(int action) {
 		timeStep.SetStringID("time step");
 		allGlobals.push_back(&timeStep);
 
-		alpha.SetStringID("rayleigh coefficient");
+		alpha.SetStringID("friction coefficient");
 		allGlobals.push_back(&alpha);
 
 		dLat.SetStringID("latitude spacing");
@@ -70,6 +71,8 @@ Globals::Globals(int action) {
 
 		ReadGlobals(); //Read globals from input.in file
 	}
+
+	endTime.SetValue(endTime.Value()*period.Value());
 };
 
 int Globals::ReadGlobals(void) {
@@ -86,7 +89,8 @@ int Globals::ReadGlobals(void) {
 
 	if (inputFile.is_open())
 	{
-		std::cout << "Found input file." << std::endl << std::endl;
+		outstring << "Found input file." << std::endl;
+		Output.Write(OUT_MESSAGE, &outstring);
 
 		while (std::getline(inputFile >> std::ws, line, ';')) { //>> std::ws removes any leading whitespace
 			
@@ -124,8 +128,9 @@ int Globals::ReadGlobals(void) {
 						allGlobals[i]->Added(added);
 					}
 					else {
-						std::cout << "Unsused type read for " << allGlobals[i]->StringID() << ". " << std::endl;
-						TerminateODIS();
+						outstring << "Unsused type read for " << allGlobals[i]->StringID() << ". " << std::endl;
+						Output.Write(ERR_MESSAGE, &outstring);
+						Output.TerminateODIS();
 					};
 				}
 				i++;
@@ -138,23 +143,40 @@ int Globals::ReadGlobals(void) {
 
 		for (int i = 0; i < allGlobals.size(); i++){
 			if (!allGlobals[i]->IsAdded()) {
-				std::cout << "Unassigned global constant: " << allGlobals[i]->StringID() << ". " << std::endl;
-				std::cout << "Assigning default value could be risky..." << std::endl<<std::endl;
-				TerminateODIS();
+				outstring << "WARNING: Unassigned global constant: " << allGlobals[i]->StringID() << ". " << std::endl;
+				outstring << "Assigning default value could be risky..." << std::endl;
+				outstring << "Using Titan value of ";
+
+				if (allGlobals[i]->IsType("double")) {
+					outstring << ((GlobalVar<double > *) allGlobals[i])->Value() << std::endl << std::endl;
+				}
+				else if (allGlobals[i]->IsType("int")) {
+					outstring << ((GlobalVar<int > *) allGlobals[i])->Value() << std::endl << std::endl;
+				}
+				else if (allGlobals[i]->IsType("bool")) {
+					outstring << ((GlobalVar<bool > *) allGlobals[i])->Value() << std::endl << std::endl;
+				}
+				else if (allGlobals[i]->IsType("string")) {
+					outstring << ((GlobalVar<std::string > *) allGlobals[i])->Value() << std::endl << std::endl;
+				}
+				
+				Output.Write(ERR_MESSAGE, &outstring);
+				//TerminateODIS();
 			};
 		}
 		
 	}
 	else {
-		std::cout << "Unable to open 'input.in' file." << std::endl << std::endl;
-		TerminateODIS();
+		outstring << "Unable to open 'input.in' file." << std::endl << std::endl;
+		Output.Write(ERR_MESSAGE, &outstring);
+		Output.TerminateODIS();
 	}
-
 
 	return 0;
 };
 
 void Globals::SetDefault(void) {
+
 	//Satellite Radius
 	radius.SetValue(2574.7e3);
 
@@ -199,7 +221,7 @@ void Globals::SetDefault(void) {
 	angVel.SetValue(2 * pi / period.Value());
 
 	//Simulation end time
-	endTime.SetValue(80 * period.Value());
+	endTime.SetValue(80);
 
 	//Potential
 	potential.SetValue("ECC_RAD");

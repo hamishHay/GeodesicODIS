@@ -230,3 +230,6 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 __pycache__/node.cpython-34.pyc
+*.vcxproj
+ODIS.vcxproj
+*.filters

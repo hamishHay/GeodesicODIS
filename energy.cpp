@@ -2,7 +2,7 @@
 #include "energy.h"
 #include "mass.h"
 #include "globals.h"
-#include "verbose.h"
+#include "outFiles.h"
 #include <math.h>
 
 #include <iostream>
@@ -104,7 +104,7 @@ void Energy::IsConverged(void) {
 
 	else if (residual[residual.size() - 1] > 1) {
 		std::cout << std::endl << "Residual is now greater than 1. Your model would appear to have blown up. Sorry Chum." << std::endl;
-		TerminateODIS();
+		consts->Output.TerminateODIS();
 	}
 
 	printf("\t Resdiual: %1.4e \n", abs(orbitDissEAvg[orbitKinEAvg.size() - 1] - orbitDissEAvg[orbitKinEAvg.size() - 2]));

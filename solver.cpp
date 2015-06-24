@@ -5,17 +5,19 @@
 #include "mathRoutines.h"
 #include "mass.h"
 #include "energy.h"
-#include "verbose.h"
+#include "outFiles.h"
 #include <math.h>
 #include <iostream>
 #include <fstream>
 #include <iomanip>
 #include <string>
+#include <sstream>
 #include <cstdio>
 
 Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradLon, Field * UGradLat, Field * VelU, Field * VelV, Field * Eta, Mass * MassField, Energy * EnergyField) {
 	solverType = type;
 	dumpTime = dump;
+	Out = &Consts->Output;
 
 	//Assign member pointers to passed in pointers from main.cpp
 	consts = Consts;
@@ -41,8 +43,9 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 	else if (consts->potential.Value() == "OBLIQ") tide = OBLIQ;
 	else if (consts->potential.Value() == "FULL") tide = FULL;
 	else {
-		std::cout << "No potential forcing found." << std::endl;
-		TerminateODIS();
+		outstring << "No potential forcing found." << std::endl;
+		Out->Write(ERR_MESSAGE, &outstring);
+		Out->TerminateODIS();
 	}
 
 };
@@ -58,14 +61,14 @@ void Solver::InitialConditions(int action) {
 }
 
 void Solver::Solve() {
-	std::cout << "\nEntering solver: ";
+	outstring << "Entering solver: ";
 	switch (solverType) {
 	case 0:
-		std::cout << "Explicit\n";
+		outstring << "Explicit\n";
 		Explicit();
 		break;
 	default:
-		std::cout << "No solver type selected.\n Terminating execution.";
+		outstring << "No solver type selected.\n Terminating execution.";
 	}
 };
 
@@ -356,11 +359,10 @@ void Solver::UpdateSurfaceHeight(int i, int j, double lat, double lon){
 
 void Solver::Explicit() {
 	//Check for stability
-	std::cout << "Entering time loop:\n\n";
-	std::cout << "End time: \t" << consts->endTime.Value() / 86400.0 << " days\n";
-	std::cout << "Time step: \t" << consts->timeStep.Value() << " seconds\n\n";
-
-	
+	outstring << "Entering time loop:\n\n";
+	outstring << "End time: \t" << consts->endTime.Value() / 86400.0 << " days\n";
+	outstring << "Time step: \t" << consts->timeStep.Value() << " seconds\n\n";
+	Out->Write(OUT_MESSAGE, &outstring);
 
 	double lat = 0;
 	double lon = 0;
@@ -458,8 +460,6 @@ void Solver::Explicit() {
 
 			//Update Globally Avergaed Kinetic Energy 
 			energy->UpdateDtKinEAvg();
-
-			
 		}
 
 		//Check for output
@@ -470,7 +470,9 @@ void Solver::Explicit() {
 			//Check for convergence
 			if (orbitNumber>1) energy->IsConverged();
 
-			std::cout << std::fixed << std::setprecision(2) << simulationTime / 86400.0 << " days: \t" << 100 * (simulationTime / consts->endTime.Value()) << "%\t" << output << std::endl;
+			outstring << std::fixed << std::setprecision(2) << simulationTime / 86400.0 << " days: \t" << 100 * (simulationTime / consts->endTime.Value()) << "%\t" << output;
+			Out->Write(OUT_MESSAGE, &outstring);
+			
 			DumpSolutions(output);
 			output++;
 		}
@@ -485,18 +487,21 @@ void Solver::Explicit() {
 	delete uNew;
 	delete vNew;
 
-	std::cout << "\nSimulation complete.\n\nEnd time: \t\t" << simulationTime / 86400.0 << "\n";
-	std::cout << "Total iterations: \t" << iteration;
+	
+	outstring << "\nSimulation complete.\n\nEnd time: \t\t" << simulationTime / 86400.0 << "\n";
+	outstring << "Total iterations: \t" << iteration;
+	Out->Write(OUT_MESSAGE, &outstring);
+	
 };
 
 void Solver::DumpSolutions(int out_num) {
 
-	std::string path = "C:\\Users\\Hamish\\Google Drive\\LPL\\Icy Satellites\\Results\\Working\\";
-	char cpath[100] = "C:\\Users\\Hamish\\Google Drive\\LPL\\Icy Satellites\\Results\\Working\\";
+	std::string path = "";//"C:\\Users\\Hamish\\Google Drive\\LPL\\Icy Satellites\\Results\\Working\\";
+	char cpath[100] = "";// "C:\\Users\\Hamish\\Google Drive\\LPL\\Icy Satellites\\Results\\Working\\";
 
 	if (out_num == -1) {
 
-		remove("C:\\Users\\Hamish\\Google Drive\\LPL\\Icy Satellites\\Results\\Working\\diss.txt");
+		//remove("C:\\Users\\Hamish\\Google Drive\\LPL\\Icy Satellites\\Results\\Working\\diss.txt");
 
 		std::ofstream uLat(path+"u_lat.txt", std::ofstream::out);
 		std::ofstream uLon(path+"u_lon.txt", std::ofstream::out);

@@ -22,8 +22,8 @@ void main(void)
 	// Initialise domain/read in initial condition
 	//initialiseMesh();
 
-	Globals * constants = new Globals(1);
-	constants->potential.SetValue("FULL");
+	Globals * constants = new Globals(0);
+	//constants->potential.SetValue("FULL");
 	Mesh * grid = new Mesh(constants); //Pass in a pointer to globals instance, and grid using dLat and dLon values.
 	Field * u = new Field(grid,0,1); //Construct velocity storage field based around grid
 	Field * v = new Field(grid,1,0); //Note velocity is staggered and lies on seperate nodes to eta and U
@@ -40,7 +40,7 @@ void main(void)
 	solution->Solve();
 	// Simulation end
 
-	_getch();
+	//_getch();
 
 	// Unallocate all memory
 	delete solution;
