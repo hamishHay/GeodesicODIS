@@ -96,7 +96,7 @@ void Energy::IsConverged(void) {
 		//Convergence will be reset if convergence is not consistent over three orbits.
 		for (int i = residual.size() - 2; i > residual.size() - 4; i--) {
 			if (residual[i] > 1e-8) {
-				converged = false; //reset of previous two values not converged
+				converged = false; //reset if previous two values not converged
 				break;
 			}
 		}
