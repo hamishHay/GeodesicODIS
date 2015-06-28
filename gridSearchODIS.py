@@ -33,7 +33,6 @@ class Process:
             self.childrenPos.append((self.node[0]+1,self.node[1]))
             self.max_children = 1
             
-
     def __repr__(self):
         return str(self.id)#"ID="+str(self.id)+",h="+str(self.h)+",a=" + str(self.a)+",comp="+str(self.complete)
 
@@ -41,23 +40,22 @@ class Process:
         return str(self.id)
 
     def CreateDir(self):
-        self.directory = "h" + str(self.h) + "_alpha" + str(self.a)
+        self.directory = os.getcwd() + "\\h" + str(self.h) + "_alpha" + str(self.a)
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
             shutil.copy("ODIS.exe", self.directory)
-            shutil.copy("input.in", self.directory)
+            #shutil.copy("input.in", self.directory)
             self.CreateInputFile()
 
     def CreateInputFile(self):
         f = open(self.directory+"\\input.in",'w')
         f.write("ocean thickness; \t \t \t " + str(self.h) +";	\t \t \t h; \n")
         f.write("friction coefficient; \t \t \t " + str(self.a) +";	\t \t \t alpha; \n")
-        f.write("simulation end time; \t \t \t " + str(1) +";	\t \t \t endTime; \n")
+        f.write("simulation end time; \t \t \t " + str(90) +";	\t \t \t endTime; \n")
         f.close()       
 
     def Run(self):
         self.CreateDir()
-        
         self.pro = sub.Popen([self.directory + "\\ODIS.exe"], shell=True)
         self.start = True
 
@@ -86,7 +84,6 @@ class Process:
 
 class Grid:
     def __init__(self, dim):
-        #self.grid = np.zeros([dim[0],dim[1]],dtype=('i4,i4,bool'))
         self.dim = dim
         self.grid = [[0 for j in range(dim[0])] for i in range(dim[1])]
         self.max_proc = dim[0]*dim[1]
@@ -113,10 +110,6 @@ class Grid:
         self.running.append(p)
         print(p.id, "is now running.")
         self.queue.remove(p)
-        #self.grid[a][h].Run()
-        #self.running.append(self.grid[a][h])
-        #print(self.grid[a][h].id, " now running.")
-        #self.queue.remove(self.grid[a][h])
 
     def CheckRunning(self):
         for proc in self.running:
@@ -129,7 +122,6 @@ class Grid:
         hlen = len(self.grid[0])
         alen = len(self.grid)
         
-
         diagNum = alen + hlen - 1
         diagList = []
         for d in range(diagNum):
@@ -157,160 +149,47 @@ class Grid:
         while len(self.complete)!=self.max_proc:
             #check complete list
 
-            if len(self.complete) > 0:
-                for p in self.complete:              
-                    if p.max_children != 0:
-                        
+            looped = 0
 
-                        found_children = []
+            while looped <= 8:
+                if len(self.complete) > 0:
+                    for p in self.complete:              
+                        if p.max_children != 0:
+                        
+                            found_children = []
                     
-                        for child in self.queue:
-                            if len(found_children)<p.max_children:
-                                if p.IsChild(child,alen):
-                                    #child process found
-                                    found_children.append(child)
-                            else:
-                                break
+                            for child in self.queue:
+                                if len(found_children)<p.max_children:
+                                    if p.IsChild(child,alen):
+                                        #child process found
+                                        found_children.append(child)
+                                else:
+                                    break
 
    
-                        if len(self.running) < total and len(found_children) > 0:
-                            for newp in found_children:
-                                if not newp.IsRun() and len(self.running) < total:
-                                    self.RunProcess(newp)
+                            if len(self.running) < total and len(found_children) > 0:
+                                for newp in found_children:
+                                    if not newp.IsRun() and len(self.running) < total:
+                                        self.RunProcess(newp)
           
-                self.CheckRunning()
+                    self.CheckRunning()
                         
-            else:
-                self.CheckRunning()
+                else:
+                    self.CheckRunning()
 
-            time.sleep(5)
-                
+                looped+=1
+                time.sleep(15)
 
-        
 
-##        #complete = []
-##
-##        #aCompletion = False
-##        #while aCompletion == False:
-##            
-##        
-##        while len(queue)>0:
-##            for p in queue:
-##                for r in running:
-##                    for h in range(hlen):
-##                        for a in range(alen):
-##                            if p == r + 1:
-##                                if r == self.grid[a][h].id:
-##                                    print(a,h)
-##                                    print(self.grid[a][h].IsRun())
-##                                    if self.grid[a][h].IsRun():
-##                                        print(self.grid[a][h].id, "is complete.")
-##                                        if len(running)<4:
-##                                            running.remove(self.grid[a][h].id)
-##                                            running.append(p)
-##                                            queue.remove(p)
-##                                            
-##                            elif p == r + alen:
-##                                if r == self.grid[a][h].id:
-##                                    if self.grid[a][h].IsRun():
-##                                        print(self.grid[a][h].id, "is complete.")
-##                                        if len(running)<4:
-##                                            running.remove(self.grid[a][h].id)
-##                                            running.append(p)
-##                                            queue.remove(p)
-##
-##
-##
-##                
-##
-##            print("Running IDs: ", running)
-##            print("IDs in queue: ", queue)
-##            time.sleep(10)
-##            
-##            #for p in running[:]:
-##            #    if (p.IsRun()):
-##            #        count += 1
-##            #        continue
-##            
-##             #   else:
-##             #       print("Deleted process", proc[count].id)
-##            #        proc.remove(p)
-##
-##            #print(len(proc), "ODIS processes remaining...")
-##            #time.sleep(5)
-##    
-##        self.remaining -= 1
-##
-##        #Start next h's
-##
-##        running = [self.grid[0][0].id]
-##
-##        for h in range(1,total):
-##            self.grid[0][h].Run()
-##            running.append(self.grid[0][h].id)
-##
-##        queue = running+1
-##        for h in range(1,total):
-##            self.grid[0][h].Wait()
-##
-##        running = []
-##
-##        
-##        while self.remaining>0:
-##            for proc in running:
-##                for h in range(hlen):
-##                    for a in range(alen):
-##                        if proc == self.grid[a][h].id:
-##                            if self.grid[a][h].IsRun():
-##                                continue
-##                            else:
-##                                running.remove(proc)
-##                                
-##                                #Run next in queue and add to running
-##                                
-##                                
-##                                #Add new to queue
-##            
-##            #run east points
-##            for proc in queue:
-##                for h in range(hlen):
-##                    for a in range(alen):
-##                        if proc == self.grid[a][h].id:
-##                            if len(running) < 4:
-##                                self.grid[a][h].Run()
-##                                running.append(self.grid[a][h].id)
-##                            else:
-##                                continue
-    
 
-#(a,h)
-g = Grid((4,3))
+            print("Queued processes: ", self.queue)
+            print("Running processes: ", self.running)
+            print("Completed processes: ", self.complete, "\n")
+
+            
+g = Grid((5,5))
 pprint.pprint(g.grid)
 g.PopulateGrid([100, 10000], [2.28e-7, 2.28e-8])
 pprint.pprint(g.grid)
-g.SolveGrid(4)
-pprint.pprint(g.grid)
+g.SolveGrid(3)
 
-proc = []
-for i in range(1):
-    proc.append(Process(i,400, 2.28e-7, [1,1]))
-    proc[i].CreateDir()
-    proc[i].Run()
-    time.sleep(3)
-
-while len(proc)>0:
-    count = 0
-    for p in proc[:]:
-        if (proc[count].IsRun()):
-            count += 1
-            continue
-            
-        else:
-            print("Deleted process", proc[count].id)
-            proc.remove(p)
-
-    print(len(proc), "ODIS processes remaining...")
-    time.sleep(5)
-            
-
-print('Finished all ODIS subprocesses!!!!')
