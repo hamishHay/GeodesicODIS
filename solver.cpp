@@ -502,9 +502,8 @@ void Solver::DumpSolutions(int out_num) {
 		CreateDirectory(&(consts->path + "\\NorthVelocity\\")[0], NULL);
 		CreateDirectory(&(consts->path + "\\Displacement\\")[0], NULL);
 		CreateDirectory(&(consts->path + "\\Grid\\")[0], NULL);
-
-
-		//remove("C:\\Users\\Hamish\\Google Drive\\LPL\\Icy Satellites\\Results\\Working\\diss.txt");
+		
+		remove(&(consts->path + "\\diss.txt")[0]);
 
 		std::ofstream uLat(consts->path+"\\Grid\\u_lat.txt", std::ofstream::out);
 		std::ofstream uLon(consts->path+"\\Grid\\u_lon.txt", std::ofstream::out);

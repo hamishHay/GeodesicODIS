@@ -84,7 +84,7 @@ Globals::Globals(int action) {
 int Globals::ReadGlobals(void) {
 	//Function to read model input parameters from input.in only.
 	//Avoids the need to recompile for each different model setup.
-	std::ifstream inputFile("input.in",std::ifstream::in);
+	std::ifstream inputFile(path + "\\input.in",std::ifstream::in);
 	std::string line, varStr, varVal;
 
 	int valInt;
@@ -99,12 +99,12 @@ int Globals::ReadGlobals(void) {
 		Output.Write(OUT_MESSAGE, &outstring);
 
 		while (std::getline(inputFile >> std::ws, line, ';')) { //>> std::ws removes any leading whitespace
-			
+
 			//Convert string to lower case
 			std::transform(line.begin(), line.end(), line.begin(), ::tolower);
 			std::getline(inputFile >> std::ws, varVal, ';');
 			std::stringstream value(varVal);
-			
+
 			added = false;
 			int i = 0;
 			do {
@@ -165,19 +165,38 @@ int Globals::ReadGlobals(void) {
 				else if (allGlobals[i]->IsType("string")) {
 					outstring << ((GlobalVar<std::string > *) allGlobals[i])->Value() << std::endl << std::endl;
 				}
-				
+
 				Output.Write(ERR_MESSAGE, &outstring);
 				//TerminateODIS();
-			};
+			}
 		}
-		
+
+		outstring << "Model parameters: " << std::endl;
+		for (int i = 0; i < allGlobals.size(); i++){
+
+			outstring << allGlobals[i]->StringID() << ": ";
+			if (allGlobals[i]->IsType("double")) {
+				outstring << ((GlobalVar<double > *) allGlobals[i])->Value() << std::endl << std::endl;
+			}
+			else if (allGlobals[i]->IsType("int")) {
+				outstring << ((GlobalVar<int > *) allGlobals[i])->Value() << std::endl << std::endl;
+			}
+			else if (allGlobals[i]->IsType("bool")) {
+				outstring << ((GlobalVar<bool > *) allGlobals[i])->Value() << std::endl << std::endl;
+			}
+			else if (allGlobals[i]->IsType("string")) {
+				outstring << ((GlobalVar<std::string > *) allGlobals[i])->Value() << std::endl << std::endl;
+			}
+
+			Output.Write(OUT_MESSAGE, &outstring);
+		}
+
 	}
 	else {
 		outstring << "Unable to open 'input.in' file." << std::endl << std::endl;
 		Output.Write(ERR_MESSAGE, &outstring);
 		Output.TerminateODIS();
 	}
-
 	return 0;
 };
 
