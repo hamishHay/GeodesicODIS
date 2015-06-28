@@ -53,7 +53,6 @@ void OutFiles::Write(mess_type message, std::ostringstream * sstream) {
 	case ERR_MESSAGE:
 		WriteError(sstream);
 		break;
-
 	}
 	
 	ClearSStream(sstream);

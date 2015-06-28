@@ -41,6 +41,7 @@ public:
 	GlobalVar<double> period;
 	GlobalVar<int> endTime;
 	GlobalVar<std::string> potential;
+	GlobalVar<bool> init;
 		
 	Globals();
 	Globals(int action);

@@ -19,6 +19,8 @@ private:
 	void UpdateObliqPotential(void);
 	void UpdateFullPotential(void);
 
+	void ReadInitialConditions(void);
+
 public:
 	double simulationTime = 0;
 	int orbitNumber = 1;
@@ -48,7 +50,7 @@ public:
 
 	void Solve();
 	
-	void InitialConditions(int action);
+	int InitialConditions(void);
 	
 	void Explicit();
 	void Implicit();

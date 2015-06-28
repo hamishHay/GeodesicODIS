@@ -75,6 +75,9 @@ Globals::Globals(int action) {
 		potential.SetStringID("potential");
 		allGlobals.push_back(&potential);
 
+		init.SetStringID("initial conditions");
+		allGlobals.push_back(&init);
+
 		ReadGlobals(); //Read globals from input.in file
 	}
 
@@ -122,7 +125,8 @@ int Globals::ReadGlobals(void) {
 						allGlobals[i]->Added(added);
 					}
 					else if (allGlobals[i]->IsType("bool")) {
-						value >> valBool;
+						value >> valStr;
+						if (valStr == "false") valBool = false;
 						((GlobalVar<bool> *) allGlobals[i])->SetValue(valBool);
 						added = true;
 						allGlobals[i]->Added(added);
@@ -250,4 +254,7 @@ void Globals::SetDefault(void) {
 
 	//Potential
 	potential.SetValue("ECC_RAD");
+
+	//Initial conditions
+	init.SetValue(false);
 };

@@ -51,15 +51,23 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 
 };
 
-void Solver::InitialConditions(int action) {
+int Solver::InitialConditions(void) {
+	bool action = consts->init.Value();
+
+
+	outstring << "Use initial conditions: ";
+	
 	if (action) {
-		UpdatePotential();
-	}
-	else {
-		//Read file
+		outstring << "Yes." << std::endl;
+		Out->Write(OUT_MESSAGE, &outstring);
+		ReadInitialConditions();
+		return 1;
 	}
 
-}
+	outstring << "No." << std::endl;
+	Out->Write(OUT_MESSAGE, &outstring);
+	return 0;
+};
 
 void Solver::Solve() {
 	outstring << "Entering solver: ";
@@ -359,6 +367,8 @@ void Solver::UpdateSurfaceHeight(int i, int j, double lat, double lon){
 
 
 void Solver::Explicit() {
+	InitialConditions();
+
 	//Check for stability
 	outstring << "Entering time loop:\n\n";
 	outstring << "End time: \t" << consts->endTime.Value() / 86400.0 << " days\n";
@@ -552,5 +562,9 @@ void Solver::DumpSolutions(int out_num) {
 			vFile << std::endl;
 		}	
 	}
-}
+};
+
+void Solver::ReadInitialConditions(void) {
+
+};
 

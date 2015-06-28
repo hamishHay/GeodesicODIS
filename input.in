@@ -1,3 +1,4 @@
-ocean thickness;			20000;			h;
-friction coefficient; 		2.28e-7;		alpha;
-simulation end time;		100;			endTime; 
+ocean thickness; 	 	 	 100.0;		 	 	 h; 
+friction coefficient; 	 	 	 2.28e-07;		 	 	 alpha; 
+simulation end time; 	 	 	 1;		 	 	 endTime; 
+initial conditions; 	 	 	 true;		 	 	 init; 
