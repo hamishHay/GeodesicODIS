@@ -12,6 +12,7 @@
 #include <iomanip>
 #include <string>
 #include <sstream>
+#include <algorithm>
 #include <cstdio>
 #include <Windows.h>
 
@@ -53,7 +54,6 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 
 int Solver::InitialConditions(void) {
 	bool action = consts->init.Value();
-
 
 	outstring << "Use initial conditions: ";
 	
@@ -195,7 +195,6 @@ void Solver::UpdateEastVel(int i, int j, double lat, double lon){
 
 	double dSurfLon = 0;
 	double surfHeight = 0;
-
 	double eastEta = 0;
 	double westEta = 0;
 	/*
@@ -252,26 +251,40 @@ void Solver::UpdateNorthVel(int i, int j, double lat, double lon){
 	double southEta = 0;
 	
 	/*
-	if (i == 0){
+	if (i == 0 || i == 1 || i == 2 || i == v->fieldLatLen - 3 || i == v->fieldLatLen - 2 || i == v->fieldLatLen - 1){
 		//northEta = (eta->CenterP(i, j) + eta->CenterP(i, eta->opp[j]))*0.5;
-		northEta = (eta->solution[i][j] + eta->solution[i+1][eta->opp[j]])*0.5;
-		//northEta = eta->CenterP(i, j);
-		//southEta = eta->SouthP(i, j);
-		//dSurfLat = (northEta - southEta) / (eta->dLat*radConv);
+		//northEta = (eta->solution[i][j] + eta->solution[i+1][eta->opp[j]])*0.5;
+		northEta = eta->solution[i][j];//eta->CenterP(i, j);
+		southEta = eta->solution[i + 1][j];//eta->SouthP(i, j);
+		dSurfLat = (northEta - southEta) / (eta->dLat*radConv);
 
 	}
-	else {
+	//else if {
 		//northEta = (eta->CenterP(i, j) + eta->NorthP(i, j))*0.5;
-		northEta = (eta->solution[i][j] + eta->solution[i-1][j])*0.5;
-	}
-	if (i == v->fieldLatLen - 1){
+	//	northEta = (eta->solution[i][j] + eta->solution[i-1][j])*0.5;
+	//}
+	//else if (i == v->fieldLatLen - 1){
+	//	northEta = eta->solution[i][j];//eta->CenterP(i, j);
+	//	southEta = //eta->SouthP(i, j);
+	//	dSurfLat = (northEta - southEta) / (eta->dLat*radConv);
 		//southEta = (eta->CenterP(i + 1, j) + eta->SouthP(i+1, j))*0.5;
-		southEta = (eta->solution[i + 1][j] + eta->solution[i][eta->opp[j]])*0.5;
-	}
+		//southEta = (eta->solution[i + 1][j] + eta->solution[i][eta->opp[j]])*0.5;
+	//}
 	else {
 		//southEta = (eta->SouthP(i, j) + eta->SouthP(i + 1, j))*0.5;
-		southEta = (eta->solution[i + 1][j] + eta->solution[i + 2][j])*0.5;
-	}*/
+		//northEta = (eta->solution[i][j] + eta->solution[i - 1][j])*0.5;
+		//southEta = (eta->solution[i + 1][j] + eta->solution[i + 2][j])*0.5;
+		//dSurfLat = (northEta - southEta) / (2*eta->dLat*radConv);
+		double eta_s2 = (eta->solution[i + 2][j] + eta->solution[i + 3][j])*0.5;
+		double eta_s1 = (eta->solution[i + 1][j] + eta->solution[i + 2][j])*0.5;
+		double eta_n1 = (eta->solution[i][j] + eta->solution[i - 1][j])*0.5;
+		double eta_n2 = (eta->solution[i - 1][j] + eta->solution[i - 2][j])*0.5;
+
+		dSurfLat = (-eta_s2 + 8 * eta_s1 - 8 * eta_n1 + eta_n2) / (12 * eta->dLat*radConv);
+
+		//dSurfLat = (eta->solution[i][j] - eta->solution[i-1][j] + eta->solution[i + 2][j] - eta->solution[i + 1][j]) / (2 * eta->dLat*radConv);
+	}
+	*/
 
 	northEta = eta->CenterP(i, j);
 	southEta = eta->SouthP(i, j);
@@ -353,8 +366,8 @@ void Solver::UpdateSurfaceHeight(int i, int j, double lat, double lon){
 		eastu = uNew->solution[i][j] + uNew->solution[i][j + 1];
 	}*/
 
-	//eastu = (uNew->CenterP(i, j) + uNew->EastP(i, j))*0.5;
-	//westu = (uNew->WestP(i, j) + uNew->WestP(i, j-1))*0.5;
+	//eastu = (- uNew->CenterP(i, j) + uNew->EastP(i, j));
+	//westu = (uNew->WestP(i, j) - uNew->WestP(i, j-1));
 
 	eastu = uNew->CenterP(i, j);
 	westu = uNew->WestP(i, j);
@@ -408,8 +421,8 @@ void Solver::Explicit() {
 		}
 		
 		for (int j = 0; j < v->fieldLonLen; j++) {
-			vNew->solution[0][j] = lagrangeInterp(vNew, 0, j);
-			vNew->solution[v->fieldLatLen - 1][j] = lagrangeInterp(vNew, v->fieldLatLen - 1, j);
+			//vNew->solution[0][j] = lagrangeInterp(vNew, 0, j);
+			//vNew->solution[v->fieldLatLen - 1][j] = lagrangeInterp(vNew, v->fieldLatLen - 1, j);
 			//vNew->solution[0][j] = linearInterp(vNew, 0, j);
 			//vNew->solution[v->fieldLatLen - 1][j] = linearInterp(vNew, v->fieldLatLen - 1, j);
 		}
@@ -433,8 +446,8 @@ void Solver::Explicit() {
 		}
 		
 		for (int j = 0; j < eta->fieldLonLen; j++) {
-			etaNew->solution[0][j] = lagrangeInterp(etaNew, 0, j);
-			etaNew->solution[eta->fieldLatLen - 1][j] = lagrangeInterp(etaNew, eta->fieldLatLen - 1, j);
+			//etaNew->solution[0][j] = lagrangeInterp(etaNew, 0, j);
+			//etaNew->solution[eta->fieldLatLen - 1][j] = lagrangeInterp(etaNew, eta->fieldLatLen - 1, j);
 			//etaNew->solution[0][j] = linearInterp(etaNew, 0, j);
 			//etaNew->solution[eta->fieldLatLen - 1][j] = linearInterp(etaNew, eta->fieldLatLen - 1, j);
 		}
@@ -472,7 +485,7 @@ void Solver::Explicit() {
 		}
 
 		//Check for output
-		if (fmod(iteration, outputTime) == 0) {//11520/10/2
+		if (fmod(iteration, outputTime) == 0) {//11520/10/2outputTime/10/2
 			energy->UpdateOrbitalKinEAvg(inc);
 			//std::cout << energy->isConverged;
 
@@ -565,6 +578,32 @@ void Solver::DumpSolutions(int out_num) {
 };
 
 void Solver::ReadInitialConditions(void) {
+	std::ifstream eastVel(consts->path + "\\InitialConditions\\u_vel.txt", std::ifstream::in);
+	std::ifstream northVel(consts->path + "\\InitialConditions\\v_vel.txt", std::ifstream::in);
+	std::ifstream displacement(consts->path + "\\InitialConditions\\eta.txt", std::ifstream::in);
 
+	CopyInitialConditions(eastVel, u);
+	CopyInitialConditions(northVel, v);
+	CopyInitialConditions(displacement, eta);
+
+};
+
+void Solver::CopyInitialConditions(std::ifstream & file, Field * inField) {
+	double inputValue = 0;
+	std::string line;
+
+	file.is_open();
+
+	for (int i = 0; i < inField->ReturnFieldLatLen(); i++) {
+		for (int j = 0; j < inField->ReturnFieldLonLen(); j++) {
+			std::getline(file >> std::ws, line, '\t');
+			std::stringstream inputString(line);
+			inputString >> inputValue;
+
+			inField->solution[i][j] = inputValue;
+		}
+	}
+
+	file.close();
 };
 

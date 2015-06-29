@@ -103,7 +103,8 @@ void Energy::IsConverged(void) {
 	}
 
 	else if (residual[residual.size() - 1] > 1) {
-		std::cout << std::endl << "Residual is now greater than 1. Your model would appear to have blown up. Sorry Chum." << std::endl;
+		consts->outstring << std::endl << "Residual is now greater than 1. Your model appears to have blown up. Sorry Chum." << std::endl;
+		consts->Output.Write(ERR_MESSAGE, &consts->outstring);
 		consts->Output.TerminateODIS();
 	}
 

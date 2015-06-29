@@ -92,7 +92,7 @@ int Globals::ReadGlobals(void) {
 
 	int valInt;
 	double valDouble;
-	bool valBool;
+	bool valBool = true;
 	std::string valStr;
 	bool added=false;
 
@@ -219,7 +219,7 @@ void Globals::SetDefault(void) {
 	loveReduct.SetValue(1 + loveK2.Value() - loveH2.Value());
 
 	//Ocean thickness
-	h.SetValue(400);
+	h.SetValue(10000);
 
 	//Surface gravity
 	g.SetValue(1.3);
@@ -234,7 +234,7 @@ void Globals::SetDefault(void) {
 	theta.SetValue(0.32*pi / 180);
 
 	//Coefficient of linear friction
-	alpha.SetValue(2.28e-7);
+	alpha.SetValue(2.28e-8);
 
 	//Lat and long spacing
 	dLat.SetValue(2);
@@ -253,7 +253,7 @@ void Globals::SetDefault(void) {
 	endTime.SetValue(80);
 
 	//Potential
-	potential.SetValue("ECC_RAD");
+	potential.SetValue("ECC_LIB");
 
 	//Initial conditions
 	init.SetValue(false);
