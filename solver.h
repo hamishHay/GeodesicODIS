@@ -47,6 +47,10 @@ public:
 	Field * vNew;
 	Field * uNew;
 
+	Field * etaNewHalf;
+	Field * vNewHalf;
+	Field * uNewHalf;
+
 	Solver(int type, int dump, Globals *, Mesh *, Field *, Field*, Field *, Field *, Field *, Mass *, Energy *);
 
 	void Solve();
@@ -58,9 +62,9 @@ public:
 	void CrankNicolson();
 
 	void UpdatePotential();
-	void UpdateEastVel(int i, int j, double lat, double lon);
-	void UpdateNorthVel(int i, int j, double lat, double lon);
-	void UpdateSurfaceHeight(int i, int j, double lat, double lon);
+	void UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Field * ETA, double dt);
+	void UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Field * ETA, double dt);
+	void UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Field * V, Field * ETA, double dt);
 
 	void DumpSolutions(int output_num);
 };

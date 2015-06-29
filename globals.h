@@ -15,6 +15,7 @@ extern double radConv;
 class Globals {
 private:
 	void SetDefault(void);
+	void OutputConsts(void);
 public:
 	OutFiles Output;
 	std::vector<IGlobalVar *> allGlobals;

@@ -88,19 +88,22 @@ void Energy::UpdateOrbitalDissEAvg(void) {
 void Energy::IsConverged(void) {
 	residual.push_back(abs(orbitDissEAvg[orbitKinEAvg.size() - 1] - orbitDissEAvg[orbitKinEAvg.size() - 2]));
 
-	//check latest value for convergence 
-	if (residual[residual.size() - 1] < 1e-8) { 
-		converged = true;
+	if (residual.size() > 5) {
+		//check latest value for convergence 
+		if (residual[residual.size() - 1] < 1e-7) {
+			converged = true;
 
-		//check previous two values for convergence also:
-		//Convergence will be reset if convergence is not consistent over three orbits.
-		for (int i = residual.size() - 2; i > residual.size() - 4; i--) {
-			if (residual[i] > 1e-8) {
-				converged = false; //reset if previous two values not converged
-				break;
+			//check previous two values for convergence also:
+			//Convergence will be reset if convergence is not consistent over three orbits.
+			for (int i = residual.size() - 2; i > residual.size() - 5; i--) {
+				if (residual[i] > 1e-7) {
+					converged = false; //reset if previous two values not converged
+					break;
+				}
 			}
 		}
 	}
+	
 
 	else if (residual[residual.size() - 1] > 1) {
 		consts->outstring << std::endl << "Residual is now greater than 1. Your model appears to have blown up. Sorry Chum." << std::endl;

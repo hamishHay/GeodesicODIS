@@ -81,6 +81,8 @@ Globals::Globals(int action) {
 		ReadGlobals(); //Read globals from input.in file
 	}
 
+	OutputConsts();
+
 	endTime.SetValue(endTime.Value()*period.Value());
 };
 
@@ -174,27 +176,6 @@ int Globals::ReadGlobals(void) {
 				//TerminateODIS();
 			}
 		}
-
-		outstring << "Model parameters: " << std::endl;
-		for (int i = 0; i < allGlobals.size(); i++){
-
-			outstring << allGlobals[i]->StringID() << ": ";
-			if (allGlobals[i]->IsType("double")) {
-				outstring << ((GlobalVar<double > *) allGlobals[i])->Value() << std::endl << std::endl;
-			}
-			else if (allGlobals[i]->IsType("int")) {
-				outstring << ((GlobalVar<int > *) allGlobals[i])->Value() << std::endl << std::endl;
-			}
-			else if (allGlobals[i]->IsType("bool")) {
-				outstring << ((GlobalVar<bool > *) allGlobals[i])->Value() << std::endl << std::endl;
-			}
-			else if (allGlobals[i]->IsType("string")) {
-				outstring << ((GlobalVar<std::string > *) allGlobals[i])->Value() << std::endl << std::endl;
-			}
-
-			Output.Write(OUT_MESSAGE, &outstring);
-		}
-
 	}
 	else {
 		outstring << "Unable to open 'input.in' file." << std::endl << std::endl;
@@ -219,7 +200,7 @@ void Globals::SetDefault(void) {
 	loveReduct.SetValue(1 + loveK2.Value() - loveH2.Value());
 
 	//Ocean thickness
-	h.SetValue(10000);
+	h.SetValue(400);
 
 	//Surface gravity
 	g.SetValue(1.3);
@@ -234,7 +215,7 @@ void Globals::SetDefault(void) {
 	theta.SetValue(0.32*pi / 180);
 
 	//Coefficient of linear friction
-	alpha.SetValue(2.28e-8);
+	alpha.SetValue(2.28e-7);
 
 	//Lat and long spacing
 	dLat.SetValue(2);
@@ -257,4 +238,26 @@ void Globals::SetDefault(void) {
 
 	//Initial conditions
 	init.SetValue(false);
+};
+
+void Globals::OutputConsts(void){
+	outstring << "Model parameters: " << std::endl;
+	for (int i = 0; i < allGlobals.size(); i++){
+
+		outstring << allGlobals[i]->StringID() << ": ";
+		if (allGlobals[i]->IsType("double")) {
+			outstring << ((GlobalVar<double > *) allGlobals[i])->Value() << std::endl << std::endl;
+		}
+		else if (allGlobals[i]->IsType("int")) {
+			outstring << ((GlobalVar<int > *) allGlobals[i])->Value() << std::endl << std::endl;
+		}
+		else if (allGlobals[i]->IsType("bool")) {
+			outstring << ((GlobalVar<bool > *) allGlobals[i])->Value() << std::endl << std::endl;
+		}
+		else if (allGlobals[i]->IsType("string")) {
+			outstring << ((GlobalVar<std::string > *) allGlobals[i])->Value() << std::endl << std::endl;
+		}
+
+		Output.Write(OUT_MESSAGE, &outstring);
+	}
 };
