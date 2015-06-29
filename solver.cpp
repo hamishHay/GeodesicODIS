@@ -488,7 +488,6 @@ void Solver::ReadInitialConditions(void) {
 	CopyInitialConditions(eastVel, u);
 	CopyInitialConditions(northVel, v);
 	CopyInitialConditions(displacement, eta);
-
 };
 
 void Solver::CopyInitialConditions(std::ifstream & file, Field * inField) {
@@ -509,4 +508,3 @@ void Solver::CopyInitialConditions(std::ifstream & file, Field * inField) {
 
 	file.close();
 };
-

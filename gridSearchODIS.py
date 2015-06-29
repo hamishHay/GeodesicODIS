@@ -3,6 +3,7 @@
 import subprocess as sub
 import time
 import os
+import glob
 import shutil
 import random as rand
 import numpy as np
@@ -19,6 +20,7 @@ class Process:
         self.complete = False
         self.node = Node
         self.childrenPos = []
+        self.directory = os.getcwd() + "\\h" + str(self.h) + "_alpha" + str(self.a)
 
         if self.node[0] == 0 and self.node[1] == dim[1] - 1: #top and left
             self.childrenPos.append((self.node[0]+1,self.node[1]))
@@ -34,24 +36,28 @@ class Process:
             self.max_children = 1
             
     def __repr__(self):
-        return str(self.id)#"ID="+str(self.id)+",h="+str(self.h)+",a=" + str(self.a)+",comp="+str(self.complete)
+        return str(self.id)
 
     def __str__(self):
         return str(self.id)
 
     def CreateDir(self):
-        self.directory = os.getcwd() + "\\h" + str(self.h) + "_alpha" + str(self.a)
         if not os.path.exists(self.directory):
             os.makedirs(self.directory)
-            shutil.copy("ODIS.exe", self.directory)
-            #shutil.copy("input.in", self.directory)
-            self.CreateInputFile()
+            
+        shutil.copy("ODIS.exe", self.directory)
+        self.CreateInputFile()
 
     def CreateInputFile(self):
+        self.init = "true"
         f = open(self.directory+"\\input.in",'w')
-        f.write("ocean thickness; \t \t \t " + str(self.h) +";	\t \t \t h; \n")
-        f.write("friction coefficient; \t \t \t " + str(self.a) +";	\t \t \t alpha; \n")
-        f.write("simulation end time; \t \t \t " + str(90) +";	\t \t \t endTime; \n")
+        f.write("ocean thickness; \t \t \t " + str(self.h) +"; \t \t \t h; \n")
+        f.write("friction coefficient; \t \t \t " + str(self.a) +"; \t \t \t alpha; \n")
+        f.write("simulation end time; \t \t \t " + str(1) +"; \t \t \t endTime; \n")
+        if self.node == (0,0):
+            self.init = "false"
+        f.write("initial conditions; \t \t \t " + self.init +"; \t \t \t init; \n")
+        
         f.close()       
 
     def Run(self):
@@ -93,7 +99,7 @@ class Grid:
         self.queue = []
 
     def PopulateGrid(self, hrange, arange):
-        height = np.linspace(hrange[0],hrange[1],self.dim[1])
+        height = np.logspace(hrange[0],hrange[1],self.dim[1])
         alpha = np.linspace(arange[0],arange[1],self.dim[0])
         count = hcount = acount = 0
         for h in height:
@@ -105,7 +111,29 @@ class Grid:
             acount = 0
             hcount += 1
 
-    def RunProcess(self, p):
+    def RunProcess(self, p,parent=None, is_child=False):
+        if is_child and parent != None:
+            par_dir = parent.directory
+            os.makedirs(p.directory + "\\InitialConditions")
+
+            destination = ["\\EastVelocity\\u_vel_", "\\NorthVelocity\\v_vel_", "\\Displacement\\eta_"] 
+            final = ["u_vel.txt", "v_vel.txt", "eta.txt"]
+
+            for name in range(len(destination)):
+                all_files = []
+                for file in glob.glob(par_dir + destination[name] + "*.txt"):
+                    all_files.append(file)
+
+                file_list = all_files.copy()
+                for i in range(len(file_list)):
+                    file_list[i] = (file_list[i].split('.')[-2]).split('_')[-1]
+                
+                m = max(file_list)
+                max_index = [x for x, j in enumerate(file_list) if j == m]
+
+                shutil.copy(all_files[max_index[0]], p.directory + "\\InitialConditions")
+                os.rename(p.directory + "\\InitialConditions\\" + all_files[max_index[0]].split('\\')[-1], p.directory + "\\InitialConditions\\" + final[name])
+
         p.Run()
         self.running.append(p)
         print(p.id, "is now running.")
@@ -170,7 +198,7 @@ class Grid:
                             if len(self.running) < total and len(found_children) > 0:
                                 for newp in found_children:
                                     if not newp.IsRun() and len(self.running) < total:
-                                        self.RunProcess(newp)
+                                        self.RunProcess(newp,parent=p,is_child=True, )
           
                     self.CheckRunning()
                         
@@ -178,7 +206,7 @@ class Grid:
                     self.CheckRunning()
 
                 looped+=1
-                time.sleep(15)
+                time.sleep(1)
 
 
 
@@ -187,9 +215,9 @@ class Grid:
             print("Completed processes: ", self.complete, "\n")
 
             
-g = Grid((5,5))
+g = Grid((8,10))
 pprint.pprint(g.grid)
-g.PopulateGrid([100, 10000], [2.28e-7, 2.28e-8])
+g.PopulateGrid([2, 4], [2.28e-7, 2.28e-8])
 pprint.pprint(g.grid)
-g.SolveGrid(3)
+g.SolveGrid(6)
 
