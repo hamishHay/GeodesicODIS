@@ -378,6 +378,8 @@ void Solver::UpdateSurfaceHeight(int i, int j, double lat, double lon){
 
 }
 
+//Hi I am a chicken in Trapezoidal
+
 
 void Solver::Explicit() {
 	InitialConditions();
