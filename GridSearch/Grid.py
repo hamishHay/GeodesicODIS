@@ -1,92 +1,15 @@
-#! python
-
-import subprocess as sub
 import time
 import os
 import glob
 import shutil
-import random as rand
 import numpy as np
 import pprint
+from Process import Process
 
-exect = "C:\\Users\\Hamish\\Documents\\GitHub\\GridTest\\runProcess.py"
-
-class Process:
-    def __init__(self, ID, height, alpha, Node, dim):
-        self.id = ID
-        self.h = height
-        self.a = alpha
-        self.start = False
-        self.complete = False
-        self.node = Node
-        self.childrenPos = []
-        self.directory = os.getcwd() + "\\h" + str(self.h) + "_alpha" + str(self.a)
-
-        if self.node[0] == 0 and self.node[1] == dim[1] - 1: #top and left
-            self.childrenPos.append((self.node[0]+1,self.node[1]))
-            self.max_children = 1
-        elif self.node[0] == 0: #left
-            self.childrenPos.append((self.node[0]+1,self.node[1]))
-            self.childrenPos.append((self.node[0],self.node[1]+1))
-            self.max_children = 2
-        elif self.node[0] == dim[0] - 1: #right
-            self.max_children = 0
-        else: #interior
-            self.childrenPos.append((self.node[0]+1,self.node[1]))
-            self.max_children = 1
-            
-    def __repr__(self):
-        return str(self.id)
-
-    def __str__(self):
-        return str(self.id)
-
-    def CreateDir(self):
-        if not os.path.exists(self.directory):
-            os.makedirs(self.directory)
-            
-        shutil.copy("ODIS.exe", self.directory)
-        self.CreateInputFile()
-
-    def CreateInputFile(self):
-        self.init = "true"
-        f = open(self.directory+"\\input.in",'w')
-        f.write("ocean thickness; \t \t \t " + str(self.h) +"; \t \t \t h; \n")
-        f.write("friction coefficient; \t \t \t " + str(self.a) +"; \t \t \t alpha; \n")
-        f.write("simulation end time; \t \t \t " + str(1) +"; \t \t \t endTime; \n")
-        if self.node == (0,0):
-            self.init = "false"
-        f.write("initial conditions; \t \t \t " + self.init +"; \t \t \t init; \n")
-        
-        f.close()       
-
-    def Run(self):
-        self.CreateDir()
-        self.pro = sub.Popen([self.directory + "\\ODIS.exe"], shell=True)
-        self.start = True
-
-    def Wait(self):
-        exit_code = self.pro.wait()
-        self.complete = True
-        return exit_code
-        
-
-    def IsRun(self):
-        if self.start:
-            if self.pro.poll() == None:
-                return False
-            else:
-                self.complete = True
-                return True
-        else:
-            return False
-
-    def IsChild(self, proc, n):
-         for pos in self.childrenPos:
-            if pos == proc.node:
-                return True
-        
-         return False
+import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+from matplotlib.mlab import griddata
+from matplotlib.colors import LogNorm
 
 class Grid:
     def __init__(self, dim):
@@ -97,26 +20,34 @@ class Grid:
         self.running = []
         self.complete = []
         self.queue = []
+        self.all = []
 
     def PopulateGrid(self, hrange, arange):
-        height = np.logspace(hrange[0],hrange[1],self.dim[1])
-        alpha = np.linspace(arange[0],arange[1],self.dim[0])
+        omega = 4.559e-6
+        self.height = np.logspace(hrange[0],hrange[1],self.dim[1])
+        #self.alpha = omega/(2*np.logspace(arange[0],arange[1],self.dim[0]))
+        self.alpha = omega/(2*(10**np.linspace(arange[0],arange[1],self.dim[0])))
+
         count = hcount = acount = 0
-        for h in height:
-            for a in alpha:
+        for h in self.height:
+            for a in self.alpha:
                 self.grid[hcount][acount] = Process(count+1,h,a,(acount,hcount),self.dim)
+                self.all.append(self.grid[hcount][acount])
                 acount += 1
                 count += 1
 
             acount = 0
             hcount += 1
 
+        print(self.height)
+        print(self.alpha)
+
     def RunProcess(self, p,parent=None, is_child=False):
         if is_child and parent != None:
             par_dir = parent.directory
             os.makedirs(p.directory + "\\InitialConditions")
 
-            destination = ["\\EastVelocity\\u_vel_", "\\NorthVelocity\\v_vel_", "\\Displacement\\eta_"] 
+            destination = ["\\EastVelocity\\u_vel_", "\\NorthVelocity\\v_vel_", "\\Displacement\\eta_"]
             final = ["u_vel.txt", "v_vel.txt", "eta.txt"]
 
             for name in range(len(destination)):
@@ -127,7 +58,7 @@ class Grid:
                 file_list = all_files.copy()
                 for i in range(len(file_list)):
                     file_list[i] = (file_list[i].split('.')[-2]).split('_')[-1]
-                
+
                 m = max(file_list)
                 max_index = [x for x, j in enumerate(file_list) if j == m]
 
@@ -149,7 +80,7 @@ class Grid:
     def SolveGrid(self,total):
         hlen = len(self.grid[0])
         alen = len(self.grid)
-        
+
         diagNum = alen + hlen - 1
         diagList = []
         for d in range(diagNum):
@@ -167,7 +98,7 @@ class Grid:
                 for a in range(alen):
                     if pos == self.grid[a][h].node:
                         self.queue.append(self.grid[a][h])
-      
+
         #Solve first node - others spawn from this
         self.RunProcess(self.grid[0][0])
 
@@ -181,11 +112,11 @@ class Grid:
 
             while looped <= 8:
                 if len(self.complete) > 0:
-                    for p in self.complete:              
+                    for p in self.complete:
                         if p.max_children != 0:
-                        
+
                             found_children = []
-                    
+
                             for child in self.queue:
                                 if len(found_children)<p.max_children:
                                     if p.IsChild(child,alen):
@@ -194,30 +125,74 @@ class Grid:
                                 else:
                                     break
 
-   
+
                             if len(self.running) < total and len(found_children) > 0:
                                 for newp in found_children:
                                     if not newp.IsRun() and len(self.running) < total:
                                         self.RunProcess(newp,parent=p,is_child=True, )
-          
+
                     self.CheckRunning()
-                        
+
                 else:
                     self.CheckRunning()
 
                 looped+=1
-                time.sleep(1)
-
-
+                time.sleep(15)
 
             print("Queued processes: ", self.queue)
             print("Running processes: ", self.running)
             print("Completed processes: ", self.complete, "\n")
 
-            
-g = Grid((8,10))
-pprint.pprint(g.grid)
-g.PopulateGrid([2, 4], [2.28e-7, 2.28e-8])
-pprint.pprint(g.grid)
-g.SolveGrid(6)
+    def CollectResults(self):
+        all_dirs = []
 
+        results = open(os.getcwd()+"\\grid_results.txt",'w')
+
+        self.diss = []
+        for p in self.all:
+            if os.path.isfile(p.results_dir + "\\diss.txt"):
+                diss_file = open(p.results_dir + "\\diss.txt")
+                lines = diss_file.readlines()
+                results.write(str(p.h) + "\t" + str(p.a) + "\t" + lines[-1])
+                self.diss.append(float(lines[-1]))
+                diss_file.close()
+
+        results.close()
+
+        #self.PlotResults()
+
+    def PlotResults(self):
+
+        h,a,diss = np.loadtxt(os.getcwd()+"\\grid_results.txt").T #Transposed for easier unpacking
+        diss = diss*1e3
+        print(diss)
+        #nrows, ncols = #len(self.height), len(self.alpha)
+        #data = diss.reshape((8, 8))
+
+        #x, y = np.meshgrid(self.alpha, self.height)
+
+        xi = a#np.linspace(self.alpha[0],self.alpha[-1],1000)
+        yi = h#np.linspace(self.height[0],self.height[-1],1000)
+
+        x = a#self.alpha.copy()
+        y = h#self.height.copy()
+
+        zi = griddata(x,y,diss,xi,yi,interp='linear')
+
+        #fig = plt.figure()
+        #ax = fig.add_subplot(1,1,1)
+
+
+        plt.pcolor(xi, yi, zi, norm=LogNorm(vmin=0.003, vmax=zi.max()))
+        #CS = plt.contourf(xi, yi, zi, 15, cmap=plt.cm.rainbow,
+        #                  vmax=abs(zi).max(), vmin=-abs(zi).max())
+        plt.yscale("log")
+        plt.xscale("log")
+        #ax.set_yscale('log')
+        plt.colorbar()  # draw colorbar
+        # plot data points.
+        plt.scatter(x, y, marker='o', c='b', s=5, zorder=10)
+        #plt.xlim(x[0], x[-1])
+        #plt.ylim(y[0], y[-1])
+        #plt.title('griddata test (%d points)' % npts)
+        plt.show()
