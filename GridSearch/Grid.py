@@ -57,12 +57,13 @@ class Grid:
 
                 file_list = all_files.copy()
                 for i in range(len(file_list)):
-                    file_list[i] = (file_list[i].split('.')[-2]).split('_')[-1]
+                    file_list[i] = int((file_list[i].split('.')[-2]).split('_')[-1])
 
                 m = max(file_list)
                 max_index = [x for x, j in enumerate(file_list) if j == m]
 
                 shutil.copy(all_files[max_index[0]], p.directory + "\\InitialConditions")
+                print("Copying", all_files[max_index[0]], "to " + p.directory + "\\InitialConditions")
                 os.rename(p.directory + "\\InitialConditions\\" + all_files[max_index[0]].split('\\')[-1], p.directory + "\\InitialConditions\\" + final[name])
 
         p.Run()
@@ -78,26 +79,37 @@ class Grid:
                 self.complete.append(proc)
 
     def SolveGrid(self,total):
-        hlen = len(self.grid[0])
-        alen = len(self.grid)
+        hlen = len(self.grid)
+        alen = len(self.grid[0])
 
         diagNum = alen + hlen - 1
         diagList = []
+
+        x = 0
+        ypos = 1
         for d in range(diagNum):
+            y = 0
+            x = d
             if d < alen:
-                for i in range(d+1):
-                    if i < hlen:
-                        diagList.append((d-i,i))
+                while (x >= 0) and (y < hlen):
+                    diagList.append((x,y))
+                    x -= 1
+                    y += 1
             else:
-                for i in range(d-hlen, hlen):
-                    diagList.append((d-i,i))
+                x = alen -1
+                y = ypos
+                while (y < hlen):
+                    diagList.append((x,y))
+                    x -= 1
+                    y += 1
+                ypos +=1
 
         #Create ID queue
         for pos in diagList:
             for h in range(hlen):
                 for a in range(alen):
-                    if pos == self.grid[a][h].node:
-                        self.queue.append(self.grid[a][h])
+                    if pos == self.grid[h][a].node:
+                        self.queue.append(self.grid[h][a])
 
         #Solve first node - others spawn from this
         self.RunProcess(self.grid[0][0])

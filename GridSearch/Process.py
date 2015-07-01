@@ -48,14 +48,16 @@ class Process:
         f.write("ocean thickness; \t \t \t " + str(self.h) +"; \t \t \t h; \n")
         f.write("friction coefficient; \t \t \t " + str(self.a) +"; \t \t \t alpha; \n")
         f.write("simulation end time; \t \t \t " + str(150) +"; \t \t \t endTime; \n")
-        if self.node == (0,0):
-            self.init = "false"
+        #if self.node == (0,0):
+        #    self.init = "false"
         f.write("initial conditions; \t \t \t " + self.init +"; \t \t \t init; \n")
 
         f.close()
 
     def Run(self):
         self.CreateDir()
+        if self.node == (0,0):
+            input("Press any key after adding initial conditions to process 1...")
         self.pro = sub.Popen([self.directory + "\\ODIS.exe"], shell=True)
         self.start = True
 
