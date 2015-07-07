@@ -248,12 +248,12 @@ void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Fi
 			VNEW->solution[i][j] = (-coriolis - surfHeight + tidalForce - V->solution[i][j] * consts->alpha.Value())*dt + VOLD->solution[i][j];
 		}
 	}
-
+	
 	//for (int j = 0; j < v->fieldLonLen; j++) {
-	//vNew->solution[0][j] = lagrangeInterp(vNew, 0, j);
-	//vNew->solution[v->fieldLatLen - 1][j] = lagrangeInterp(vNew, v->fieldLatLen - 1, j);
-	//vNew->solution[0][j] = linearInterp(vNew, 0, j);
-	//vNew->solution[v->fieldLatLen - 1][j] = linearInterp(vNew, v->fieldLatLen - 1, j);
+		//vNew->solution[0][j] = lagrangeInterp(vNew, 0, j);
+		//vNew->solution[v->fieldLatLen - 1][j] = lagrangeInterp(vNew, v->fieldLatLen - 1, j);
+		//vNew->solution[0][j] = linearInterp(vNew, 0, j);
+		//vNew->solution[v->fieldLatLen - 1][j] = linearInterp(vNew, v->fieldLatLen - 1, j);
 	//}
 	
 }
@@ -302,13 +302,13 @@ void Solver::UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Fiel
 			ETANEW->solution[i][j] = consts->h.Value() / (consts->radius.Value()*cos(lat))*(-vGrad - uGrad)*dt + ETAOLD->solution[i][j];
 		}
 	}
-
-	//for (int j = 0; j < eta->fieldLonLen; j++) {
-	//etaNew->solution[0][j] = lagrangeInterp(etaNew, 0, j);
-	//etaNew->solution[eta->fieldLatLen - 1][j] = lagrangeInterp(etaNew, eta->fieldLatLen - 1, j);
-	//etaNew->solution[0][j] = linearInterp(etaNew, 0, j);
-	//etaNew->solution[eta->fieldLatLen - 1][j] = linearInterp(etaNew, eta->fieldLatLen - 1, j);
-	//}
+	
+	for (int j = 0; j < eta->fieldLonLen; j++) {
+		etaNew->solution[0][j] = lagrangeInterp(etaNew, 0, j);
+		etaNew->solution[eta->fieldLatLen - 1][j] = lagrangeInterp(etaNew, eta->fieldLatLen - 1, j);
+		//etaNew->solution[0][j] = linearInterp(etaNew, 0, j);
+		//etaNew->solution[eta->fieldLatLen - 1][j] = linearInterp(etaNew, eta->fieldLatLen - 1, j);
+	}
 
 	//Average eta out at poles
 

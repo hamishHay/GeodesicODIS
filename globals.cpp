@@ -234,7 +234,7 @@ void Globals::SetDefault(void) {
 	endTime.SetValue(80);
 
 	//Potential
-	potential.SetValue("ECC_LIB");
+	potential.SetValue("OBLIQ");
 
 	//Initial conditions
 	init.SetValue(false);
