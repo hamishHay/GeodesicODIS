@@ -303,12 +303,12 @@ void Solver::UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Fiel
 		}
 	}
 	
-	for (int j = 0; j < eta->fieldLonLen; j++) {
-		etaNew->solution[0][j] = lagrangeInterp(etaNew, 0, j);
-		etaNew->solution[eta->fieldLatLen - 1][j] = lagrangeInterp(etaNew, eta->fieldLatLen - 1, j);
+	//for (int j = 0; j < eta->fieldLonLen; j++) {
+		//etaNew->solution[0][j] = lagrangeInterp(etaNew, 0, j);
+		//etaNew->solution[eta->fieldLatLen - 1][j] = lagrangeInterp(etaNew, eta->fieldLatLen - 1, j);
 		//etaNew->solution[0][j] = linearInterp(etaNew, 0, j);
 		//etaNew->solution[eta->fieldLatLen - 1][j] = linearInterp(etaNew, eta->fieldLatLen - 1, j);
-	}
+	//}
 
 	//Average eta out at poles
 

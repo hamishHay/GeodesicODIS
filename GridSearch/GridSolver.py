@@ -1,7 +1,10 @@
 #! python
 import Grid
+import numpy as np
 
-g = Grid.Grid((10,40)) #10, 40
-g.PopulateGrid([1.69897, 3], [1, 2.69897]) # 2.69897
-g.SolveGrid(6)
+#a,h
+g = Grid.Grid((8,50)) #10, 40
+#h,a
+g.PopulateGrid([np.log10(2), 3],[np.log10(5e-7),-9]) # 2.69897
+g.SolveGrid(7)
 g.CollectResults()

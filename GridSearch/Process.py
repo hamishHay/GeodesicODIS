@@ -47,9 +47,10 @@ class Process:
         f = open(self.directory+"\\input.in",'w')
         f.write("ocean thickness; \t \t \t " + str(self.h) +"; \t \t \t h; \n")
         f.write("friction coefficient; \t \t \t " + str(self.a) +"; \t \t \t alpha; \n")
+        f.write("potential; \t \t \t OBLIQ; \t \t \t potential; \n")
         f.write("simulation end time; \t \t \t " + str(150) +"; \t \t \t endTime; \n")
-        #if self.node == (0,0):
-        #    self.init = "false"
+        if self.node == (0,0):
+            self.init = "false"
         f.write("initial conditions; \t \t \t " + self.init +"; \t \t \t init; \n")
 
         f.close()
