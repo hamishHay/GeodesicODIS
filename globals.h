@@ -42,6 +42,7 @@ public:
 	GlobalVar<double> period;
 	GlobalVar<int> endTime;
 	GlobalVar<std::string> potential;
+	GlobalVar<std::string> friction;
 	GlobalVar<bool> init;
 		
 	Globals();

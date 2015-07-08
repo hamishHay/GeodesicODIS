@@ -75,6 +75,9 @@ Globals::Globals(int action) {
 		potential.SetStringID("potential");
 		allGlobals.push_back(&potential);
 
+		friction.SetStringID("friction type");
+		allGlobals.push_back(&friction);
+
 		init.SetStringID("initial conditions");
 		allGlobals.push_back(&init);
 
@@ -235,6 +238,9 @@ void Globals::SetDefault(void) {
 
 	//Potential
 	potential.SetValue("OBLIQ");
+
+	//Friction Type
+	friction.SetValue("QUADRATIC");
 
 	//Initial conditions
 	init.SetValue(false);

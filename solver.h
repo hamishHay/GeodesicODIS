@@ -13,6 +13,7 @@ private:
 	int solverType;
 	int dumpTime;
 	enum Potential {OBLIQ, ECC_RAD, ECC_LIB, FULL};
+	enum Friction {LINEAR, QUADRATIC};
 
 	void UpdateEccRadPotential(void);
 	void UpdateEccLibPotential(void);
@@ -32,6 +33,7 @@ public:
 	OutFiles * Out;
 
 	Potential tide;
+	Friction fric_type;
 
 	Globals * consts;
 	Mesh * grid;
@@ -50,6 +52,9 @@ public:
 	Field * etaNewHalf;
 	Field * vNewHalf;
 	Field * uNewHalf;
+
+	Field * vDissTerm;
+	Field * uDissTerm;
 
 	Solver(int type, int dump, Globals *, Mesh *, Field *, Field*, Field *, Field *, Field *, Mass *, Energy *);
 

@@ -36,6 +36,9 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 	uNew = new Field(grid,0,1);
 	vNew = new Field(grid,1,0);
 
+	vDissTerm = new Field(grid, 1, 0);
+	uDissTerm = new Field(grid, 0, 1);
+
 	*etaNew = *eta;
 	*uNew = *u;
 	*etaNew = *eta;
@@ -46,6 +49,14 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 	else if (consts->potential.Value() == "FULL") tide = FULL;
 	else {
 		outstring << "No potential forcing found." << std::endl;
+		Out->Write(ERR_MESSAGE, &outstring);
+		Out->TerminateODIS();
+	}
+
+	if (consts->friction.Value() == "LINEAR") fric_type = LINEAR;
+	else if (consts->friction.Value() == "QUADRATIC") fric_type = QUADRATIC;
+	else {
+		outstring << "No friction type found." << std::endl;
 		Out->Write(ERR_MESSAGE, &outstring);
 		Out->TerminateODIS();
 	}
@@ -197,6 +208,25 @@ void Solver::UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Fie
 
 	double lat, lon;
 
+	double alpha = consts->alpha.Value();
+
+
+	switch (fric_type) {
+	case LINEAR:
+		for (int i = 1; i < u->fieldLatLen - 1; i++) {
+			for (int j = 0; j < u->fieldLonLen; j++) {
+				uDissTerm->solution[i][j] = U->solution[i][j] * alpha;
+			}
+		}
+	case QUADRATIC:
+		for (int i = 1; i < u->fieldLatLen - 1; i++) {
+			for (int j = 0; j < u->fieldLonLen; j++) {
+				uDissTerm->solution[i][j] = alpha / consts->h.Value() * U->solution[i][j] * sqrt(pow(U->solution[i][j], 2.) + pow(V->NorthEastAvg(i, j), 2.));
+			}
+		}
+	}
+
+		
 	for (int i = 1; i < u->fieldLatLen - 1; i++) {
 		lat = u->lat[i] * radConv;
 		for (int j = 0; j < u->fieldLonLen; j++) {
@@ -212,10 +242,9 @@ void Solver::UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Fie
 			coriolis = 2. * consts->angVel.Value()*sin(lat)*V->NorthEastAvg(i, j);
 			tidalForce = consts->loveReduct.Value()*(1. / (consts->radius.Value()*cos(lat)))* dUlon->solution[i][j];
 
-			UNEW->solution[i][j] = (coriolis - surfHeight + tidalForce - U->solution[i][j] * consts->alpha.Value())*dt + UOLD->solution[i][j];
+			UNEW->solution[i][j] = (coriolis - surfHeight + tidalForce - uDissTerm->solution[i][j])*dt + UOLD->solution[i][j];
 		}
 	}
-
 }
 
 void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Field * ETA, double dt){
@@ -228,6 +257,23 @@ void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Fi
 	double southEta = 0;
 
 	double lat, lon;
+
+	double alpha = consts->alpha.Value();
+
+	switch (fric_type) {
+	case LINEAR:
+		for (int i = 0; i < v->fieldLatLen; i++) {
+			for (int j = 0; j < v->fieldLonLen; j++) {
+				vDissTerm->solution[i][j] = U->solution[i][j] * alpha;
+			}
+		}
+	case QUADRATIC:
+		for (int i = 0; i < v->fieldLatLen; i++) {
+			for (int j = 0; j < v->fieldLonLen; j++) {
+				vDissTerm->solution[i][j] = alpha / consts->h.Value() * V->solution[i][j] * sqrt(pow(V->solution[i][j], 2.) + pow(U->SouthWestAvg(i, j), 2.));
+			}
+		}
+	}
 
 	for (int i = 0; i < v->fieldLatLen; i++) {
 		lat = v->lat[i] * radConv;
@@ -245,7 +291,7 @@ void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Fi
 
 			tidalForce = consts->loveReduct.Value()*(1. / consts->radius.Value())* dUlat->solution[i][j];
 
-			VNEW->solution[i][j] = (-coriolis - surfHeight + tidalForce - V->solution[i][j] * consts->alpha.Value())*dt + VOLD->solution[i][j];
+			VNEW->solution[i][j] = (-coriolis - surfHeight + tidalForce - vDissTerm->solution[i][j])*dt + VOLD->solution[i][j];
 		}
 	}
 	
