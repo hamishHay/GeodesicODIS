@@ -43,6 +43,7 @@ public:
 	GlobalVar<int> endTime;
 	GlobalVar<std::string> potential;
 	GlobalVar<bool> init;
+	GlobalVar<double> converge;
 		
 	Globals();
 	Globals(int action);

@@ -57,6 +57,9 @@ Globals::Globals(int action) {
 		timeStep.SetStringID("time step");
 		allGlobals.push_back(&timeStep);
 
+		converge.SetStringID("converge");
+		allGlobals.push_back(&converge);
+
 		alpha.SetStringID("friction coefficient");
 		allGlobals.push_back(&alpha);
 
@@ -226,6 +229,9 @@ void Globals::SetDefault(void) {
 
 	//Time step
 	timeStep.SetValue(40.);
+
+	//Convergence Criteria
+	converge.SetValue(1e-7);
 
 	//Angular velocity
 	angVel.SetValue(2 * pi / period.Value());

@@ -42,6 +42,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 
 	if (consts->potential.Value() == "ECC_RAD") tide = ECC_RAD;
 	else if (consts->potential.Value() == "ECC_LIB") tide = ECC_LIB;
+	else if (consts->potential.Value() == "ECC") tide = ECC;
 	else if (consts->potential.Value() == "OBLIQ") tide = OBLIQ;
 	else if (consts->potential.Value() == "FULL") tide = FULL;
 	else {
@@ -90,6 +91,10 @@ void Solver::UpdatePotential() {
 		UpdateEccLibPotential();
 		break;
 
+	case ECC:
+		UpdateEccPotential();
+		break;
+
 	case OBLIQ:
 		UpdateObliqPotential();
 		break;
@@ -119,6 +124,29 @@ void Solver::UpdateEccLibPotential(void) {
 		for (int j = 0; j < dUlon->fieldLonLen; j++) {
 			lon = dUlon->lon[j] * radConv;
 			dUlon->solution[i][j] = constant *3* pow(cos(lat), 2)*(-7 * sin(2*lon - B) + sin(2*lon + B)); //P22
+		}
+	}
+}
+
+void Solver::UpdateEccPotential(void) {
+	double lat = 0;
+	double lon = 0;
+	double B = consts->angVel.Value()*simulationTime;
+	double constant = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->e.Value();
+
+	for (int i = 0; i < dUlat->fieldLatLen; i++) {
+		lat = dUlat->lat[i] * radConv;
+		for (int j = 0; j < dUlat->fieldLonLen; j++) {
+			lon = dUlat->lon[j] * radConv;
+			dUlat->solution[i][j] = constant*(-1.5*sin(2 * lat) * (7 * cos(2 * lon - B) - cos(2 * lon + B))) + constant*(-9.*sin(2 * lat)*cos(B)); //P22 + P20
+		}
+	}
+
+	for (int i = 0; i < dUlon->fieldLatLen; i++) {
+		lat = dUlon->lat[i] * radConv;
+		for (int j = 0; j < dUlon->fieldLonLen; j++) {
+			lon = dUlon->lon[j] * radConv;
+			dUlon->solution[i][j] = constant * 3 * pow(cos(lat), 2)*(-7 * sin(2 * lon - B) + sin(2 * lon + B)); //P22
 		}
 	}
 }
@@ -249,12 +277,12 @@ void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Fi
 		}
 	}
 	
-	//for (int j = 0; j < v->fieldLonLen; j++) {
+	for (int j = 0; j < v->fieldLonLen; j++) {
 		//vNew->solution[0][j] = lagrangeInterp(vNew, 0, j);
 		//vNew->solution[v->fieldLatLen - 1][j] = lagrangeInterp(vNew, v->fieldLatLen - 1, j);
 		//vNew->solution[0][j] = linearInterp(vNew, 0, j);
 		//vNew->solution[v->fieldLatLen - 1][j] = linearInterp(vNew, v->fieldLatLen - 1, j);
-	//}
+	}
 	
 }
 

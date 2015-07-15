@@ -12,10 +12,11 @@ class Solver {
 private:
 	int solverType;
 	int dumpTime;
-	enum Potential {OBLIQ, ECC_RAD, ECC_LIB, FULL};
+	enum Potential {OBLIQ, ECC_RAD, ECC_LIB, ECC, FULL};
 
 	void UpdateEccRadPotential(void);
 	void UpdateEccLibPotential(void);
+	void UpdateEccPotential(void);
 	void UpdateObliqPotential(void);
 	void UpdateFullPotential(void);
 

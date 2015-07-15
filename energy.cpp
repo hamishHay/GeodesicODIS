@@ -90,13 +90,13 @@ void Energy::IsConverged(void) {
 
 	if (residual.size() > 5) {
 		//check latest value for convergence 
-		if (residual[residual.size() - 1] < 1e-6) {
+		if (residual[residual.size() - 1] < consts->converge.Value()) {
 			converged = true;
 
 			//check previous two values for convergence also:
 			//Convergence will be reset if convergence is not consistent over three orbits.
 			for (int i = residual.size() - 2; i > residual.size() - 5; i--) {
-				if (residual[i] > 1e-6) {
+				if (residual[i] > consts->converge.Value()) {
 					converged = false; //reset if previous two values not converged
 					break;
 				}
