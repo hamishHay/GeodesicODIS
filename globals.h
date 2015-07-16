@@ -11,14 +11,19 @@
 extern double pi;
 extern double radConv;
 
+enum Friction { LINEAR, QUADRATIC };
+
 //Class stores all global values
 class Globals {
 private:
 	void SetDefault(void);
 	void OutputConsts(void);
+	
 public:
 	OutFiles Output;
 	std::vector<IGlobalVar *> allGlobals;
+
+	Friction fric_type;
 
 	std::ostringstream outstring;
 

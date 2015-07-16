@@ -20,19 +20,27 @@ Energy::Energy(Mesh * mesh, int lat, int lon, Globals * Consts, Field * UVel, Fi
 void Energy::UpdateKinE(void) {
 	//double cellMass = 0.;
 
-	for (int i = 0; i < fieldLatLen-1; i++) {
-		for (int j = 0; j < fieldLonLen; j++) {
-			this->solution[i][j] = 0.5*mass->solution[i][j]* (pow(u->solution[i][j], 2) + pow(v->solution[i][j], 2));
+	switch (consts->fric_type) {
+		//Linear dissipation
+	case LINEAR:
+		for (int i = 0; i < fieldLatLen - 1; i++) {
+			for (int j = 0; j < fieldLonLen; j++) {
+				this->solution[i][j] = 0.5*mass->solution[i][j] * (pow(u->solution[i][j], 2) + pow(v->solution[i][j], 2));
+			}
+		}
+	case QUADRATIC:
+		for (int i = 0; i < fieldLatLen - 1; i++) {
+			for (int j = 0; j < fieldLonLen; j++) {
+				this->solution[i][j] = 0.5*mass->solution[i][j] * pow((pow(u->solution[i][j], 2) + pow(v->solution[i][j], 2)),1.5);
+			}
 		}
 	}
+
+	
 };
 
 void Energy::UpdateDtKinEAvg(void) {
 	double kineticSum = 0; //Joules
-
-	//Sum for poles
-	//kineticSum += this->solution[0][0];
-	//kineticSum += this->solution[this->fieldLatLen-1][0];
 	
 	for (int i = 0; i < fieldLatLen-1; i++) {
 		for (int j = 0; j < fieldLonLen; j++) {
@@ -50,10 +58,12 @@ void Energy::UpdateDtKinEAvg(void) {
 void Energy::UpdateDtDissEAvg(void) {
 	dtDissEAvg.push_back(0);
 
-	switch (dissMode) {
+	switch (consts->fric_type) {
 		//Linear dissipation
-	case 0:
+	case LINEAR:
 		dtDissEAvg[dtKinEAvg.size() - 1] = 2 * dtKinEAvg[dtKinEAvg.size() - 1] * consts->alpha.Value(); //Joules per meter
+	case QUADRATIC:
+		dtDissEAvg[dtKinEAvg.size() - 1] = 2 * dtKinEAvg[dtKinEAvg.size() - 1] * consts->h.Value() * consts->alpha.Value();
 	}
 };
 

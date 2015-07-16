@@ -52,14 +52,6 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 		Out->Write(ERR_MESSAGE, &outstring);
 		Out->TerminateODIS();
 	}
-
-	if (consts->friction.Value() == "LINEAR") fric_type = LINEAR;
-	else if (consts->friction.Value() == "QUADRATIC") fric_type = QUADRATIC;
-	else {
-		outstring << "No friction type found." << std::endl;
-		Out->Write(ERR_MESSAGE, &outstring);
-		Out->TerminateODIS();
-	}
 };
 
 int Solver::InitialConditions(void) {
@@ -211,7 +203,7 @@ void Solver::UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Fie
 	double alpha = consts->alpha.Value();
 
 
-	switch (fric_type) {
+	switch (consts->fric_type) {
 	case LINEAR:
 		for (int i = 1; i < u->fieldLatLen - 1; i++) {
 			for (int j = 0; j < u->fieldLonLen; j++) {
@@ -260,7 +252,7 @@ void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Fi
 
 	double alpha = consts->alpha.Value();
 
-	switch (fric_type) {
+	switch (consts->fric_type) {
 	case LINEAR:
 		for (int i = 0; i < v->fieldLatLen; i++) {
 			for (int j = 0; j < v->fieldLonLen; j++) {

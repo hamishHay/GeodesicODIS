@@ -87,6 +87,14 @@ Globals::Globals(int action) {
 	OutputConsts();
 
 	endTime.SetValue(endTime.Value()*period.Value());
+
+	if (friction.Value() == "LINEAR") fric_type = LINEAR;
+	else if (friction.Value() == "QUADRATIC") fric_type = QUADRATIC;
+	else {
+		outstring << "No friction type found." << std::endl;
+		Output.Write(ERR_MESSAGE, &outstring);
+		Output.TerminateODIS();
+	}
 };
 
 int Globals::ReadGlobals(void) {
