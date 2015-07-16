@@ -257,7 +257,7 @@ void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Fi
 
 	double lat, lon;
 
-	for (int i = 0; i < v->fieldLatLen; i++) {
+	for (int i = 1; i < v->fieldLatLen-1; i++) {
 		lat = v->lat[i] * radConv;
 		for (int j = 0; j < v->fieldLonLen; j++) {
 			lon = v->lon[j] * radConv;
@@ -280,8 +280,8 @@ void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Fi
 	for (int j = 0; j < v->fieldLonLen; j++) {
 		//vNew->solution[0][j] = lagrangeInterp(vNew, 0, j);
 		//vNew->solution[v->fieldLatLen - 1][j] = lagrangeInterp(vNew, v->fieldLatLen - 1, j);
-		//vNew->solution[0][j] = linearInterp(vNew, 0, j);
-		//vNew->solution[v->fieldLatLen - 1][j] = linearInterp(vNew, v->fieldLatLen - 1, j);
+		vNew->solution[0][j] = linearInterp(vNew, 0, j);
+		vNew->solution[v->fieldLatLen - 1][j] = linearInterp(vNew, v->fieldLatLen - 1, j);
 	}
 	
 }
@@ -297,7 +297,7 @@ void Solver::UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Fiel
 	double lat, lon;
 
 
-	for (int i = 0; i < eta->fieldLatLen; i++) {
+	for (int i = 1; i < eta->fieldLatLen-1; i++) {
 		lat = eta->lat[i] * radConv;
 		for (int j = 0; j < eta->fieldLonLen; j++) {
 			lon = eta->lon[j] * radConv;
@@ -332,10 +332,10 @@ void Solver::UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Fiel
 	}
 	
 	for (int j = 0; j < eta->fieldLonLen; j++) {
-		etaNew->solution[0][j] = lagrangeInterp(etaNew, 0, j);
-		etaNew->solution[eta->fieldLatLen - 1][j] = lagrangeInterp(etaNew, eta->fieldLatLen - 1, j);
-		//etaNew->solution[0][j] = linearInterp(etaNew, 0, j);
-		//etaNew->solution[eta->fieldLatLen - 1][j] = linearInterp(etaNew, eta->fieldLatLen - 1, j);
+		//etaNew->solution[0][j] = lagrangeInterp(etaNew, 0, j);
+		//etaNew->solution[eta->fieldLatLen - 1][j] = lagrangeInterp(etaNew, eta->fieldLatLen - 1, j);
+		etaNew->solution[0][j] = linearInterp(etaNew, 0, j);
+		etaNew->solution[eta->fieldLatLen - 1][j] = linearInterp(etaNew, eta->fieldLatLen - 1, j);
 	}
 
 	//Average eta out at poles

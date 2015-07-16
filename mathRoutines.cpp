@@ -5,11 +5,12 @@
 using namespace std;
 
 double linearInterp(Field * field, int i, int j) {
+	//third order accurate forward difference method
 	if (i < field->fieldLatLen / 2) {
-		return field->solution[i + 1][j] - (-3 * field->solution[i + 1][j] + 4 * field->solution[i + 2][j] - field->solution[i + 3][j]) / (2 * field->dLat*radConv)*field->dLat*radConv;
+		return -(11. / 6.* field->solution[i + 1][j] - 3 * field->solution[i + 2][j] + 1.5* field->solution[i + 3][j] - 1 / 3. * field->solution[i + 4][j]);
 	}
 	else {
-		return field->solution[i - 1][j] + (3 * field->solution[i - 1][j] - 4 * field->solution[i - 2][j] + field->solution[i - 3][j]) / (2 * field->dLat*radConv)*field->dLat*radConv;
+		return -(11. / 6.* field->solution[i - 1][j] - 3 * field->solution[i - 2][j] + 1.5* field->solution[i - 3][j] - 1 / 3. * field->solution[i - 4][j]);
 	}
 }
 
@@ -17,14 +18,14 @@ double lagrangeInterp(Field * field, int i, int j) {
 	double L[3];
 	double P2 = 0.;
 	double x[4];
-	int inc;
+	int inc = 3;
 	int count = 0;
 	
 	if (i < field->fieldLatLen / 2) {
-		inc = 3;
+		inc = 1*inc;
 	}
 	else {
-		inc = -3;
+		inc = -inc;
 	}
 	//define x positions (i.e. colat) in radians
 	count = 1;

@@ -105,11 +105,11 @@ void Energy::IsConverged(void) {
 	}
 	
 
-	//else if (residual[residual.size() - 1] > 1) {
-	//	consts->outstring << std::endl << "Residual is now greater than 1. Your model appears to have blown up. Sorry Chum." << std::endl;
-	//	consts->Output.Write(ERR_MESSAGE, &consts->outstring);
-	//	consts->Output.TerminateODIS();
-	//}
+	if (residual[residual.size() - 1] > 1e5) {
+		consts->outstring << std::endl << "Residual is now greater than 100,000. Your model appears to have blown up. Sorry Chum." << std::endl;
+		consts->Output.Write(ERR_MESSAGE, &consts->outstring);
+		consts->Output.TerminateODIS();
+	}
 
 	printf("\t Resdiual: %1.4e \n", abs(orbitDissEAvg[orbitKinEAvg.size() - 1] - orbitDissEAvg[orbitKinEAvg.size() - 2]));
 

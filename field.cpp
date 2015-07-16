@@ -1,6 +1,7 @@
 #include "vector"
 #include "field.h"
 #include "mesh.h"
+#include "mathRoutines.h"
 #include <iostream>
 
 using namespace std;
@@ -101,13 +102,6 @@ double Field::WestP(int lat, int lon){
 double Field::SouthP(int lat, int lon){
 	if (lat >= fieldLatLen - 1) {
 		return solution[2 * (this->fieldLatLen - 1) - lat][this->opp[lon]];
-
-
-		//int newLat = this->fieldLatLen - 1 - (lat - (this->fieldLatLen - 1))-1;
-		//if (lon + (this->fieldLonLen / 2) >= this->fieldLonLen) return solution[this->fieldLatLen - 1 - (lat - (this->fieldLatLen - 1))][(lon + this->fieldLonLen / 2) - this->fieldLonLen];
-		//else {
-		//	return solution[this->fieldLatLen - 1 - (lat - (this->fieldLatLen - 1))][lon + this->fieldLonLen / 2];
-		//}
 	}
 	else if (lat < 0) {
 		if (lon + (this->fieldLonLen / 2) >= this->fieldLonLen) return solution[0 - lat][(lon + this->fieldLonLen / 2) - this->fieldLonLen];
@@ -130,14 +124,12 @@ double Field::SouthWestP(int i, int j){
 };
 
 double Field::SouthWestAvg(int i, int j) {
-	if (i == 0) return (this->CenterP(i, j) + this->SouthP(i, j) + this->WestP(i, j) + this->SouthP(i, j - 1))*0.5;//this->SouthP(i, j - 1))*0.5;
-	else if (i == this->fieldLatLen - 2) return (this->CenterP(i, j) + this->SouthP(i, j) + this->WestP(i, j) + this->SouthP(i, j - 1))*0.5;
+	if (i == 0) return (this->SouthP(i, j) + this->SouthP(i, j - 1))*0.5;
+	else if (i == this->fieldLatLen - 2) return (this->CenterP(i, j) + this->WestP(i, j))*0.5;
 	else return (this->CenterP(i, j) + this->SouthP(i, j) + this->WestP(i, j) + this->SouthP(i, j - 1))*0.25;
-	//return (this->CenterP(i, j) + this->SouthP(i, j) + this->WestP(i, j) + this->SouthP(i, j - 1))*0.5;
 };
 
 double Field::NorthEastAvg(int i, int j) {
-	//if (i == this->fieldLatLen) return (this->CenterP(i, j) + this->EastP(i, j) + this->NorthP(i, j) + this->NorthP(i, j + 1))*0.5;
 	return (this->CenterP(i, j) + this->EastP(i, j) + this->NorthP(i, j) + this->NorthP(i, j + 1))*0.25;
 };
 
