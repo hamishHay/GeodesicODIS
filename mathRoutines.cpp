@@ -4,13 +4,40 @@
 
 using namespace std;
 
-double linearInterp(Field * field, int i, int j) {
+double linearInterp1(Field * field, int i, int j) {
 	//third order accurate forward difference method
 	if (i < field->fieldLatLen / 2) {
-		return -(11. / 6.* field->solution[i + 1][j] - 3 * field->solution[i + 2][j] + 1.5* field->solution[i + 3][j] - 1 / 3. * field->solution[i + 4][j]);
+		return field->solution[i + 1][j] + (field->solution[i + 1][j] - field->solution[i + 2][j]);
+		//return field->solution[i + 1][j] + (1.5* field->solution[i + 1][j] - 2 * field->solution[i + 2][j] + 0.5* field->solution[i + 3][j]);
+		//return field->solution[i + 1][j] + (11. / 6.* field->solution[i + 1][j] - 3 * field->solution[i + 2][j] + 1.5* field->solution[i + 3][j] - 1 / 3. * field->solution[i + 4][j]);
 	}
 	else {
-		return -(11. / 6.* field->solution[i - 1][j] - 3 * field->solution[i - 2][j] + 1.5* field->solution[i - 3][j] - 1 / 3. * field->solution[i - 4][j]);
+		return field->solution[i - 1][j] + (field->solution[i - 1][j] - field->solution[i - 2][j]);
+		//return field->solution[i - 1][j] + (1.5* field->solution[i - 1][j] - 2 * field->solution[i - 2][j] + 0.5* field->solution[i - 3][j]);
+		//return field->solution[i - 1][j] + (11. / 6.* field->solution[i - 1][j] - 3 * field->solution[i - 2][j] + 1.5* field->solution[i - 3][j] - 1 / 3. * field->solution[i - 4][j]);
+	}
+}
+
+double linearInterp2(Field * field, int i, int j) {
+	//third order accurate forward difference method
+	if (i < field->fieldLatLen / 2) {
+		return field->solution[i + 1][j] + (1.5* field->solution[i + 1][j] - 2 * field->solution[i + 2][j] + 0.5* field->solution[i + 3][j]);
+	}
+	else {
+		return field->solution[i - 1][j] + (1.5* field->solution[i - 1][j] - 2 * field->solution[i - 2][j] + 0.5* field->solution[i - 3][j]);
+
+	}
+}
+
+double linearInterp4(Field * field, int i, int j) {
+	//third order accurate forward difference method
+	if (i < field->fieldLatLen / 2) {
+		return field->solution[i + 1][j] + (25. / 12.* field->solution[i + 1][j] - 4 * field->solution[i + 2][j] + 3 * field->solution[i + 3][j] - 4 / 3. * field->solution[i + 4][j] + .25 * field->solution[i + 5][j]);
+	}
+	else {
+		return field->solution[i - 1][j] + (25. / 12.* field->solution[i - 1][j] - 4 * field->solution[i - 2][j] + 3 * field->solution[i - 3][j] - 4 / 3. * field->solution[i - 4][j] + .25 * field->solution[i - 5][j]);
+		//return field->solution[i - 1][j] + (1.5* field->solution[i - 1][j] - 2 * field->solution[i - 2][j] + 0.5* field->solution[i - 3][j]);
+		//return field->solution[i - 1][j] + (11. / 6.* field->solution[i - 1][j] - 3 * field->solution[i - 2][j] + 1.5* field->solution[i - 3][j] - 1 / 3. * field->solution[i - 4][j]);
 	}
 }
 

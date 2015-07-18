@@ -257,7 +257,7 @@ void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Fi
 
 	double lat, lon;
 
-	for (int i = 1; i < v->fieldLatLen-1; i++) {
+	for (int i = 0; i < v->fieldLatLen; i++) {
 		lat = v->lat[i] * radConv;
 		for (int j = 0; j < v->fieldLonLen; j++) {
 			lon = v->lon[j] * radConv;
@@ -278,10 +278,10 @@ void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Fi
 	}
 	
 	for (int j = 0; j < v->fieldLonLen; j++) {
-		//vNew->solution[0][j] = lagrangeInterp(vNew, 0, j);
-		//vNew->solution[v->fieldLatLen - 1][j] = lagrangeInterp(vNew, v->fieldLatLen - 1, j);
-		vNew->solution[0][j] = linearInterp(vNew, 0, j);
-		vNew->solution[v->fieldLatLen - 1][j] = linearInterp(vNew, v->fieldLatLen - 1, j);
+		vNew->solution[0][j] = lagrangeInterp(vNew, 0, j);
+		vNew->solution[v->fieldLatLen - 1][j] = lagrangeInterp(vNew, v->fieldLatLen - 1, j);
+		//VNEW->solution[0][j] = linearInterp1(VNEW, 0, j);
+		//VNEW->solution[v->fieldLatLen - 1][j] = linearInterp1(VNEW, v->fieldLatLen - 1, j);
 	}
 	
 }
@@ -332,10 +332,10 @@ void Solver::UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Fiel
 	}
 	
 	for (int j = 0; j < eta->fieldLonLen; j++) {
-		//etaNew->solution[0][j] = lagrangeInterp(etaNew, 0, j);
-		//etaNew->solution[eta->fieldLatLen - 1][j] = lagrangeInterp(etaNew, eta->fieldLatLen - 1, j);
-		etaNew->solution[0][j] = linearInterp(etaNew, 0, j);
-		etaNew->solution[eta->fieldLatLen - 1][j] = linearInterp(etaNew, eta->fieldLatLen - 1, j);
+		etaNew->solution[0][j] = lagrangeInterp(etaNew, 0, j);
+		etaNew->solution[eta->fieldLatLen - 1][j] = lagrangeInterp(etaNew, eta->fieldLatLen - 1, j);
+		//ETANEW->solution[0][j] = linearInterp1(ETANEW, 0, j);
+		//ETANEW->solution[eta->fieldLatLen - 1][j] = linearInterp1(ETANEW, eta->fieldLatLen - 1, j);
 	}
 
 	//Average eta out at poles
@@ -343,15 +343,15 @@ void Solver::UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Fiel
 	double npoleSum = 0;
 	double spoleSum = 0;
 	for (int j = 0; j < eta->fieldLonLen; j++) {
-		npoleSum += etaNew->solution[0][j];
-		spoleSum += etaNew->solution[eta->fieldLatLen - 1][j];
+		npoleSum += ETANEW->solution[0][j];
+		spoleSum += ETANEW->solution[eta->fieldLatLen - 1][j];
 	}
-	npoleSum = npoleSum / etaNew->fieldLonLen;
-	spoleSum = spoleSum / etaNew->fieldLonLen;
+	npoleSum = npoleSum / eta->fieldLonLen;
+	spoleSum = spoleSum / eta->fieldLonLen;
 
 	for (int j = 0; j < eta->fieldLonLen; j++) {
-		etaNew->solution[0][j] = npoleSum;
-		etaNew->solution[eta->fieldLatLen - 1][j] = spoleSum;
+		ETANEW->solution[0][j] = npoleSum;
+		ETANEW->solution[eta->fieldLatLen - 1][j] = spoleSum;
 	}
 	
 
@@ -416,7 +416,7 @@ void Solver::Explicit() {
 		}
 
 		//Check for output
-		if (fmod(iteration, outputTime) == 0) {//11520/10/2outputTime/10/2
+		if (fmod(iteration, outputTime/10) == 0) {//11520/10/2outputTime/10/2
 			energy->UpdateOrbitalKinEAvg(inc);
 			//std::cout << energy->isConverged;
 
