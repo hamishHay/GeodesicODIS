@@ -302,27 +302,6 @@ void Solver::UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Fiel
 		for (int j = 0; j < eta->fieldLonLen; j++) {
 			lon = eta->lon[j] * radConv;
 
-			//NormalDifferencing
-			//if (i == 0) {
-			//	northv = V->solution[i][v->opp[j]]*cos(v->lat[i] * radConv);
-			//}
-			//else {
-			//	northv = V->CenterP(i - 1, j)*cos(v->lat[i - 1] * radConv);
-			//}
-
-			//if (i == v->fieldLatLen - 1) {
-			//	southv = V->CenterP(i, j)*cos(v->lat[i] * radConv);
-			//}
-			//else if (i == v->fieldLatLen) {
-			//	southv = V->SouthP(i - 1, j)*cos(v->lat[i - 1] * radConv);
-			//}
-			//else if (i == 0) {
-			//	southv = -V->CenterP(i, j)*cos(v->lat[i] * radConv);
-			//}
-			//else {
-			//	southv = V->CenterP(i, j)*cos(v->lat[i] * radConv);
-			//}
-
 			northv = V->CenterP(i - 1, j)*cos(v->lat[i - 1] * radConv);
 			southv = V->CenterP(i, j)*cos(v->lat[i] * radConv);
 
