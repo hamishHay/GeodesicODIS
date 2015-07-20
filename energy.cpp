@@ -112,7 +112,6 @@ void Energy::IsConverged(void) {
 	}
 
 	printf("\t Resdiual: %1.4e \n", abs(orbitDissEAvg[orbitKinEAvg.size() - 1] - orbitDissEAvg[orbitKinEAvg.size() - 2]));
-	converged = false;
 	if (converged) std::cout << "Convergence criteria met." << std::endl;
 };
 

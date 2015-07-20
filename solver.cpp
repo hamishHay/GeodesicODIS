@@ -244,6 +244,11 @@ void Solver::UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Fie
 		}
 	}
 
+	for (int j = 0; j < eta->fieldLonLen; j++) {
+		UNEW->solution[0][j] = linearInterp1(UNEW, 0, j);
+		UNEW->solution[u->fieldLatLen - 1][j] = linearInterp1(UNEW, u->fieldLatLen - 1, j);
+	}
+
 }
 
 void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Field * ETA, double dt){
@@ -273,15 +278,10 @@ void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Fi
 
 			tidalForce = consts->loveReduct.Value()*(1. / consts->radius.Value())* dUlat->solution[i][j];
 
+			double val = (-coriolis - surfHeight + tidalForce - V->solution[i][j] * consts->alpha.Value())*dt + VOLD->solution[i][j];
+
 			VNEW->solution[i][j] = (-coriolis - surfHeight + tidalForce - V->solution[i][j] * consts->alpha.Value())*dt + VOLD->solution[i][j];
 		}
-	}
-	
-	for (int j = 0; j < v->fieldLonLen; j++) {
-		vNew->solution[0][j] = lagrangeInterp(vNew, 0, j);
-		vNew->solution[v->fieldLatLen - 1][j] = lagrangeInterp(vNew, v->fieldLatLen - 1, j);
-		//VNEW->solution[0][j] = linearInterp1(VNEW, 0, j);
-		//VNEW->solution[v->fieldLatLen - 1][j] = linearInterp1(VNEW, v->fieldLatLen - 1, j);
 	}
 	
 }
@@ -303,22 +303,28 @@ void Solver::UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Fiel
 			lon = eta->lon[j] * radConv;
 
 			//NormalDifferencing
-			if (i == 0) {
-				northv = V->NorthP(i, j)*cos(v->lat[i] * radConv);
-			}
-			else {
-				northv = V->CenterP(i - 1, j)*cos(v->lat[i - 1] * radConv);
-			}
+			//if (i == 0) {
+			//	northv = V->solution[i][v->opp[j]]*cos(v->lat[i] * radConv);
+			//}
+			//else {
+			//	northv = V->CenterP(i - 1, j)*cos(v->lat[i - 1] * radConv);
+			//}
 
-			if (i == v->fieldLatLen - 1) {
-				southv = V->CenterP(i, j)*cos(v->lat[i] * radConv);
-			}
-			else if (i == v->fieldLatLen) {
-				southv = V->SouthP(i - 1, j)*cos(v->lat[i - 1] * radConv);
-			}
-			else {
-				southv = V->CenterP(i, j)*cos(v->lat[i] * radConv);
-			}
+			//if (i == v->fieldLatLen - 1) {
+			//	southv = V->CenterP(i, j)*cos(v->lat[i] * radConv);
+			//}
+			//else if (i == v->fieldLatLen) {
+			//	southv = V->SouthP(i - 1, j)*cos(v->lat[i - 1] * radConv);
+			//}
+			//else if (i == 0) {
+			//	southv = -V->CenterP(i, j)*cos(v->lat[i] * radConv);
+			//}
+			//else {
+			//	southv = V->CenterP(i, j)*cos(v->lat[i] * radConv);
+			//}
+
+			northv = V->CenterP(i - 1, j)*cos(v->lat[i - 1] * radConv);
+			southv = V->CenterP(i, j)*cos(v->lat[i] * radConv);
 
 			vGrad = (northv - southv) / (v->dLat*radConv);
 
@@ -332,10 +338,8 @@ void Solver::UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Fiel
 	}
 	
 	for (int j = 0; j < eta->fieldLonLen; j++) {
-		etaNew->solution[0][j] = lagrangeInterp(etaNew, 0, j);
-		etaNew->solution[eta->fieldLatLen - 1][j] = lagrangeInterp(etaNew, eta->fieldLatLen - 1, j);
-		//ETANEW->solution[0][j] = linearInterp1(ETANEW, 0, j);
-		//ETANEW->solution[eta->fieldLatLen - 1][j] = linearInterp1(ETANEW, eta->fieldLatLen - 1, j);
+		ETANEW->solution[0][j] = lagrangeInterp(ETANEW, 0, j);
+		ETANEW->solution[eta->fieldLatLen - 1][j] = lagrangeInterp(ETANEW, eta->fieldLatLen - 1, j);
 	}
 
 	//Average eta out at poles
@@ -416,7 +420,7 @@ void Solver::Explicit() {
 		}
 
 		//Check for output
-		if (fmod(iteration, outputTime/10) == 0) {//11520/10/2outputTime/10/2
+		if (fmod(iteration, outputTime) == 0) {//11520/10/2outputTime/10/2
 			energy->UpdateOrbitalKinEAvg(inc);
 			//std::cout << energy->isConverged;
 

@@ -124,12 +124,28 @@ double Field::SouthWestP(int i, int j){
 };
 
 double Field::SouthWestAvg(int i, int j) {
-	if (i == 0) return (this->SouthP(i, j) + this->SouthP(i, j - 1))*0.5;
-	else if (i == this->fieldLatLen - 2) return (this->CenterP(i, j) + this->WestP(i, j))*0.5;
-	else return (this->CenterP(i, j) + this->SouthP(i, j) + this->WestP(i, j) + this->SouthP(i, j - 1))*0.25;
+	//if (i == 0) {
+	//	if (j == 0) {
+	//		return (linearInterp2(this, i, this->fieldLonLen - 1) + linearInterp2(this, i, j) + this->SouthP(i, j) + this->SouthP(i, j - 1))*0.25;
+	//	}
+	//	/*else if (j == this->fieldLonLen-1) {
+	//		return (linearInterp2(this, i, this->fieldLonLen - 1) + linearInterp2(this, i, j) + this->SouthP(i, j) + this->SouthP(i, j - 1))*0.25;
+	//	}*/
+	//	else return (linearInterp2(this, i, j-1) + linearInterp2(this, i, j) + this->SouthP(i, j) + this->SouthP(i, j - 1))*0.25;
+	//}
+	//else if (i == this->fieldLatLen - 2) {
+	//	if (j == 0) {
+	//		return (linearInterp2(this, i+1, this->fieldLonLen - 1) + linearInterp2(this, i+1, j) + this->CenterP(i, j) + this->WestP(i, j - 1))*0.25;
+	//	}
+	//	else return (linearInterp2(this, i+1, j - 1) + linearInterp2(this, i+1, j) + this->CenterP(i, j) + this->WestP(i, j))*0.25;
+	//}
+	//else 
+	return (this->CenterP(i, j) + this->SouthP(i, j) + this->WestP(i, j) + this->SouthP(i, j - 1))*0.25;
 };
 
 double Field::NorthEastAvg(int i, int j) {
-	return (this->CenterP(i, j) + this->EastP(i, j) + this->NorthP(i, j) + this->NorthP(i, j + 1))*0.25;
+	if (i == 0) return (this->CenterP(i, j) + this->EastP(i, j))*0.5; //(this->CenterP(i, j) + this->EastP(i, j) + this->CenterP(i, this->opp[j]) + this->CenterP(i, this->opp[(int)j/2]))*0.25;
+	else if (i == this->fieldLatLen) return (this->CenterP(i-1, j) + this->EastP(i-1, j))*0.25;
+	else return (this->CenterP(i, j) + this->EastP(i, j) + this->NorthP(i, j) + this->NorthP(i, j + 1))*0.25;
 };
 

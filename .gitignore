@@ -236,3 +236,5 @@ ODIS.vcxproj
 *.sln
 ERROR.txt
 OUTPUT.txt
+*.vcxproj
+ODIS.vcxproj
