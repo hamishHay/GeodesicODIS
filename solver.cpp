@@ -225,15 +225,32 @@ void Solver::UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Fie
 
 	double lat, lon;
 
-	for (int i = 1; i < u->fieldLatLen - 1; i++) {
+	for (int i = 1; i < u->fieldLatLen-1; i++) {
 		lat = u->lat[i] * radConv;
 		for (int j = 0; j < u->fieldLonLen; j++) {
 			lon = u->lon[j] * radConv;
 
-			eastEta = ETA->EastP(i, j);
-			westEta = ETA->CenterP(i, j);
+			/*eastEta = ETA->EastP(i, j);
+			westEta = ETA->CenterP(i, j);*/
 
-			dSurfLon = (eastEta - westEta) / (eta->dLon*radConv);
+			if (j == eta->fieldLonLen - 2) {
+				westEta = (ETA->solution[i][j] + ETA->solution[i][j-1])*0.5;
+				eastEta = (ETA->solution[i][j + 1] + ETA->solution[i][0])*0.5;
+			}
+			else if (j == eta->fieldLonLen - 1) {
+				westEta = (ETA->solution[i][j] + ETA->solution[i][j - 1])*0.5;
+				eastEta = (ETA->solution[i][0] + ETA->solution[i][1])*0.5;
+			}
+			else if (j==0) {
+				westEta = (ETA->solution[i][0] + ETA->solution[i][eta->fieldLonLen - 1])*0.5;
+				eastEta = (ETA->solution[i][1] + ETA->solution[i][2])*0.5;
+			}
+			else {
+				eastEta = (ETA->solution[i][j + 1] + ETA->solution[i][j + 2])*0.5;
+				westEta = (ETA->solution[i][j] + ETA->solution[i][j - 1])*0.5;
+			}
+
+			dSurfLon = (eastEta - westEta) / (2*eta->dLon*radConv);
 
 			surfHeight = (consts->g.Value() / (consts->radius.Value()*cos(lat)))*dSurfLon;
 
@@ -244,9 +261,11 @@ void Solver::UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Fie
 		}
 	}
 
-	for (int j = 0; j < eta->fieldLonLen; j++) {
-		UNEW->solution[0][j] = linearInterp1(UNEW, 0, j);
-		UNEW->solution[u->fieldLatLen - 1][j] = linearInterp1(UNEW, u->fieldLatLen - 1, j);
+	for (int j = 0; j < u->fieldLonLen; j++) {
+		//UNEW->solution[0][j] = linearInterp2(UNEW, 0, j);
+		//UNEW->solution[u->fieldLatLen - 1][j] = linearInterp2(UNEW, u->fieldLatLen - 1, j);
+		UNEW->solution[0][j] = lagrangeInterp2(UNEW, 0, j);
+		UNEW->solution[u->fieldLatLen - 1][j] = lagrangeInterp2(UNEW, u->fieldLatLen - 1, j); 
 	}
 
 }
@@ -267,6 +286,16 @@ void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Fi
 		for (int j = 0; j < v->fieldLonLen; j++) {
 			lon = v->lon[j] * radConv;
 
+			//if (i == 0) {
+			//	coriolis = 0;
+			//}
+			//else if (i == 1){
+			//	coriolis = 0;
+			//}
+			//else if (i == 2) {
+			//	coriolis = 0;
+			//}
+
 			northEta = ETA->CenterP(i, j);
 			southEta = ETA->SouthP(i, j);
 
@@ -278,10 +307,15 @@ void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Fi
 
 			tidalForce = consts->loveReduct.Value()*(1. / consts->radius.Value())* dUlat->solution[i][j];
 
-			double val = (-coriolis - surfHeight + tidalForce - V->solution[i][j] * consts->alpha.Value())*dt + VOLD->solution[i][j];
-
 			VNEW->solution[i][j] = (-coriolis - surfHeight + tidalForce - V->solution[i][j] * consts->alpha.Value())*dt + VOLD->solution[i][j];
 		}
+	}
+
+	for (int j = 0; j < v->fieldLonLen; j++) {
+		//VNEW->solution[0][j] = lagrangeInterp2(VNEW, 0, j);
+		//VNEW->solution[v->fieldLatLen - 1][j] = lagrangeInterp2(VNEW, v->fieldLatLen - 1, j);
+		//VNEW->solution[0][j] = linearInterp1(VNEW, 0, j);
+		//VNEW->solution[v->fieldLatLen - 1][j] = linearInterp1(VNEW, v->fieldLatLen - 1, j);
 	}
 	
 }
@@ -307,18 +341,44 @@ void Solver::UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Fiel
 
 			vGrad = (northv - southv) / (v->dLat*radConv);
 
-			eastu = U->CenterP(i, j);
-			westu = U->WestP(i, j);
+			/*if (j == 0) {
+				westu = U->solution[i][U->fieldLonLen-1];
+				eastu = U->solution[i][j];
+			}
+			else {
+				eastu = U->solution[i][j];
+				westu = U->solution[i][j-1];
+			}*/
 
-			uGrad = (eastu - westu) / (u->dLon*radConv);
+			if (j == 0) {
+				westu = (U->solution[i][U->fieldLonLen - 1] + U->solution[i][U->fieldLonLen - 2])*0.5;
+				eastu = (U->solution[i][j] + U->solution[i][j+1]) * 0.5;
+			}
+			else if (j == 1) {
+				westu = (U->solution[i][U->fieldLonLen - 1] + U->solution[i][0])*0.5;
+				eastu = (U->solution[i][j] + U->solution[i][j + 1]) * 0.5;
+			}
+			else if (j == eta->fieldLonLen - 1) {
+				westu = (U->solution[i][j - 1] + U->solution[i][j - 2])*0.5;
+				eastu = (U->solution[i][j] + U->solution[i][0]) * 0.5;
+			}
+			else {
+				westu = (U->solution[i][j - 1] + U->solution[i][j - 2])*0.5;
+				eastu = (U->solution[i][j] + U->solution[i][j + 1]) * 0.5;
+			}
+
+
+			uGrad = (eastu - westu) / (2*u->dLon*radConv);
 
 			ETANEW->solution[i][j] = consts->h.Value() / (consts->radius.Value()*cos(lat))*(-vGrad - uGrad)*dt + ETAOLD->solution[i][j];
 		}
 	}
 	
 	for (int j = 0; j < eta->fieldLonLen; j++) {
-		ETANEW->solution[0][j] = lagrangeInterp(ETANEW, 0, j);
-		ETANEW->solution[eta->fieldLatLen - 1][j] = lagrangeInterp(ETANEW, eta->fieldLatLen - 1, j);
+		ETANEW->solution[0][j] = lagrangeInterp2(ETANEW, 0, j);
+		ETANEW->solution[eta->fieldLatLen - 1][j] = lagrangeInterp2(ETANEW, eta->fieldLatLen - 1, j);
+		//ETANEW->solution[0][j] = linearInterp2(ETANEW, 0, j);
+		//ETANEW->solution[eta->fieldLatLen - 1][j] = linearInterp2(ETANEW, eta->fieldLatLen - 1, j);
 	}
 
 	//Average eta out at poles
@@ -357,7 +417,7 @@ void Solver::Explicit() {
 	int output = 0;
 
 	
-	int outputTime = 34560;
+	int outputTime = (int)(16 * 24 * 60 * 60) / (consts->timeStep.Value());///46080/10;// 34560;
 	int inc = outputTime;
 	DumpSolutions(-1);
 

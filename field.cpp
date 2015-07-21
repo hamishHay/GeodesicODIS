@@ -144,8 +144,10 @@ double Field::SouthWestAvg(int i, int j) {
 };
 
 double Field::NorthEastAvg(int i, int j) {
-	if (i == 0) return (this->CenterP(i, j) + this->EastP(i, j))*0.5; //(this->CenterP(i, j) + this->EastP(i, j) + this->CenterP(i, this->opp[j]) + this->CenterP(i, this->opp[(int)j/2]))*0.25;
-	else if (i == this->fieldLatLen) return (this->CenterP(i-1, j) + this->EastP(i-1, j))*0.25;
-	else return (this->CenterP(i, j) + this->EastP(i, j) + this->NorthP(i, j) + this->NorthP(i, j + 1))*0.25;
+	//if (i == 0) return (this->CenterP(i, j) + this->EastP(i, j))*0.5; //(this->CenterP(i, j) + this->EastP(i, j) + this->CenterP(i, this->opp[j]) + this->CenterP(i, this->opp[(int)j/2]))*0.25;
+	//else if (i == this->fieldLatLen) return (this->CenterP(i-1, j) + this->EastP(i-1, j))*0.5;
+	//else 
+		
+	return (this->CenterP(i, j) + this->EastP(i, j) + this->NorthP(i, j) + this->NorthP(i, j + 1))*0.25;
 };
 

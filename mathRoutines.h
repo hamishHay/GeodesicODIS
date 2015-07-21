@@ -9,6 +9,7 @@ double linearInterp1(Field * field, int i, int j);
 double linearInterp2(Field * field, int i, int j);
 double linearInterp4(Field * field, int i, int j);
 double lagrangeInterp(Field * field, int i, int j);
+double lagrangeInterp2(Field * field, int i, int j);
 //double multilinFit(Field * field, int i, int j);
 
 #endif
