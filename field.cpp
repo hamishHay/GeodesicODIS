@@ -10,13 +10,14 @@ Field::Field(Mesh *mesh, int latStagg, int lonStagg) {
 
 	grid = mesh;
 
-	dLat = grid->dLat*2;
+	dLat = grid->dLat*2.;
 	dLon = grid->dLon*2;
 
-	fieldLatLen = 1 + grid->ReturnLatLen() / 2;
+	//fieldLatLen = grid->ReturnLatLen() / 2.;
 	fieldLonLen = grid->ReturnLonLen() / 2;
 
-	if (latStagg) fieldLatLen--;
+	if (latStagg) fieldLatLen = (grid->ReturnLatLen() - 1 )/ 2;
+	else fieldLatLen = 1 + (grid->ReturnLatLen() - 1)/ 2;
 	//if (lonStagg) fieldLonLen--;
 	
 
@@ -32,6 +33,9 @@ Field::Field(Mesh *mesh, int latStagg, int lonStagg) {
 		if (latStagg) lat.push_back(grid->lat[i * 2 + 1]);
 		else lat.push_back(grid->lat[i * 2]);
 	}
+
+	// Make sure last value is 90 exactly
+	if (!latStagg) lat[lat.size()-1] = -90.0;
 
 	for (int j = 0; j < fieldLonLen; j++) {
 		if (lonStagg) lon.push_back(grid->lon[j * 2 + 1]);
