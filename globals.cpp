@@ -250,18 +250,18 @@ void Globals::OutputConsts(void){
 	outstring << "Model parameters: " << std::endl;
 	for (int i = 0; i < allGlobals.size(); i++){
 
-		outstring << allGlobals[i]->StringID() << ": ";
+		outstring << allGlobals[i]->StringID() << ":\t\t\t\t ";
 		if (allGlobals[i]->IsType("double")) {
-			outstring << ((GlobalVar<double > *) allGlobals[i])->Value() << std::endl << std::endl;
+			outstring << ((GlobalVar<double > *) allGlobals[i])->Value();
 		}
 		else if (allGlobals[i]->IsType("int")) {
-			outstring << ((GlobalVar<int > *) allGlobals[i])->Value() << std::endl << std::endl;
+			outstring << ((GlobalVar<int > *) allGlobals[i])->Value();
 		}
 		else if (allGlobals[i]->IsType("bool")) {
-			outstring << ((GlobalVar<bool > *) allGlobals[i])->Value() << std::endl << std::endl;
+			outstring << ((GlobalVar<bool > *) allGlobals[i])->Value();
 		}
 		else if (allGlobals[i]->IsType("string")) {
-			outstring << ((GlobalVar<std::string > *) allGlobals[i])->Value() << std::endl << std::endl;
+			outstring << ((GlobalVar<std::string > *) allGlobals[i])->Value();
 		}
 
 		Output.Write(OUT_MESSAGE, &outstring);

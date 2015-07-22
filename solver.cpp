@@ -244,10 +244,31 @@ void Solver::UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Fie
 		}
 	}
 
-	for (int j = 0; j < u->fieldLonLen; j++) {
+	/*for (int j = 0; j < u->fieldLonLen; j++) {
 		UNEW->solution[0][j] = lagrangeInterp2(UNEW, 0, j);
 		UNEW->solution[u->fieldLatLen - 1][j] = lagrangeInterp2(UNEW, u->fieldLatLen - 1, j); 
+	}*/
+
+	for (int j = 0; j < u->fieldLonLen; j++) {
+		UNEW->solution[0][j] = linearInterp2(UNEW, 0, j);
+		UNEW->solution[u->fieldLatLen - 1][j] = linearInterp2(UNEW, u->fieldLatLen - 1, j);
 	}
+
+	//Average eta out at poles
+
+	//double npoleSum = 0;
+	//double spoleSum = 0;
+	//for (int j = 0; j < U->fieldLonLen; j++) {
+	//	npoleSum += UNEW->solution[0][j];
+	//	spoleSum += UNEW->solution[U->fieldLatLen - 1][j];
+	//}
+	//npoleSum = npoleSum / U->fieldLonLen;
+	//spoleSum = spoleSum / U->fieldLonLen;
+
+	//for (int j = 0; j < U->fieldLonLen; j++) {
+	//	UNEW->solution[0][j] = npoleSum;
+	//	UNEW->solution[U->fieldLatLen - 1][j] = spoleSum;
+	//}
 }
 
 void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Field * ETA, double dt){
@@ -287,6 +308,8 @@ void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Fi
 	//	//VNEW->solution[0][j] = linearInterp1(VNEW, 0, j);
 	//	//VNEW->solution[v->fieldLatLen - 1][j] = linearInterp1(VNEW, v->fieldLatLen - 1, j);
 	//}
+
+
 	
 }
 

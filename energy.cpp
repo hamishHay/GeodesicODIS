@@ -111,7 +111,7 @@ void Energy::IsConverged(void) {
 		consts->Output.TerminateODIS();
 	}
 
-	converged = false;
+	//converged = false;
 	printf("\t Resdiual: %1.4e \n", abs(orbitDissEAvg[orbitKinEAvg.size() - 1] - orbitDissEAvg[orbitKinEAvg.size() - 2]));
 	if (converged) std::cout << "Convergence criteria met." << std::endl;
 };
