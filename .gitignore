@@ -234,3 +234,5 @@ __pycache__/node.cpython-34.pyc
 *.sln
 ERROR.txt
 OUTPUT.txt
+ODIS.vcxproj
+ODIS.vcxproj.filters
