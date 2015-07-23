@@ -2,7 +2,6 @@
 //
 
 #include "iostream"
-#include "conio.h"
 #include "mesh.h"
 #include "field.h"
 #include "globals.h"
