@@ -21,7 +21,7 @@ private:
 	void UpdateFullPotential(void);
 
 	void ReadInitialConditions(void);
-	void Solver::CopyInitialConditions(std::ifstream & file, Field *);
+	void CopyInitialConditions(std::ifstream & file, Field *);
 
 public:
 	double simulationTime = 0;

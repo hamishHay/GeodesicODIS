@@ -6,7 +6,6 @@
 #include <vector>
 #include "globalVar.h"
 #include "outFiles.h"
-#include <Windows.h>
 
 extern double pi;
 extern double radConv;
@@ -23,7 +22,7 @@ public:
 	std::ostringstream outstring;
 
 	std::string path;
-	char cpath[MAX_PATH];
+	char cpath[512];
 	
 	GlobalVar<double> angVel;
 	GlobalVar<double> radius; //Object Radius

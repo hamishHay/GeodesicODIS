@@ -11,7 +11,7 @@
 
 using namespace std;
 
-void main(void)
+int main(void)
 {
 	// Initialise and Read in Constants/Select options
 	// These input parameters are constant in both space and time
@@ -50,5 +50,7 @@ void main(void)
 	delete eta;
 	delete dUlat;
 	delete dUlon;
+
+        return 0;
 }
 
