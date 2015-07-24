@@ -1,15 +1,30 @@
-#include "outFiles.h"
-#include <sstream>
+#ifdef _WIN32
+#include <direct.h>
+#define getcwd _getcwd
+
+#elif _WIN64
+#include <direct.h>
+#define getcwd _getcwd
+
+#elif __linux__
 #include <unistd.h>
 
+#else
+#error "OS not supported!"
+#endif
+
+#include "outFiles.h"
+#include "globals.h"
+#include <sstream>
+
 OutFiles::OutFiles() {
-	char buffer[512];
+	char buffer[PATH];
 	getcwd(buffer, sizeof(buffer));
 	std::string::size_type pos = std::string(buffer).find_last_of("\\/");
 	path = std::string(buffer);
 
-	outName = path + "/OUTPUT.txt";
-	errName = path + "/ERROR.txt";
+	outName = path + SEP + "OUTPUT.txt";
+	errName = path + SEP + "ERROR.txt";
 
 	remove(&outName[0]); //Converts std::string to char array
 	output.open(&outName[0], std::ofstream::out | std::ofstream::app);

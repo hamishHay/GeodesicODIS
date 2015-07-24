@@ -38,7 +38,6 @@ int main(void)
 	solution->Solve();
 	// Simulation end
 
-	//_getch();
 
 	// Unallocate all memory
 	delete solution;
@@ -50,6 +49,6 @@ int main(void)
 	delete dUlat;
 	delete dUlon;
 
-        return 0;
+    return 0;
 }
 

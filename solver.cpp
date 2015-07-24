@@ -1,3 +1,20 @@
+#ifdef _WIN32
+#include <direct.h>
+#define getcwd _getcwd
+#define mkdir _mkdir
+
+#elif _WIN64
+#include <direct.h>
+#define getcwd _getcwd
+#define mkdir _mkdir
+
+#elif __linux__
+#include <unistd.h>
+
+#else
+#error "OS not supported!"
+#endif
+
 #include "solver.h"
 #include "globals.h"
 #include "field.h"
@@ -470,6 +487,18 @@ void Solver::DumpSolutions(int out_num) {
 	if (out_num == -1) {
 
 		//Only for windows
+
+#if _WIN32
+
+
+#elif __linux__
+		mkdir(&(consts->path + "/EastVelocity/")[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
+		mkdir(&(consts->path + "/NorthVelocity/")[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
+		mkdir(&(consts->path + "/Displacement/")[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
+		mkdir(&(consts->path + "/Grid/")[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
+
+#endif
+
 		mkdir(&(consts->path + "/EastVelocity/")[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
 		mkdir(&(consts->path + "/NorthVelocity/")[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
 		mkdir(&(consts->path + "/Displacement/")[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);

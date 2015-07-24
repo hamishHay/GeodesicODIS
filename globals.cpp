@@ -1,6 +1,24 @@
+#ifdef _WIN32
+#include <direct.h>
+#define getcwd _getcwd
+#define SEP "\\"
+
+#elif _WIN64
+#include <direct.h>
+#define getcwd _getcwd
+#define SEP "\\"
+
+#elif __linux__
+#include <unistd.h>
+#define SEP "/"
+
+#else
+#error "OS not supported!"
+#endif
+
+
 #include "globals.h"
 #include "outFiles.h"
-#include <unistd.h>
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -8,13 +26,10 @@
 #include <algorithm>
 #include <cstring>
 
-double pi = 3.1415926535897932384626433832795028841971693993751058; //change for derrick
-double radConv = pi / 180;
-
 Globals::Globals() :Globals(1) {};
 
 Globals::Globals(int action) {
-	char buffer[512];
+	char buffer[PATH];
 
 	getcwd(buffer,sizeof(buffer));
 	path = std::string(buffer);
@@ -97,7 +112,7 @@ Globals::Globals(int action) {
 int Globals::ReadGlobals(void) {
 	//Function to read model input parameters from input.in only.
 	//Avoids the need to recompile for each different model setup.
-	std::ifstream inputFile(path + "/input.in",std::ifstream::in);
+	std::ifstream inputFile(path + SEP + "input.in",std::ifstream::in);
 	std::string line, varStr, varVal;
 	
 	int valInt;

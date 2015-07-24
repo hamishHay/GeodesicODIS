@@ -1,14 +1,28 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
+#ifdef _WIN32
+#define SEP "\\"
+
+#elif _WIN64
+#define SEP "\\"
+
+#elif __linux__
+#define SEP "/"
+
+#else
+#error "OS not supported!"
+#endif
+
 #include <string>
 #include <array>
 #include <vector>
 #include "globalVar.h"
 #include "outFiles.h"
 
-extern double pi;
-extern double radConv;
+const double pi = 3.1415926535897932384626433832795028841971693993751058; //change for derrick
+const double radConv = pi / 180;
+const int PATH = 512;
 
 //Class stores all global values
 class Globals {
