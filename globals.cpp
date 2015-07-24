@@ -16,7 +16,6 @@
 #error "OS not supported!"
 #endif
 
-
 #include "globals.h"
 #include "outFiles.h"
 #include <string>
@@ -199,7 +198,6 @@ int Globals::ReadGlobals(void) {
 				}
 
 				Output.Write(ERR_MESSAGE, &outstring);
-				//TerminateODIS();
 			}
 		}
 	}

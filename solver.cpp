@@ -1,12 +1,9 @@
 #ifdef _WIN32
-#include <direct.h>
-#define getcwd _getcwd
-#define mkdir _mkdir
+#include <Windows.h>
+#define mkdir CreateDirectory
 
 #elif _WIN64
-#include <direct.h>
-#define getcwd _getcwd
-#define mkdir _mkdir
+#include <Windows.h>
 
 #elif __linux__
 #include <unistd.h>
@@ -25,10 +22,10 @@
 #include "outFiles.h"
 #include <math.h>
 #include <iostream>
-#include <fstream>
 #include <iomanip>
 #include <string>
 #include <sstream>
+#include <fstream>
 #include <algorithm>
 #include <cstdio>
 #include <sys/stat.h>
@@ -468,14 +465,11 @@ void Solver::Explicit() {
 		iteration++;
 	}
 
-	
-
 	//deallocate memory assigned to temporary fields
 	delete etaNew;
 	delete uNew;
 	delete vNew;
 
-	
 	outstring << "\nSimulation complete.\n\nEnd time: \t\t" << simulationTime / 86400.0 << "\n";
 	outstring << "Total iterations: \t" << iteration;
 	Out->Write(OUT_MESSAGE, &outstring);
@@ -489,27 +483,27 @@ void Solver::DumpSolutions(int out_num) {
 		//Only for windows
 
 #if _WIN32
-		mkdir(&(consts->path + "/EastVelocity/")[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
-		mkdir(&(consts->path + "/NorthVelocity/")[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
-		mkdir(&(consts->path + "/Displacement/")[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
-		mkdir(&(consts->path + "/Grid/")[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
+		mkdir(&(consts->path +  SEP + "EastVelocity" + SEP)[0], NULL);
+		mkdir(&(consts->path + SEP + "NorthVelocity" + SEP)[0], NULL);
+		mkdir(&(consts->path + SEP + "Displacement" + SEP)[0], NULL);
+		mkdir(&(consts->path + SEP + "Grid" + SEP)[0], NULL);
 
 #elif __linux__
-		mkdir(&(consts->path + "/EastVelocity/")[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
-		mkdir(&(consts->path + "/NorthVelocity/")[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
-		mkdir(&(consts->path + "/Displacement/")[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
-		mkdir(&(consts->path + "/Grid/")[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
+		mkdir(&(consts->path +  SEP + "EastVelocity" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
+		mkdir(&(consts->path +  SEP + "NorthVelocity" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
+		mkdir(&(consts->path +  SEP + "Displacement" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
+		mkdir(&(consts->path +  SEP + "Grid" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
 
 #endif
 
 		
 		
-		remove(&(consts->path + "/diss.txt")[0]);
+		remove(&(consts->path + "diss.txt")[0]);
 
-		std::ofstream uLat(consts->path+"/Grid/u_lat.txt", std::ofstream::out);
-		std::ofstream uLon(consts->path+"/Grid/u_lon.txt", std::ofstream::out);
-		std::ofstream vLat(consts->path + "/Grid/v_lat.txt", std::ofstream::out);
-		std::ofstream vLon(consts->path + "/Grid/v_lon.txt", std::ofstream::out);
+		std::ofstream uLat(consts->path + SEP + "Grid" + SEP + "u_lat.txt", std::ofstream::out);
+		std::ofstream uLon(consts->path + SEP + "Grid" + SEP + "u_lon.txt", std::ofstream::out);
+		std::ofstream vLat(consts->path + SEP + "Grid" + SEP + "v_lat.txt", std::ofstream::out);
+		std::ofstream vLon(consts->path + SEP + "Grid" + SEP + "v_lon.txt", std::ofstream::out);
 
 		for (int j = 0; j < u->ReturnFieldLonLen(); j++) uLon << u->lon[j] << '\t';
 		for (int i = 0; i < u->ReturnFieldLatLen(); i++) uLat << u->lat[i] << '\t';
@@ -521,15 +515,15 @@ void Solver::DumpSolutions(int out_num) {
 	else {
 		std::string out = std::to_string(out_num);
 
-		std::ofstream uFile(consts->path + "/EastVelocity/u_vel_" + out + ".txt", std::ofstream::out);
-		std::ofstream vFile(consts->path + "/NorthVelocity/v_vel_" + out + ".txt", std::ofstream::out);
-		std::ofstream etaFile(consts->path + "/Displacement/eta_" + out + ".txt", std::ofstream::out);
+		std::ofstream uFile(consts->path + SEP + "EastVelocity"  + SEP + "u_vel_" + out + ".txt", std::ofstream::out);
+		std::ofstream vFile(consts->path + SEP + "NorthVelocity" + SEP + "v_vel_" + out + ".txt", std::ofstream::out);
+		std::ofstream etaFile(consts->path + SEP + "Displacement" + SEP + "eta_" + out + ".txt", std::ofstream::out);
 		
 		//std::ofstream dissFile(consts->path + "diss.txt", std::ofstream::app);
 
 		//fopen for linux
 		//fopen_s for windows
-		FILE * dissFile = fopen(&(consts->path + "/diss.txt")[0], "a+");
+		FILE * dissFile = fopen(&(consts->path + SEP + "diss.txt")[0], "a+");
 
 		//fprintf(pFile, "Name %d [%-10.10s]\n", n + 1, name);
 		fprintf(dissFile, "%.15f \n", energy->orbitDissEAvg[energy->orbitDissEAvg.size() - 1]);
@@ -556,9 +550,9 @@ void Solver::DumpSolutions(int out_num) {
 };
 
 void Solver::ReadInitialConditions(void) {
-	std::ifstream eastVel(consts->path + "/InitialConditions/u_vel.txt", std::ifstream::in);
-	std::ifstream northVel(consts->path + "/InitialConditions/v_vel.txt", std::ifstream::in);
-	std::ifstream displacement(consts->path + "/InitialConditions/eta.txt", std::ifstream::in);
+	std::ifstream eastVel(consts->path + SEP + "InitialConditions" + SEP + "u_vel.txt", std::ifstream::in);
+	std::ifstream northVel(consts->path + SEP + "InitialConditions" + SEP + "v_vel.txt", std::ifstream::in);
+	std::ifstream displacement(consts->path + SEP + "InitialConditions" + SEP + "eta.txt", std::ifstream::in);
 
 	CopyInitialConditions(eastVel, u);
 	CopyInitialConditions(northVel, v);
