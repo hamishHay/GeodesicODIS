@@ -489,7 +489,10 @@ void Solver::DumpSolutions(int out_num) {
 		//Only for windows
 
 #if _WIN32
-
+		mkdir(&(consts->path + "/EastVelocity/")[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
+		mkdir(&(consts->path + "/NorthVelocity/")[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
+		mkdir(&(consts->path + "/Displacement/")[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
+		mkdir(&(consts->path + "/Grid/")[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
 
 #elif __linux__
 		mkdir(&(consts->path + "/EastVelocity/")[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
@@ -499,10 +502,7 @@ void Solver::DumpSolutions(int out_num) {
 
 #endif
 
-		mkdir(&(consts->path + "/EastVelocity/")[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
-		mkdir(&(consts->path + "/NorthVelocity/")[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
-		mkdir(&(consts->path + "/Displacement/")[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
-		mkdir(&(consts->path + "/Grid/")[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
+		
 		
 		remove(&(consts->path + "/diss.txt")[0]);
 
