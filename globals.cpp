@@ -1,10 +1,12 @@
 #include "globals.h"
 #include "outFiles.h"
+#include <unistd.h>
 #include <string>
 #include <fstream>
 #include <sstream>
 #include <iostream>
 #include <algorithm>
+#include <cstring>
 
 double pi = 3.1415926535897932384626433832795028841971693993751058; //change for derrick
 double radConv = pi / 180;
@@ -13,12 +15,13 @@ Globals::Globals() :Globals(1) {};
 
 Globals::Globals(int action) {
 	char buffer[512];
-	GetModuleFileName(NULL, buffer, 512);
-	std::string::size_type pos = std::string(buffer).find_last_of("\\/");
-	path = std::string(buffer).substr(0, pos);
+
+	getcwd(buffer,sizeof(buffer));
+	path = std::string(buffer);
 
 	strcpy(cpath, path.c_str());
 
+	
 	if (action) SetDefault();
 	else {
 		SetDefault();
@@ -83,18 +86,20 @@ Globals::Globals(int action) {
 
 		ReadGlobals(); //Read globals from input.in file
 	}
-
+	
 	OutputConsts();
 
 	endTime.SetValue(endTime.Value()*period.Value());
+
+	
 };
 
 int Globals::ReadGlobals(void) {
 	//Function to read model input parameters from input.in only.
 	//Avoids the need to recompile for each different model setup.
-	std::ifstream inputFile(path + "\\input.in",std::ifstream::in);
+	std::ifstream inputFile(path + "/input.in",std::ifstream::in);
 	std::string line, varStr, varVal;
-
+	
 	int valInt;
 	double valDouble;
 	bool valBool = true;
@@ -103,9 +108,10 @@ int Globals::ReadGlobals(void) {
 
 	if (inputFile.is_open())
 	{
+
 		outstring << "Found input file." << std::endl;
 		Output.Write(OUT_MESSAGE, &outstring);
-
+		
 		while (std::getline(inputFile >> std::ws, line, ';')) { //>> std::ws removes any leading whitespace
 
 			//Convert string to lower case
@@ -114,7 +120,7 @@ int Globals::ReadGlobals(void) {
 			std::stringstream value(varVal);
 
 			added = false;
-			int i = 0;
+			unsigned int i = 0; //unsigned to remove warnings
 			do {
 				if (line == allGlobals[i]->StringID()) {
 					if (allGlobals[i]->IsType("double")) {
@@ -156,7 +162,9 @@ int Globals::ReadGlobals(void) {
 
 		inputFile.close();
 
-		for (int i = 0; i < allGlobals.size(); i++){
+		
+
+		for (unsigned int i = 0; i < allGlobals.size(); i++){
 			if (!allGlobals[i]->IsAdded()) {
 				outstring << "WARNING: Unassigned global constant: " << allGlobals[i]->StringID() << ". " << std::endl;
 				outstring << "Assigning default value could be risky..." << std::endl;
@@ -181,6 +189,7 @@ int Globals::ReadGlobals(void) {
 		}
 	}
 	else {
+
 		outstring << "Unable to open 'input.in' file." << std::endl << std::endl;
 		Output.Write(ERR_MESSAGE, &outstring);
 		Output.TerminateODIS();
@@ -221,14 +230,14 @@ void Globals::SetDefault(void) {
 	alpha.SetValue(2.28e-7);
 
 	//Lat and long spacing
-	dLat.SetValue(2);
-	dLon.SetValue(2);
+	dLat.SetValue(45);
+	dLon.SetValue(90);
 
 	//Orbital period
 	period.SetValue(16 * 24 * 60 * 60);
 
 	//Time step
-	timeStep.SetValue(40.);
+	timeStep.SetValue(80.);
 
 	//Convergence Criteria
 	converge.SetValue(1e-7);
@@ -240,7 +249,7 @@ void Globals::SetDefault(void) {
 	endTime.SetValue(80);
 
 	//Potential
-	potential.SetValue("OBLIQ");
+	potential.SetValue("ECC");
 
 	//Initial conditions
 	init.SetValue(false);
@@ -248,7 +257,7 @@ void Globals::SetDefault(void) {
 
 void Globals::OutputConsts(void){
 	outstring << "Model parameters: " << std::endl;
-	for (int i = 0; i < allGlobals.size(); i++){
+	for (unsigned int i = 0; i < allGlobals.size(); i++){
 
 		outstring << allGlobals[i]->StringID() << ":\t\t\t\t ";
 		if (allGlobals[i]->IsType("double")) {

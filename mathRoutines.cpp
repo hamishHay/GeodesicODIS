@@ -1,12 +1,12 @@
 #include "mathRoutines.h"
 #include "field.h"
 #include "globals.h"
+#include "solver.h"
 //#include <gsl/gsl_matrix.h>
 //#include <gsl/gsl_multifit.h>
 
-using namespace std;
-
 double linearInterp1(Field * field, int i, int j) {
+	
 	//third order accurate forward difference method
 	if (i < field->fieldLatLen / 2) {
 		return field->solution[i + 1][j] + (field->solution[i + 1][j] - field->solution[i + 2][j]);
@@ -18,9 +18,10 @@ double linearInterp1(Field * field, int i, int j) {
 		//return field->solution[i - 1][j] + (1.5* field->solution[i - 1][j] - 2 * field->solution[i - 2][j] + 0.5* field->solution[i - 3][j]);
 		//return field->solution[i - 1][j] + (11. / 6.* field->solution[i - 1][j] - 3 * field->solution[i - 2][j] + 1.5* field->solution[i - 3][j] - 1 / 3. * field->solution[i - 4][j]);
 	}
-}
+};
 
 double linearInterp2(Field * field, int i, int j) {
+
 	//third order accurate forward difference method
 	if (i < field->fieldLatLen / 2) {
 		return field->solution[i + 1][j] + (1.5* field->solution[i + 1][j] - 2 * field->solution[i + 2][j] + 0.5* field->solution[i + 3][j]);
@@ -29,7 +30,11 @@ double linearInterp2(Field * field, int i, int j) {
 		return field->solution[i - 1][j] + (1.5* field->solution[i - 1][j] - 2 * field->solution[i - 2][j] + 0.5* field->solution[i - 3][j]);
 
 	}
-}
+
+	
+
+	//return 0;
+};
 
 double linearInterp4(Field * field, int i, int j) {
 	//third order accurate forward difference method
@@ -41,7 +46,7 @@ double linearInterp4(Field * field, int i, int j) {
 		//return field->solution[i - 1][j] + (1.5* field->solution[i - 1][j] - 2 * field->solution[i - 2][j] + 0.5* field->solution[i - 3][j]);
 		//return field->solution[i - 1][j] + (11. / 6.* field->solution[i - 1][j] - 3 * field->solution[i - 2][j] + 1.5* field->solution[i - 3][j] - 1 / 3. * field->solution[i - 4][j]);
 	}
-}
+};
 
 double lagrangeInterp(Field * field, int i, int j) {
 	double L[3];
@@ -77,7 +82,7 @@ double lagrangeInterp(Field * field, int i, int j) {
 	}
 
 	return P2;
-}
+};
 
 double lagrangeInterp2(Field * field, int i, int j) {
 	double L[3];
@@ -97,7 +102,7 @@ double lagrangeInterp2(Field * field, int i, int j) {
 	L[2] = (x[0] - x[1])*(x[0] - x[2]) / ((x[3] - x[1])*(x[3] - x[2]))* field->solution[i + inc * 3][j]; //L3
 
 	return L[0]+L[1]+L[2];
-}
+};
 
 
 //double multilinFit(Field * field, int i, int j) {

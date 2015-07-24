@@ -1,15 +1,15 @@
 #include "outFiles.h"
 #include <sstream>
-#include <Windows.h>
+#include <unistd.h>
 
 OutFiles::OutFiles() {
-	char buffer[MAX_PATH];
-	GetModuleFileName(NULL, buffer, MAX_PATH);
+	char buffer[512];
+	getcwd(buffer, sizeof(buffer));
 	std::string::size_type pos = std::string(buffer).find_last_of("\\/");
-	path = std::string(buffer).substr(0, pos);
+	path = std::string(buffer);
 
-	outName = path + "\\OUTPUT.txt";
-	errName = path + "\\ERROR.txt";
+	outName = path + "/OUTPUT.txt";
+	errName = path + "/ERROR.txt";
 
 	remove(&outName[0]); //Converts std::string to char array
 	output.open(&outName[0], std::ofstream::out | std::ofstream::app);
@@ -53,7 +53,9 @@ void OutFiles::Write(mess_type message, std::ostringstream * sstream) {
 	case ERR_MESSAGE:
 		WriteError(sstream);
 		break;
-	}
+	default:
+                break;
+        }
 	
 	ClearSStream(sstream);
 };

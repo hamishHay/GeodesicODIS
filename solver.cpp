@@ -14,7 +14,8 @@
 #include <sstream>
 #include <algorithm>
 #include <cstdio>
-#include <Windows.h>
+#include <sys/stat.h>
+#include <errno.h>
 
 Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradLon, Field * UGradLat, Field * VelU, Field * VelV, Field * Eta, Mass * MassField, Energy * EnergyField) {
 	solverType = type;
@@ -153,14 +154,12 @@ void Solver::UpdateEccPotential(void) {
 
 void Solver::UpdateEccRadPotential(void) {
 	double lat = 0;
-	double lon = 0;
 	double B = consts->angVel.Value()*simulationTime;
 	double constant = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->e.Value();//consts->theta.Value();//
 
 	for (int i = 0; i < dUlat->fieldLatLen; i++) {
 		lat = dUlat->lat[i] * radConv;
 		for (int j = 0; j < dUlat->fieldLonLen; j++) {
-			lon = dUlat->lon[j] * radConv;
 			dUlat->solution[i][j] = constant*(-9.*sin(2*lat)*cos(B)); // P20
 		}
 	}
@@ -223,13 +222,11 @@ void Solver::UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Fie
 	double eastEta = 0;
 	double westEta = 0;
 
-	double lat, lon;
+	double lat;
 
 	for (int i = 1; i < u->fieldLatLen-1; i++) {
 		lat = u->lat[i] * radConv;
 		for (int j = 0; j < u->fieldLonLen; j++) {
-			lon = u->lon[j] * radConv;
-
 			eastEta = ETA->EastP(i, j);
 			westEta = ETA->CenterP(i, j);
 
@@ -244,15 +241,21 @@ void Solver::UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Fie
 		}
 	}
 
+	
+
 	/*for (int j = 0; j < u->fieldLonLen; j++) {
 		UNEW->solution[0][j] = lagrangeInterp2(UNEW, 0, j);
 		UNEW->solution[u->fieldLatLen - 1][j] = lagrangeInterp2(UNEW, u->fieldLatLen - 1, j); 
 	}*/
 
+	
+
 	for (int j = 0; j < u->fieldLonLen; j++) {
 		UNEW->solution[0][j] = linearInterp2(UNEW, 0, j);
 		UNEW->solution[u->fieldLatLen - 1][j] = linearInterp2(UNEW, u->fieldLatLen - 1, j);
 	}
+
+	
 
 	//Average eta out at poles
 
@@ -280,13 +283,11 @@ void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Fi
 	double northEta = 0;
 	double southEta = 0;
 
-	double lat, lon;
+	double lat;
 
 	for (int i = 0; i < v->fieldLatLen; i++) {
 		lat = v->lat[i] * radConv;
 		for (int j = 0; j < v->fieldLonLen; j++) {
-			lon = v->lon[j] * radConv;
-
 			northEta = ETA->CenterP(i, j);
 			southEta = ETA->SouthP(i, j);
 
@@ -321,14 +322,12 @@ void Solver::UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Fiel
 	double eastu = 0;
 	double westu = 0;
 
-	double lat, lon;
+	double lat;
 
 
 	for (int i = 1; i < eta->fieldLatLen-1; i++) {
 		lat = eta->lat[i] * radConv;
 		for (int j = 0; j < eta->fieldLonLen; j++) {
-			lon = eta->lon[j] * radConv;
-
 			northv = V->CenterP(i - 1, j)*cos(v->lat[i - 1] * radConv);
 			southv = V->CenterP(i, j)*cos(v->lat[i] * radConv);
 
@@ -383,12 +382,7 @@ void Solver::Explicit() {
 	outstring << "Time step: \t" << consts->timeStep.Value() << " seconds\n\n";
 	Out->Write(OUT_MESSAGE, &outstring);
 
-	double lat = 0;
-	double lon = 0;
-
-	double surfaceheight = 0;
 	int output = 0;
-
 	
 	int outputTime = (int)(16 * 24 * 60 * 60) / (consts->timeStep.Value());///46080/10;// 34560;
 	int inc = outputTime;
@@ -404,17 +398,25 @@ void Solver::Explicit() {
 
 		UpdatePotential();
 
+		
+
 		simulationTime = simulationTime + consts->timeStep.Value();
 		
 		//Solve for v
 		UpdateNorthVel(v, vNew, u, v, eta, consts->timeStep.Value());
 
+		
+
 		//solve for u
 		UpdateEastVel(u, uNew, u, v, eta, consts->timeStep.Value());
+
+		
 
 		//Solve for eta
 		UpdateSurfaceHeight(eta, etaNew, uNew, vNew, eta, consts->timeStep.Value());
 
+
+		
 		//Overwite previous timestep solutions at end of iteration.
 		*eta = *etaNew;
 		*u = *uNew;
@@ -468,17 +470,17 @@ void Solver::DumpSolutions(int out_num) {
 	if (out_num == -1) {
 
 		//Only for windows
-		CreateDirectory(&(consts->path + "\\EastVelocity\\")[0], NULL);
-		CreateDirectory(&(consts->path + "\\NorthVelocity\\")[0], NULL);
-		CreateDirectory(&(consts->path + "\\Displacement\\")[0], NULL);
-		CreateDirectory(&(consts->path + "\\Grid\\")[0], NULL);
+		mkdir(&(consts->path + "/EastVelocity/")[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
+		mkdir(&(consts->path + "/NorthVelocity/")[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
+		mkdir(&(consts->path + "/Displacement/")[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
+		mkdir(&(consts->path + "/Grid/")[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
 		
-		remove(&(consts->path + "\\diss.txt")[0]);
+		remove(&(consts->path + "/diss.txt")[0]);
 
-		std::ofstream uLat(consts->path+"\\Grid\\u_lat.txt", std::ofstream::out);
-		std::ofstream uLon(consts->path+"\\Grid\\u_lon.txt", std::ofstream::out);
-		std::ofstream vLat(consts->path + "\\Grid\\v_lat.txt", std::ofstream::out);
-		std::ofstream vLon(consts->path + "\\Grid\\v_lon.txt", std::ofstream::out);
+		std::ofstream uLat(consts->path+"/Grid/u_lat.txt", std::ofstream::out);
+		std::ofstream uLon(consts->path+"/Grid/u_lon.txt", std::ofstream::out);
+		std::ofstream vLat(consts->path + "/Grid/v_lat.txt", std::ofstream::out);
+		std::ofstream vLon(consts->path + "/Grid/v_lon.txt", std::ofstream::out);
 
 		for (int j = 0; j < u->ReturnFieldLonLen(); j++) uLon << u->lon[j] << '\t';
 		for (int i = 0; i < u->ReturnFieldLatLen(); i++) uLat << u->lat[i] << '\t';
@@ -490,20 +492,20 @@ void Solver::DumpSolutions(int out_num) {
 	else {
 		std::string out = std::to_string(out_num);
 
-		std::ofstream uFile(consts->path + "\\EastVelocity\\u_vel_" + out + ".txt", std::ofstream::out);
-		std::ofstream vFile(consts->path + "\\NorthVelocity\\v_vel_" + out + ".txt", std::ofstream::out);
-		std::ofstream etaFile(consts->path + "\\Displacement\\eta_" + out + ".txt", std::ofstream::out);
+		std::ofstream uFile(consts->path + "/EastVelocity/u_vel_" + out + ".txt", std::ofstream::out);
+		std::ofstream vFile(consts->path + "/NorthVelocity/v_vel_" + out + ".txt", std::ofstream::out);
+		std::ofstream etaFile(consts->path + "/Displacement/eta_" + out + ".txt", std::ofstream::out);
 		
 		//std::ofstream dissFile(consts->path + "diss.txt", std::ofstream::app);
 
-		FILE * dissFile;
-
-		errno_t err = fopen_s(&dissFile, &(consts->path + "\\diss.txt")[0], "a");
+		//fopen for linux
+		//fopen_s for windows
+		FILE * dissFile = fopen(&(consts->path + "/diss.txt")[0], "a+");
 
 		//fprintf(pFile, "Name %d [%-10.10s]\n", n + 1, name);
 		fprintf(dissFile, "%.15f \n", energy->orbitDissEAvg[energy->orbitDissEAvg.size() - 1]);
 
-		err = fclose(dissFile);
+		fclose(dissFile);
 		//dissFile << energy->orbitDissEAvg[energy->orbitDissEAvg.size() - 1] << std::endl;
 
 		for (int i = 0; i < u->ReturnFieldLatLen(); i++) {
@@ -525,9 +527,9 @@ void Solver::DumpSolutions(int out_num) {
 };
 
 void Solver::ReadInitialConditions(void) {
-	std::ifstream eastVel(consts->path + "\\InitialConditions\\u_vel.txt", std::ifstream::in);
-	std::ifstream northVel(consts->path + "\\InitialConditions\\v_vel.txt", std::ifstream::in);
-	std::ifstream displacement(consts->path + "\\InitialConditions\\eta.txt", std::ifstream::in);
+	std::ifstream eastVel(consts->path + "/InitialConditions/u_vel.txt", std::ifstream::in);
+	std::ifstream northVel(consts->path + "/InitialConditions/v_vel.txt", std::ifstream::in);
+	std::ifstream displacement(consts->path + "/InitialConditions/eta.txt", std::ifstream::in);
 
 	CopyInitialConditions(eastVel, u);
 	CopyInitialConditions(northVel, v);
