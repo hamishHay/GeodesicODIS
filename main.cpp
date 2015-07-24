@@ -1,7 +1,3 @@
-// SearsTidalDissipation.cpp : Defines the entry point for the console application.
-//
-
-#include "iostream"
 #include "mesh.h"
 #include "field.h"
 #include "globals.h"
@@ -9,17 +5,9 @@
 #include "mass.h"
 #include "energy.h"
 
-using namespace std;
-
 int main(void)
 {
-	// Initialise and Read in Constants/Select options
-	// These input parameters are constant in both space and time
-	// and are thus declared as global variables
-	//initialiseGlobals();
-
-	// Initialise domain/read in initial condition
-	std::cout<< "Welcome to Ocean Dissipation in Icy Satellites.\n";
+	//Read constants values (0) or use defaults (1)
 	Globals * constants = new Globals(0);
 
 	Mesh * grid = new Mesh(constants); //Pass in a pointer to globals instance, and grid using dLat and dLon values.
@@ -34,7 +22,7 @@ int main(void)
 	Energy * energy = new Energy(grid, 0, 0, constants, u, v, mass);
 
 	// Enter solver/time loop
-	Solver * solution = new Solver(0, 1, constants, grid, dUlon, dUlat,  u, v, eta, mass, energy);
+	Solver * solution = new Solver(0, 1, constants, grid, dUlon, dUlat,  u, v, eta, energy);
 	solution->Solve();
 	// Simulation end
 

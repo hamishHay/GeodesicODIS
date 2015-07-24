@@ -17,9 +17,9 @@
 #include "field.h"
 #include "mesh.h"
 #include "mathRoutines.h"
-#include "mass.h"
 #include "energy.h"
 #include "outFiles.h"
+
 #include <math.h>
 #include <iostream>
 #include <iomanip>
@@ -31,7 +31,7 @@
 #include <sys/stat.h>
 #include <errno.h>
 
-Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradLon, Field * UGradLat, Field * VelU, Field * VelV, Field * Eta, Mass * MassField, Energy * EnergyField) {
+Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradLon, Field * UGradLat, Field * VelU, Field * VelV, Field * Eta, Energy * EnergyField) {
 	solverType = type;
 	dumpTime = dump;
 	Out = &Consts->Output;
@@ -44,7 +44,6 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 	u = VelU;
 	v = VelV;
 	eta = Eta;
-	mass = MassField;
 	energy = EnergyField;
 
 	etaNew = new Field(grid,0,0);
@@ -255,37 +254,10 @@ void Solver::UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Fie
 		}
 	}
 
-
-
-	/*for (int j = 0; j < u->fieldLonLen; j++) {
-		UNEW->solution[0][j] = lagrangeInterp2(UNEW, 0, j);
-		UNEW->solution[u->fieldLatLen - 1][j] = lagrangeInterp2(UNEW, u->fieldLatLen - 1, j);
-	}*/
-
-
-
 	for (int j = 0; j < u->fieldLonLen; j++) {
 		UNEW->solution[0][j] = linearInterp2(UNEW, 0, j);
 		UNEW->solution[u->fieldLatLen - 1][j] = linearInterp2(UNEW, u->fieldLatLen - 1, j);
 	}
-
-
-
-	//Average eta out at poles
-
-	//double npoleSum = 0;
-	//double spoleSum = 0;
-	//for (int j = 0; j < U->fieldLonLen; j++) {
-	//	npoleSum += UNEW->solution[0][j];
-	//	spoleSum += UNEW->solution[U->fieldLatLen - 1][j];
-	//}
-	//npoleSum = npoleSum / U->fieldLonLen;
-	//spoleSum = spoleSum / U->fieldLonLen;
-
-	//for (int j = 0; j < U->fieldLonLen; j++) {
-	//	UNEW->solution[0][j] = npoleSum;
-	//	UNEW->solution[U->fieldLatLen - 1][j] = spoleSum;
-	//}
 }
 
 void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Field * ETA, double dt){
@@ -316,16 +288,6 @@ void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Fi
 			VNEW->solution[i][j] = (-coriolis - surfHeight + tidalForce - V->solution[i][j] * consts->alpha.Value())*dt + VOLD->solution[i][j];
 		}
 	}
-
-	//for (int j = 0; j < v->fieldLonLen; j++) {
-	//	//VNEW->solution[0][j] = lagrangeInterp2(VNEW, 0, j);
-	//	//VNEW->solution[v->fieldLatLen - 1][j] = lagrangeInterp2(VNEW, v->fieldLatLen - 1, j);
-	//	//VNEW->solution[0][j] = linearInterp1(VNEW, 0, j);
-	//	//VNEW->solution[v->fieldLatLen - 1][j] = linearInterp1(VNEW, v->fieldLatLen - 1, j);
-	//}
-
-
-
 }
 
 void Solver::UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Field * V, Field * ETA, double dt){
@@ -363,8 +325,8 @@ void Solver::UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Fiel
 	}
 
 	for (int j = 0; j < eta->fieldLonLen; j++) {
-		ETANEW->solution[0][j] = lagrangeInterp2(ETANEW, 0, j);
-		ETANEW->solution[eta->fieldLatLen - 1][j] = lagrangeInterp2(ETANEW, eta->fieldLatLen - 1, j);
+		ETANEW->solution[0][j] = lagrangeInterp(ETANEW, 0, j);
+		ETANEW->solution[eta->fieldLatLen - 1][j] = lagrangeInterp(ETANEW, eta->fieldLatLen - 1, j);
 	}
 
 	//Average eta out at poles
@@ -382,8 +344,6 @@ void Solver::UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Fiel
 		ETANEW->solution[0][j] = npoleSum;
 		ETANEW->solution[eta->fieldLatLen - 1][j] = spoleSum;
 	}
-
-
 }
 
 
@@ -402,9 +362,6 @@ void Solver::Explicit() {
 	int inc = outputTime;
 	DumpSolutions(-1);
 
-	//Update mass before calculations begin
-	mass->UpdateMass();
-
 	//Update cell energies and globally averaged energy
 	energy->UpdateKinE();
 
@@ -412,24 +369,16 @@ void Solver::Explicit() {
 
 		UpdatePotential();
 
-
-
 		simulationTime = simulationTime + consts->timeStep.Value();
 
 		//Solve for v
 		UpdateNorthVel(v, vNew, u, v, eta, consts->timeStep.Value());
 
-
-
 		//solve for u
 		UpdateEastVel(u, uNew, u, v, eta, consts->timeStep.Value());
 
-
-
-		//Solve for eta
+		//Solve for eta based on new u and v
 		UpdateSurfaceHeight(eta, etaNew, uNew, vNew, eta, consts->timeStep.Value());
-
-
 
 		//Overwite previous timestep solutions at end of iteration.
 		*eta = *etaNew;
@@ -437,9 +386,6 @@ void Solver::Explicit() {
 		*v = *vNew;
 
 		if (fmod(iteration, (outputTime / inc)) == 0) {
-			//Update mass
-			//mass->UpdateMass();
-
 			//Update Kinetic Energy Field
 			energy->UpdateKinE();
 
@@ -519,17 +465,11 @@ void Solver::DumpSolutions(int out_num) {
 		std::ofstream vFile(consts->path + SEP + "NorthVelocity" + SEP + "v_vel_" + out + ".txt", std::ofstream::out);
 		std::ofstream etaFile(consts->path + SEP + "Displacement" + SEP + "eta_" + out + ".txt", std::ofstream::out);
 
-		//std::ofstream dissFile(consts->path + "diss.txt", std::ofstream::app);
-
 		//fopen for linux
 		//fopen_s for windows
 		FILE * dissFile = fopen(&(consts->path + SEP + "diss.txt")[0], "a+");
-
-		//fprintf(pFile, "Name %d [%-10.10s]\n", n + 1, name);
 		fprintf(dissFile, "%.15f \n", energy->orbitDissEAvg[energy->orbitDissEAvg.size() - 1]);
-
 		fclose(dissFile);
-		//dissFile << energy->orbitDissEAvg[energy->orbitDissEAvg.size() - 1] << std::endl;
 
 		for (int i = 0; i < u->ReturnFieldLatLen(); i++) {
 			for (int j = 0; j < u->ReturnFieldLonLen(); j++) {

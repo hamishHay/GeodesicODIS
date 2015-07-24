@@ -4,7 +4,6 @@
 #include "field.h"
 #include "globals.h"
 #include "mesh.h"
-#include "mass.h"
 #include "energy.h"
 #include "outFiles.h"
 
@@ -41,7 +40,6 @@ public:
 	Field * eta;
 	Field * v;
 	Field * u;
-	Mass * mass;
 	Energy * energy;
 
 	Field * etaNew;
@@ -52,7 +50,7 @@ public:
 	Field * vNewHalf;
 	Field * uNewHalf;
 
-	Solver(int type, int dump, Globals *, Mesh *, Field *, Field*, Field *, Field *, Field *, Mass *, Energy *);
+	Solver(int type, int dump, Globals *, Mesh *, Field *, Field*, Field *, Field *, Field *, Energy *);
 
 	void Solve();
 	

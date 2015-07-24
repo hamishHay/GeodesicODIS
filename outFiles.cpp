@@ -20,7 +20,7 @@
 OutFiles::OutFiles() {
 	char buffer[PATH];
 	getcwd(buffer, sizeof(buffer));
-	std::string::size_type pos = std::string(buffer).find_last_of("\\/");
+
 	path = std::string(buffer);
 
 	outName = path + SEP + "OUTPUT.txt";
@@ -69,8 +69,8 @@ void OutFiles::Write(mess_type message, std::ostringstream * sstream) {
 		WriteError(sstream);
 		break;
 	default:
-                break;
-        }
+        break;
+    }
 	
 	ClearSStream(sstream);
 };
