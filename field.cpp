@@ -1,6 +1,7 @@
 #include "vector"
 #include "field.h"
 #include "mesh.h"
+#include "mathRoutines.h"
 #include <iostream>
 
 using namespace std;
@@ -9,13 +10,14 @@ Field::Field(Mesh *mesh, int latStagg, int lonStagg) {
 
 	grid = mesh;
 
-	dLat = grid->dLat*2;
+	dLat = grid->dLat*2.;
 	dLon = grid->dLon*2;
 
-	fieldLatLen = 1 + grid->ReturnLatLen() / 2;
+	//fieldLatLen = grid->ReturnLatLen() / 2.;
 	fieldLonLen = grid->ReturnLonLen() / 2;
 
-	if (latStagg) fieldLatLen--;
+	if (latStagg) fieldLatLen = (grid->ReturnLatLen() - 1 )/ 2;
+	else fieldLatLen = 1 + (grid->ReturnLatLen() - 1)/ 2;
 	//if (lonStagg) fieldLonLen--;
 	
 
@@ -31,6 +33,9 @@ Field::Field(Mesh *mesh, int latStagg, int lonStagg) {
 		if (latStagg) lat.push_back(grid->lat[i * 2 + 1]);
 		else lat.push_back(grid->lat[i * 2]);
 	}
+
+	// Make sure last value is 90 exactly
+	if (!latStagg) lat[lat.size()-1] = -90.0;
 
 	for (int j = 0; j < fieldLonLen; j++) {
 		if (lonStagg) lon.push_back(grid->lon[j * 2 + 1]);
@@ -101,13 +106,6 @@ double Field::WestP(int lat, int lon){
 double Field::SouthP(int lat, int lon){
 	if (lat >= fieldLatLen - 1) {
 		return solution[2 * (this->fieldLatLen - 1) - lat][this->opp[lon]];
-
-
-		//int newLat = this->fieldLatLen - 1 - (lat - (this->fieldLatLen - 1))-1;
-		//if (lon + (this->fieldLonLen / 2) >= this->fieldLonLen) return solution[this->fieldLatLen - 1 - (lat - (this->fieldLatLen - 1))][(lon + this->fieldLonLen / 2) - this->fieldLonLen];
-		//else {
-		//	return solution[this->fieldLatLen - 1 - (lat - (this->fieldLatLen - 1))][lon + this->fieldLonLen / 2];
-		//}
 	}
 	else if (lat < 0) {
 		if (lon + (this->fieldLonLen / 2) >= this->fieldLonLen) return solution[0 - lat][(lon + this->fieldLonLen / 2) - this->fieldLonLen];
@@ -130,14 +128,30 @@ double Field::SouthWestP(int i, int j){
 };
 
 double Field::SouthWestAvg(int i, int j) {
-	if (i == 0) return (this->CenterP(i, j) + this->SouthP(i, j) + this->WestP(i, j) + this->SouthP(i, j - 1))*0.5;//this->SouthP(i, j - 1))*0.5;
-	else if (i == this->fieldLatLen - 2) return (this->CenterP(i, j) + this->SouthP(i, j) + this->WestP(i, j) + this->SouthP(i, j - 1))*0.5;
-	else return (this->CenterP(i, j) + this->SouthP(i, j) + this->WestP(i, j) + this->SouthP(i, j - 1))*0.25;
-	//return (this->CenterP(i, j) + this->SouthP(i, j) + this->WestP(i, j) + this->SouthP(i, j - 1))*0.5;
+	//if (i == 0) {
+	//	if (j == 0) {
+	//		return (linearInterp2(this, i, this->fieldLonLen - 1) + linearInterp2(this, i, j) + this->SouthP(i, j) + this->SouthP(i, j - 1))*0.25;
+	//	}
+	//	/*else if (j == this->fieldLonLen-1) {
+	//		return (linearInterp2(this, i, this->fieldLonLen - 1) + linearInterp2(this, i, j) + this->SouthP(i, j) + this->SouthP(i, j - 1))*0.25;
+	//	}*/
+	//	else return (linearInterp2(this, i, j-1) + linearInterp2(this, i, j) + this->SouthP(i, j) + this->SouthP(i, j - 1))*0.25;
+	//}
+	//else if (i == this->fieldLatLen - 2) {
+	//	if (j == 0) {
+	//		return (linearInterp2(this, i+1, this->fieldLonLen - 1) + linearInterp2(this, i+1, j) + this->CenterP(i, j) + this->WestP(i, j - 1))*0.25;
+	//	}
+	//	else return (linearInterp2(this, i+1, j - 1) + linearInterp2(this, i+1, j) + this->CenterP(i, j) + this->WestP(i, j))*0.25;
+	//}
+	//else 
+	return (this->CenterP(i, j) + this->SouthP(i, j) + this->WestP(i, j) + this->SouthP(i, j - 1))*0.25;
 };
 
 double Field::NorthEastAvg(int i, int j) {
-	//if (i == this->fieldLatLen) return (this->CenterP(i, j) + this->EastP(i, j) + this->NorthP(i, j) + this->NorthP(i, j + 1))*0.5;
+	//if (i == 0) return (this->CenterP(i, j) + this->EastP(i, j))*0.5; //(this->CenterP(i, j) + this->EastP(i, j) + this->CenterP(i, this->opp[j]) + this->CenterP(i, this->opp[(int)j/2]))*0.25;
+	//else if (i == this->fieldLatLen) return (this->CenterP(i-1, j) + this->EastP(i-1, j))*0.5;
+	//else 
+		
 	return (this->CenterP(i, j) + this->EastP(i, j) + this->NorthP(i, j) + this->NorthP(i, j + 1))*0.25;
 };
 

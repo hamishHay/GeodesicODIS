@@ -1,4 +1,6 @@
-ocean thickness; 	 	 	 100.0;		 	 	 h; 
-friction coefficient; 	 	 	 2.28e-07;		 	 	 alpha; 
-simulation end time; 	 	 	 1;		 	 	 endTime; 
-initial conditions; 	 	 	 true;		 	 	 init; 
+ocean thickness; 	 	 	 400.0;		 	 	 h;
+friction coefficient; 	 	 	 2.28e-07;		 	 	 alpha;
+simulation end time; 	 	 	 10;		 	 	 endTime;
+initial conditions; 	 	 	 false;		 	 	 init;
+latitude spacing;               45;         dLat;
+longitude spacing;              60;               dLon;

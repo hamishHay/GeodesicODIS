@@ -1,3 +1,21 @@
+#ifdef _WIN32
+#include <direct.h>
+#define getcwd _getcwd
+#define SEP "\\"
+
+#elif _WIN64
+#include <direct.h>
+#define getcwd _getcwd
+#define SEP "\\"
+
+#elif __linux__
+#include <unistd.h>
+#define SEP "/"
+
+#else
+#error "OS not supported!"
+#endif
+
 #include "globals.h"
 #include "outFiles.h"
 #include <string>
@@ -5,19 +23,18 @@
 #include <sstream>
 #include <iostream>
 #include <algorithm>
-
-double pi = 3.1415926535897932384626433832795028841971693993751058; //change for derrick
-double radConv = pi / 180;
+#include <cstring>
 
 Globals::Globals() :Globals(1) {};
 
 Globals::Globals(int action) {
-	char buffer[MAX_PATH];
-	GetModuleFileName(NULL, buffer, MAX_PATH);
-	std::string::size_type pos = std::string(buffer).find_last_of("\\/");
-	path = std::string(buffer).substr(0, pos);
+	char buffer[PATH];
+
+	getcwd(buffer,sizeof(buffer));
+	path = std::string(buffer);
 
 	strcpy(cpath, path.c_str());
+
 
 	if (action) SetDefault();
 	else {
@@ -56,6 +73,9 @@ Globals::Globals(int action) {
 
 		timeStep.SetStringID("time step");
 		allGlobals.push_back(&timeStep);
+
+		converge.SetStringID("converge");
+		allGlobals.push_back(&converge);
 
 		alpha.SetStringID("friction coefficient");
 		allGlobals.push_back(&alpha);
@@ -100,7 +120,7 @@ Globals::Globals(int action) {
 int Globals::ReadGlobals(void) {
 	//Function to read model input parameters from input.in only.
 	//Avoids the need to recompile for each different model setup.
-	std::ifstream inputFile(path + "\\input.in",std::ifstream::in);
+	std::ifstream inputFile(path + SEP + "input.in",std::ifstream::in);
 	std::string line, varStr, varVal;
 
 	int valInt;
@@ -111,6 +131,7 @@ int Globals::ReadGlobals(void) {
 
 	if (inputFile.is_open())
 	{
+
 		outstring << "Found input file." << std::endl;
 		Output.Write(OUT_MESSAGE, &outstring);
 
@@ -122,7 +143,7 @@ int Globals::ReadGlobals(void) {
 			std::stringstream value(varVal);
 
 			added = false;
-			int i = 0;
+			unsigned int i = 0; //unsigned to remove warnings
 			do {
 				if (line == allGlobals[i]->StringID()) {
 					if (allGlobals[i]->IsType("double")) {
@@ -164,7 +185,9 @@ int Globals::ReadGlobals(void) {
 
 		inputFile.close();
 
-		for (int i = 0; i < allGlobals.size(); i++){
+
+
+		for (unsigned int i = 0; i < allGlobals.size(); i++){
 			if (!allGlobals[i]->IsAdded()) {
 				outstring << "WARNING: Unassigned global constant: " << allGlobals[i]->StringID() << ". " << std::endl;
 				outstring << "Assigning default value could be risky..." << std::endl;
@@ -184,11 +207,11 @@ int Globals::ReadGlobals(void) {
 				}
 
 				Output.Write(ERR_MESSAGE, &outstring);
-				//TerminateODIS();
 			}
 		}
 	}
 	else {
+
 		outstring << "Unable to open 'input.in' file." << std::endl << std::endl;
 		Output.Write(ERR_MESSAGE, &outstring);
 		Output.TerminateODIS();
@@ -222,21 +245,24 @@ void Globals::SetDefault(void) {
 	//Eccentricity
 	e.SetValue(0.0288);
 
-	//Obliquity 
+	//Obliquity
 	theta.SetValue(0.32*pi / 180);
 
 	//Coefficient of linear friction
 	alpha.SetValue(2.28e-7);
 
 	//Lat and long spacing
-	dLat.SetValue(2);
-	dLon.SetValue(2);
+	dLat.SetValue(45);
+	dLon.SetValue(90);
 
 	//Orbital period
 	period.SetValue(16 * 24 * 60 * 60);
 
 	//Time step
-	timeStep.SetValue(40.);
+	timeStep.SetValue(80.);
+
+	//Convergence Criteria
+	converge.SetValue(1e-7);
 
 	//Angular velocity
 	angVel.SetValue(2 * pi / period.Value());
@@ -245,7 +271,7 @@ void Globals::SetDefault(void) {
 	endTime.SetValue(80);
 
 	//Potential
-	potential.SetValue("OBLIQ");
+	potential.SetValue("ECC");
 
 	//Friction Type
 	friction.SetValue("QUADRATIC");
@@ -256,20 +282,20 @@ void Globals::SetDefault(void) {
 
 void Globals::OutputConsts(void){
 	outstring << "Model parameters: " << std::endl;
-	for (int i = 0; i < allGlobals.size(); i++){
+	for (unsigned int i = 0; i < allGlobals.size(); i++){
 
-		outstring << allGlobals[i]->StringID() << ": ";
+		outstring << allGlobals[i]->StringID() << ":\t\t\t\t ";
 		if (allGlobals[i]->IsType("double")) {
-			outstring << ((GlobalVar<double > *) allGlobals[i])->Value() << std::endl << std::endl;
+			outstring << ((GlobalVar<double > *) allGlobals[i])->Value();
 		}
 		else if (allGlobals[i]->IsType("int")) {
-			outstring << ((GlobalVar<int > *) allGlobals[i])->Value() << std::endl << std::endl;
+			outstring << ((GlobalVar<int > *) allGlobals[i])->Value();
 		}
 		else if (allGlobals[i]->IsType("bool")) {
-			outstring << ((GlobalVar<bool > *) allGlobals[i])->Value() << std::endl << std::endl;
+			outstring << ((GlobalVar<bool > *) allGlobals[i])->Value();
 		}
 		else if (allGlobals[i]->IsType("string")) {
-			outstring << ((GlobalVar<std::string > *) allGlobals[i])->Value() << std::endl << std::endl;
+			outstring << ((GlobalVar<std::string > *) allGlobals[i])->Value();
 		}
 
 		Output.Write(OUT_MESSAGE, &outstring);

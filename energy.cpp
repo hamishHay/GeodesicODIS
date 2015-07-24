@@ -3,13 +3,14 @@
 #include "mass.h"
 #include "globals.h"
 #include "outFiles.h"
-#include <math.h>
+#include "mass.h"
 
+#include <math.h>
 #include <iostream>
 #include <fstream>
 #include <iomanip>
 
-Energy::Energy(Mesh * mesh, int lat, int lon, Globals * Consts, Field * UVel, Field * VVel, Mass * MassField) : Field (mesh, lat, lon) 
+Energy::Energy(Mesh * mesh, int lat, int lon, Globals * Consts, Field * UVel, Field * VVel, Mass * MassField) : Field (mesh, lat, lon)
 {
 	consts = Consts;
 	u = UVel;
@@ -19,6 +20,7 @@ Energy::Energy(Mesh * mesh, int lat, int lon, Globals * Consts, Field * UVel, Fi
 
 void Energy::UpdateKinE(void) {
 	//double cellMass = 0.;
+	mass->UpdateMass();
 
 	switch (consts->fric_type) {
 		//Linear dissipation
@@ -33,10 +35,6 @@ void Energy::UpdateKinE(void) {
 			for (int j = 0; j < fieldLonLen; j++) {
 				this->solution[i][j] = 0.5*mass->solution[i][j] * pow((pow(u->solution[i][j], 2) + pow(v->solution[i][j], 2)),1.5);
 			}
-		}
-	}
-
-	
 };
 
 void Energy::UpdateDtKinEAvg(void) {
@@ -47,7 +45,7 @@ void Energy::UpdateDtKinEAvg(void) {
 			kineticSum += this->solution[i][j];
 		}
 	}
-	//kineticSum = kineticSum*(4 / 3)*pi*(pow((consts->radius.Value() + consts->h.Value()), 3) - pow(consts->radius.Value(), 3));
+
 	dtKinEAvg.push_back(kineticSum / (4 * pi*pow((consts->radius.Value()+consts->h.Value()),2))); //Joules per meter^2
 
 
@@ -68,16 +66,16 @@ void Energy::UpdateDtDissEAvg(void) {
 };
 
 
-void Energy::UpdateOrbitalKinEAvg(int inc) {	
+void Energy::UpdateOrbitalKinEAvg(int inc) {
 	orbitKinEAvg.push_back(0);
 
 	int pos = orbitKinEAvg.size()-1;
-	
-	for (int i = dtKinEAvg.size()-1; i > dtKinEAvg.size() - 1 - inc; i--) {
+
+	for (unsigned int i = dtKinEAvg.size()-1; i > dtKinEAvg.size() - 1 - inc; i--) {
 		orbitKinEAvg[pos] += dtKinEAvg[i];
 	}
 
-	orbitKinEAvg[pos] /= inc;//consts->period.Value();
+	orbitKinEAvg[pos] /= inc;
 
 	//Automatically update dissipation
 	UpdateOrbitalDissEAvg();
@@ -96,34 +94,30 @@ void Energy::UpdateOrbitalDissEAvg(void) {
 };
 
 void Energy::IsConverged(void) {
-	residual.push_back(abs(orbitDissEAvg[orbitKinEAvg.size() - 1] - orbitDissEAvg[orbitKinEAvg.size() - 2]));
-
+	residual.push_back(fabs(orbitDissEAvg[orbitKinEAvg.size() - 1] - orbitDissEAvg[orbitKinEAvg.size() - 2]));
 	if (residual.size() > 5) {
-		//check latest value for convergence 
-		if (residual[residual.size() - 1] < 1e-6) {
+		//check latest value for convergence
+		if (residual[residual.size() - 1] < consts->converge.Value()) {
 			converged = true;
 
 			//check previous two values for convergence also:
 			//Convergence will be reset if convergence is not consistent over three orbits.
-			for (int i = residual.size() - 2; i > residual.size() - 5; i--) {
-				if (residual[i] > 1e-6) {
+			for (unsigned int i = residual.size() - 2; i > residual.size() - 5; i--) {
+				if (residual[i] > consts->converge.Value()) {
 					converged = false; //reset if previous two values not converged
 					break;
 				}
 			}
 		}
 	}
-	
 
-	//else if (residual[residual.size() - 1] > 1) {
-	//	consts->outstring << std::endl << "Residual is now greater than 1. Your model appears to have blown up. Sorry Chum." << std::endl;
-	//	consts->Output.Write(ERR_MESSAGE, &consts->outstring);
-	//	consts->Output.TerminateODIS();
-	//}
 
-	printf("\t Resdiual: %1.4e \n", abs(orbitDissEAvg[orbitKinEAvg.size() - 1] - orbitDissEAvg[orbitKinEAvg.size() - 2]));
+	if (residual[residual.size() - 1] > 1e5) {
+		consts->outstring << std::endl << "Residual is now greater than 100,000. Your model appears to have blown up. Sorry Chum." << std::endl;
+		consts->Output.Write(ERR_MESSAGE, &consts->outstring);
+		consts->Output.TerminateODIS();
+	}
 
+	printf("\t Resdiual: %1.4e \n", residual[residual.size() - 1]);
 	if (converged) std::cout << "Convergence criteria met." << std::endl;
 };
-
-

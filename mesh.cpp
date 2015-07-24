@@ -12,11 +12,16 @@ Mesh::Mesh(Globals * globals) //non-default constructor
 	dLon = globals->dLon.Value();
 
 	//Check dlat and dlon give an integer divison into 360
-	if (fmod(180., dLat) == 0)
-	{
-		latLength = (180 / dLat)+1;
-	}
-	else dLat = NULL; //Raise exception
+	//if (fmod(180., dLat) == 0)
+	//{
+	//	latLength = (180 / dLat)+1;
+	//}
+	//else dLat = NULL; //Raise exception
+
+	latLength = dLat*2. + 1.;
+	dLat = 0.5*180. / dLat;
+	
+	//dLat = 180. / dLat;
 
 	if (fmod(360., dLon) == 0)
 	{
@@ -24,10 +29,13 @@ Mesh::Mesh(Globals * globals) //non-default constructor
 	}
 	else dLon = NULL; //Raise exception
 
+	lonLength = dLon*2.;
+	dLon = 0.5*360. / dLon;
+
 	//Populate lat vector with co-latitude 
 	int count = 0;
 	int i = 0;
-	int currentLat = 90;
+	double currentLat = 90;
 	while (count < latLength) {
 		lat.push_back(currentLat);
 		currentLat -= dLat;

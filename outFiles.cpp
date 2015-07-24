@@ -1,15 +1,30 @@
+#ifdef _WIN32
+#include <direct.h>
+#define getcwd _getcwd
+
+#elif _WIN64
+#include <direct.h>
+#define getcwd _getcwd
+
+#elif __linux__
+#include <unistd.h>
+
+#else
+#error "OS not supported!"
+#endif
+
 #include "outFiles.h"
+#include "globals.h"
 #include <sstream>
-#include <Windows.h>
 
 OutFiles::OutFiles() {
-	char buffer[MAX_PATH];
-	GetModuleFileName(NULL, buffer, MAX_PATH);
-	std::string::size_type pos = std::string(buffer).find_last_of("\\/");
-	path = std::string(buffer).substr(0, pos);
+	char buffer[PATH];
+	getcwd(buffer, sizeof(buffer));
 
-	outName = path + "\\OUTPUT.txt";
-	errName = path + "\\ERROR.txt";
+	path = std::string(buffer);
+
+	outName = path + SEP + "OUTPUT.txt";
+	errName = path + SEP + "ERROR.txt";
 
 	remove(&outName[0]); //Converts std::string to char array
 	output.open(&outName[0], std::ofstream::out | std::ofstream::app);
@@ -53,7 +68,9 @@ void OutFiles::Write(mess_type message, std::ostringstream * sstream) {
 	case ERR_MESSAGE:
 		WriteError(sstream);
 		break;
-	}
+	default:
+        break;
+    }
 	
 	ClearSStream(sstream);
 };

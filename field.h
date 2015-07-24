@@ -16,8 +16,8 @@ public:
 	std::vector<double> lat;
 	std::vector<double> lon;
 
-	int dLat;
-	int dLon;
+	double dLat;
+	double dLon;
 	//int latStaggered = 0;
 	
 	std::vector<double> opp; //Pointer to opposite cell if at the pole

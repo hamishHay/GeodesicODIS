@@ -4,7 +4,6 @@
 #include "field.h"
 #include "globals.h"
 #include "mesh.h"
-#include "mass.h"
 #include "energy.h"
 #include "outFiles.h"
 
@@ -12,15 +11,16 @@ class Solver {
 private:
 	int solverType;
 	int dumpTime;
-	enum Potential {OBLIQ, ECC_RAD, ECC_LIB, FULL};
+	enum Potential {OBLIQ, ECC_RAD, ECC_LIB, ECC, FULL};
 
 	void UpdateEccRadPotential(void);
 	void UpdateEccLibPotential(void);
+	void UpdateEccPotential(void);
 	void UpdateObliqPotential(void);
 	void UpdateFullPotential(void);
 
 	void ReadInitialConditions(void);
-	void Solver::CopyInitialConditions(std::ifstream & file, Field *);
+	void CopyInitialConditions(std::ifstream & file, Field *);
 
 public:
 	double simulationTime = 0;
@@ -32,7 +32,7 @@ public:
 	OutFiles * Out;
 
 	Potential tide;
-	
+
 
 	Globals * consts;
 	Mesh * grid;
@@ -41,7 +41,6 @@ public:
 	Field * eta;
 	Field * v;
 	Field * u;
-	Mass * mass;
 	Energy * energy;
 
 	Field * etaNew;
@@ -55,12 +54,12 @@ public:
 	Field * vDissTerm;
 	Field * uDissTerm;
 
-	Solver(int type, int dump, Globals *, Mesh *, Field *, Field*, Field *, Field *, Field *, Mass *, Energy *);
+	Solver(int type, int dump, Globals *, Mesh *, Field *, Field*, Field *, Field *, Field *, Energy *);
 
 	void Solve();
-	
+
 	int InitialConditions(void);
-	
+
 	void Explicit();
 	void Implicit();
 	void CrankNicolson();
