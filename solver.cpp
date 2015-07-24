@@ -478,9 +478,6 @@ void Solver::DumpSolutions(int out_num) {
 		mkdir(&(consts->path +  SEP + "Grid" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
 
 #endif
-
-
-
 		remove(&(consts->path + SEP + "diss.txt")[0]);
 
 		std::ofstream uLat(consts->path + SEP + "Grid" + SEP + "u_lat.txt", std::ofstream::out);
@@ -496,33 +493,14 @@ void Solver::DumpSolutions(int out_num) {
 	}
 
 	else {
-		std::string out = std::to_string(out_num);
-
-		std::ofstream uFile(consts->path + SEP + "EastVelocity"  + SEP + "u_vel_" + out + ".txt", std::ofstream::out);
-		std::ofstream vFile(consts->path + SEP + "NorthVelocity" + SEP + "v_vel_" + out + ".txt", std::ofstream::out);
-		std::ofstream etaFile(consts->path + SEP + "Displacement" + SEP + "eta_" + out + ".txt", std::ofstream::out);
-
 		//fopen for linux
 		//fopen_s for windows
 		FILE * dissFile = fopen(&(consts->path + SEP + "diss.txt")[0], "a+");
 		fprintf(dissFile, "%.15f \n", energy->orbitDissEAvg[energy->orbitDissEAvg.size() - 1]);
 		fclose(dissFile);
 
-		for (int i = 0; i < u->ReturnFieldLatLen(); i++) {
-			for (int j = 0; j < u->ReturnFieldLonLen(); j++) {
-				uFile << uNew->solution[i][j] << '\t';
-				etaFile << etaNew->solution[i][j] << '\t';
-			}
-			uFile << std::endl;
-			etaFile << std::endl;
-		}
-
-		for (int i = 0; i < v->fieldLatLen; i++) {
-			for (int j = 0; j < v->fieldLonLen; j++) {
-				vFile << vNew->solution[i][j] << '\t';
-			}
-			vFile << std::endl;
-		}
+		if (energy->converged) DumpFields(out_num);
+		else if (out_num % 5 == 0) DumpFields(out_num); //dump every 5 orbits
 	}
 };
 
@@ -553,4 +531,28 @@ void Solver::CopyInitialConditions(std::ifstream & file, Field * inField) {
 	}
 
 	file.close();
+};
+
+void Solver::DumpFields(int output_num) {
+	std::string out = std::to_string(output_num);
+
+	std::ofstream uFile(consts->path + SEP + "EastVelocity" + SEP + "u_vel_" + out + ".txt", std::ofstream::out);
+	std::ofstream vFile(consts->path + SEP + "NorthVelocity" + SEP + "v_vel_" + out + ".txt", std::ofstream::out);
+	std::ofstream etaFile(consts->path + SEP + "Displacement" + SEP + "eta_" + out + ".txt", std::ofstream::out);
+
+	for (int i = 0; i < u->ReturnFieldLatLen(); i++) {
+		for (int j = 0; j < u->ReturnFieldLonLen(); j++) {
+			uFile << uNew->solution[i][j] << '\t';
+			etaFile << etaNew->solution[i][j] << '\t';
+		}
+		uFile << std::endl;
+		etaFile << std::endl;
+	}
+
+	for (int i = 0; i < v->fieldLatLen; i++) {
+		for (int j = 0; j < v->fieldLonLen; j++) {
+			vFile << vNew->solution[i][j] << '\t';
+		}
+		vFile << std::endl;
+	}
 };

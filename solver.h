@@ -70,6 +70,7 @@ public:
 	void UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Field * V, Field * ETA, double dt);
 
 	void DumpSolutions(int output_num);
+	void DumpFields(int output_num)
 };
 
 #endif
