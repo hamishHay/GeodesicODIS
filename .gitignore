@@ -126,7 +126,7 @@ publish/
 # Publish Web Output
 *.[Pp]ublish.xml
 *.azurePubxml
-# TODO: Comment the next line if you want to checkin your web deploy settings 
+# TODO: Comment the next line if you want to checkin your web deploy settings
 # but database connection strings (with potential passwords) will be unencrypted
 *.pubxml
 *.publishproj
@@ -232,7 +232,13 @@ $RECYCLE.BIN/
 __pycache__/node.cpython-34.pyc
 *.filters
 *.sln
+*.o
 ERROR.txt
 OUTPUT.txt
+diss.txt
+Displacement
+EastVelocity
+Grid
+NorthVelocity
 ODIS.vcxproj
 ODIS.vcxproj.filters

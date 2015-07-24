@@ -71,7 +71,7 @@ int Solver::InitialConditions(void) {
 	bool action = consts->init.Value();
 
 	outstring << "Use initial conditions: ";
-	
+
 	if (action) {
 		outstring << "Yes." << std::endl;
 		Out->Write(OUT_MESSAGE, &outstring);
@@ -130,7 +130,7 @@ void Solver::UpdateEccLibPotential(void) {
 		lat = dUlat->lat[i] * radConv;
 		for (int j = 0; j < dUlat->fieldLonLen; j++) {
 			lon = dUlat->lon[j] * radConv;
-			dUlat->solution[i][j] = constant*(- 1.5*sin(2*lat) * (7 * cos(2*lon - B) - cos(2*lon + B))); //P22 
+			dUlat->solution[i][j] = constant*(- 1.5*sin(2*lat) * (7 * cos(2*lon - B) - cos(2*lon + B))); //P22
 		}
 	}
 
@@ -255,21 +255,21 @@ void Solver::UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Fie
 		}
 	}
 
-	
+
 
 	/*for (int j = 0; j < u->fieldLonLen; j++) {
 		UNEW->solution[0][j] = lagrangeInterp2(UNEW, 0, j);
-		UNEW->solution[u->fieldLatLen - 1][j] = lagrangeInterp2(UNEW, u->fieldLatLen - 1, j); 
+		UNEW->solution[u->fieldLatLen - 1][j] = lagrangeInterp2(UNEW, u->fieldLatLen - 1, j);
 	}*/
 
-	
+
 
 	for (int j = 0; j < u->fieldLonLen; j++) {
 		UNEW->solution[0][j] = linearInterp2(UNEW, 0, j);
 		UNEW->solution[u->fieldLatLen - 1][j] = linearInterp2(UNEW, u->fieldLatLen - 1, j);
 	}
 
-	
+
 
 	//Average eta out at poles
 
@@ -325,7 +325,7 @@ void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Fi
 	//}
 
 
-	
+
 }
 
 void Solver::UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Field * V, Field * ETA, double dt){
@@ -361,7 +361,7 @@ void Solver::UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Fiel
 			ETANEW->solution[i][j] = consts->h.Value() / (consts->radius.Value()*cos(lat))*(-vGrad - uGrad)*dt + ETAOLD->solution[i][j];
 		}
 	}
-	
+
 	for (int j = 0; j < eta->fieldLonLen; j++) {
 		ETANEW->solution[0][j] = lagrangeInterp2(ETANEW, 0, j);
 		ETANEW->solution[eta->fieldLatLen - 1][j] = lagrangeInterp2(ETANEW, eta->fieldLatLen - 1, j);
@@ -382,7 +382,7 @@ void Solver::UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Fiel
 		ETANEW->solution[0][j] = npoleSum;
 		ETANEW->solution[eta->fieldLatLen - 1][j] = spoleSum;
 	}
-	
+
 
 }
 
@@ -397,7 +397,7 @@ void Solver::Explicit() {
 	Out->Write(OUT_MESSAGE, &outstring);
 
 	int output = 0;
-	
+
 	int outputTime = (int)(16 * 24 * 60 * 60) / (consts->timeStep.Value());///46080/10;// 34560;
 	int inc = outputTime;
 	DumpSolutions(-1);
@@ -407,30 +407,30 @@ void Solver::Explicit() {
 
 	//Update cell energies and globally averaged energy
 	energy->UpdateKinE();
-	
+
 	while (simulationTime <= consts->endTime.Value() && !energy->converged) {
 
 		UpdatePotential();
 
-		
+
 
 		simulationTime = simulationTime + consts->timeStep.Value();
-		
+
 		//Solve for v
 		UpdateNorthVel(v, vNew, u, v, eta, consts->timeStep.Value());
 
-		
+
 
 		//solve for u
 		UpdateEastVel(u, uNew, u, v, eta, consts->timeStep.Value());
 
-		
+
 
 		//Solve for eta
 		UpdateSurfaceHeight(eta, etaNew, uNew, vNew, eta, consts->timeStep.Value());
 
 
-		
+
 		//Overwite previous timestep solutions at end of iteration.
 		*eta = *etaNew;
 		*u = *uNew;
@@ -443,7 +443,7 @@ void Solver::Explicit() {
 			//Update Kinetic Energy Field
 			energy->UpdateKinE();
 
-			//Update Globally Avergaed Kinetic Energy 
+			//Update Globally Avergaed Kinetic Energy
 			energy->UpdateDtKinEAvg();
 		}
 
@@ -457,7 +457,7 @@ void Solver::Explicit() {
 
 			outstring << std::fixed << std::setprecision(2) << simulationTime / 86400.0 << " days: \t" << 100 * (simulationTime / consts->endTime.Value()) << "%\t" << output;
 			Out->Write(OUT_MESSAGE, &outstring);
-			
+
 			DumpSolutions(output);
 			output++;
 		}
@@ -473,7 +473,7 @@ void Solver::Explicit() {
 	outstring << "\nSimulation complete.\n\nEnd time: \t\t" << simulationTime / 86400.0 << "\n";
 	outstring << "Total iterations: \t" << iteration;
 	Out->Write(OUT_MESSAGE, &outstring);
-	
+
 };
 
 void Solver::DumpSolutions(int out_num) {
@@ -496,9 +496,9 @@ void Solver::DumpSolutions(int out_num) {
 
 #endif
 
-		
-		
-		remove(&(consts->path + "diss.txt")[0]);
+
+
+		remove(&(consts->path + SEP + "diss.txt")[0]);
 
 		std::ofstream uLat(consts->path + SEP + "Grid" + SEP + "u_lat.txt", std::ofstream::out);
 		std::ofstream uLon(consts->path + SEP + "Grid" + SEP + "u_lon.txt", std::ofstream::out);
@@ -518,7 +518,7 @@ void Solver::DumpSolutions(int out_num) {
 		std::ofstream uFile(consts->path + SEP + "EastVelocity"  + SEP + "u_vel_" + out + ".txt", std::ofstream::out);
 		std::ofstream vFile(consts->path + SEP + "NorthVelocity" + SEP + "v_vel_" + out + ".txt", std::ofstream::out);
 		std::ofstream etaFile(consts->path + SEP + "Displacement" + SEP + "eta_" + out + ".txt", std::ofstream::out);
-		
+
 		//std::ofstream dissFile(consts->path + "diss.txt", std::ofstream::app);
 
 		//fopen for linux
@@ -545,7 +545,7 @@ void Solver::DumpSolutions(int out_num) {
 				vFile << vNew->solution[i][j] << '\t';
 			}
 			vFile << std::endl;
-		}	
+		}
 	}
 };
 

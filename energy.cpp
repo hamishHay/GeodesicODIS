@@ -9,7 +9,7 @@
 #include <fstream>
 #include <iomanip>
 
-Energy::Energy(Mesh * mesh, int lat, int lon, Globals * Consts, Field * UVel, Field * VVel, Mass * MassField) : Field (mesh, lat, lon) 
+Energy::Energy(Mesh * mesh, int lat, int lon, Globals * Consts, Field * UVel, Field * VVel, Mass * MassField) : Field (mesh, lat, lon)
 {
 	consts = Consts;
 	u = UVel;
@@ -33,7 +33,7 @@ void Energy::UpdateDtKinEAvg(void) {
 	//Sum for poles
 	//kineticSum += this->solution[0][0];
 	//kineticSum += this->solution[this->fieldLatLen-1][0];
-	
+
 	for (int i = 0; i < fieldLatLen-1; i++) {
 		for (int j = 0; j < fieldLonLen; j++) {
 			kineticSum += this->solution[i][j];
@@ -58,11 +58,11 @@ void Energy::UpdateDtDissEAvg(void) {
 };
 
 
-void Energy::UpdateOrbitalKinEAvg(int inc) {	
+void Energy::UpdateOrbitalKinEAvg(int inc) {
 	orbitKinEAvg.push_back(0);
 
 	int pos = orbitKinEAvg.size()-1;
-	
+
 	for (int i = dtKinEAvg.size()-1; i > dtKinEAvg.size() - 1 - inc; i--) {
 		orbitKinEAvg[pos] += dtKinEAvg[i];
 	}
@@ -86,10 +86,9 @@ void Energy::UpdateOrbitalDissEAvg(void) {
 };
 
 void Energy::IsConverged(void) {
-	residual.push_back(abs(orbitDissEAvg[orbitKinEAvg.size() - 1] - orbitDissEAvg[orbitKinEAvg.size() - 2]));
-
+	residual.push_back(fabs(orbitDissEAvg[orbitKinEAvg.size() - 1] - orbitDissEAvg[orbitKinEAvg.size() - 2]));
 	if (residual.size() > 5) {
-		//check latest value for convergence 
+		//check latest value for convergence
 		if (residual[residual.size() - 1] < consts->converge.Value()) {
 			converged = true;
 
@@ -103,7 +102,7 @@ void Energy::IsConverged(void) {
 			}
 		}
 	}
-	
+
 
 	if (residual[residual.size() - 1] > 1e5) {
 		consts->outstring << std::endl << "Residual is now greater than 100,000. Your model appears to have blown up. Sorry Chum." << std::endl;
@@ -111,9 +110,6 @@ void Energy::IsConverged(void) {
 		consts->Output.TerminateODIS();
 	}
 
-	//converged = false;
-	printf("\t Resdiual: %1.4e \n", abs(orbitDissEAvg[orbitKinEAvg.size() - 1] - orbitDissEAvg[orbitKinEAvg.size() - 2]));
+	printf("\t Resdiual: %1.4e \n", residual[residual.size() - 1]);
 	if (converged) std::cout << "Convergence criteria met." << std::endl;
 };
-
-
