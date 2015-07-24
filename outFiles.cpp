@@ -1,5 +1,6 @@
 #ifdef _WIN32
 #include <direct.h>
+#include <Windows.h>
 #define getcwd _getcwd
 
 #elif _WIN64
@@ -19,9 +20,10 @@
 
 OutFiles::OutFiles() {
 	char buffer[PATH];
-	getcwd(buffer, sizeof(buffer));
-
-	path = std::string(buffer);
+	//getcwd(buffer, sizeof(buffer));
+	GetModuleFileName(NULL, buffer, MAX_PATH);
+	std::string::size_type pos = std::string(buffer).find_last_of("\\/");
+	path = std::string(buffer).substr(0, pos);
 
 	outName = path + SEP + "OUTPUT.txt";
 	errName = path + SEP + "ERROR.txt";
