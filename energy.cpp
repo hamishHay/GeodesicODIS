@@ -62,7 +62,7 @@ void Energy::UpdateOrbitalKinEAvg(int inc) {
 
 	int pos = orbitKinEAvg.size()-1;
 
-	for (int i = dtKinEAvg.size()-1; i > dtKinEAvg.size() - 1 - inc; i--) {
+	for (unsigned int i = dtKinEAvg.size()-1; i > dtKinEAvg.size() - 1 - inc; i--) {
 		orbitKinEAvg[pos] += dtKinEAvg[i];
 	}
 
@@ -93,7 +93,7 @@ void Energy::IsConverged(void) {
 
 			//check previous two values for convergence also:
 			//Convergence will be reset if convergence is not consistent over three orbits.
-			for (int i = residual.size() - 2; i > residual.size() - 5; i--) {
+			for (unsigned int i = residual.size() - 2; i > residual.size() - 5; i--) {
 				if (residual[i] > consts->converge.Value()) {
 					converged = false; //reset if previous two values not converged
 					break;

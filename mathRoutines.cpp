@@ -4,7 +4,6 @@
 #include "solver.h"
 
 double linearInterp1(Field * field, int i, int j) {
-	
 	//first order accurate forward difference method
 	if (i < field->fieldLatLen / 2) {
 		return field->solution[i + 1][j] + (field->solution[i + 1][j] - field->solution[i + 2][j]);
@@ -15,7 +14,6 @@ double linearInterp1(Field * field, int i, int j) {
 };
 
 double linearInterp2(Field * field, int i, int j) {
-
 	//second order accurate forward difference method
 	if (i < field->fieldLatLen / 2) {
 		return field->solution[i + 1][j] + (1.5* field->solution[i + 1][j] - 2 * field->solution[i + 2][j] + 0.5* field->solution[i + 3][j]);
