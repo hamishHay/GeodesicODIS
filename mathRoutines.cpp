@@ -36,7 +36,7 @@ double linearInterp4(Field * field, int i, int j) {
 	}
 };
 
-double lagrangeInterp2(Field * field, int i, int j) {
+double lagrangeInterp(Field * field, int i, int j) {
 	double L[3];
 	double x[4];
 	int inc = 1;
