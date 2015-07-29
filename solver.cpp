@@ -270,16 +270,17 @@ void Solver::UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Fie
 			coriolis = 2. * consts->angVel.Value()*sin(lat)*V->NorthEastAvg(i, j);
 			tidalForce = consts->loveReduct.Value()*(1. / (consts->radius.Value()*cos(lat)))* dUlon->solution[i][j];
 
-			UNEW->solution[i][j] = (coriolis - surfHeight + tidalForce - uDissTerm->solution[i][j])*dt + UOLD->solution[i][j];
+			//UNEW->solution[i][j] = (coriolis - surfHeight + tidalForce - uDissTerm->solution[i][j])*dt + UOLD->solution[i][j];
+			UNEW->solution[i][j] = (coriolis - surfHeight + tidalForce - U->solution[i][j]*consts->alpha.Value())*dt + UOLD->solution[i][j];
 		}
 	}
 
-	//for (int j = 0; j < u->fieldLonLen; j++) {
-	//	UNEW->solution[0][j] = linearInterp2(UNEW, 0, j);
-	//	UNEW->solution[u->fieldLatLen - 1][j] = linearInterp2(UNEW, u->fieldLatLen - 1, j);
-	//	//UNEW->solution[0][j] = lagrangeInterp(UNEW, 0, j);
-	//	//UNEW->solution[u->fieldLatLen - 1][j] = lagrangeInterp(UNEW, u->fieldLatLen - 1, j);
-	//}
+	for (int j = 0; j < u->fieldLonLen; j++) {
+		UNEW->solution[0][j] = linearInterp2(UNEW, 0, j);
+		UNEW->solution[u->fieldLatLen - 1][j] = linearInterp2(UNEW, u->fieldLatLen - 1, j);
+		//UNEW->solution[0][j] = lagrangeInterp(UNEW, 0, j);
+		//UNEW->solution[u->fieldLatLen - 1][j] = lagrangeInterp(UNEW, u->fieldLatLen - 1, j);
+	}
 }
 
 void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Field * ETA, double dt){
@@ -299,7 +300,7 @@ void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Fi
 	case LINEAR:
 		for (int i = 0; i < v->fieldLatLen; i++) {
 			for (int j = 0; j < v->fieldLonLen; j++) {
-				vDissTerm->solution[i][j] = U->solution[i][j] * alpha;
+				vDissTerm->solution[i][j] = V->solution[i][j] * alpha;
 			}
 		}
 	case QUADRATIC:
@@ -324,7 +325,8 @@ void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Fi
 
 			tidalForce = consts->loveReduct.Value()*(1. / consts->radius.Value())* dUlat->solution[i][j];
 
-			VNEW->solution[i][j] = (-coriolis - surfHeight + tidalForce - vDissTerm->solution[i][j])*dt + VOLD->solution[i][j];
+			//VNEW->solution[i][j] = (-coriolis - surfHeight + tidalForce - vDissTerm->solution[i][j])*dt + VOLD->solution[i][j];
+			VNEW->solution[i][j] = (-coriolis - surfHeight + tidalForce - V->solution[i][j] * consts->alpha.Value())*dt + VOLD->solution[i][j];
 		}
 	}
 }
