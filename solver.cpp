@@ -274,12 +274,12 @@ void Solver::UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Fie
 		}
 	}
 
-	for (int j = 0; j < u->fieldLonLen; j++) {
-		UNEW->solution[0][j] = linearInterp2(UNEW, 0, j);
-		UNEW->solution[u->fieldLatLen - 1][j] = linearInterp2(UNEW, u->fieldLatLen - 1, j);
-		//UNEW->solution[0][j] = lagrangeInterp(UNEW, 0, j);
-		//UNEW->solution[u->fieldLatLen - 1][j] = lagrangeInterp(UNEW, u->fieldLatLen - 1, j);
-	}
+	//for (int j = 0; j < u->fieldLonLen; j++) {
+	//	UNEW->solution[0][j] = linearInterp2(UNEW, 0, j);
+	//	UNEW->solution[u->fieldLatLen - 1][j] = linearInterp2(UNEW, u->fieldLatLen - 1, j);
+	//	//UNEW->solution[0][j] = lagrangeInterp(UNEW, 0, j);
+	//	//UNEW->solution[u->fieldLatLen - 1][j] = lagrangeInterp(UNEW, u->fieldLatLen - 1, j);
+	//}
 }
 
 void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Field * ETA, double dt){
@@ -502,7 +502,7 @@ void Solver::DumpSolutions(int out_num) {
 		fclose(dissFile);
 
 		if (energy->converged) DumpFields(out_num);
-		else if (out_num % 5 == 0) DumpFields(out_num); //dump every 5 orbits
+		else if (out_num % 1 == 0) DumpFields(out_num); //dump every 5 orbits
 	}
 };
 

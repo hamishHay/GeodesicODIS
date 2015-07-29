@@ -20,7 +20,7 @@ Energy::Energy(Mesh * mesh, int lat, int lon, Globals * Consts, Field * UVel, Fi
 
 void Energy::UpdateKinE(void) {
 	//double cellMass = 0.;
-	mass->UpdateMass();
+	//mass->UpdateMass();
 
 	switch (consts->fric_type) {
 		//Linear dissipation
@@ -33,8 +33,10 @@ void Energy::UpdateKinE(void) {
 	case QUADRATIC:
 		for (int i = 0; i < fieldLatLen - 1; i++) {
 			for (int j = 0; j < fieldLonLen; j++) {
-				this->solution[i][j] = 0.5*mass->solution[i][j] * pow((pow(u->solution[i][j], 2) + pow(v->solution[i][j], 2)),1.5);
+				this->solution[i][j] = 0.5*mass->solution[i][j] * pow((pow(u->solution[i][j], 2) + pow(v->solution[i][j], 2)), 1.5);
 			}
+		}
+	}
 };
 
 void Energy::UpdateDtKinEAvg(void) {
@@ -85,10 +87,12 @@ void Energy::UpdateOrbitalKinEAvg(int inc) {
 void Energy::UpdateOrbitalDissEAvg(void) {
 	orbitDissEAvg.push_back(0);
 
-	switch (dissMode) {
+	switch (consts->fric_type) {
 		//Linear dissipation
-	case 0:
-		orbitDissEAvg[orbitKinEAvg.size() - 1] = 2*orbitKinEAvg[orbitKinEAvg.size() - 1]*consts->alpha.Value();
+	case LINEAR:
+		orbitDissEAvg[orbitKinEAvg.size() - 1] = 2 * orbitKinEAvg[orbitKinEAvg.size() - 1] * consts->alpha.Value(); //Joules per meter
+	case QUADRATIC:
+		orbitDissEAvg[orbitKinEAvg.size() - 1] = 2 * orbitKinEAvg[orbitKinEAvg.size() - 1] * consts->h.Value() * consts->alpha.Value();
 	}
 
 };
