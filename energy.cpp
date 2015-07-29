@@ -27,6 +27,7 @@ void Energy::UpdateKinE(void) {
 	case LINEAR:
 		for (int i = 0; i < fieldLatLen - 1; i++) {
 			for (int j = 0; j < fieldLonLen; j++) {
+				double val = 0.5*mass->solution[i][j] * (pow(u->solution[i][j], 2) + pow(v->solution[i][j], 2));
 				this->solution[i][j] = 0.5*mass->solution[i][j] * (pow(u->solution[i][j], 2) + pow(v->solution[i][j], 2));
 			}
 		}
