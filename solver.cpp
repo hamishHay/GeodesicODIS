@@ -257,6 +257,8 @@ void Solver::UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Fie
 	for (int j = 0; j < u->fieldLonLen; j++) {
 		UNEW->solution[0][j] = linearInterp2(UNEW, 0, j);
 		UNEW->solution[u->fieldLatLen - 1][j] = linearInterp2(UNEW, u->fieldLatLen - 1, j);
+		//UNEW->solution[0][j] = lagrangeInterp(UNEW, 0, j);
+		//UNEW->solution[u->fieldLatLen - 1][j] = lagrangeInterp(UNEW, u->fieldLatLen - 1, j);
 	}
 }
 
@@ -441,7 +443,7 @@ void Solver::DumpSolutions(int out_num) {
 		mkdir(&(consts->path +  SEP + "Grid" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
 
 #endif
-		remove(&(consts->path + SEP + "diss.txt")[0]);
+		//remove(&(consts->path + SEP + "diss.txt")[0]);
 
 		std::ofstream uLat(consts->path + SEP + "Grid" + SEP + "u_lat.txt", std::ofstream::out);
 		std::ofstream uLon(consts->path + SEP + "Grid" + SEP + "u_lon.txt", std::ofstream::out);
