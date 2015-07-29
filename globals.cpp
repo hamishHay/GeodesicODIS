@@ -1,5 +1,6 @@
 #ifdef _WIN32
 #include <direct.h>
+#include <Windows.h>
 #define getcwd _getcwd
 #define SEP "\\"
 
@@ -30,8 +31,10 @@ Globals::Globals() :Globals(1) {};
 Globals::Globals(int action) {
 	char buffer[PATH];
 
-	getcwd(buffer,sizeof(buffer));
-	path = std::string(buffer);
+	//getcwd(buffer,sizeof(buffer));
+	GetModuleFileName(NULL, buffer, MAX_PATH);
+	std::string::size_type pos = std::string(buffer).find_last_of("\\/");
+	path = std::string(buffer).substr(0, pos);
 
 	strcpy(cpath, path.c_str());
 

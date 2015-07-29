@@ -95,14 +95,14 @@ void Energy::UpdateOrbitalDissEAvg(void) {
 
 void Energy::IsConverged(void) {
 	residual.push_back(fabs(orbitDissEAvg[orbitKinEAvg.size() - 1] - orbitDissEAvg[orbitKinEAvg.size() - 2]));
-	if (residual.size() > 5) {
+	if (residual.size() > 10) {
 		//check latest value for convergence
 		if (residual[residual.size() - 1] < consts->converge.Value()) {
 			converged = true;
 
 			//check previous two values for convergence also:
 			//Convergence will be reset if convergence is not consistent over three orbits.
-			for (unsigned int i = residual.size() - 2; i > residual.size() - 5; i--) {
+			for (unsigned int i = residual.size() - 2; i > residual.size() - 10; i--) {
 				if (residual[i] > consts->converge.Value()) {
 					converged = false; //reset if previous two values not converged
 					break;
