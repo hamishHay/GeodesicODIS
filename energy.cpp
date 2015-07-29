@@ -31,12 +31,15 @@ void Energy::UpdateKinE(void) {
 				this->solution[i][j] = 0.5*mass->solution[i][j] * (pow(u->solution[i][j], 2) + pow(v->solution[i][j], 2));
 			}
 		}
+		break;
+
 	case QUADRATIC:
 		for (int i = 0; i < fieldLatLen - 1; i++) {
 			for (int j = 0; j < fieldLonLen; j++) {
 				this->solution[i][j] = 0.5*mass->solution[i][j] * pow((pow(u->solution[i][j], 2) + pow(v->solution[i][j], 2)), 1.5);
 			}
 		}
+		break;
 	}
 };
 
@@ -62,9 +65,13 @@ void Energy::UpdateDtDissEAvg(void) {
 	switch (consts->fric_type) {
 		//Linear dissipation
 	case LINEAR:
-		dtDissEAvg[dtKinEAvg.size() - 1] = 2 * dtKinEAvg[dtKinEAvg.size() - 1] * consts->alpha.Value(); //Joules per meter
+		dtDissEAvg[dtKinEAvg.size() - 1] = 2 * dtKinEAvg[dtKinEAvg.size() - 1] * consts->alpha.Value();
+		break;//Joules per meter
 	case QUADRATIC:
 		dtDissEAvg[dtKinEAvg.size() - 1] = 2 * dtKinEAvg[dtKinEAvg.size() - 1] * consts->h.Value() * consts->alpha.Value();
+		break;
+	default:
+		consts->Output.TerminateODIS();
 	}
 };
 
@@ -92,8 +99,10 @@ void Energy::UpdateOrbitalDissEAvg(void) {
 		//Linear dissipation
 	case LINEAR:
 		orbitDissEAvg[orbitKinEAvg.size() - 1] = 2 * orbitKinEAvg[orbitKinEAvg.size() - 1] * consts->alpha.Value(); //Joules per meter
+		break;
 	case QUADRATIC:
 		orbitDissEAvg[orbitKinEAvg.size() - 1] = 2 * orbitKinEAvg[orbitKinEAvg.size() - 1] * consts->h.Value() * consts->alpha.Value();
+		break;
 	}
 
 };
