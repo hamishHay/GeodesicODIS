@@ -21,7 +21,7 @@ Energy::Energy(Mesh * mesh, int lat, int lon, Globals * Consts, Field * UVel, Fi
 void Energy::UpdateKinE(void) {
 	//double cellMass = 0.;
 
-	//mass->UpdateMass();
+	mass->UpdateMass();
 
 	for (int i = 0; i < fieldLatLen-1; i++) {
 		for (int j = 0; j < fieldLonLen; j++) {
