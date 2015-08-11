@@ -1,5 +1,6 @@
 import time
 import os
+import sys
 import glob
 import shutil
 import numpy as np
@@ -48,32 +49,33 @@ class Grid:
         print(self.height)
         print(self.alpha)
 
-    def RunProcess(self, p,parent=None, is_child=False):
-        def IsComplete(process):
+    def IsComplete(self, process):
 
-            # return False
-            if (os.path.exists(process.directory + "\\OUTPUT.txt")):
-                logFile = open(process.directory + "\\OUTPUT.txt", 'r')
-                string = logFile.readlines()[-4]
-                logFile.close()
-
-                if string == "Simulation complete.\n":
-                    return True
-                else:
-                    return False
+        # return False
+        if (os.path.exists(process.directory + "\\OUTPUT.txt")):
+            logFile = open(process.directory + "\\OUTPUT.txt", 'r')
+            string = logFile.readlines()[-4]
+            logFile.close()
+            if string == "Simulation complete.\n":
+                return True
             else:
                 return False
+        else:
+            return False
 
-        def IsStart(process):
-            return os.path.exists(process.directory + "\\OUTPUT.txt")
+    def IsStart(self, process):
+        return os.path.exists(process.directory + "\\OUTPUT.txt")
+
+    def RunProcess(self, p,parent=None, is_child=False):
+
 
         destination = ["\\EastVelocity\\u_vel_", "\\NorthVelocity\\v_vel_", "\\Displacement\\eta_"]
         final = ["u_vel.txt", "v_vel.txt", "eta.txt"]
 
-        if IsStart(p):
-            if IsComplete(p) and self.refine == False:
+        if self.IsStart(p):
+            if self.IsComplete(p) and self.refine == False:
                 self.complete.append(p)
-                print(p.id, "is already complete.")
+                print(p.id, "is already complete: "+ str(p.h) +", " + str(p.a))
                 self.queue.remove(p)
                 return 0
             else:
@@ -139,6 +141,16 @@ class Grid:
                     print("Copying", all_files[max_index[0]], "to " + p.directory + "\\InitialConditions")
                     os.rename(p.directory + "\\InitialConditions\\" + all_files[max_index[0]].split('\\')[-1], p.directory + "\\InitialConditions\\" + final[name])
 
+
+
+        if parent != None:
+            #Check grid spacing
+            if (parent.lonnum != p.lonnum):
+                self.RemapInitCondition(p)
+                #newp.init = "false"
+            elif (parent.latnum != p.latnum):
+                self.RemapInitCondition(p)
+
         p.Run()
         self.running.append(p)
         print(p.id, "is now running. h:", p.h, "a:", p.a)
@@ -186,10 +198,17 @@ class Grid:
                     if pos == self.grid[h][a].node:
                         self.queue.append(self.grid[h][a])
 
+        #Assess Completed
+        for process in self.queue:
+            if self.IsComplete(process):
+                self.queue.remove(process)
+                self.complete.append(process)
+
         #Solve first node - others spawn from this
-        if self.RunProcess(self.grid[0][0]) != 0 and self.refine == False: #not already run
-            #Wait for process 1 to finish before entering main loop
-            exit_code = self.running[0].Wait()
+        if not self.IsComplete(self.grid[0][0]):
+            if self.RunProcess(self.grid[0][0]) != 0 and self.refine == False: #not already run
+                #Wait for process 1 to finish before entering main loop
+                exit_code = self.running[0].Wait()
 
         self.rerun = False
         while len(self.running)!= 0 or len(self.queue) != 0:
@@ -225,9 +244,7 @@ class Grid:
                                 if len(self.running) < total and len(found_children) > 0:
                                     for newp in found_children:
                                         if not newp.IsRun() and len(self.running) < total:
-                                            #Check grid spacing
-                                            if (p.lonnum != newp.lonnum) newp.init = "false"
-                                            if (p.latnum != newp.latnum) newp.init = "false"
+
 
                                             #Attempt to run process
                                             self.RunProcess(newp,parent=p,is_child=True)
@@ -258,6 +275,16 @@ class Grid:
                 wfile.writelines([item for item in lines])
                 wfile.close()
 
+    def DeleteRange(self, a1, a2, h1, h2):
+        import shutil
+        self.rerun = True
+        for p in self.all:
+            if (p.a > a1) and (p.a < a2) and (p.h > h1) and (p.h < h2):
+                try:
+                    shutil.rmtree(p.directory)
+                except WindowsError:
+                    print("he")
+
     def MakeComplete(self, a1, a2, h1, h2):
         #self.rerun = True
         for p in self.all:
@@ -278,6 +305,27 @@ class Grid:
 
     def CollectResults(self):
         from scipy import stats as st
+
+        def findMid(arr):
+            first=0
+            second=0
+
+            slopeSign = (arr[-1]-arr[-2])/abs((arr[-1]-arr[-2]))
+
+            for i in range(len(arr)-1,1,-1):
+                nSlopeSign = (arr[i]-arr[i-1])/abs((arr[i]-arr[i-1]))
+                if nSlopeSign != slopeSign:
+                    first = i
+                    slopeSign = nSlopeSign
+                    break
+
+            for i in range(first,1,-1):
+                nSlopeSign = (arr[i]-arr[i-1])/abs((arr[i]-arr[i-1]))
+                if nSlopeSign != slopeSign:
+                    second = i
+                    break
+
+            return int((first-second)/2)
 
         all_dirs = []
 
@@ -321,12 +369,20 @@ class Grid:
                     x = np.linspace(bot,len(flines),len(flines[bot:]))
 
                     m, c, r, pval, e = st.linregress(x,flines[bot:])
+                    #print(p.h, p.a, len(flines), m)
 
-                    if abs(m)>=1e-5:
+                    if abs(m)>=1e-6:
                         val = flines[-1]
-                    else:
+                    elif abs(m) < 1e-6 and len(flines)>20:
+                        #mid = findMid(flines)
+                        mid = len(flines)/2
+                        #val = flines[mid]
                         #val = flines[-1]
-                        val = np.mean(flines[bot:])
+                        val = np.median(flines[mid:])
+                    elif len(flines)>2:
+                        val = flines[-1]
+                        #val = np.median(flines[bot:])
+
 
                 else:
                     val = flines[-1]
@@ -353,6 +409,8 @@ class Grid:
             #h_dat = np.zeros(len(self.height))
             #a_dat = np.zeros(len(self.alpha))
 
+            #data = np.zeros((len(a_dat),len(h_dat)))
+
             h_dat[0] = self.h[0]
             count = 0
             for i in range(len(self.h)):
@@ -374,18 +432,17 @@ class Grid:
 
             data = np.zeros((len(a_dat),len(h_dat)))
             count = 0
-            # for j in range(len(h_dat)):
-            #     for i in range(len(a_dat)):
-            #         data[i][j] = self.diss[count]*1e3
-            #         # try:
-            #         #     data[i][j] = self.diss[count]*1e3
-            #         # except IndexError:
-            #         #     data[i][j] = 1
-            #         #     #print("Is NaN: self.h: " + h_dat[j] + ", a: " + a_dat[i])
-            #
-            #         count += 1
+            for j in range(len(h_dat)):
+                for i in range(len(a_dat)):
+                    #data[i][j] = self.diss[count]*1e3
+                    # try:
+                    #     data[i][j] = self.diss[count]*1e3
+                    # except IndexError:
+                    #     data[i][j] = 1
+                    #     #print("Is NaN: self.h: " + h_dat[j] + ", a: " + a_dat[i])
 
-            print(data)
+                    count += 1
+
             return data
 
 
@@ -394,41 +451,45 @@ class Grid:
 
 
 
-        #Z2 = GetVal(name="\\grid_results1.txt")
+       # Z2 = GetVal(name="\\grid_results1.txt")
+
 
 
         Z = GetVal(name="\\grid_results.txt")
-
-        while True in ps.isnull(Z):# or 0.0 in Z:
-            print(ps.isnull(data))
-            time.sleep(2)
-            Z = GetVal(name="\\grid_results.txt")
+        print(Z)
+        # while True in ps.isnull(Z):# or 0.0 in Z:
+        #     print(ps.isnull(data))
+        #     time.sleep(2)
+        #     Z = GetVal(name="\\grid_results.txt")
         h = self.h
         a = self.a
 
         #Z = Z-Z2
-        cmap = cmap=cm.hot
-        print(h)
-        print(a)
-        #print(Z)
+        cmap = cmap=cm.gnuplot2
+        #print(self.diss)
         fig2 = plt.figure()
         ax12 = fig2.add_subplot(1,1,1)
-        pl = ax12.scatter(a,h,c=np.log10(self.diss*1e3),cmap=cmap,vmin=-5.5, vmax=0.8)
-        c1 = plt.colorbar(pl, ax = ax12, format='%.1f',ticks=[-5,4,3,2,1,0])
-        #ax12.set_clim(vmin=-5.5, vmax=0.8)
+        pl = ax12.scatter(a,h,c=np.log10(self.diss*1e3),cmap=cmap,lw = 0.5)
+
+        #pl = ax12.plot(a, np.log10(self.diss*1e3),marker='+')
+
+        c1 = plt.colorbar(pl, ax = ax12, format='%.1f')
+        #ax12.set_clim(vmin=-5.5, vmax=0.4)
         ax12.set_xscale("log")
         ax12.set_yscale("log")
-        plt.ylim([1, 100000])
+        plt.ylim([1e0, 1e4])
         plt.xlim([1e-9, 1e-5])
         plt.show()
-        res=200
+
+        sys.exit()
+        res=400
         y = np.logspace(self.hrange[0],self.hrange[1],res)
         #self.alpha = omega/(2*np.logspace(arange[0],arange[1],self.dim[0]))
         x = np.logspace(self.arange[0],self.arange[1],res)
 
 
 
-        print(np.shape(Z.T))
+
         X2, Y2 = np.meshgrid(a_dat,h_dat)
         X, Y = np.meshgrid(x,y)
         #diss2 = np.log10(diss)
@@ -436,11 +497,11 @@ class Grid:
         #zi = griddata((a, h), diss2, (X, Y),method='linear')
 
         #zi = griddata((a, h), diss2, (X, Y),method='cubic')
-        print(Z)
+
         import scipy as sc
 #np.fliplr(np.log10(Z.T))
         #Much better than griddata
-        func = sc.interpolate.interp2d(a,h,np.fliplr(np.log10(Z.T)),kind='linear')
+        func = sc.interpolate.interp2d(a_dat,h_dat,np.fliplr(np.log10(Z.T)),kind='linear')
         #func = sc.interpolate.SmoothBivariateSpline(np.sort(a),np.sort(h),diss2)
         zi = func(x,y)
 
@@ -453,6 +514,7 @@ class Grid:
         # rc('font',**{'family':'serif','serif':['Palatino']})
         plt.rc('text', usetex=True)
 
+        name = 'Full'
 
 
         titleSize = 14
@@ -460,10 +522,9 @@ class Grid:
         labelSize = 10
         tickSize = 10
 
-        cmap = cmap=cm.hot
-
         fig = plt.figure(1,figsize=(7, 10), dpi=80)
-        fig.suptitle('Ocean Dissipation for Obliquity Tide', fontsize=titleSize)
+        fig.suptitle('Ocean Dissipation for ' + name + ' Tide', fontsize=titleSize)
+        ticks = [-10.0,-9.0, -8.0, -7,-6,-5, -4,-3,-2,-2,-1,0,1]
 
         ax1 = fig.add_subplot(2,1,1)
         m1 = ax1.pcolormesh(X,Y,zi,cmap=cmap)
@@ -471,15 +532,15 @@ class Grid:
         c1 = plt.colorbar(m1, ax = ax1, format='%.1f')
         c1.set_label("$\\log_{10}$ (Dissipated Energy), (W m$\displaystyle{^{-2}}$)",fontsize=labelSize)
         c1.outline.set_linewidth(0.7)
-        c1.set_ticks([-10.0,-9.0, -8.0, -7,-6,-5, -4,-3])
-        #ax1.scatter(a,h,marker="+",s=8,color='k',alpha=0.7,linewidths=0.6)
+        c1.set_ticks(ticks)
+        ax1.scatter(a,h,marker="+",s=7,color='k',alpha=0.7,linewidths=0.4)
 
-        for j in range(len(h_dat)):
-            for i in range(len(a_dat)):
-                if Z[i][j] != Z2[i][j]:
-                    ax1.scatter(a_dat[i],h_dat[j],marker="+",s=8,color='w',alpha=0.7,linewidths=0.6)
-                else:
-                    ax1.scatter(a_dat[i],h_dat[j],marker="+",s=8,color='k',alpha=0.7,linewidths=0.6)
+        # for j in range(len(h_dat)):
+        #     for i in range(len(a_dat)):
+        #         if Z[i][j] != Z2[i][j]:
+        #             ax1.scatter(a_dat[i],h_dat[j],marker="+",s=8,color='w',alpha=0.7,linewidths=0.6)
+        #         else:
+        #             ax1.scatter(a_dat[i],h_dat[j],marker="+",s=8,color='k',alpha=0.7,linewidths=0.6)
 
 
         ax2 = fig.add_subplot(2,1,2)
@@ -487,8 +548,8 @@ class Grid:
         c2 = plt.colorbar(m2, ax = ax2, format='%.1f')
         c2.set_label("$\\log_{10}$ (Dissipated Energy), (W m$\displaystyle{^{-2}}$)",fontsize=labelSize)
         c2.outline.set_linewidth(0.7)
-        c2.set_ticks([-10.0, -9.0, -8.0, -7,-6,-5, -4, -3])
-        ax2.scatter(a,h,marker="+",s=8,color='k',alpha=0.7,linewidths=0.6)
+        c2.set_ticks(ticks)
+        ax2.scatter(a,h,marker="+",s=7,color='k',alpha=0.7,linewidths=0.4)
 
         # for j in range(len(h_dat)):
         #     for i in range(len(a_dat)):
@@ -528,38 +589,81 @@ class Grid:
 
         plt.show()
 
-        name = 'Obliquity'
-
-        fig.savefig(name + '.pdf', format='PDF')
+        # fig.savefig(name + '.pdf', format='PDF')
         fig.savefig(name + '.png', format='PNG',dpi=1200)
 
         #self.diss = diss*1e-3
 
         plt.close()
+#
+#         fig2 = plt.figure(2, dpi=80)
+#         ax12 = fig2.add_subplot(1,1,1)
+#
+#         labels = ['%.2e' % a_dat[i] for i in range(len(a_dat))]
+#         diss_interp = 10**zi[:,0]
+#         p1 = ax12.plot(h_dat,Z[6],marker='+',label='$\\alpha = $ ' + labels[6] + ' s$^{-1}$')
+#         p2 = ax12.plot(h_dat,Z[7],marker='+',label='$\\alpha = $ ' + labels[7] + ' s$^{-1}$')
+#         p1 = ax12.plot(h_dat,Z[8],marker='+',label='$\\alpha = $ ' + labels[8] + ' s$^{-1}$')
+#         p2 = ax12.plot(h_dat,Z[9],marker='+',label='$\\alpha = $ ' + labels[9] + ' s$^{-1}$')
+#         p3 = ax12.plot(h_dat,Z[10],marker='+',label='$\\alpha = $ ' + labels[10] + ' s$^{-1}$')
+#         p3 = ax12.plot(h_dat,Z[11],marker='+',label='$\\alpha = $ ' + labels[11] + ' s$^{-1}$')
+#         p3 = ax12.plot(h_dat,Z[12],marker='+',label='$\\alpha = $ ' + labels[12] + ' s$^{-1}$')
+#         #p4 = ax12.plot(h_dat,Z[9],marker='+',label='$\\alpha = $ ' + labels[9] + ' s$^{-1}$')
+#         #p4 = ax12.plot(y,(10**zi[:,5]),ls=':',color='k',label='$\\alpha = $ ' + labels[5] + ' s$^{-1}$: interpolated')
+#         ax12.set_xscale("log")
+#         ax12.set_yscale("log")
+#         ax12.set_ylabel("Dissipated Energy, (W m$^{-2}$)",fontsize=labelSize)
+#         ax12.set_xlabel("Ocean Depth, (m)",fontsize=labelSize)
+#         ax12.set_title('Ocean Dissipation for ' + name + ' Tide',fontsize=titleSize)
+#         plt.ylim([1e-8, 1e1])
+#         plt.xlim([1, 10000])
+#         plt.legend()
+#         #p2 = ax12.plot(y,zi[:,0]*1e3)
+#         plt.show()
+#         # fig2.savefig(name + '_depth.pdf', format='PDF')
+#         # fig2.savefig(name + '_depth.png', format='PNG',dpi=1200)
+#
+#         #pp = PdfPages('Eccentricity-Libration.pdf')
+#         #pp.savefig(fig)
+#         #pp.close()
 
-        fig2 = plt.figure(2, dpi=80)
-        ax12 = fig2.add_subplot(1,1,1)
+    def RemapInitCondition(self,p):
+        import scipy as sc
 
-        labels = ['%.2e' % a_dat[i] for i in range(len(a_dat))]
-        diss_interp = 10**zi[:,0]
-        p1 = ax12.plot(h_dat,Z[0],marker='+',label='$\\alpha = $ ' + labels[0] + ' s$^{-1}$')
-        p2 = ax12.plot(h_dat,Z[3],marker='+',label='$\\alpha = $ ' + labels[3] + ' s$^{-1}$')
-        p3 = ax12.plot(h_dat,Z[7],marker='+',label='$\\alpha = $ ' + labels[7] + ' s$^{-1}$')
-        #p4 = ax12.plot(h_dat,Z[9],marker='+',label='$\\alpha = $ ' + labels[9] + ' s$^{-1}$')
-        #p4 = ax12.plot(y,(10**zi[:,5]),ls=':',color='k',label='$\\alpha = $ ' + labels[5] + ' s$^{-1}$: interpolated')
-        ax12.set_xscale("log")
-        ax12.set_yscale("log")
-        ax12.set_ylabel("Dissipated Energy, (W m$^{-2}$)",fontsize=labelSize)
-        ax12.set_xlabel("Ocean Depth, (m)",fontsize=labelSize)
-        ax12.set_title('Ocean Dissipation for Obliquity Tide',fontsize=titleSize)
-        plt.ylim([1e-8, 1e1])
-        plt.xlim([1, 10000])
-        plt.legend()
-        #p2 = ax12.plot(y,zi[:,0]*1e3)
-        plt.show()
-        fig2.savefig(name + '_depth.pdf', format='PDF')
-        fig2.savefig(name + '_depth.png', format='PNG',dpi=1200)
+        name = ["\\u_vel.txt", "\\v_vel.txt", "\\eta.txt"]
+        for i in range(3):
+            path = p.directory + "\\InitialConditions\\" + name[i]
+            #path = os.getcwd() + name[i]
+            data = []
+            #p.directory + "\\InitialConditions"
+            if os.path.exists(path):
+                init = open(path,'r')
+                lines = init.readlines()
+                init.close()
 
-        pp = PdfPages('Eccentricity-Libration.pdf')
-        pp.savefig(fig)
-        pp.close()
+                for line in lines:
+                    line = line.split('\t')
+                    data.append([float(j) for j in line[:-1]])
+                data = np.array(data)
+
+            lat = np.linspace(0,len(data),len(data))
+            lon = np.linspace(0,len(data[0]),len(data[0]))
+
+
+            if i == 1:
+                latnew = np.linspace(0,len(data),p.latnum)
+            else:
+                latnew = np.linspace(0,len(data),p.latnum+1)
+            lonnew = np.linspace(0,len(data[0]),p.lonnum)
+
+            func = sc.interpolate.interp2d(lon,lat,data,kind='cubic')
+            #func = sc.interpolate.SmoothBivariateSpline(np.sort(a),np.sort(h),diss2)
+            zi = func(lonnew,latnew)
+
+            init = open(path,'w')
+            for line in zi:
+                for val in line:
+                    init.write(str(val) + '\t')
+                init.write('\n')
+
+            init.close()
