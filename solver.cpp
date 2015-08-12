@@ -255,8 +255,8 @@ void Solver::UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Fie
 	}
 
 	for (int j = 0; j < u->fieldLonLen; j++) {
-		UNEW->solution[0][j] = linearInterp2(UNEW, 0, j);
-		UNEW->solution[u->fieldLatLen - 1][j] = linearInterp2(UNEW, u->fieldLatLen - 1, j);
+		UNEW->solution[0][j] = linearInterp1(UNEW, 0, j);
+		UNEW->solution[u->fieldLatLen - 1][j] = linearInterp1(UNEW, u->fieldLatLen - 1, j);
 		//UNEW->solution[0][j] = lagrangeInterp(UNEW, 0, j);
 		//UNEW->solution[u->fieldLatLen - 1][j] = lagrangeInterp(UNEW, u->fieldLatLen - 1, j);
 	}
@@ -363,6 +363,13 @@ void Solver::Explicit() {
 	int outputTime = (int)(16 * 24 * 60 * 60) / (consts->timeStep.Value());///46080/10;// 34560;
 	int inc = outputTime;
 	DumpSolutions(-1);
+
+	//for (int j = 0; j < u->fieldLonLen; j++) {
+	//	u->solution[0][j] = 0;
+	//	u->solution[u->fieldLatLen - 1][j] = 0;
+	//	//UNEW->solution[0][j] = lagrangeInterp(UNEW, 0, j);
+	//	//UNEW->solution[u->fieldLatLen - 1][j] = lagrangeInterp(UNEW, u->fieldLatLen - 1, j);
+	//}
 
 	//Update cell energies and globally averaged energy
 	energy->UpdateKinE();
