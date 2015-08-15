@@ -278,10 +278,26 @@ void Solver::UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Fie
 	}
 
 	for (int j = 0; j < u->fieldLonLen; j++) {
-		UNEW->solution[0][j] = linearInterp2(UNEW, 0, j);
-		UNEW->solution[u->fieldLatLen - 1][j] = linearInterp2(UNEW, u->fieldLatLen - 1, j);
-		//UNEW->solution[0][j] = lagrangeInterp(UNEW, 0, j);
-		//UNEW->solution[u->fieldLatLen - 1][j] = lagrangeInterp(UNEW, u->fieldLatLen - 1, j);
+		//UNEW->solution[0][j] = linearInterp2(UNEW, 0, j);
+		//UNEW->solution[u->fieldLatLen - 1][j] = linearInterp2(UNEW, u->fieldLatLen - 1, j);
+		UNEW->solution[0][j] = lagrangeInterp(UNEW, 0, j);
+		UNEW->solution[u->fieldLatLen - 1][j] = lagrangeInterp(UNEW, u->fieldLatLen - 1, j);
+		//UNEW->solution[0][j] = 0;
+		//UNEW->solution[u->fieldLatLen - 1][j] = 0;
+	}
+
+	double npoleSum = 0;
+	double spoleSum = 0;
+	for (int j = 0; j < u->fieldLonLen; j++) {
+		npoleSum += UNEW->solution[0][j];
+		spoleSum += UNEW->solution[u->fieldLatLen - 1][j];
+	}
+	npoleSum = npoleSum / u->fieldLonLen;
+	spoleSum = spoleSum / u->fieldLonLen;
+
+	for (int j = 0; j < u->fieldLonLen; j++) {
+		UNEW->solution[0][j] = npoleSum;
+		UNEW->solution[u->fieldLatLen - 1][j] = spoleSum;
 	}
 }
 
@@ -370,6 +386,8 @@ void Solver::UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Fiel
 	}
 
 	for (int j = 0; j < eta->fieldLonLen; j++) {
+		//ETANEW->solution[0][j] = linearInterp1(ETANEW, 0, j);
+		//ETANEW->solution[eta->fieldLatLen - 1][j] = linearInterp1(ETANEW, eta->fieldLatLen - 1, j);
 		ETANEW->solution[0][j] = lagrangeInterp(ETANEW, 0, j);
 		ETANEW->solution[eta->fieldLatLen - 1][j] = lagrangeInterp(ETANEW, eta->fieldLatLen - 1, j);
 	}

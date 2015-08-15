@@ -65,10 +65,10 @@ void Energy::UpdateDtDissEAvg(void) {
 	switch (consts->fric_type) {
 		//Linear dissipation
 	case LINEAR:
-		dtDissEAvg[dtKinEAvg.size() - 1] = 2 * dtKinEAvg[dtKinEAvg.size() - 1] * consts->alpha.Value();
-		break;//Joules per meter
+		dtDissEAvg[dtKinEAvg.size() - 1] = 2 * dtKinEAvg[dtKinEAvg.size() - 1] * consts->alpha.Value(); //Joules per meter^2
+		break;
 	case QUADRATIC:
-		dtDissEAvg[dtKinEAvg.size() - 1] = 2 * dtKinEAvg[dtKinEAvg.size() - 1] * consts->h.Value() * consts->alpha.Value();
+		dtDissEAvg[dtKinEAvg.size() - 1] = 2 * dtKinEAvg[dtKinEAvg.size() - 1] * consts->alpha.Value()/consts->h.Value();
 		break;
 	default:
 		consts->Output.TerminateODIS();
@@ -101,7 +101,7 @@ void Energy::UpdateOrbitalDissEAvg(void) {
 		orbitDissEAvg[orbitKinEAvg.size() - 1] = 2 * orbitKinEAvg[orbitKinEAvg.size() - 1] * consts->alpha.Value(); //Joules per meter
 		break;
 	case QUADRATIC:
-		orbitDissEAvg[orbitKinEAvg.size() - 1] = 2 * orbitKinEAvg[orbitKinEAvg.size() - 1] * consts->h.Value() * consts->alpha.Value();
+		orbitDissEAvg[orbitKinEAvg.size() - 1] = 2 * orbitKinEAvg[orbitKinEAvg.size() - 1] * consts->alpha.Value() / consts->h.Value();
 		break;
 	}
 
@@ -109,14 +109,14 @@ void Energy::UpdateOrbitalDissEAvg(void) {
 
 void Energy::IsConverged(void) {
 	residual.push_back(fabs(orbitDissEAvg[orbitKinEAvg.size() - 1] - orbitDissEAvg[orbitKinEAvg.size() - 2]));
-	if (residual.size() > 10) {
+	if (residual.size() > 4) {
 		//check latest value for convergence
 		if (residual[residual.size() - 1] < consts->converge.Value()) {
 			converged = true;
 
 			//check previous two values for convergence also:
 			//Convergence will be reset if convergence is not consistent over three orbits.
-			for (unsigned int i = residual.size() - 2; i > residual.size() - 10; i--) {
+			for (unsigned int i = residual.size() - 2; i > residual.size() - 4; i--) {
 				if (residual[i] > consts->converge.Value()) {
 					converged = false; //reset if previous two values not converged
 					break;
