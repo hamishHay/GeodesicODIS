@@ -20,10 +20,16 @@
 
 OutFiles::OutFiles() {
 	char buffer[PATH];
-	//getcwd(buffer, sizeof(buffer));
+
+#ifdef _WIN64
 	GetModuleFileName(NULL, buffer, MAX_PATH);
-	std::string::size_type pos = std::string(buffer).find_last_of("\\/");
+#elif __linux__
+	readlink("/proc/self/exe", buffer, sizeof(buffer)-1);
+#endif
+
+	std::string::size_type pos = std::string(buffer).find_last_of(SEP);
 	path = std::string(buffer).substr(0, pos);
+
 
 	outName = path + SEP + "OUTPUT.txt";
 	errName = path + SEP + "ERROR.txt";
@@ -73,7 +79,7 @@ void OutFiles::Write(mess_type message, std::ostringstream * sstream) {
 	default:
         break;
     }
-	
+
 	ClearSStream(sstream);
 };
 
@@ -89,5 +95,3 @@ void OutFiles::ClearSStream(std::ostringstream * sstream) {
 	(*sstream).str(std::string());
 	(*sstream).clear();
 }
-
-

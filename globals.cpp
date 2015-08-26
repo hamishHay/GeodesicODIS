@@ -29,15 +29,9 @@
 Globals::Globals() :Globals(1) {};
 
 Globals::Globals(int action) {
-	char buffer[PATH];
-
-	//getcwd(buffer,sizeof(buffer));
-	GetModuleFileName(NULL, buffer, MAX_PATH);
-	std::string::size_type pos = std::string(buffer).find_last_of("\\/");
-	path = std::string(buffer).substr(0, pos);
+	path = Output.path;
 
 	strcpy(cpath, path.c_str());
-
 
 	if (action) SetDefault();
 	else {
