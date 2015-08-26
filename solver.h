@@ -33,6 +33,7 @@ public:
 
 	Potential tide;
 
+
 	Globals * consts;
 	Mesh * grid;
 	Field * dUlon;
@@ -50,12 +51,15 @@ public:
 	Field * vNewHalf;
 	Field * uNewHalf;
 
+	Field * vDissTerm;
+	Field * uDissTerm;
+
 	Solver(int type, int dump, Globals *, Mesh *, Field *, Field*, Field *, Field *, Field *, Energy *);
 
 	void Solve();
-	
+
 	int InitialConditions(void);
-	
+
 	void Explicit();
 	void Implicit();
 	void CrankNicolson();
@@ -66,6 +70,7 @@ public:
 	void UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Field * V, Field * ETA, double dt);
 
 	void DumpSolutions(int output_num);
+	void DumpFields(int output_num);
 };
 
 #endif

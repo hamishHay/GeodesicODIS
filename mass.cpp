@@ -31,7 +31,7 @@ void Mass::UpdateCellMass(int i, int j) {
 
 	solution[i][j] *= (lon[1] - lon[0])*radConv; 
 
-	solution[i][j] *= 1000. / 3.;
+	solution[i][j] *= 1000. / 3.; //density of water
 };
 
 void Mass::UpdateTotalMass(void) {
