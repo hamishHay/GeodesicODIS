@@ -35,4 +35,4 @@ solver.o: solver.cpp
 	$(CC) $(CFLAGS) solver.cpp
 
 clean:
-	rm *o ODIS
+	rm -r *o ODIS *.txt NorthVelocity EastVelocity Displacement Grid

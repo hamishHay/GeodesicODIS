@@ -29,16 +29,10 @@
 Globals::Globals() :Globals(1) {};
 
 Globals::Globals(int action) {
-	char buffer[PATH];
-
-	//getcwd(buffer,sizeof(buffer));
-	GetModuleFileName(NULL, buffer, MAX_PATH);
-	std::string::size_type pos = std::string(buffer).find_last_of("\\/");
-	path = std::string(buffer).substr(0, pos);
+	path = Output.path;
 
 	strcpy(cpath, path.c_str());
 
-	
 	if (action) SetDefault();
 	else {
 		SetDefault();
@@ -98,17 +92,26 @@ Globals::Globals(int action) {
 		potential.SetStringID("potential");
 		allGlobals.push_back(&potential);
 
+		friction.SetStringID("friction type");
+		allGlobals.push_back(&friction);
+
 		init.SetStringID("initial conditions");
 		allGlobals.push_back(&init);
 
 		ReadGlobals(); //Read globals from input.in file
 	}
-	
+
 	OutputConsts();
 
 	endTime.SetValue(endTime.Value()*period.Value());
 
-	
+	if (friction.Value() == "LINEAR") fric_type = LINEAR;
+	else if (friction.Value() == "QUADRATIC") fric_type = QUADRATIC;
+	else {
+		outstring << "No friction type found." << std::endl;
+		Output.Write(ERR_MESSAGE, &outstring);
+		Output.TerminateODIS();
+	}
 };
 
 int Globals::ReadGlobals(void) {
@@ -116,7 +119,7 @@ int Globals::ReadGlobals(void) {
 	//Avoids the need to recompile for each different model setup.
 	std::ifstream inputFile(path + SEP + "input.in",std::ifstream::in);
 	std::string line, varStr, varVal;
-	
+
 	int valInt;
 	double valDouble;
 	bool valBool = true;
@@ -128,7 +131,7 @@ int Globals::ReadGlobals(void) {
 
 		outstring << "Found input file." << std::endl;
 		Output.Write(OUT_MESSAGE, &outstring);
-		
+
 		while (std::getline(inputFile >> std::ws, line, ';')) { //>> std::ws removes any leading whitespace
 
 			//Convert string to lower case
@@ -179,7 +182,7 @@ int Globals::ReadGlobals(void) {
 
 		inputFile.close();
 
-		
+
 
 		for (unsigned int i = 0; i < allGlobals.size(); i++){
 			if (!allGlobals[i]->IsAdded()) {
@@ -239,7 +242,7 @@ void Globals::SetDefault(void) {
 	//Eccentricity
 	e.SetValue(0.0288);
 
-	//Obliquity 
+	//Obliquity
 	theta.SetValue(0.32*pi / 180);
 
 	//Coefficient of linear friction
@@ -266,6 +269,9 @@ void Globals::SetDefault(void) {
 
 	//Potential
 	potential.SetValue("ECC");
+
+	//Friction Type
+	friction.SetValue("QUADRATIC");
 
 	//Initial conditions
 	init.SetValue(false);

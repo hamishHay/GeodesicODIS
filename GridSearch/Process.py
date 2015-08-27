@@ -17,6 +17,7 @@ class Process:
         self.directory = os.getcwd() + "\\h" + str(self.h) + "_alpha" + str(self.a)
         self.results_dir = self.directory #os.getcwd() + "\\Results\\h" + str(self.h) + "_alpha" + str(self.a)
         self.init = "true"
+        self.ODIS_PATH = /source/ODIS/ODIS
 
         if self.h <= 35:
             if self.node[0] == 0 and self.node[1] == dim[1] - 1: #top and right
@@ -69,27 +70,7 @@ class Process:
         #    self.dt = 64
         else:
             self.dt = 40
-        #if (self.a < 1e-7):
-        #    self.dt = 150
-        #if (self.a < 5e-8):
-        #    self.dt = 120
-        #if (self.a < 3e-8):
-        #    self.dt = 80
-        #if (self.a <= 1e-8):
-        #    self.dt = 50
 
-        #if (self.h > 2800):
-        #    self.dt = 120
-        #if (self.h > 5000):
-        #    self.dt = 100
-        #if (self.h > 6500):
-        #    self.dt = 80
-        #''if (self.h > 8000):
-         #   self.dt = 60
-        #elif (self.h > 2800 and self.a < 5e-8):
-        #    self.dt = 100
-        #elif (self.h < 2800 and self.a < 3e-8):
-        #    self.dt = 72
 
     def __repr__(self):
         return str(self.id)
@@ -102,7 +83,7 @@ class Process:
             os.makedirs(self.directory)
 
         # Always copy latest version of ODIS
-        shutil.copy("ODIS.exe", self.directory)
+        shutil.copy(self.ODIS_PATH, self.directory)
         self.CreateInputFile()
 
     def CreateInputFile(self):
@@ -121,14 +102,6 @@ class Process:
             self.init = "false"
         f.write("initial conditions; \t \t \t " + self.init +"; \t \t \t init; \n")
 
-        # elif (self.a > 1e-7):
-        #     conv = 8e-7
-        # elif (self.a < 1e-7 and self.h < 50):
-        #     conv = 1e-6
-        # elif (self.a > 1e-8 and self.h > 1000):
-        #     conv = 5e-7
-        # elif (self.a > 1e-8 and self.h < 1000):
-        #     conv = 2e-7
         if (self.a <1e-7):
             conv = 5e-8
         elif (self.h < 100):

@@ -33,6 +33,7 @@ public:
 
 	Potential tide;
 
+
 	Globals * consts;
 	Mesh * grid;
 	Field * dUlon;
@@ -49,6 +50,9 @@ public:
 	Field * etaNewHalf;
 	Field * vNewHalf;
 	Field * uNewHalf;
+
+	Field * vDissTerm;
+	Field * uDissTerm;
 
 	Solver(int type, int dump, Globals *, Mesh *, Field *, Field*, Field *, Field *, Field *, Energy *);
 

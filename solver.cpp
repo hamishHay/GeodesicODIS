@@ -50,6 +50,9 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 	uNew = new Field(grid,0,1);
 	vNew = new Field(grid,1,0);
 
+	vDissTerm = new Field(grid, 1, 0);
+	uDissTerm = new Field(grid, 0, 1);
+
 	*etaNew = *eta;
 	*uNew = *u;
 	*etaNew = *eta;
@@ -236,8 +239,28 @@ void Solver::UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Fie
 	double westEta = 0;
 
 	double lat;
+	double alpha = consts->alpha.Value();
 
-	for (int i = 1; i < u->fieldLatLen-1; i++) {
+	switch (consts->fric_type) {
+	case LINEAR:
+		for (int i = 1; i < u->fieldLatLen - 1; i++) {
+			for (int j = 0; j < u->fieldLonLen; j++) {
+				uDissTerm->solution[i][j] = U->solution[i][j] * alpha;
+			}
+		}
+		break;
+
+	case QUADRATIC:
+		for (int i = 1; i < u->fieldLatLen - 1; i++) {
+			for (int j = 0; j < u->fieldLonLen; j++) {
+				uDissTerm->solution[i][j] = alpha / consts->h.Value() * U->solution[i][j] * sqrt(pow(U->solution[i][j], 2.) + pow(V->NorthEastAvg(i, j), 2.));
+			}
+		}
+		break;
+	}
+
+
+	for (int i = 1; i < u->fieldLatLen - 1; i++) {
 		lat = u->lat[i] * radConv;
 		for (int j = 0; j < u->fieldLonLen; j++) {
 			eastEta = ETA->EastP(i, j);
@@ -250,15 +273,31 @@ void Solver::UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Fie
 			coriolis = 2. * consts->angVel.Value()*sin(lat)*V->NorthEastAvg(i, j);
 			tidalForce = consts->loveReduct.Value()*(1. / (consts->radius.Value()*cos(lat)))* dUlon->solution[i][j];
 
-			UNEW->solution[i][j] = (coriolis - surfHeight + tidalForce - U->solution[i][j] * consts->alpha.Value())*dt + UOLD->solution[i][j];
+			UNEW->solution[i][j] = (coriolis - surfHeight + tidalForce - uDissTerm->solution[i][j])*dt + UOLD->solution[i][j];
 		}
 	}
 
 	for (int j = 0; j < u->fieldLonLen; j++) {
-		UNEW->solution[0][j] = linearInterp1(UNEW, 0, j);
-		UNEW->solution[u->fieldLatLen - 1][j] = linearInterp1(UNEW, u->fieldLatLen - 1, j);
-		//UNEW->solution[0][j] = lagrangeInterp(UNEW, 0, j);
-		//UNEW->solution[u->fieldLatLen - 1][j] = lagrangeInterp(UNEW, u->fieldLatLen - 1, j);
+		//UNEW->solution[0][j] = linearInterp2(UNEW, 0, j);
+		//UNEW->solution[u->fieldLatLen - 1][j] = linearInterp2(UNEW, u->fieldLatLen - 1, j);
+		UNEW->solution[0][j] = lagrangeInterp(UNEW, 0, j);
+		UNEW->solution[u->fieldLatLen - 1][j] = lagrangeInterp(UNEW, u->fieldLatLen - 1, j);
+		//UNEW->solution[0][j] = 0;
+		//UNEW->solution[u->fieldLatLen - 1][j] = 0;
+	}
+
+	double npoleSum = 0;
+	double spoleSum = 0;
+	for (int j = 0; j < u->fieldLonLen; j++) {
+		npoleSum += UNEW->solution[0][j];
+		spoleSum += UNEW->solution[u->fieldLatLen - 1][j];
+	}
+	npoleSum = npoleSum / u->fieldLonLen;
+	spoleSum = spoleSum / u->fieldLonLen;
+
+	for (int j = 0; j < u->fieldLonLen; j++) {
+		UNEW->solution[0][j] = npoleSum;
+		UNEW->solution[u->fieldLatLen - 1][j] = spoleSum;
 	}
 }
 
@@ -272,6 +311,26 @@ void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Fi
 	double southEta = 0;
 
 	double lat;
+
+	double alpha = consts->alpha.Value();
+
+	switch (consts->fric_type) {
+	case LINEAR:
+		for (int i = 0; i < v->fieldLatLen; i++) {
+			for (int j = 0; j < v->fieldLonLen; j++) {
+				vDissTerm->solution[i][j] = V->solution[i][j] * alpha;
+			}
+		}
+		break;
+
+	case QUADRATIC:
+		for (int i = 0; i < v->fieldLatLen; i++) {
+			for (int j = 0; j < v->fieldLonLen; j++) {
+				vDissTerm->solution[i][j] = alpha / consts->h.Value() * V->solution[i][j] * sqrt(pow(V->solution[i][j], 2.) + pow(U->SouthWestAvg(i, j), 2.));
+			}
+		}
+		break;
+	}
 
 	for (int i = 0; i < v->fieldLatLen; i++) {
 		lat = v->lat[i] * radConv;
@@ -287,7 +346,7 @@ void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Fi
 
 			tidalForce = consts->loveReduct.Value()*(1. / consts->radius.Value())* dUlat->solution[i][j];
 
-			VNEW->solution[i][j] = (-coriolis - surfHeight + tidalForce - V->solution[i][j] * consts->alpha.Value())*dt + VOLD->solution[i][j];
+			VNEW->solution[i][j] = (-coriolis - surfHeight + tidalForce - vDissTerm->solution[i][j])*dt + VOLD->solution[i][j];
 		}
 	}
 }
@@ -327,6 +386,8 @@ void Solver::UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Fiel
 	}
 
 	for (int j = 0; j < eta->fieldLonLen; j++) {
+		//ETANEW->solution[0][j] = linearInterp1(ETANEW, 0, j);
+		//ETANEW->solution[eta->fieldLatLen - 1][j] = linearInterp1(ETANEW, eta->fieldLatLen - 1, j);
 		ETANEW->solution[0][j] = lagrangeInterp(ETANEW, 0, j);
 		ETANEW->solution[eta->fieldLatLen - 1][j] = lagrangeInterp(ETANEW, eta->fieldLatLen - 1, j);
 	}
@@ -472,7 +533,7 @@ void Solver::DumpSolutions(int out_num) {
 		fclose(dissFile);
 
 		if (energy->converged) DumpFields(out_num);
-		else if (out_num % 5 == 0) DumpFields(out_num); //dump every 5 orbits
+		else if (out_num % 1 == 0) DumpFields(out_num); //dump every 5 orbits
 	}
 };
 

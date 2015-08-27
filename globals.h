@@ -24,14 +24,19 @@ const double pi = 3.1415926535897932384626433832795028841971693993751058; //chan
 const double radConv = pi / 180;
 const int PATH = 512;
 
+enum Friction { LINEAR, QUADRATIC };
+
 //Class stores all global values
 class Globals {
 private:
 	void SetDefault(void);
 	void OutputConsts(void);
+	
 public:
 	OutFiles Output;
 	std::vector<IGlobalVar *> allGlobals;
+
+	Friction fric_type;
 
 	std::ostringstream outstring;
 
@@ -55,6 +60,7 @@ public:
 	GlobalVar<double> period;
 	GlobalVar<int> endTime;
 	GlobalVar<std::string> potential;
+	GlobalVar<std::string> friction;
 	GlobalVar<bool> init;
 	GlobalVar<double> converge;
 		
