@@ -208,14 +208,18 @@ void Solver::UpdateFullPotential(void) {
 	double lat = 0;
 	double lon = 0;
 	double B = consts->angVel.Value()*simulationTime;
+	double A;
+
+	A = 0.25 * consts->angVel.Value()*consts->angVel.Value()*consts->radius.Value()*consts->radius.Value();
 
 	for (int i = 0; i < dUlat->fieldLatLen; i++) {
 		lat = dUlat->lat[i] * radConv;
 		for (int j = 0; j < dUlat->fieldLonLen; j++) {
 			lon = dUlat->lon[j] * radConv;
-			dUlat->solution[i][j] = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->theta.Value()*-6 * cos(2 * lat)*(cos(lon - B) + cos(lon + B));
-			dUlat->solution[i][j] += 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->e.Value()*(-9.*sin(2 * lat)*cos(B));
-			dUlat->solution[i][j] += 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->e.Value()*(-1.5*sin(2 * lat) * (7 * cos(2 * lon - B) - cos(2 * lon + B)));
+			dUlat->solution[i][j] = consts->theta.Value()*-6 * cos(2 * lat)*(cos(lon - B) + cos(lon + B));
+			dUlat->solution[i][j] += consts->e.Value()*(-9.*sin(2 * lat)*cos(B));
+			dUlat->solution[i][j] += pow(consts->radius.Value(), 2)*consts->e.Value()*(-1.5*sin(2 * lat) * (7 * cos(2 * lon - B) - cos(2 * lon + B)));
+			dUlat->solution[i][j] *= A;
 		}
 	}
 
@@ -223,8 +227,9 @@ void Solver::UpdateFullPotential(void) {
 		lat = dUlon->lat[i] * radConv;
 		for (int j = 0; j < dUlon->fieldLonLen; j++) {
 			lon = dUlon->lon[j] * radConv;
-			dUlon->solution[i][j] = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->theta.Value() * 3 * sin(2 * lat)*(sin(lon - B) + sin(lon + B));
-			dUlon->solution[i][j] += 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->e.Value() * 3 * pow(cos(lat), 2)*(-7 * sin(2 * lon - B) + sin(2 * lon + B));
+			dUlon->solution[i][j] = consts->theta.Value() * 3 * sin(2 * lat)*(sin(lon - B) + sin(lon + B));
+			dUlon->solution[i][j] += consts->e.Value() * 3 * pow(cos(lat), 2)*(-7 * sin(2 * lon - B) + sin(2 * lon + B));
+			dUlon->solution[i][j] *= A;
 		}
 	}
 }
