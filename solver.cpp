@@ -126,13 +126,13 @@ void Solver::UpdateEccLibPotential(void) {
 	double lat = 0;
 	double lon = 0;
 	double B = consts->angVel.Value()*simulationTime;
-	double constant = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->e.Value();
+	double A = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->e.Value();
 
 	for (int i = 0; i < dUlat->fieldLatLen; i++) {
 		lat = dUlat->lat[i] * radConv;
 		for (int j = 0; j < dUlat->fieldLonLen; j++) {
 			lon = dUlat->lon[j] * radConv;
-			dUlat->solution[i][j] = constant*(- 1.5*sin(2*lat) * (7 * cos(2*lon - B) - cos(2*lon + B))); //P22
+			dUlat->solution[i][j] = A*(- 1.5*sin(2*lat) * (7 * cos(2*lon - B) - cos(2*lon + B))); //P22
 		}
 	}
 
@@ -140,7 +140,7 @@ void Solver::UpdateEccLibPotential(void) {
 		lat = dUlon->lat[i] * radConv;
 		for (int j = 0; j < dUlon->fieldLonLen; j++) {
 			lon = dUlon->lon[j] * radConv;
-			dUlon->solution[i][j] = constant *3* pow(cos(lat), 2)*(-7 * sin(2*lon - B) + sin(2*lon + B)); //P22
+			dUlon->solution[i][j] = A *3* cos(lat)*cos(lat)*(-7 * sin(2*lon - B) + sin(2*lon + B)); //P22
 		}
 	}
 }
@@ -149,13 +149,13 @@ void Solver::UpdateEccPotential(void) {
 	double lat = 0;
 	double lon = 0;
 	double B = consts->angVel.Value()*simulationTime;
-	double constant = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->e.Value();
+	double A = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->e.Value();
 
 	for (int i = 0; i < dUlat->fieldLatLen; i++) {
 		lat = dUlat->lat[i] * radConv;
 		for (int j = 0; j < dUlat->fieldLonLen; j++) {
 			lon = dUlat->lon[j] * radConv;
-			dUlat->solution[i][j] = constant*(-1.5*sin(2 * lat) * (7 * cos(2 * lon - B) - cos(2 * lon + B))) + constant*(-9.*sin(2 * lat)*cos(B)); //P22 + P20
+			dUlat->solution[i][j] = A*(-1.5*sin(2 * lat) * (7 * cos(2 * lon - B) - cos(2 * lon + B))) + constant*(-9.*sin(2 * lat)*cos(B)); //P22 + P20
 		}
 	}
 
@@ -163,7 +163,7 @@ void Solver::UpdateEccPotential(void) {
 		lat = dUlon->lat[i] * radConv;
 		for (int j = 0; j < dUlon->fieldLonLen; j++) {
 			lon = dUlon->lon[j] * radConv;
-			dUlon->solution[i][j] = constant * 3 * pow(cos(lat), 2)*(-7 * sin(2 * lon - B) + sin(2 * lon + B)); //P22
+			dUlon->solution[i][j] = A * 3 * cos(lat)*cos(lat)*(-7 * sin(2 * lon - B) + sin(2 * lon + B)); //P22
 		}
 	}
 }
@@ -171,12 +171,12 @@ void Solver::UpdateEccPotential(void) {
 void Solver::UpdateEccRadPotential(void) {
 	double lat = 0;
 	double B = consts->angVel.Value()*simulationTime;
-	double constant = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->e.Value();//consts->theta.Value();//
+	double A = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->e.Value();//consts->theta.Value();//
 
 	for (int i = 0; i < dUlat->fieldLatLen; i++) {
 		lat = dUlat->lat[i] * radConv;
 		for (int j = 0; j < dUlat->fieldLonLen; j++) {
-			dUlat->solution[i][j] = constant*(-9.*sin(2*lat)*cos(B)); // P20
+			dUlat->solution[i][j] = A*(-9.*sin(2*lat)*cos(B)); // P20
 		}
 	}
 }
@@ -185,13 +185,13 @@ void Solver::UpdateObliqPotential(void) {
 	double lat = 0;
 	double lon = 0;
 	double B = consts->angVel.Value()*simulationTime;
-	double constant = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->theta.Value();
+	double A = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->theta.Value();
 
 	for (int i = 0; i < dUlat->fieldLatLen; i++) {
 		lat = dUlat->lat[i] * radConv;
 		for (int j = 0; j < dUlat->fieldLonLen; j++) {
 			lon = dUlat->lon[j] * radConv;
-			dUlat->solution[i][j] = -6 * constant*cos(2 * lat)*(cos(lon - B) + cos(lon + B)); //P21
+			dUlat->solution[i][j] = -6 * A*cos(2 * lat)*(cos(lon - B) + cos(lon + B)); //P21
 		}
 	}
 
@@ -199,7 +199,7 @@ void Solver::UpdateObliqPotential(void) {
 		lat = dUlon->lat[i] * radConv;
 		for (int j = 0; j < dUlon->fieldLonLen; j++) {
 			lon = dUlon->lon[j] * radConv;
-			dUlon->solution[i][j] = 3 * constant * sin(2 * lat)*(sin(lon - B) + sin(lon + B)); //P21
+			dUlon->solution[i][j] = 3 * A * sin(2 * lat)*(sin(lon - B) + sin(lon + B)); //P21
 		}
 	}
 }
@@ -208,14 +208,16 @@ void Solver::UpdateFullPotential(void) {
 	double lat = 0;
 	double lon = 0;
 	double B = consts->angVel.Value()*simulationTime;
+	double A = 0.25 * pow(consts->angVel.Value(),2)*pow(consts->radius.Value(),2);
 
 	for (int i = 0; i < dUlat->fieldLatLen; i++) {
 		lat = dUlat->lat[i] * radConv;
 		for (int j = 0; j < dUlat->fieldLonLen; j++) {
 			lon = dUlat->lon[j] * radConv;
-			dUlat->solution[i][j] = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->theta.Value()*-6 * cos(2 * lat)*(cos(lon - B) + cos(lon + B));
-			dUlat->solution[i][j] += 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->e.Value()*(-9.*sin(2 * lat)*cos(B));
-			dUlat->solution[i][j] += 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->e.Value()*(-1.5*sin(2 * lat) * (7 * cos(2 * lon - B) - cos(2 * lon + B)));
+			dUlat->solution[i][j] = consts->theta.Value()*-6 * cos(2 * lat)*(cos(lon - B) + cos(lon + B));
+			dUlat->solution[i][j] += consts->e.Value()*(-9.*sin(2 * lat)*cos(B));
+			dUlat->solution[i][j] += consts->e.Value()*(-1.5*sin(2 * lat) * (7 * cos(2 * lon - B) - cos(2 * lon + B)));
+			dUlat->solution[i][j] *= A;
 		}
 	}
 
@@ -223,8 +225,9 @@ void Solver::UpdateFullPotential(void) {
 		lat = dUlon->lat[i] * radConv;
 		for (int j = 0; j < dUlon->fieldLonLen; j++) {
 			lon = dUlon->lon[j] * radConv;
-			dUlon->solution[i][j] = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->theta.Value() * 3 * sin(2 * lat)*(sin(lon - B) + sin(lon + B));
-			dUlon->solution[i][j] += 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->e.Value() * 3 * pow(cos(lat), 2)*(-7 * sin(2 * lon - B) + sin(2 * lon + B));
+			dUlon->solution[i][j] = consts->theta.Value() * 3 * sin(2 * lat)*(sin(lon - B) + sin(lon + B));
+			dUlon->solution[i][j] += consts->e.Value() * 3 * cos(lat)*cos(lat)*(-7 * sin(2 * lon - B) + sin(2 * lon + B));
+			dUlon->solution[i][j] *= A;
 		}
 	}
 }
@@ -251,9 +254,10 @@ void Solver::UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Fie
 		break;
 
 	case QUADRATIC:
+	  double alphah = alpha/consts->h.Value()
 		for (int i = 1; i < u->fieldLatLen - 1; i++) {
 			for (int j = 0; j < u->fieldLonLen; j++) {
-				uDissTerm->solution[i][j] = alpha / consts->h.Value() * U->solution[i][j] * sqrt(pow(U->solution[i][j], 2.) + pow(V->NorthEastAvg(i, j), 2.));
+				uDissTerm->solution[i][j] = alphah * U->solution[i][j] * sqrt(U->solution[i][j]*U->solution[i][j] + V->NorthEastAvg(i, j)*V->NorthEastAvg(i, j));
 			}
 		}
 		break;
@@ -324,9 +328,10 @@ void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Fi
 		break;
 
 	case QUADRATIC:
+		double alphah = alpha/consts->h.Value()
 		for (int i = 0; i < v->fieldLatLen; i++) {
 			for (int j = 0; j < v->fieldLonLen; j++) {
-				vDissTerm->solution[i][j] = alpha / consts->h.Value() * V->solution[i][j] * sqrt(pow(V->solution[i][j], 2.) + pow(U->SouthWestAvg(i, j), 2.));
+				vDissTerm->solution[i][j] = alphah * V->solution[i][j] * sqrt(V->solution[i][j]*V->solution[i][j] + U->SouthWestAvg(i, j)*U->SouthWestAvg(i, j));
 			}
 		}
 		break;
@@ -335,8 +340,8 @@ void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Fi
 	for (int i = 0; i < v->fieldLatLen; i++) {
 		lat = v->lat[i] * radConv;
 		for (int j = 0; j < v->fieldLonLen; j++) {
-			northEta = ETA->CenterP(i, j);
-			southEta = ETA->SouthP(i, j);
+			northEta = eta->solution[i][j];//ETA->CenterP(i, j);
+			southEta = eta->solution[i+1][j]//ETA->SouthP(i, j);
 
 			dSurfLat = (northEta - southEta) / (eta->dLat*radConv);
 
@@ -424,6 +429,13 @@ void Solver::Explicit() {
 	int outputTime = (int)(16 * 24 * 60 * 60) / (consts->timeStep.Value());///46080/10;// 34560;
 	int inc = outputTime;
 	DumpSolutions(-1);
+
+	//for (int j = 0; j < u->fieldLonLen; j++) {
+	//	u->solution[0][j] = 0;
+	//	u->solution[u->fieldLatLen - 1][j] = 0;
+	//	//UNEW->solution[0][j] = lagrangeInterp(UNEW, 0, j);
+	//	//UNEW->solution[u->fieldLatLen - 1][j] = lagrangeInterp(UNEW, u->fieldLatLen - 1, j);
+	//}
 
 	//Update cell energies and globally averaged energy
 	energy->UpdateKinE();

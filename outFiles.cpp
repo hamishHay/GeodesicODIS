@@ -22,7 +22,7 @@ OutFiles::OutFiles() {
 	char buffer[PATH];
 
 #ifdef _WIN64
-	GetModuleFileName(NULL, buffer, MAX_PATH);
+	GetModuleFileName(NULL, buffer, sizeof(buffer)-1);
 #elif __linux__
 	readlink("/proc/self/exe", buffer, sizeof(buffer)-1);
 #endif
