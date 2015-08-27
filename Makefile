@@ -2,6 +2,9 @@ CC=g++
 
 CFLAGS= -c -Wall -std=c++11
 
+SRCDIR = /source/ODIS/
+BUILDDIR = /source/build/
+
 all: ODIS
 
 ODIS: main.o mathRoutines.o outFiles.o globals.o mesh.o field.o mass.o energy.o solver.o
