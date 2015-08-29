@@ -284,8 +284,8 @@ void Solver::UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Fie
 	for (int j = 0; j < u->fieldLonLen; j++) {
 		//UNEW->solution[0][j] = linearInterp2(UNEW, 0, j);
 		//UNEW->solution[u->fieldLatLen - 1][j] = linearInterp2(UNEW, u->fieldLatLen - 1, j);
-		UNEW->solution[0][j] = lagrangeInterp2(UNEW, 0, j);
-		UNEW->solution[u->fieldLatLen - 1][j] = lagrangeInterp2(UNEW, u->fieldLatLen - 1, j);
+		UNEW->solution[0][j] = lagrangeInterp3(UNEW, 0, j);
+		UNEW->solution[u->fieldLatLen - 1][j] = lagrangeInterp3(UNEW, u->fieldLatLen - 1, j);
 		//UNEW->solution[0][j] = 0;
 		//UNEW->solution[u->fieldLatLen - 1][j] = 0;
 	}
