@@ -254,7 +254,7 @@ void Solver::UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Fie
 		break;
 
 	case QUADRATIC:
-	  double alphah = alpha/consts->h.Value();
+		double alphah = alpha / consts->h.Value();
 		for (int i = 1; i < u->fieldLatLen - 1; i++) {
 			for (int j = 0; j < u->fieldLonLen; j++) {
 				uDissTerm->solution[i][j] = alphah * U->solution[i][j] * sqrt(U->solution[i][j]*U->solution[i][j] + V->NorthEastAvg(i, j)*V->NorthEastAvg(i, j));
@@ -284,13 +284,13 @@ void Solver::UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Fie
 	for (int j = 0; j < u->fieldLonLen; j++) {
 		//UNEW->solution[0][j] = linearInterp2(UNEW, 0, j);
 		//UNEW->solution[u->fieldLatLen - 1][j] = linearInterp2(UNEW, u->fieldLatLen - 1, j);
-		UNEW->solution[0][j] = lagrangeInterp(UNEW, 0, j);
-		UNEW->solution[u->fieldLatLen - 1][j] = lagrangeInterp(UNEW, u->fieldLatLen - 1, j);
+		UNEW->solution[0][j] = lagrangeInterp2(UNEW, 0, j);
+		UNEW->solution[u->fieldLatLen - 1][j] = lagrangeInterp2(UNEW, u->fieldLatLen - 1, j);
 		//UNEW->solution[0][j] = 0;
 		//UNEW->solution[u->fieldLatLen - 1][j] = 0;
 	}
 
-	double npoleSum = 0;
+	/*double npoleSum = 0;
 	double spoleSum = 0;
 	for (int j = 0; j < u->fieldLonLen; j++) {
 		npoleSum += UNEW->solution[0][j];
@@ -302,7 +302,7 @@ void Solver::UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Fie
 	for (int j = 0; j < u->fieldLonLen; j++) {
 		UNEW->solution[0][j] = npoleSum;
 		UNEW->solution[u->fieldLatLen - 1][j] = spoleSum;
-	}
+	}*/
 }
 
 void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Field * ETA, double dt){
@@ -328,7 +328,7 @@ void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Fi
 		break;
 
 	case QUADRATIC:
-		double alphah = alpha/consts->h.Value();
+		double alphah = alpha / consts->h.Value();
 		for (int i = 0; i < v->fieldLatLen; i++) {
 			for (int j = 0; j < v->fieldLonLen; j++) {
 				vDissTerm->solution[i][j] = alphah * V->solution[i][j] * sqrt(V->solution[i][j]*V->solution[i][j] + U->SouthWestAvg(i, j)*U->SouthWestAvg(i, j));
@@ -341,7 +341,7 @@ void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Fi
 		lat = v->lat[i] * radConv;
 		for (int j = 0; j < v->fieldLonLen; j++) {
 			northEta = eta->solution[i][j];//ETA->CenterP(i, j);
-			southEta = eta->solution[i+1][j];//ETA->SouthP(i, j);
+			southEta = eta->solution[i + 1][j];//ETA->SouthP(i, j);
 
 			dSurfLat = (northEta - southEta) / (eta->dLat*radConv);
 
@@ -393,8 +393,8 @@ void Solver::UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Fiel
 	for (int j = 0; j < eta->fieldLonLen; j++) {
 		//ETANEW->solution[0][j] = linearInterp1(ETANEW, 0, j);
 		//ETANEW->solution[eta->fieldLatLen - 1][j] = linearInterp1(ETANEW, eta->fieldLatLen - 1, j);
-		ETANEW->solution[0][j] = lagrangeInterp(ETANEW, 0, j);
-		ETANEW->solution[eta->fieldLatLen - 1][j] = lagrangeInterp(ETANEW, eta->fieldLatLen - 1, j);
+		ETANEW->solution[0][j] = lagrangeInterp3(ETANEW, 0, j);
+		ETANEW->solution[eta->fieldLatLen - 1][j] = lagrangeInterp3(ETANEW, eta->fieldLatLen - 1, j);
 	}
 
 	//Average eta out at poles
