@@ -257,7 +257,7 @@ void Solver::UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Fie
 		double alphah = alpha / consts->h.Value();
 		for (int i = 1; i < u->fieldLatLen - 1; i++) {
 			for (int j = 0; j < u->fieldLonLen; j++) {
-				uDissTerm->solution[i][j] = alphah * U->solution[i][j] * sqrt(U->solution[i][j]*U->solution[i][j] + V->NorthEastAvg(i, j)*V->NorthEastAvg(i, j));
+				uDissTerm->solution[i][j] = alphah * U->solution[i][j] * sqrt(U->solution[i][j]*U->solution[i][j] + V->NorthEastAvg(i, j)*V->NorthEastAvg(i,j));
 			}
 		}
 		break;
