@@ -61,17 +61,31 @@ double lagrangeInterp3(Field * field, int i, int j) {
 
 	if (i > field->fieldLatLen / 2) inc = -inc;
 
+	//x[0] = field->lat[i];
+	//x[1] = field->lat[i + inc * 2];
+	//x[2] = field->lat[i + inc];
+	//x[3] = x[0] + field->dLat*radConv;  //field->lat[i + inc];
+	//x[4] = x[0] + 2 * field->dLat*radConv;//field->lat[i + inc * 2];
+
+	////solve for each quadratic term
+	//L[0] = (x[0] - x[2])*(x[0] - x[3])*(x[0] - x[4]) / ((x[1] - x[2])*(x[1] - x[3])*(x[1] - x[4])) * field->solution[i + inc * 2][j]; //L1
+	//L[1] = (x[0] - x[1])*(x[0] - x[3])*(x[0] - x[4]) / ((x[2] - x[1])*(x[2] - x[3])*(x[2] - x[4])) * field->solution[i + inc][j]; //L2
+	//L[2] = (x[0] - x[1])*(x[0] - x[2])*(x[0] - x[4]) / ((x[3] - x[1])*(x[3] - x[2])*(x[3] - x[4])) * field->solution[field->opp[i + inc]][j]; //L3
+	//L[3] = (x[0] - x[1])*(x[0] - x[2])*(x[0] - x[3]) / ((x[4] - x[1])*(x[4] - x[2])*(x[4] - x[3])) * field->solution[field->opp[i + inc] + 1][j];
+
+	//return L[0] + L[1] + L[2] + L[3];
+
 	x[0] = field->lat[i];
-	x[1] = field->lat[i + inc * 2];
-	x[2] = field->lat[i + inc];
-	x[3] = x[0] + field->dLat*radConv;  //field->lat[i + inc];
-	x[4] = x[0] + 2 * field->dLat*radConv;//field->lat[i + inc * 2];
+	x[1] = field->lat[i + inc];
+	x[2] = field->lat[i + inc*2];
+	x[3] = field->lat[i + inc*3];
+	x[4] = field->lat[i + inc*4];
 
 	//solve for each quadratic term
-	L[0] = (x[0] - x[2])*(x[0] - x[3])*(x[0] - x[4]) / ((x[1] - x[2])*(x[1] - x[3])*(x[1] - x[4])) * field->solution[i + inc * 2][j]; //L1
-	L[1] = (x[0] - x[1])*(x[0] - x[3])*(x[0] - x[4]) / ((x[2] - x[1])*(x[2] - x[3])*(x[2] - x[4])) * field->solution[i + inc][j]; //L2
-	L[2] = (x[0] - x[1])*(x[0] - x[2])*(x[0] - x[4]) / ((x[3] - x[1])*(x[3] - x[2])*(x[3] - x[4])) * field->solution[field->opp[i + inc]][j]; //L3
-	L[3] = (x[0] - x[1])*(x[0] - x[2])*(x[0] - x[3]) / ((x[4] - x[1])*(x[4] - x[2])*(x[4] - x[3])) * field->solution[field->opp[i + inc] + 1][j];
+	L[0] = (x[0] - x[2])*(x[0] - x[3])*(x[0] - x[4]) / ((x[1] - x[2])*(x[1] - x[3])*(x[1] - x[4])) * field->solution[i + inc][j]; //L1
+	L[1] = (x[0] - x[1])*(x[0] - x[3])*(x[0] - x[4]) / ((x[2] - x[1])*(x[2] - x[3])*(x[2] - x[4])) * field->solution[i + inc*2][j]; //L2
+	L[2] = (x[0] - x[1])*(x[0] - x[2])*(x[0] - x[4]) / ((x[3] - x[1])*(x[3] - x[2])*(x[3] - x[4])) * field->solution[i + inc*3][j]; //L3
+	L[3] = (x[0] - x[1])*(x[0] - x[2])*(x[0] - x[3]) / ((x[4] - x[1])*(x[4] - x[2])*(x[4] - x[3])) * field->solution[i + inc*4][j];
 
 	return L[0] + L[1] + L[2] + L[3];
 };
