@@ -234,7 +234,7 @@ void Globals::SetDefault(void) {
 	h.SetValue(400);
 
 	//Surface gravity
-	g.SetValue(1.3);
+	g.SetValue(1.35);
 
 	//Semimajor axis
 	a.SetValue(1221865e3);
@@ -253,7 +253,7 @@ void Globals::SetDefault(void) {
 	dLon.SetValue(90);
 
 	//Orbital period
-	period.SetValue(16 * 24 * 60 * 60);
+	period.SetValue(15.95 * 24 * 60 * 60);
 
 	//Time step
 	timeStep.SetValue(80.);

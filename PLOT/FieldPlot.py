@@ -67,7 +67,7 @@ class ODISPlot:
         if len(cticks)>0:
             cb.set_ticks(cticks)
 
-    def ReadData(self,field="displacement",directory = os.getcwd()):
+    def ReadFieldData(self,field="displacement",directory = os.getcwd()):
         orbitnum=str(self.orbit)
 
         name = ["/EastVelocity/u_vel_"+orbitnum+".txt", "/NorthVelocity/v_vel_"+orbitnum+".txt", "/Displacement/eta_"+orbitnum+".txt"]
@@ -102,6 +102,10 @@ class ODISPlot:
         self.y = np.linspace(90,-90,len(self.data))
 
         return self.data
+
+    def ReadDissipationData(self,directory = os.getcwd()):
+        self.diss = np.loadtxt(directory + "/diss.txt")[1:] # In Watts
+        self.diss *= 1e3 # Convert to mWatts
 
     def PlotField(self,cformat=2,cticks=[]):
         self.currentFig += 1
@@ -152,6 +156,27 @@ class ODISPlot:
         self.loadFieldColourOptions(c1,ax,cticks)
         self.loadFieldAxisOptions(ax)
 
+    def PlotDissipation(self):
+        self.currentFig += 1
+
+        orbits = np.linspace(0,len(self.diss),len(self.diss))
+        print(orbits,self.diss)
+
+        ax = self.fig.add_subplot(self.figDim[0],self.figDim[1],self.currentFig)
+        p1 = ax.plot(orbits,self.diss,color='k',linewidth=0.6)
+        p2 = ax.plot([orbits[0],orbits[-1]],[0.102,0.102],linestyle='--',color='k',linewidth=0.6)
+        ax.set_yscale("log")
+        ax.set_xlim([min(orbits),max(orbits)])
+
+        ax.set_xlabel('Orbit',fontsize=self.labelSize+1)
+        ax.set_ylabel('Dissipation (\si{\milli\watt\per\metre\squared})',fontsize=self.labelSize+1)
+
+        ax.tick_params(axis='both', which='major', labelsize=self.slabelSize)
+        ax.set_title('Obliquity Tide Dissipation',fontsize=self.titleSize)
+
+        print(abs(0.102-self.diss[-1])/0.102*100)
+
+
     def SetSuperTitle(self, title):
         self.fig.suptitle(title,fontsize=self.supTitleSize)
 
@@ -165,17 +190,23 @@ class ODISPlot:
 
 if __name__=="__main__":
 
-    ODIS = ODISPlot(orbitnum=20,figdim=(1,2),figsize=(10,3))
+    ODIS = ODISPlot(orbitnum=20,figdim=(1,1),figsize=(4,3),saveName="obliq_diss")
 
-    ODIS.ReadData("displacement")
-    ODIS.PlotField(cticks = [-4,-2,0,2,4,6,8])
+    ODIS.ReadDissipationData()
 
-    data_v = ODIS.ReadData("north_vel")
-    data_u = ODIS.ReadData("east_vel")
-
-    ODIS.PlotVelocity(data_u,data_v,cformat=2,scale=1/0.3)
-
-    ODIS.SetSuperTitle("c) Combined Eccentricity and Obliquity Tides")
+    ODIS.PlotDissipation()
 
     ODIS.ShowFig()
+
+    # ODIS.ReadFieldData("displacement")
+    # ODIS.PlotField(cticks = [-4,-2,0,2,4,6,8])
+    #
+    # data_v = ODIS.ReadFieldData("north_vel")
+    # data_u = ODIS.ReadFieldData("east_vel")
+    #
+    # ODIS.PlotVelocity(data_u,data_v,cformat=2,scale=1/0.3)
+    #
+    # ODIS.SetSuperTitle("c) Combined Eccentricity and Obliquity Tides")
+    #
+    # ODIS.ShowFig()
     ODIS.SaveFig()

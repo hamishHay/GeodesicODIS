@@ -426,8 +426,9 @@ void Solver::Explicit() {
 
 	int output = 0;
 
-	int outputTime = (int)(16 * 24 * 60 * 60) / (consts->timeStep.Value());///46080/10;// 34560;
-	int inc = outputTime;
+	double outputTime = (15.95 * 24 * 60 * 60);
+	double timeStepCount = 0;
+	int inc = (int) outputTime/consts->timeStep.Value();
 	DumpSolutions(-1);
 
 	//for (int j = 0; j < u->fieldLonLen; j++) {
@@ -441,6 +442,8 @@ void Solver::Explicit() {
 	energy->UpdateKinE();
 
 	while (simulationTime <= consts->endTime.Value() && !energy->converged) {
+
+		timeStepCount+=consts->timeStep.Value();
 
 		UpdatePotential();
 
@@ -460,16 +463,20 @@ void Solver::Explicit() {
 		*u = *uNew;
 		*v = *vNew;
 
-		if (fmod(iteration, (outputTime / inc)) == 0) {
+		//if (fmod(iteration, (outputTime / inc)) == 0) {
 			//Update Kinetic Energy Field
-			energy->UpdateKinE();
+		energy->UpdateKinE();
 
 			//Update Globally Avergaed Kinetic Energy
-			energy->UpdateDtKinEAvg();
-		}
+		energy->UpdateDtKinEAvg();
+		//}
 
 		//Check for output
-		if (fmod(iteration, outputTime) == 0) {//11520/10/2outputTime/10/2
+		
+		if (timeStepCount >= consts->period.Value()) {//11520/10/2outputTime/10/2
+			orbitNumber++;
+			timeStepCount = timeStepCount - consts->period.Value();
+
 			energy->UpdateOrbitalKinEAvg(inc);
 			//std::cout << energy->isConverged;
 
@@ -482,7 +489,6 @@ void Solver::Explicit() {
 			DumpSolutions(output);
 			output++;
 		}
-		if (fmod(iteration, consts->period.Value()/consts->timeStep.Value()) == 0) orbitNumber++;
 		iteration++;
 	}
 
