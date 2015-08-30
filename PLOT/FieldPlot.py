@@ -159,7 +159,7 @@ class ODISPlot:
     def PlotDissipation(self):
         self.currentFig += 1
 
-        orbits = np.linspace(0,len(self.diss),len(self.diss))
+        orbits = np.linspace(0,len(self.diss)-1,len(self.diss))
         print(orbits,self.diss)
 
         ax = self.fig.add_subplot(self.figDim[0],self.figDim[1],self.currentFig)
