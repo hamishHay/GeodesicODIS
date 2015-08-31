@@ -282,27 +282,9 @@ void Solver::UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Fie
 	}
 
 	for (int j = 0; j < u->fieldLonLen; j++) {
-		//UNEW->solution[0][j] = linearInterp2(UNEW, 0, j);
-		//UNEW->solution[u->fieldLatLen - 1][j] = linearInterp2(UNEW, u->fieldLatLen - 1, j);
 		UNEW->solution[0][j] = lagrangeInterp3(UNEW, 0, j);
 		UNEW->solution[u->fieldLatLen - 1][j] = lagrangeInterp3(UNEW, u->fieldLatLen - 1, j);
-		//UNEW->solution[0][j] = 0;
-		//UNEW->solution[u->fieldLatLen - 1][j] = 0;
 	}
-
-	/*double npoleSum = 0;
-	double spoleSum = 0;
-	for (int j = 0; j < u->fieldLonLen; j++) {
-		npoleSum += UNEW->solution[0][j];
-		spoleSum += UNEW->solution[u->fieldLatLen - 1][j];
-	}
-	npoleSum = npoleSum / u->fieldLonLen;
-	spoleSum = spoleSum / u->fieldLonLen;
-
-	for (int j = 0; j < u->fieldLonLen; j++) {
-		UNEW->solution[0][j] = npoleSum;
-		UNEW->solution[u->fieldLatLen - 1][j] = spoleSum;
-	}*/
 }
 
 void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Field * ETA, double dt){
@@ -391,8 +373,6 @@ void Solver::UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Fiel
 	}
 
 	for (int j = 0; j < eta->fieldLonLen; j++) {
-		//ETANEW->solution[0][j] = linearInterp1(ETANEW, 0, j);
-		//ETANEW->solution[eta->fieldLatLen - 1][j] = linearInterp1(ETANEW, eta->fieldLatLen - 1, j);
 		ETANEW->solution[0][j] = lagrangeInterp3(ETANEW, 0, j);
 		ETANEW->solution[eta->fieldLatLen - 1][j] = lagrangeInterp3(ETANEW, eta->fieldLatLen - 1, j);
 	}
@@ -463,17 +443,15 @@ void Solver::Explicit() {
 		*u = *uNew;
 		*v = *vNew;
 
-		//if (fmod(iteration, (outputTime / inc)) == 0) {
-			//Update Kinetic Energy Field
+
 		energy->UpdateKinE();
 
-			//Update Globally Avergaed Kinetic Energy
+	
 		energy->UpdateDtKinEAvg();
-		//}
-
+	
 		//Check for output
 		
-		if (timeStepCount >= consts->period.Value()) {//11520/10/2outputTime/10/2
+		if (timeStepCount >= consts->period.Value()) {
 			orbitNumber++;
 			timeStepCount = timeStepCount - consts->period.Value();
 

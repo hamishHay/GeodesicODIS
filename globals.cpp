@@ -219,7 +219,7 @@ int Globals::ReadGlobals(void) {
 void Globals::SetDefault(void) {
 
 	//Satellite Radius
-	radius.SetValue(2574.7e3);
+	radius.SetValue(2574.73e3);
 
 	//k_2 love number
 	loveK2.SetValue(.120);
