@@ -140,7 +140,7 @@ void Solver::UpdateEccLibPotential(void) {
 		lat = dUlon->lat[i] * radConv;
 		for (int j = 0; j < dUlon->fieldLonLen; j++) {
 			lon = dUlon->lon[j] * radConv;
-			dUlon->solution[i][j] = A *3* cos(lat)*cos(lat)*(-7 * sin(2*lon - B) + sin(2*lon + B)); //P22
+			dUlon->solution[i][j] = A *3* pow(cos(lat),2)*(-7 * sin(2*lon - B) + sin(2*lon + B)); //P22
 		}
 	}
 }
@@ -171,7 +171,7 @@ void Solver::UpdateEccPotential(void) {
 void Solver::UpdateEccRadPotential(void) {
 	double lat = 0;
 	double B = consts->angVel.Value()*simulationTime;
-	double A = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->e.Value();//consts->theta.Value();//
+	double A = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->e.Value();
 
 	for (int i = 0; i < dUlat->fieldLatLen; i++) {
 		lat = dUlat->lat[i] * radConv;
@@ -322,8 +322,8 @@ void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Fi
 	for (int i = 0; i < v->fieldLatLen; i++) {
 		lat = v->lat[i] * radConv;
 		for (int j = 0; j < v->fieldLonLen; j++) {
-			northEta = eta->solution[i][j];//ETA->CenterP(i, j);
-			southEta = eta->solution[i + 1][j];//ETA->SouthP(i, j);
+			northEta = eta->solution[i][j];
+			southEta = eta->solution[i + 1][j];
 
 			dSurfLat = (northEta - southEta) / (eta->dLat*radConv);
 
@@ -406,17 +406,9 @@ void Solver::Explicit() {
 
 	int output = 0;
 
-	double outputTime = (15.95 * 24 * 60 * 60);
 	double timeStepCount = 0;
-	int inc = (int) outputTime/consts->timeStep.Value();
+	int inc = (int) (consts->period.Value()/consts->timeStep.Value());
 	DumpSolutions(-1);
-
-	//for (int j = 0; j < u->fieldLonLen; j++) {
-	//	u->solution[0][j] = 0;
-	//	u->solution[u->fieldLatLen - 1][j] = 0;
-	//	//UNEW->solution[0][j] = lagrangeInterp(UNEW, 0, j);
-	//	//UNEW->solution[u->fieldLatLen - 1][j] = lagrangeInterp(UNEW, u->fieldLatLen - 1, j);
-	//}
 
 	//Update cell energies and globally averaged energy
 	energy->UpdateKinE();
@@ -427,7 +419,7 @@ void Solver::Explicit() {
 
 		UpdatePotential();
 
-		simulationTime = simulationTime + consts->timeStep.Value();
+		simulationTime += consts->timeStep.Value();
 
 		//Solve for v
 		UpdateNorthVel(v, vNew, u, v, eta, consts->timeStep.Value());
@@ -443,10 +435,8 @@ void Solver::Explicit() {
 		*u = *uNew;
 		*v = *vNew;
 
-
 		energy->UpdateKinE();
 
-	
 		energy->UpdateDtKinEAvg();
 	
 		//Check for output
@@ -456,7 +446,6 @@ void Solver::Explicit() {
 			timeStepCount = timeStepCount - consts->period.Value();
 
 			energy->UpdateOrbitalKinEAvg(inc);
-			//std::cout << energy->isConverged;
 
 			//Check for convergence
 			if (orbitNumber>1) energy->IsConverged();

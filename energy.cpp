@@ -51,7 +51,7 @@ void Energy::UpdateDtKinEAvg(void) {
 		}
 	}
 
-	dtKinEAvg.push_back(kineticSum / (4 * pi*pow((consts->radius.Value()+consts->h.Value()),2))); //Joules per meter^2
+	dtKinEAvg.push_back(kineticSum / (4 * pi*pow(consts->radius.Value(),2))); //Joules per meter^2
 
 
 	//Automatically update dissipation - ensures vectors of samelength

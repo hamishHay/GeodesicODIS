@@ -237,13 +237,13 @@ void Globals::SetDefault(void) {
 	g.SetValue(1.35);
 
 	//Semimajor axis
-	a.SetValue(1221865e3);
+	a.SetValue(1221.87e6);
 
 	//Eccentricity
 	e.SetValue(0.0288);
 
 	//Obliquity
-	theta.SetValue(0.32*pi / 180);
+	theta.SetValue(0.32*pi / 180.);
 
 	//Coefficient of linear friction
 	alpha.SetValue(2.28e-7);
@@ -252,9 +252,6 @@ void Globals::SetDefault(void) {
 	dLat.SetValue(45);
 	dLon.SetValue(90);
 
-	//Orbital period
-	period.SetValue(15.95 * 24 * 60 * 60);
-
 	//Time step
 	timeStep.SetValue(80.);
 
@@ -262,7 +259,10 @@ void Globals::SetDefault(void) {
 	converge.SetValue(1e-7);
 
 	//Angular velocity
-	angVel.SetValue(2 * pi / period.Value());
+	angVel.SetValue(0.456e-5);
+
+	//Orbital period
+	period.SetValue(2*pi/angVel.Value());
 
 	//Simulation end time
 	endTime.SetValue(80);

@@ -14,13 +14,11 @@ Mass::Mass(Mesh * mesh, int lat, int lon, Globals * Consts, Field * Eta) : Field
 
 void Mass::UpdateMass(void) {
 
-	for (int i = 0; i < fieldLatLen-1; i++) {		
+	for (int i = 0; i < fieldLatLen; i++) {		
 		for (int j = 0; j < fieldLonLen; j++) {
 			UpdateCellMass(i, j);
 		}
 	}
-
-	//UpdateTotalMass();
 };
 
 void Mass::UpdateCellMass(int i, int j) {
@@ -32,6 +30,7 @@ void Mass::UpdateCellMass(int i, int j) {
 	solution[i][j] *= (lon[1] - lon[0])*radConv; 
 
 	solution[i][j] *= 1000. / 3.; //density of water
+
 };
 
 void Mass::UpdateTotalMass(void) {
