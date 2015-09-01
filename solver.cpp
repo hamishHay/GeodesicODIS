@@ -415,7 +415,7 @@ void Solver::Explicit() {
 
 	while (simulationTime <= consts->endTime.Value() && !energy->converged) {
 
-		timeStepCount+=consts->timeStep.Value();
+		timeStepCount += consts->timeStep.Value();
 
 		UpdatePotential();
 
@@ -438,9 +438,9 @@ void Solver::Explicit() {
 		energy->UpdateKinE();
 
 		energy->UpdateDtKinEAvg();
-	
+
 		//Check for output
-		
+
 		if (timeStepCount >= consts->period.Value()) {
 			orbitNumber++;
 			timeStepCount = timeStepCount - consts->period.Value();
