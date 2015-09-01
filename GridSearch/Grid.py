@@ -31,8 +31,6 @@ class Grid:
         self.arange = arange
         self.omega = 4.559e-6
         self.height = np.logspace(hrange[0],hrange[1],self.dim[1])
-        #self.alpha = omega/(2*np.logspace(arange[0],arange[1],self.dim[0]))
-        #self.alpha = self.omega/(2*(10**np.linspace(arange[0],arange[1],self.dim[0])))
         self.alpha = np.logspace(arange[0],arange[1],self.dim[0])
 
         count = hcount = acount = 0
@@ -50,10 +48,8 @@ class Grid:
         print(self.alpha)
 
     def IsComplete(self, process):
-
-        # return False
-        if (os.path.exists(process.directory + "\\OUTPUT.txt")):
-            logFile = open(process.directory + "\\OUTPUT.txt", 'r')
+        if (os.path.exists(process.directory + "/OUTPUT.txt")):
+            logFile = open(process.directory + "/OUTPUT.txt", 'r')
             string = logFile.readlines()[-4]
             logFile.close()
             if string == "Simulation complete.\n":
@@ -64,92 +60,94 @@ class Grid:
             return False
 
     def IsStart(self, process):
-        return os.path.exists(process.directory + "\\OUTPUT.txt")
+        return os.path.exists(process.directory + "/Displacement/eta_0.txt")
+
+    def MakeDir(self,directory):
+        if os.path.exists(directory):
+            print(directory,"already exists. Proceeding to overwrite.")
+            shutil.rmtree(directory)
+
+        os.makedirs(directory)
+
+    def CopyInitialConditions(self,copy_dir,place_dir):
+        field_dir = ["/EastVelocity/u_vel_", "/NorthVelocity/v_vel_", "/Displacement/eta_"]
+        field_txt = ["u_vel.txt", "v_vel.txt", "eta.txt"]
+
+        ### For each field, find latest output file and copy into InitialConditions
+        for k in range(len(field_dir)):
+
+            ### List all files in field_dir[k]
+            all_files = []
+            for file in glob.glob(copy_dir + field_dir[k] + "*.txt"):
+                all_files.append(file)
+
+            ### Strip file names to get output number and store in file_list
+            file_list = all_files.copy()
+            for i in range(len(file_list)):
+                file_list[i] = int((file_list[i].split('.')[-2]).split('_')[-1])
+
+            ### If no files in folder, then process has not started
+            if len(file_list) == 0:
+                print("No initial conditions found for", place_dir)
+                return 0
+
+            ### Files found, find the index of the highest output number
+            else:
+                m = max(file_list)
+                max_index = [x for x, j in enumerate(file_list) if j == m]
+                print("Initial conditions found for", place_dir)
+
+            ### Copy initial condition from field_dir into initial conditions, and rename
+            shutil.copy(all_files[max_index[0]], place_dir + "/InitialConditions")
+            print("Copying", all_files[max_index[0]], "to " + place_dir + "/InitialConditions")
+            os.rename(place_dir + "/InitialConditions/" + all_files[max_index[0]].split('/')[-1], place_dir + "/InitialConditions/" + field_txt[k])
 
     def RunProcess(self, p,parent=None, is_child=False):
+        ### To run a process, three steps are taken:
+        ### 1. Check if the process is already started.
+        ###    This is true if the process directory contains an eta_0.txt file.
+        ### 2. Check if the process is finished.
+        ###    Checks for the simulation complete tag at the end of OUTPUT.txt (no very robust)
+        ### 3. Run process if not complete.
+        ###    This involes checking for initial conditions to use as the simulation starting point
+        ###    If it is started, then copy last output from field_dir into initial condition folder.
+        ###    If it is not started, then do the above but using the par_dir instead.
 
-
-        destination = ["\\EastVelocity\\u_vel_", "\\NorthVelocity\\v_vel_", "\\Displacement\\eta_"]
-        final = ["u_vel.txt", "v_vel.txt", "eta.txt"]
-
+        ### Check for signs of started process
         if self.IsStart(p):
+            ### If started, then check for signs of completeness
             if self.IsComplete(p) and self.refine == False:
                 self.complete.append(p)
                 print(p.id, "is already complete: "+ str(p.h) +", " + str(p.a))
                 self.queue.remove(p)
                 return 0
+
+            ### Started, but not complete - copy initial conditions from own directory
             else:
+                ### Remove current inital conditions as they are now obsolete
+                self.MakeDir(p.directory + "/InitialConditions")
 
-                if os.path.exists(p.directory + "\\InitialConditions"):
-                    shutil.rmtree(p.directory + "\\InitialConditions")
-                    os.makedirs(p.directory + "\\InitialConditions")
+                ### Copy initial conditions in process to process
+                self.CopyInitialConditions(p.directory,p.directory)
 
-                for name in range(len(destination)):
-                    all_files = []
-                    for file in glob.glob(p.directory + destination[name] + "*.txt"):
-                        all_files.append(file)
+                ### Process is now ready to run, so remove old values
+                shutil.rmtree(p.directory + "/EastVelocity")
+                shutil.rmtree(p.directory + "/NorthVelocity")
+                shutil.rmtree(p.directory + "/Displacement")
 
-                    file_list = all_files.copy()
-                    for i in range(len(file_list)):
-                        file_list[i] = int((file_list[i].split('.')[-2]).split('_')[-1])
-
-                    if len(file_list) == 0:
-                        print("No initial conditions found for", p.directory)
-                        return 0
-                    else:
-                        m = max(file_list)
-                        max_index = [x for x, j in enumerate(file_list) if j == m]
-                        print(p.directory)
-
-                    shutil.copy(all_files[max_index[0]], p.directory + "\\InitialConditions")
-                    print("Copying", all_files[max_index[0]], "to " + p.directory + "\\InitialConditions")
-                    os.rename(p.directory + "\\InitialConditions\\" + all_files[max_index[0]].split('\\')[-1], p.directory + "\\InitialConditions\\" + final[name])
-
-                shutil.rmtree(p.directory + "\\EastVelocity")
-                os.makedirs(p.directory + "\\EastVelocity")
-                shutil.rmtree(p.directory + "\\NorthVelocity")
-                os.makedirs(p.directory + "\\NorthVelocity")
-                shutil.rmtree(p.directory + "\\Displacement")
-                os.makedirs(p.directory + "\\Displacement")
-
-
+        ### Process is not started - find initial conditions from parent
         else:
-
+            ### Check to see if the process is a child and that the child has a parent
             if is_child and parent != None:
-                par_dir = parent.directory
 
-                os.makedirs(p.directory + "\\InitialConditions")
+                ### Create initial condition directory
+                self.MakeDir(p.directory + "/InitialConditions")
 
-                for name in range(len(destination)):
-                    all_files = []
-                    for file in glob.glob(par_dir + destination[name] + "*.txt"):
-                        all_files.append(file)
+                ### Copy initial conditions in parent to process
+                self.CopyInitialConditions(parent.directory, p.directory)
 
-                    file_list = all_files.copy()
-                    for i in range(len(file_list)):
-                        file_list[i] = int((file_list[i].split('.')[-2]).split('_')[-1])
-
-                    if len(file_list) == 0:
-                        print("No initial conditions found for", p.directory)
-                        return 0
-                    else:
-                        m = max(file_list)
-                        max_index = [x for x, j in enumerate(file_list) if j == m]
-                        print(p.directory)
-
-                    shutil.copy(all_files[max_index[0]], p.directory + "\\InitialConditions")
-                    print("Copying", all_files[max_index[0]], "to " + p.directory + "\\InitialConditions")
-                    os.rename(p.directory + "\\InitialConditions\\" + all_files[max_index[0]].split('\\')[-1], p.directory + "\\InitialConditions\\" + final[name])
-
-
-
-        if parent != None:
-            #Check grid spacing
-            if (parent.lonnum != p.lonnum):
-                self.RemapInitCondition(p)
-                #newp.init = "false"
-            elif (parent.latnum != p.latnum):
-                self.RemapInitCondition(p)
+        if p.id != 1:
+            self.RemapInitCondition(p)
 
         p.Run()
         self.running.append(p)
@@ -169,34 +167,10 @@ class Grid:
         alen = len(self.grid[0])
         self.refine = refine
 
-        diagNum = alen + hlen - 1
-        diagList = []
-
-        x = 0
-        ypos = 1
-        for d in range(diagNum):
-            y = 0
-            x = d
-            if d < alen:
-                while (x >= 0) and (y < hlen):
-                    diagList.append((x,y))
-                    x -= 1
-                    y += 1
-            else:
-                x = alen -1
-                y = ypos
-                while (y < hlen):
-                    diagList.append((x,y))
-                    x -= 1
-                    y += 1
-                ypos +=1
-
         #Create ID queue
-        for pos in diagList:
-            for h in range(hlen):
-                for a in range(alen):
-                    if pos == self.grid[h][a].node:
-                        self.queue.append(self.grid[h][a])
+        for h in range(hlen):
+            for a in range(alen):
+                self.queue.append(self.grid[h][a])
 
         #Assess Completed
         for process in self.queue:
@@ -240,11 +214,9 @@ class Grid:
                                     else:
                                         break
 
-
                                 if len(self.running) < total and len(found_children) > 0:
                                     for newp in found_children:
                                         if not newp.IsRun() and len(self.running) < total:
-
 
                                             #Attempt to run process
                                             self.RunProcess(newp,parent=p,is_child=True)
@@ -266,12 +238,12 @@ class Grid:
         self.rerun = True
         for p in self.all:
             if (p.a > a1) and (p.a < a2) and (p.h > h1) and (p.h < h2):
-                rfile = open(p.directory+"\\OUTPUT.txt",'r')
+                rfile = open(p.directory+"/OUTPUT.txt",'r')
                 lines = rfile.readlines()
                 lines = lines[:-5] #remove last five lines
                 rfile.close()
 
-                wfile = open(p.directory+"\\OUTPUT.txt",'w')
+                wfile = open(p.directory+"/OUTPUT.txt",'w')
                 wfile.writelines([item for item in lines])
                 wfile.close()
 
@@ -289,7 +261,7 @@ class Grid:
         #self.rerun = True
         for p in self.all:
             if (p.a > a1) and (p.a < a2) and (p.h > h1) and (p.h < h2):
-                rfile = open(p.directory+"\\OUTPUT.txt",'r')
+                rfile = open(p.directory+"/OUTPUT.txt",'r')
                 lines = rfile.readlines()
                 lines.append('\n')
                 lines.append('Simulation complete.\n')
@@ -298,7 +270,7 @@ class Grid:
                 lines.append('Total iterations: 	made complete\n')
                 rfile.close()
 
-                wfile = open(p.directory+"\\OUTPUT.txt",'w')
+                wfile = open(p.directory+"/OUTPUT.txt",'w')
                 wfile.writelines([item for item in lines])
                 wfile.close()
 
@@ -329,28 +301,18 @@ class Grid:
 
         all_dirs = []
 
-        results = open(os.getcwd()+"\\grid_results.txt",'w')
+        results = open(os.getcwd()+"/grid_results.txt",'w')
 
         self.diss = []
         for p in self.all:
-            if os.path.isfile(p.results_dir + "\\diss.txt"):
-                diss_file = open(p.results_dir + "\\diss.txt")
+            if os.path.isfile(p.results_dir + "/diss.txt"):
+                diss_file = open(p.results_dir + "/diss.txt")
                 lines = diss_file.readlines()
+
                 #print(p.results_dir)
                 flines = [float(x) for x in lines]
                 flines = np.array(flines[1:])
                 bot = 30
-                # if len(flines) >= 40:
-                #     x = np.linspace(bot,len(flines),len(flines[bot:]))
-                #
-                #     m, c, r, pval, e = st.linregress(x,flines[bot:])
-                #
-                #     print(m,e)
-                #     if abs(m)>=1e-5:
-                #         val = flines[-1]
-                #     else:
-                #         val = np.median(flines[bot:])
-                #         #print(val, flines[-1])
 
                 resid = abs(flines[1:-1] - flines[0:-2])
 
@@ -382,6 +344,8 @@ class Grid:
                     elif len(flines)>2:
                         val = flines[-1]
                         #val = np.median(flines[bot:])
+                    #else:
+                    #    val = flines[-1]
 
 
                 else:
@@ -399,11 +363,11 @@ class Grid:
         from mpl_toolkits.axes_grid1 import make_axes_locatable
         import matplotlib
         from matplotlib import cm
-        import pandas as ps
 
-        def GetVal(name="\\grid_results.txt"):
+        def GetVal(name="/grid_results.txt"):
             self.h,self.a,diss = np.loadtxt(os.getcwd()+name).T #Transposed for easier unpacking
             self.diss = diss*1e-3
+            print(self.diss)
             #data = np.zeros((len(a_dat),len(h_dat)))
 
             #h_dat = np.zeros(len(self.height))
@@ -449,18 +413,14 @@ class Grid:
         h_dat = np.zeros(len(self.height))
         a_dat = np.zeros(len(self.alpha))
 
+       # Z2 = GetVal(name="/grid_results1.txt")
 
-
-       # Z2 = GetVal(name="\\grid_results1.txt")
-
-
-
-        Z = GetVal(name="\\grid_results.txt")
+        Z = GetVal(name="/grid_results.txt")
         print(Z)
         # while True in ps.isnull(Z):# or 0.0 in Z:
         #     print(ps.isnull(data))
         #     time.sleep(2)
-        #     Z = GetVal(name="\\grid_results.txt")
+        #     Z = GetVal(name="/grid_results.txt")
         h = self.h
         a = self.a
 
@@ -477,8 +437,8 @@ class Grid:
         #ax12.set_clim(vmin=-5.5, vmax=0.4)
         ax12.set_xscale("log")
         ax12.set_yscale("log")
-        plt.ylim([1e0, 1e4])
-        plt.xlim([1e-9, 1e-5])
+        plt.ylim([10**self.hrange[0],10**self.hrange[1]])
+        plt.xlim([10**self.arange[1],10**self.arange[0]])
         plt.show()
 
         sys.exit()
@@ -486,9 +446,6 @@ class Grid:
         y = np.logspace(self.hrange[0],self.hrange[1],res)
         #self.alpha = omega/(2*np.logspace(arange[0],arange[1],self.dim[0]))
         x = np.logspace(self.arange[0],self.arange[1],res)
-
-
-
 
         X2, Y2 = np.meshgrid(a_dat,h_dat)
         X, Y = np.meshgrid(x,y)
@@ -504,9 +461,6 @@ class Grid:
         func = sc.interpolate.interp2d(a_dat,h_dat,np.fliplr(np.log10(Z.T)),kind='linear')
         #func = sc.interpolate.SmoothBivariateSpline(np.sort(a),np.sort(h),diss2)
         zi = func(x,y)
-
-
-
 
         plt.rc('font', family='serif')
         plt.rc('font',serif='Palatino')
@@ -530,7 +484,7 @@ class Grid:
         m1 = ax1.pcolormesh(X,Y,zi,cmap=cmap)
         #ax1.contour(X,Y,zi,10,cmap=cm.gray,linewidths=0.8)
         c1 = plt.colorbar(m1, ax = ax1, format='%.1f')
-        c1.set_label("$\\log_{10}$ (Dissipated Energy), (W m$\displaystyle{^{-2}}$)",fontsize=labelSize)
+        c1.set_label("$/log_{10}$ (Dissipated Energy), (W m$\displaystyle{^{-2}}$)",fontsize=labelSize)
         c1.outline.set_linewidth(0.7)
         c1.set_ticks(ticks)
         ax1.scatter(a,h,marker="+",s=7,color='k',alpha=0.7,linewidths=0.4)
@@ -546,7 +500,7 @@ class Grid:
         ax2 = fig.add_subplot(2,1,2)
         m2 = ax2.pcolor(X2,Y2,np.log10(Z.T),cmap=cmap)
         c2 = plt.colorbar(m2, ax = ax2, format='%.1f')
-        c2.set_label("$\\log_{10}$ (Dissipated Energy), (W m$\displaystyle{^{-2}}$)",fontsize=labelSize)
+        c2.set_label("$/log_{10}$ (Dissipated Energy), (W m$\displaystyle{^{-2}}$)",fontsize=labelSize)
         c2.outline.set_linewidth(0.7)
         c2.set_ticks(ticks)
         ax2.scatter(a,h,marker="+",s=7,color='k',alpha=0.7,linewidths=0.4)
@@ -568,7 +522,7 @@ class Grid:
         #ax1.invert_xaxis()
         ax1.axis([a_dat.min(), a_dat.max(), hmin, hmax])
         ax2.axis([a_dat.min(), a_dat.max(), hmin, hmax])
-        ax2.set_xlabel('$\\alpha$ (s$\displaystyle{^{-1}}$)',fontsize=labelSize)
+        ax2.set_xlabel('$/alpha$ (s$\displaystyle{^{-1}}$)',fontsize=labelSize)
         ax1.set_ylabel('Ocean Depth (m)',fontsize=labelSize)
         ax2.set_ylabel('Ocean Depth (m)',fontsize=labelSize)
         ax1.set_title('Interpolated Data',fontsize=titleSize2)
@@ -601,9 +555,9 @@ class Grid:
 #
 #         labels = ['%.2e' % a_dat[i] for i in range(len(a_dat))]
 #         diss_interp = 10**zi[:,0]
-#         p1 = ax12.plot(h_dat,Z[6],marker='+',label='$\\alpha = $ ' + labels[6] + ' s$^{-1}$')
-#         p2 = ax12.plot(h_dat,Z[7],marker='+',label='$\\alpha = $ ' + labels[7] + ' s$^{-1}$')
-#         p1 = ax12.plot(h_dat,Z[8],marker='+',label='$\\alpha = $ ' + labels[8] + ' s$^{-1}$')
+#         p1 = ax12.plot(h_dat,Z[6],marker='+',label='$/alpha = $ ' + labels[6] + ' s$^{-1}$')
+#         p2 = ax12.plot(h_dat,Z[7],marker='+',label='$/alpha = $ ' + labels[7] + ' s$^{-1}$')
+#         p1 = ax12.plot(h_dat,Z[8],marker='+',label='$/alpha = $ ' + labels[8] + ' s$^{-1}$')
 #         p2 = ax12.plot(h_dat,Z[9],marker='+',label='$\\alpha = $ ' + labels[9] + ' s$^{-1}$')
 #         p3 = ax12.plot(h_dat,Z[10],marker='+',label='$\\alpha = $ ' + labels[10] + ' s$^{-1}$')
 #         p3 = ax12.plot(h_dat,Z[11],marker='+',label='$\\alpha = $ ' + labels[11] + ' s$^{-1}$')
@@ -630,12 +584,12 @@ class Grid:
     def RemapInitCondition(self,p):
         import scipy as sc
 
-        name = ["\\u_vel.txt", "\\v_vel.txt", "\\eta.txt"]
+        name = ["/u_vel.txt", "/v_vel.txt", "/eta.txt"]
         for i in range(3):
-            path = p.directory + "\\InitialConditions\\" + name[i]
+            path = p.directory + "/InitialConditions/" + name[i]
             #path = os.getcwd() + name[i]
             data = []
-            #p.directory + "\\InitialConditions"
+            #p.directory + "/InitialConditions"
             if os.path.exists(path):
                 init = open(path,'r')
                 lines = init.readlines()
