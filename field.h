@@ -15,6 +15,10 @@ public:
 
 	std::vector<double> lat;
 	std::vector<double> lon;
+	std::vector<double> cosLat;
+	std::vector<double> sinLat;
+	std::vector<double> cos2Lat;
+	std::vector<double> sin2Lat;
 
 	double dLat;
 	double dLon;
@@ -37,8 +41,8 @@ public:
 	double EastP(int, int); //solution value at point (i,j+2)
 	double WestP(int, int); //solution value at point (i,j-2)
 
-	double SouthWestAvg(int,int);
-	double NorthEastAvg(int,int);
+	double SouthWestAvg(int, int);
+	double NorthEastAvg(int, int);
 };
 
 #endif

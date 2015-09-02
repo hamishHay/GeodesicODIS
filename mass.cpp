@@ -25,9 +25,9 @@ void Mass::UpdateCellMass(int i, int j) {
 
 	solution[i][j] = pow((consts->radius.Value() + consts->h.Value()), 3) - pow(consts->radius.Value(), 3);
 
-	solution[i][j] *= (sin(lat[i] * radConv) - sin((lat[i] - dLat)*radConv));
+	solution[i][j] *= (sin(lat[i]) - sin(lat[i] - dLat));
 
-	solution[i][j] *= (lon[1] - lon[0])*radConv; 
+	solution[i][j] *= (lon[1] - lon[0]); 
 
 	solution[i][j] *= 1000. / 3.; //density of water
 

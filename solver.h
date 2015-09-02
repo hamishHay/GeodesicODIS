@@ -54,6 +54,11 @@ public:
 	Field * vDissTerm;
 	Field * uDissTerm;
 
+	std::vector <double> cosMinusB;
+	std::vector <double> cosPlusB;
+	std::vector <double> sinMinusB;
+	std::vector <double> sinPlusB;
+
 	Solver(int type, int dump, Globals *, Mesh *, Field *, Field*, Field *, Field *, Field *, Energy *);
 
 	void Solve();
@@ -68,6 +73,8 @@ public:
 	void UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Field * ETA, double dt);
 	void UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Field * ETA, double dt);
 	void UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Field * V, Field * ETA, double dt);
+
+	void InterpPole(Field * Field);
 
 	void DumpSolutions(int output_num);
 	void DumpFields(int output_num);
