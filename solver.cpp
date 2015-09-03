@@ -132,12 +132,11 @@ void Solver::UpdatePotential() {
 inline void Solver::UpdateEccLibPotential(void) {
 	double lat = 0;
 	double lon = 0;
+	double sin2Lat = 0;
 	double cosLat = 0;
 	double B = consts->angVel.Value()*simulationTime;
 	double A = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->e.Value();
 	double Alat, Alon = 0;
-
-
 
 	for (int j = 0; j < dUlat->fieldLonLen; j++) {
 		cosMinusB[j] = cos(2 * dUlat->lon[j] - B);
@@ -151,9 +150,10 @@ inline void Solver::UpdateEccLibPotential(void) {
 
 	Alat = A * -1.5;
 	for (int i = 0; i < dUlat->fieldLatLen; i++) {
-		lat = 2*dUlat->lat[i];
+		//lat = 2*dUlat->lat[i];
+		sin2Lat = dUlat->sin2Lat[i];
 		for (int j = 0; j < dUlat->fieldLonLen; j++) {
-			dUlat->solution[i][j] = Alat*(sin(lat) * (7 * cosMinusB[j] - cosPlusB[j])); //P22
+			dUlat->solution[i][j] = Alat*(sin2Lat * (7 * cosMinusB[j] - cosPlusB[j])); //P22
 		}
 	}
 
@@ -182,7 +182,7 @@ inline void Solver::UpdateEccPotential(void) {
 
 	cosB = cos(B);
 	for (int i = 0; i < dUlat->fieldLatLen; i++) {
-		sin2Lat = dUlat->cos2Lat[i];
+		sin2Lat = dUlat->sin2Lat[i];
 		for (int j = 0; j < dUlat->fieldLonLen; j++) {
 			//lon = dUlat->lon[j];
 			dUlat->solution[i][j] = A*((-1.5*sin2Lat * (7 * cosMinusB[j] - cosPlusB[j])) + (-9.*sin2Lat*cosB)); //P22 + P20
