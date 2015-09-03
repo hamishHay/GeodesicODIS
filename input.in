@@ -1,8 +1,9 @@
-ocean thickness; 	 	 	 400.0;		 	 	 h;
-friction coefficient; 	 	 	 2.28e-07;		 	 	 alpha;
-simulation end time; 	 	 	 1;		 	 	 endTime;
-initial conditions; 	 	 	 false;		 	 	 init;
-latitude spacing;               90;         dLat;
-longitude spacing;              90;               dLon;
-friction type; QUADRATIC; fric_type;
-time step; 40; timeStep;
+ocean thickness; 	 	 	 1000.0; 	 	 	 h; 
+friction coefficient; 	 	 	 0.1; 	 	 	 alpha; 
+potential; 	 	 	 OBLIQ; 	 	 	 potential; 
+simulation end time; 	 	 	 1; 	 	 	 endTime; 
+friction type; 	 	 	 QUADRATIC; 	 	 	 friction;time step; 	 	 	 40; 	 	 	 timeStep; 
+latitude spacing; 	 	 	 90; 	 	 	 lat; 
+longitude spacing; 	 	 	 72; 	 	 	 lon; 
+initial conditions; 	 	 	 true; 	 	 	 init; 
+converge; 	 	 	 1e-08; 	 	 	 convergence criteria; 
