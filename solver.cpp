@@ -57,10 +57,12 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 	*uNew = *u;
 	*etaNew = *eta;
 
-	cosMinusB.resize(dUlat->fieldLonLen);
-	cosPlusB.resize(dUlat->fieldLonLen);
-	sinMinusB.resize(dUlon->fieldLonLen);
-	sinPlusB.resize(dUlon->fieldLonLen);
+	dt = consts->timeStep.Value();
+
+	cosMinusB = new double[dUlat->fieldLonLen];
+	cosPlusB = new double[dUlat->fieldLonLen];
+	sinMinusB = new double[dUlon->fieldLonLen];
+	sinPlusB = new double[dUlon->fieldLonLen];
 
 	if (consts->potential.Value() == "ECC_RAD") tide = ECC_RAD;
 	else if (consts->potential.Value() == "ECC_LIB") tide = ECC_LIB;
@@ -147,11 +149,10 @@ inline void Solver::UpdateEccLibPotential(void) {
 		sinPlusB[j] = sin(2 * dUlon->lon[j] + B);
 	}
 
-
 	Alat = A * -1.5;
 	for (int i = 0; i < dUlat->fieldLatLen; i++) {
 		lat = 2*dUlat->lat[i];
-		for (int j = 0; j < dUlat->fieldLonLen; j++) { 
+		for (int j = 0; j < dUlat->fieldLonLen; j++) {
 			dUlat->solution[i][j] = Alat*(sin(lat) * (7 * cosMinusB[j] - cosPlusB[j])); //P22
 		}
 	}
@@ -165,7 +166,7 @@ inline void Solver::UpdateEccLibPotential(void) {
 	}
 }
 
-void Solver::UpdateEccPotential(void) {
+inline void Solver::UpdateEccPotential(void) {
 	double lat = 0;
 	double lon = 0;
 	double cosLat = 0;
@@ -202,7 +203,7 @@ void Solver::UpdateEccPotential(void) {
 	}
 }
 
-void Solver::UpdateEccRadPotential(void) {
+inline void Solver::UpdateEccRadPotential(void) {
 	double cosB = 0;
 	double sin2Lat = 0;
 	double B = consts->angVel.Value()*simulationTime;
@@ -219,7 +220,7 @@ void Solver::UpdateEccRadPotential(void) {
 	}
 }
 
-void Solver::UpdateObliqPotential(void) {
+inline void Solver::UpdateObliqPotential(void) {
 	//double lat = 0;
 	//double lon = 0;
 	double cos2Lat = 0;
@@ -259,7 +260,7 @@ void Solver::UpdateObliqPotential(void) {
 	}
 }
 
-void Solver::UpdateFullPotential(void) {
+inline void Solver::UpdateFullPotential(void) {
 	double lat = 0;
 	double lon = 0;
 	double B = consts->angVel.Value()*simulationTime;
@@ -318,7 +319,7 @@ inline void Solver::InterpPole(Field * field) {
 	}
 };
 
-void Solver::UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Field * ETA, double dt){
+inline void Solver::UpdateEastVel(Field * U, Field * UNEW, Field * V, Field * ETA){
 	double coriolis = 0;
 	double tidalForce = 0;
 
@@ -345,7 +346,7 @@ void Solver::UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Fie
 
 	case QUADRATIC:
 		double alphah = alpha / consts->h.Value();
-		
+
 		for (int i = 1; i < u->fieldLatLen - 1; i++) {
 			for (int j = 0; j < u->fieldLonLen; j++) {
 				if (j < V->fieldLonLen - 1) {
@@ -375,7 +376,7 @@ void Solver::UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Fie
 
 			dSurfLon = (eastEta - westEta) / (eta->dLon);
 
-			surfHeight = gRadius * (1./cosLat)*dSurfLon;
+			surfHeight = gRadius/cosLat*dSurfLon;
 
 			if (j < V->fieldLonLen - 1) {
 				northEastAvg = 0.25*(V->solution[i][j] + V->solution[i - 1][j] + V->solution[i][j + 1] + V->solution[i - 1][j + 1]);
@@ -387,7 +388,7 @@ void Solver::UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Fie
 			coriolis = 2. * angVel*sinLat*northEastAvg;
 			tidalForce = loveRadius / cosLat * dUlon->solution[i][j];
 
-			UNEW->solution[i][j] = (coriolis - surfHeight + tidalForce - uDissTerm->solution[i][j])*dt + UOLD->solution[i][j];
+			UNEW->solution[i][j] = (coriolis - surfHeight + tidalForce - uDissTerm->solution[i][j])*dt + U->solution[i][j];
 		}
 	}
 
@@ -400,7 +401,7 @@ void Solver::UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Fie
 	}*/
 }
 
-void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Field * ETA, double dt){
+inline void Solver::UpdateNorthVel(Field * V, Field * VNEW, Field * U, Field * ETA){
 	double coriolis = 0;
 	double tidalForce = 0;
 	double dSurfLat = 0;
@@ -466,12 +467,12 @@ void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Fi
 
 			tidalForce = loveRadius * dUlat->solution[i][j];
 
-			VNEW->solution[i][j] = (-coriolis - surfHeight + tidalForce - vDissTerm->solution[i][j])*dt + VOLD->solution[i][j];
+			VNEW->solution[i][j] = (-coriolis - surfHeight + tidalForce - vDissTerm->solution[i][j])*dt + V->solution[i][j];
 		}
 	}
 }
 
-void Solver::UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Field * V, Field * ETA, double dt){
+inline void Solver::UpdateSurfaceHeight(Field * ETA, Field * ETANEW, Field * U, Field * V){
 	double vGrad = 0;
 	double uGrad = 0;
 	double northv = 0;
@@ -495,7 +496,7 @@ void Solver::UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Fiel
 
 			if (j != 0) {
 				eastu = U->solution[i][j];
-				westu = U->solution[i][j - 1];		
+				westu = U->solution[i][j - 1];
 			}
 			else {
 				westu = U->solution[i][U->fieldLonLen - 1];
@@ -504,7 +505,7 @@ void Solver::UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Fiel
 
 			uGrad = (eastu - westu) / vdLon;
 
-			ETANEW->solution[i][j] = hRadius * (1./cosLat)*(-vGrad - uGrad)*dt + ETAOLD->solution[i][j];
+			ETANEW->solution[i][j] = hRadius * (1./cosLat)*(-vGrad - uGrad)*dt + ETA->solution[i][j];
 		}
 	}
 
@@ -539,13 +540,13 @@ void Solver::Explicit() {
 	//Check for stability
 	outstring << "Entering time loop:\n\n";
 	outstring << "End time: \t" << consts->endTime.Value() / 86400.0 << " days\n";
-	outstring << "Time step: \t" << consts->timeStep.Value() << " seconds\n\n";
+	outstring << "Time step: \t" << dt << " seconds\n\n";
 	Out->Write(OUT_MESSAGE, &outstring);
 
 	int output = 0;
 
 	double timeStepCount = 0;
-	int inc = (int) (consts->period.Value()/consts->timeStep.Value());
+	int inc = (int) (consts->period.Value()/dt);
 	DumpSolutions(-1);
 
 	//Update cell energies and globally averaged energy
@@ -553,20 +554,20 @@ void Solver::Explicit() {
 
 	while (simulationTime <= consts->endTime.Value() && !energy->converged) {
 
-		timeStepCount+=consts->timeStep.Value();
+		timeStepCount+=dt;
 
 		UpdatePotential();
 
-		simulationTime += consts->timeStep.Value();
+		simulationTime += dt;
 
 		//Solve for v
-		UpdateNorthVel(v, vNew, u, v, eta, consts->timeStep.Value());
+		UpdateNorthVel(v, vNew, u, eta);
 
 		//solve for u
-		UpdateEastVel(u, uNew, u, v, eta, consts->timeStep.Value());
+		UpdateEastVel(u, uNew, v, eta);
 
 		//Solve for eta based on new u and v
-		UpdateSurfaceHeight(eta, etaNew, uNew, vNew, eta, consts->timeStep.Value());
+		UpdateSurfaceHeight(eta, etaNew, uNew, vNew);
 
 		//Overwite previous timestep solutions at end of iteration.
 		*eta = *etaNew;
@@ -576,9 +577,9 @@ void Solver::Explicit() {
 		energy->UpdateKinE();
 
 		energy->UpdateDtKinEAvg();
-	
+
 		//Check for output
-		
+
 		if (timeStepCount >= consts->period.Value()) {
 		//if (true) {
 			orbitNumber++;

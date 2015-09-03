@@ -27,6 +27,8 @@ public:
 	int orbitNumber = 1;
 	int iteration = 0;
 
+	double dt;
+
 	std::ostringstream outstring;
 
 	OutFiles * Out;
@@ -54,10 +56,10 @@ public:
 	Field * vDissTerm;
 	Field * uDissTerm;
 
-	std::vector <double> cosMinusB;
-	std::vector <double> cosPlusB;
-	std::vector <double> sinMinusB;
-	std::vector <double> sinPlusB;
+	double * cosMinusB;
+	double * cosPlusB;
+	double * sinMinusB;
+	double * sinPlusB;
 
 	Solver(int type, int dump, Globals *, Mesh *, Field *, Field*, Field *, Field *, Field *, Energy *);
 
@@ -70,9 +72,9 @@ public:
 	void CrankNicolson();
 
 	void UpdatePotential();
-	void UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Field * ETA, double dt);
-	void UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Field * ETA, double dt);
-	void UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Field * V, Field * ETA, double dt);
+	void UpdateEastVel(Field * U, Field * UNEW, Field * V, Field * ETA);
+	void UpdateNorthVel(Field * V, Field * VNEW, Field * U, Field * ETA);
+	void UpdateSurfaceHeight(Field * ETA, Field * ETANEW, Field * U, Field * V);
 
 	void InterpPole(Field * Field);
 

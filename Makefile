@@ -1,6 +1,6 @@
 CC=g++
 
-CFLAGS= -c -Wall -std=c++11
+CFLAGS= -pg -c -Wall  -std=c++11
 
 SRCDIR = /source/ODIS/
 BUILDDIR = /source/build/
@@ -8,7 +8,7 @@ BUILDDIR = /source/build/
 all: ODIS
 
 ODIS: main.o mathRoutines.o outFiles.o globals.o mesh.o field.o mass.o energy.o solver.o
-	$(CC) main.o mathRoutines.o outFiles.o globals.o mesh.o field.o mass.o energy.o solver.o -o ODIS
+	$(CC) -pg main.o mathRoutines.o outFiles.o globals.o mesh.o field.o mass.o energy.o solver.o -o ODIS
 
 main.o: main.cpp
 	$(CC) $(CFLAGS) main.cpp
