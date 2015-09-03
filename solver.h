@@ -56,6 +56,9 @@ public:
 	Field * vDissTerm;
 	Field * uDissTerm;
 
+	Field * vNorthEastAvg;
+	Field * uSouthWestAvg;
+
 	double * cosMinusB;
 	double * cosPlusB;
 	double * sinMinusB;

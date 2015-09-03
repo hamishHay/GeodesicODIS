@@ -53,6 +53,9 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 	vDissTerm = new Field(grid, 1, 0);
 	uDissTerm = new Field(grid, 0, 1);
 
+	vNorthEastAvg = new Field(grid, 1, 0);
+	uSouthWestAvg = new Field(grid, 0, 1);
+
 	*etaNew = *eta;
 	*uNew = *u;
 	*etaNew = *eta;
@@ -330,10 +333,21 @@ inline void Solver::UpdateEastVel(Field * U, Field * UNEW, Field * V, Field * ET
 
 	double northEastAvg = 0;
 
-	double cosLat = 0;
-	double sinLat = 0;
+//	double cosLat = 0;
+//	double sinLat = 0;
 	double alpha = consts->alpha.Value();
 	double angVel = consts->angVel.Value();
+
+	for (int i = 1; i < u->fieldLatLen - 1; i++) {
+		for (int j = 0; j < u->fieldLonLen; j++) {
+			if (j < V->fieldLonLen - 1) {
+				vNorthEastAvg->solution[i][j] = 0.25*(V->solution[i][j] + V->solution[i - 1][j] + V->solution[i][j + 1] + V->solution[i - 1][j + 1]);
+			}
+			else {
+				vNorthEastAvg->solution[i][j] = 0.25*(V->solution[i][j] + V->solution[i - 1][j] + V->solution[i][0] + V->solution[i - 1][0]);
+			}
+		}
+	}
 
 	switch (consts->fric_type) {
 	case LINEAR:
@@ -347,14 +361,9 @@ inline void Solver::UpdateEastVel(Field * U, Field * UNEW, Field * V, Field * ET
 	case QUADRATIC:
 		double alphah = alpha / consts->h.Value();
 
-		for (int i = 1; i < u->fieldLatLen - 1; i++) {
-			for (int j = 0; j < u->fieldLonLen; j++) {
-				if (j < V->fieldLonLen - 1) {
-					northEastAvg = 0.25*(V->solution[i][j] + V->solution[i - 1][j] + V->solution[i][j + 1] + V->solution[i - 1][j + 1]);
-				}
-				else {
-					northEastAvg = 0.25*(V->solution[i][j] + V->solution[i - 1][j] + V->solution[i][0] + V->solution[i - 1][0]);
-				}
+		 for (int i = 1; i < u->fieldLatLen - 1; i++) {
+		 	for (int j = 0; j < u->fieldLonLen; j++) {
+				northEastAvg = vNorthEastAvg->solution[i][j];
 				uDissTerm->solution[i][j] = alphah * U->solution[i][j] * sqrt(U->solution[i][j]*U->solution[i][j] + northEastAvg*northEastAvg);
 			}
 		}
@@ -363,11 +372,16 @@ inline void Solver::UpdateEastVel(Field * U, Field * UNEW, Field * V, Field * ET
 
 	double loveRadius = consts->loveReduct.Value() / consts->radius.Value();
 	double gRadius = consts->g.Value() / consts->radius.Value();
+	double coriolisFactor = 0;
+	double tidalFactor = 0;
+	double surfFactor = 0;
 
 
 	for (int i = 1; i < u->fieldLatLen - 1; i++) {
-		cosLat = u->cosLat[i];
-		sinLat = u->sinLat[i];
+		//cosLat = u->cosLat[i];
+		coriolisFactor =  2. * angVel*u->sinLat[i];
+		tidalFactor = loveRadius/u->cosLat[i];
+		surfFactor = gRadius/u->cosLat[i];
 		for (int j = 0; j < u->fieldLonLen; j++) {
 			if (j != u->fieldLonLen - 1) eastEta = ETA->solution[i][j + 1];
 			else eastEta = ETA->solution[i][0];
@@ -376,17 +390,10 @@ inline void Solver::UpdateEastVel(Field * U, Field * UNEW, Field * V, Field * ET
 
 			dSurfLon = (eastEta - westEta) / (eta->dLon);
 
-			surfHeight = gRadius/cosLat*dSurfLon;
+			surfHeight = surfFactor*dSurfLon;
 
-			if (j < V->fieldLonLen - 1) {
-				northEastAvg = 0.25*(V->solution[i][j] + V->solution[i - 1][j] + V->solution[i][j + 1] + V->solution[i - 1][j + 1]);
-			}
-			else {
-				northEastAvg = 0.25*(V->solution[i][j] + V->solution[i - 1][j] + V->solution[i][0] + V->solution[i - 1][0]);
-			}
-
-			coriolis = 2. * angVel*sinLat*northEastAvg;
-			tidalForce = loveRadius / cosLat * dUlon->solution[i][j];
+			coriolis = coriolisFactor*vNorthEastAvg->solution[i][j];
+			tidalForce = tidalFactor * dUlon->solution[i][j];
 
 			UNEW->solution[i][j] = (coriolis - surfHeight + tidalForce - uDissTerm->solution[i][j])*dt + U->solution[i][j];
 		}
@@ -394,11 +401,6 @@ inline void Solver::UpdateEastVel(Field * U, Field * UNEW, Field * V, Field * ET
 
 
 	InterpPole(UNEW);
-
-	/*for (int j = 0; j < u->fieldLonLen; j++) {
-		UNEW->solution[0][j] = lagrangeInterp3(UNEW, 0, j);
-		UNEW->solution[u->fieldLatLen - 1][j] = lagrangeInterp3(UNEW, u->fieldLatLen - 1, j);
-	}*/
 }
 
 inline void Solver::UpdateNorthVel(Field * V, Field * VNEW, Field * U, Field * ETA){
@@ -409,6 +411,7 @@ inline void Solver::UpdateNorthVel(Field * V, Field * VNEW, Field * U, Field * E
 
 	double northEta = 0;
 	double southEta = 0;
+	double etadLat = eta->dLat;
 
 	double southwestavg = 0;
 
@@ -416,6 +419,17 @@ inline void Solver::UpdateNorthVel(Field * V, Field * VNEW, Field * U, Field * E
 
 	double alpha = consts->alpha.Value();
 	double angVel = consts->angVel.Value();
+
+	for (int i = 0; i < v->fieldLatLen; i++) {
+		for (int j = 0; j < v->fieldLonLen; j++) {
+			if (j > 0) {
+				uSouthWestAvg->solution[i][j] = 0.25*(U->solution[i][j] + U->solution[i + 1][j] + U->solution[i][j - 1] + U->solution[i + 1][j - 1]);
+			}
+			else {
+				uSouthWestAvg->solution[i][j] = 0.25*(U->solution[i][j] + U->solution[i + 1][j] + U->solution[i][U->fieldLonLen - 1] + U->solution[i + 1][U->fieldLonLen - 1]);
+			}
+		}
+	}
 
 	switch (consts->fric_type) {
 	case LINEAR:
@@ -430,13 +444,7 @@ inline void Solver::UpdateNorthVel(Field * V, Field * VNEW, Field * U, Field * E
 		double alphah = alpha / consts->h.Value();
 		for (int i = 0; i < v->fieldLatLen; i++) {
 			for (int j = 0; j < v->fieldLonLen; j++) {
-				if (j > 0) {
-					southwestavg = 0.25*(U->solution[i][j] + U->solution[i + 1][j] + U->solution[i][j - 1] + U->solution[i + 1][j - 1]);
-				}
-				else {
-					southwestavg = 0.25*(U->solution[i][j] + U->solution[i + 1][j] + U->solution[i][U->fieldLonLen - 1] + U->solution[i + 1][U->fieldLonLen - 1]);
-				}
-
+				southwestavg = uSouthWestAvg->solution[i][j];
 				vDissTerm->solution[i][j] = alphah * V->solution[i][j] * sqrt(V->solution[i][j] * V->solution[i][j] + southwestavg*southwestavg);
 			}
 		}
@@ -445,25 +453,19 @@ inline void Solver::UpdateNorthVel(Field * V, Field * VNEW, Field * U, Field * E
 
 	double loveRadius = consts->loveReduct.Value() / consts->radius.Value();
 	double gRadius = consts->g.Value() / consts->radius.Value();
+	double coriolisFactor = 0;
 
 	for (int i = 0; i < v->fieldLatLen; i++) {
-		sinLat = v->sinLat[i];
+		coriolisFactor = 2. * angVel * v->sinLat[i];
 		for (int j = 0; j < v->fieldLonLen; j++) {
 			northEta = eta->solution[i][j];
 			southEta = eta->solution[i + 1][j];
 
-			dSurfLat = (northEta - southEta) / eta->dLat;
+			dSurfLat = (northEta - southEta) / etadLat;
 
 			surfHeight = gRadius*dSurfLat;
 
-			if (j > 0) {
-				southwestavg = 0.25*(U->solution[i][j] + U->solution[i + 1][j] + U->solution[i][j - 1] + U->solution[i + 1][j - 1]);
-			}
-			else {
-				southwestavg = 0.25*(U->solution[i][j] + U->solution[i + 1][j] + U->solution[i][U->fieldLonLen - 1] + U->solution[i + 1][U->fieldLonLen - 1]);
-			}
-
-			coriolis = 2. * angVel *sinLat*southwestavg;
+			coriolis =  coriolisFactor*uSouthWestAvg->solution[i][j];
 
 			tidalForce = loveRadius * dUlat->solution[i][j];
 
@@ -505,14 +507,9 @@ inline void Solver::UpdateSurfaceHeight(Field * ETA, Field * ETANEW, Field * U, 
 
 			uGrad = (eastu - westu) / vdLon;
 
-			ETANEW->solution[i][j] = hRadius * (1./cosLat)*(-vGrad - uGrad)*dt + ETA->solution[i][j];
+			ETANEW->solution[i][j] = hRadius/cosLat*(-vGrad - uGrad)*dt + ETA->solution[i][j];
 		}
 	}
-
-	/*for (int j = 0; j < eta->fieldLonLen; j++) {
-		ETANEW->solution[0][j] = lagrangeInterp3(ETANEW, 0, j);
-		ETANEW->solution[eta->fieldLatLen - 1][j] = lagrangeInterp3(ETANEW, eta->fieldLatLen - 1, j);
-	}*/
 
 	InterpPole(ETANEW);
 
