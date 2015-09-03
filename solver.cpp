@@ -647,7 +647,7 @@ void Solver::DumpSolutions(int out_num) {
 		//fopen for linux
 		//fopen_s for windows
 		FILE * dissFile = fopen(&(consts->path + SEP + "diss.txt")[0], "a+");
-		fprintf(dissFile, "%.15f \n", energy->orbitDissEAvg[energy->orbitDissEAvg.size() - 1]);
+		fprintf(dissFile, "%.15f \n", energy->orbitDissEAvg[1]);
 		fclose(dissFile);
 
 		if (energy->converged) DumpFields(out_num);
