@@ -13,7 +13,6 @@ Field::Field(Mesh *mesh, int latStagg, int lonStagg) {
 	dLat = grid->dLat*2;
 	dLon = grid->dLon*2;
 
-	//fieldLatLen = grid->ReturnLatLen() / 2.;
 	fieldLonLen = grid->ReturnLonLen() / 2;
 
 	if (latStagg) fieldLatLen = (grid->ReturnLatLen() - 1 )/ 2;
@@ -22,20 +21,17 @@ Field::Field(Mesh *mesh, int latStagg, int lonStagg) {
 
 
 	solution = new double*[fieldLatLen];
-	//solution.resize(fieldLatLen);
 	for (int i = 0; i < fieldLatLen; i++) {
-		//solution[i].resize(fieldLonLen);
 		solution[i] = new double[fieldLonLen];
 		for (int j = 0; j < fieldLonLen; j++) {
-			//std::cout<<"initialized: "<<i<<"   "<<j<<std::endl;
 			solution[i][j] = 0; //Initial Guess
 		}
 	}
 
 	lat = new double[fieldLatLen];
 	for (int i = 0; i < fieldLatLen; i++) {
-		if (latStagg) lat[i] = grid->lat[i * 2 + 1]; //lat.push_back(grid->lat[i * 2 + 1]);
-		else lat[i] = grid->lat[i * 2];//lat.push_back(grid->lat[i * 2]);
+		if (latStagg) lat[i] = grid->lat[i * 2 + 1];
+		else lat[i] = grid->lat[i * 2];
 	}
 
 	// Make sure last value is 90 exactly
@@ -119,8 +115,6 @@ double Field::SouthWestAvg(int i, int j) {
 	else {
 		return 0.25*(solution[i][j] + solution[i + 1][j] + solution[i][fieldLonLen - 1] + solution[i + 1][fieldLonLen-1]);
 	}
-
-	//return (this->CenterP(i, j) + this->SouthP(i, j) + this->WestP(i, j) + this->SouthWestP(i, j))*0.25;
 };
 
 double Field::NorthEastAvg(int i, int j) {
@@ -130,5 +124,4 @@ double Field::NorthEastAvg(int i, int j) {
 	else {
 		return 0.25*(solution[i][j] + solution[i - 1][j] + solution[i][0] + solution[i - 1][0]);
 	}
-	//return (this->CenterP(i, j) + this->EastP(i, j) + this->NorthP(i, j) + this->NorthEastP(i, j))*0.25;
 };

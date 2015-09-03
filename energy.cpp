@@ -16,12 +16,15 @@ Energy::Energy(Mesh * mesh, int lat, int lon, Globals * Consts, Field * UVel, Fi
 	u = UVel;
 	v = VVel;
 	mass = MassField;
+
+	timePos = 0;
+	totalSize = (int) (consts->period.Value()/consts->timeStep.Value());
+
+	dtKinEAvg = new double[totalSize];
+	dtDissEAvg = new double[totalSize];
 };
 
 void Energy::UpdateKinE(void) {
-	//double cellMass = 0.;
-	//mass->UpdateMass();
-
 	switch (consts->fric_type) {
 		//Linear dissipation
 	case LINEAR:
@@ -50,28 +53,26 @@ void Energy::UpdateDtKinEAvg(void) {
 			kineticSum += this->solution[i][j];
 		}
 	}
-
-	dtKinEAvg.push_back(kineticSum / (4 * pi*pow(consts->radius.Value(),2))); //Joules per meter^2
-
+	dtKinEAvg[timePos] = kineticSum / (4 * pi*pow(consts->radius.Value(),2)); //Joules per meter^2
 
 	//Automatically update dissipation - ensures vectors of samelength
 	UpdateDtDissEAvg();
 };
 
 void Energy::UpdateDtDissEAvg(void) {
-	dtDissEAvg.push_back(0);
-
 	switch (consts->fric_type) {
 		//Linear dissipation
 	case LINEAR:
-		dtDissEAvg[dtKinEAvg.size() - 1] = 2 * dtKinEAvg[dtKinEAvg.size() - 1] * consts->alpha.Value(); //Joules per meter^2
+		dtDissEAvg[timePos] = 2 * dtKinEAvg[timePos] * consts->alpha.Value(); //Joules per meter^2
 		break;
 	case QUADRATIC:
-		dtDissEAvg[dtKinEAvg.size() - 1] = 2 * dtKinEAvg[dtKinEAvg.size() - 1] * consts->alpha.Value()/consts->h.Value();
+		dtDissEAvg[timePos] = 2 * dtKinEAvg[timePos] * consts->alpha.Value()/consts->h.Value();
 		break;
 	default:
 		consts->Output.TerminateODIS();
 	}
+
+	timePos += 1;
 };
 
 
@@ -80,7 +81,7 @@ void Energy::UpdateOrbitalKinEAvg(int inc) {
 
 	int pos = orbitKinEAvg.size()-1;
 
-	for (unsigned int i = dtKinEAvg.size()-1; i > dtKinEAvg.size() - 1 - inc; i--) {
+	for (unsigned int i = 0; i < timePos; i++) {
 		orbitKinEAvg[pos] += dtKinEAvg[i];
 	}
 
@@ -103,6 +104,9 @@ void Energy::UpdateOrbitalDissEAvg(void) {
 		orbitDissEAvg[orbitKinEAvg.size() - 1] = 2 * orbitKinEAvg[orbitKinEAvg.size() - 1] * consts->alpha.Value() / consts->h.Value();
 		break;
 	}
+
+	//Reset time position after updating orbital values
+	timePos = 0;
 
 };
 

@@ -14,7 +14,8 @@ private:
 	Field * v;
 	Mass * mass;
 
-	int dissMode = 0; //dissipation type i.e., 0 for linear
+	int timePos;
+	int totalSize;
 
 	void UpdateDtDissEAvg(void);
 	void UpdateOrbitalDissEAvg(void);
@@ -23,12 +24,16 @@ public:
 	Energy(Mesh*, int, int, Globals *, Field *, Field *, Mass *);
 
 	bool converged = false;
-	
+
 	std::vector<double> residual;
 
 	//vector of length n/(period/dt*1000), for average kinetic energy for n timesteps in one orbit.
-	std::vector<double> dtKinEAvg;
-	std::vector<double> dtDissEAvg;
+	//std::vector<double> dtKinEAvg;
+
+	double * dtKinEAvg;
+	//std::vector<double> dtDissEAvg;
+
+	double * dtDissEAvg;
 
 	//vector of length m, for average kinetic energy at periapse for m orbits in simulation.
 	std::vector<double> orbitKinEAvg;
@@ -39,14 +44,14 @@ public:
 	//Function finds globally averaged kinetic energy at the current timestep and appends it
 	//to timeStepGlobalAvg
 	void UpdateDtKinEAvg(void);
-	
+
 
 	//Function finds orbtially and globally averaged kinetic energy at end of the simulation for
 	//the last whole orbit complete
 	void UpdateOrbitalKinEAvg(int inc);
 
 	void IsConverged(void);
-	
+
 };
 
 #endif
