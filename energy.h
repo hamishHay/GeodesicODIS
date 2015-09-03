@@ -36,8 +36,8 @@ public:
 	double * dtDissEAvg;
 
 	//vector of length m, for average kinetic energy at periapse for m orbits in simulation.
-	std::vector<double> orbitKinEAvg;
-	std::vector<double> orbitDissEAvg;
+	double orbitKinEAvg;
+	double orbitDissEAvg[2];
 
 	void UpdateKinE(void);
 

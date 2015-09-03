@@ -24,7 +24,7 @@ private:
 
 public:
 	double simulationTime = 0;
-	int orbitNumber = 1;
+	int orbitNumber = 0;
 	int iteration = 0;
 
 	double dt;
