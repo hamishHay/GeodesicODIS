@@ -164,7 +164,7 @@ class ODISPlot:
 
         ax = self.fig.add_subplot(self.figDim[0],self.figDim[1],self.currentFig)
         p1 = ax.plot(orbits,self.diss,color='k',linewidth=0.6)
-        p2 = ax.plot([orbits[0],orbits[-1]],[0.102,0.102],linestyle='--',color='k',linewidth=0.6)
+        p2 = ax.plot([orbits[0],orbits[-1]],[0.0547,0.0547],linestyle='--',color='k',linewidth=0.6)
         ax.set_yscale("log")
         ax.set_xlim([min(orbits),max(orbits)])
 
@@ -174,7 +174,7 @@ class ODISPlot:
         ax.tick_params(axis='both', which='major', labelsize=self.slabelSize)
         ax.set_title('Obliquity Tide Dissipation',fontsize=self.titleSize)
 
-        print(abs(0.102-self.diss[-1])/0.102*100)
+        print(abs(0.0547-self.diss[-1])/0.0547*100)
 
 
     def SetSuperTitle(self, title):
@@ -190,23 +190,36 @@ class ODISPlot:
 
 if __name__=="__main__":
 
-    ODIS = ODISPlot(orbitnum=20,figdim=(1,1),figsize=(4,3),saveName="obliq_diss")
+    option = int(sys.argv[1])
 
-    ODIS.ReadDissipationData()
+    if option == 1:
 
-    ODIS.PlotDissipation()
+        print("Option 1 selected: Plotting displacement and velocity.\n")
 
-    ODIS.ShowFig()
+        num = int(sys.argv[2])
 
-    # ODIS.ReadFieldData("displacement")
-    # ODIS.PlotField(cticks = [-4,-2,0,2,4,6,8])
-    #
-    # data_v = ODIS.ReadFieldData("north_vel")
-    # data_u = ODIS.ReadFieldData("east_vel")
-    #
-    # ODIS.PlotVelocity(data_u,data_v,cformat=2,scale=1/0.3)
-    #
-    # ODIS.SetSuperTitle("c) Combined Eccentricity and Obliquity Tides")
-    #
-    # ODIS.ShowFig()
-    ODIS.SaveFig()
+        ODIS = ODISPlot(orbitnum=num,figdim=(1,2),figsize=(10,3),saveName="Test")
+
+        ODIS.ReadFieldData("displacement")
+        ODIS.PlotField(cticks = [])
+
+        data_v = ODIS.ReadFieldData("north_vel")
+        data_u = ODIS.ReadFieldData("east_vel")
+
+        ODIS.PlotVelocity(data_u,data_v,cformat=2,scale=1/0.3,cticks=[])
+
+        ODIS.SetSuperTitle("Test")
+
+        ODIS.ShowFig()
+
+    elif option == 2:
+
+        ODIS = ODISPlot(orbitnum=0,figdim=(1,1),figsize=(4,3),saveName="obliq_diss")
+
+        ODIS.ReadDissipationData()
+
+        ODIS.PlotDissipation()
+
+        ODIS.ShowFig()
+
+        #ODIS.SaveFig()
