@@ -72,10 +72,17 @@ class Grid:
     def CopyInitialConditions(self,copy_dir,place_dir):
         field_dir = ["/EastVelocity/u_vel_", "/NorthVelocity/v_vel_", "/Displacement/eta_"]
         field_txt = ["u_vel.txt", "v_vel.txt", "eta.txt"]
+<<<<<<< .merge_file_2hJ99V
 
         ### For each field, find latest output file and copy into InitialConditions
         for k in range(len(field_dir)):
 
+=======
+
+        ### For each field, find latest output file and copy into InitialConditions
+        for k in range(len(field_dir)):
+
+>>>>>>> .merge_file_3zMPUS
             ### List all files in field_dir[k]
             all_files = []
             for file in glob.glob(copy_dir + field_dir[k] + "*.txt"):
@@ -89,7 +96,11 @@ class Grid:
             ### If no files in folder, then process has not started
             if len(file_list) == 0:
                 print("No initial conditions found for", place_dir)
+<<<<<<< .merge_file_2hJ99V
                 return 0
+=======
+                return 1
+>>>>>>> .merge_file_3zMPUS
 
             ### Files found, find the index of the highest output number
             else:
@@ -126,9 +137,18 @@ class Grid:
             else:
                 ### Remove current inital conditions as they are now obsolete
                 self.MakeDir(p.directory + "/InitialConditions")
+<<<<<<< .merge_file_2hJ99V
 
                 ### Copy initial conditions in process to process
                 self.CopyInitialConditions(p.directory,p.directory)
+=======
+
+                ### Copy initial conditions in process to process
+                err = self.CopyInitialConditions(p.directory,p.directory)
+
+                if err == 1:
+                    return 0
+>>>>>>> .merge_file_3zMPUS
 
                 ### Process is now ready to run, so remove old values
                 shutil.rmtree(p.directory + "/EastVelocity")
@@ -139,6 +159,7 @@ class Grid:
         else:
             ### Check to see if the process is a child and that the child has a parent
             if is_child and parent != None:
+<<<<<<< .merge_file_2hJ99V
 
                 ### Create initial condition directory
                 self.MakeDir(p.directory + "/InitialConditions")
@@ -146,6 +167,18 @@ class Grid:
                 ### Copy initial conditions in parent to process
                 self.CopyInitialConditions(parent.directory, p.directory)
 
+=======
+
+                ### Create initial condition directory
+                self.MakeDir(p.directory + "/InitialConditions")
+
+                ### Copy initial conditions in parent to process
+                err = self.CopyInitialConditions(parent.directory, p.directory)
+
+                if err == 1:
+                    return 0
+
+>>>>>>> .merge_file_3zMPUS
         if p.id != 1:
             self.RemapInitCondition(p)
 
@@ -254,8 +287,8 @@ class Grid:
             if (p.a > a1) and (p.a < a2) and (p.h > h1) and (p.h < h2):
                 try:
                     shutil.rmtree(p.directory)
-                except WindowsError:
-                    print("he")
+                except FileNotFoundError:
+                    print('nice one hames')
 
     def MakeComplete(self, a1, a2, h1, h2):
         #self.rerun = True

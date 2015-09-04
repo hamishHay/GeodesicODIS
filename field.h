@@ -7,24 +7,37 @@
 //Class to populate fields (i.e. velocity etc) at HALF grid spacing
 class Field {
 private:
-	
-	
+
+
 public:
 	int fieldLatLen;
 	int fieldLonLen;
 
-	std::vector<double> lat;
-	std::vector<double> lon;
+	// std::vector<double> lat;
+	// std::vector<double> lon;
+	// std::vector<double> cosLat;
+	// std::vector<double> sinLat;
+	// std::vector<double> cos2Lat;
+	// std::vector<double> sin2Lat;
+
+	double * lat;
+	double * lon;
+	double * cosLat;
+	double * sinLat;
+	double * cos2Lat;
+	double * sin2Lat;
 
 	double dLat;
 	double dLon;
 	//int latStaggered = 0;
-	
+
+
 	std::vector<double> opp; //Pointer to opposite cell if at the pole
 	Mesh * grid; //pointer to global Mesh object
-	std::vector<std::vector<double>> solution; //2D vector array 
+	//std::vector<std::vector<double>> solution; //2D vector array
+	double ** solution;
 
-	Field(Mesh *,int,int); //Constructor 
+	Field(Mesh *,int,int); //Constructor
 
 	int ReturnFieldLatLen();
 	int ReturnFieldLonLen();
@@ -37,8 +50,8 @@ public:
 	double EastP(int, int); //solution value at point (i,j+2)
 	double WestP(int, int); //solution value at point (i,j-2)
 
-	double SouthWestAvg(int,int);
-	double NorthEastAvg(int,int);
+	double SouthWestAvg(int, int);
+	double NorthEastAvg(int, int);
 };
 
 #endif

@@ -24,8 +24,10 @@ private:
 
 public:
 	double simulationTime = 0;
-	int orbitNumber = 1;
+	int orbitNumber = 0;
 	int iteration = 0;
+
+	double dt;
 
 	std::ostringstream outstring;
 
@@ -54,6 +56,14 @@ public:
 	Field * vDissTerm;
 	Field * uDissTerm;
 
+	Field * vNorthEastAvg;
+	Field * uSouthWestAvg;
+
+	double * cosMinusB;
+	double * cosPlusB;
+	double * sinMinusB;
+	double * sinPlusB;
+
 	Solver(int type, int dump, Globals *, Mesh *, Field *, Field*, Field *, Field *, Field *, Energy *);
 
 	void Solve();
@@ -65,9 +75,11 @@ public:
 	void CrankNicolson();
 
 	void UpdatePotential();
-	void UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Field * ETA, double dt);
-	void UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Field * ETA, double dt);
-	void UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Field * V, Field * ETA, double dt);
+	void UpdateEastVel(Field * U, Field * UNEW, Field * V, Field * ETA);
+	void UpdateNorthVel(Field * V, Field * VNEW, Field * U, Field * ETA);
+	void UpdateSurfaceHeight(Field * ETA, Field * ETANEW, Field * U, Field * V);
+
+	void InterpPole(Field * Field);
 
 	void DumpSolutions(int output_num);
 	void DumpFields(int output_num);

@@ -1,6 +1,9 @@
 ocean thickness; 	 	 	 400.0;		 	 	 h;
-friction coefficient; 	 	 	 2.28e-07;		 	 	 alpha;
-simulation end time; 	 	 	 10;		 	 	 endTime;
+friction coefficient; 	 	 	 2.28e-7;		 	 	 alpha;
+simulation end time; 	 	 	 40;		 	 	 endTime;
 initial conditions; 	 	 	 false;		 	 	 init;
-latitude spacing;               45;         dLat;
-longitude spacing;              60;               dLon;
+latitude spacing;               120;         dLat;
+longitude spacing;              90;               dLon;
+friction type; LINEAR; fric_type;
+time step; 20; timeStep;
+potential;            ECC_RAD;          potential;

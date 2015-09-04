@@ -16,12 +16,15 @@ Energy::Energy(Mesh * mesh, int lat, int lon, Globals * Consts, Field * UVel, Fi
 	u = UVel;
 	v = VVel;
 	mass = MassField;
+
+	timePos = 0;
+	totalSize = (int) (consts->period.Value()/consts->timeStep.Value());
+
+	dtKinEAvg = new double[totalSize+1];
+	dtDissEAvg = new double[totalSize+1];
 };
 
 void Energy::UpdateKinE(void) {
-	//double cellMass = 0.;
-	//mass->UpdateMass();
-
 	switch (consts->fric_type) {
 		//Linear dissipation
 	case LINEAR:
@@ -50,41 +53,39 @@ void Energy::UpdateDtKinEAvg(void) {
 			kineticSum += this->solution[i][j];
 		}
 	}
-
-	dtKinEAvg.push_back(kineticSum / (4 * pi*pow(consts->radius.Value(),2))); //Joules per meter^2
-
+	dtKinEAvg[timePos] = kineticSum / (4 * pi*pow(consts->radius.Value(),2)); //Joules per meter^2
 
 	//Automatically update dissipation - ensures vectors of samelength
 	UpdateDtDissEAvg();
 };
 
 void Energy::UpdateDtDissEAvg(void) {
-	dtDissEAvg.push_back(0);
-
 	switch (consts->fric_type) {
 		//Linear dissipation
 	case LINEAR:
-		dtDissEAvg[dtKinEAvg.size() - 1] = 2 * dtKinEAvg[dtKinEAvg.size() - 1] * consts->alpha.Value(); //Joules per meter^2
+		dtDissEAvg[timePos] = 2 * dtKinEAvg[timePos] * consts->alpha.Value(); //Joules per meter^2
 		break;
 	case QUADRATIC:
-		dtDissEAvg[dtKinEAvg.size() - 1] = 2 * dtKinEAvg[dtKinEAvg.size() - 1] * consts->alpha.Value()/consts->h.Value();
+		dtDissEAvg[timePos] = 2 * dtKinEAvg[timePos] * consts->alpha.Value()/consts->h.Value();
 		break;
 	default:
 		consts->Output.TerminateODIS();
 	}
+
+	timePos += 1;
 };
 
 
 void Energy::UpdateOrbitalKinEAvg(int inc) {
-	orbitKinEAvg.push_back(0);
+	orbitKinEAvg = 0;
 
-	int pos = orbitKinEAvg.size()-1;
+	//int pos = orbitKinEAvg.size()-1;
 
-	for (unsigned int i = dtKinEAvg.size()-1; i > dtKinEAvg.size() - 1 - inc; i--) {
-		orbitKinEAvg[pos] += dtKinEAvg[i];
+	for (unsigned int i = 0; i < timePos; i++) {
+		orbitKinEAvg += dtKinEAvg[i];
 	}
 
-	orbitKinEAvg[pos] /= inc;
+	orbitKinEAvg /= inc;
 
 	//Automatically update dissipation
 	UpdateOrbitalDissEAvg();
@@ -92,22 +93,26 @@ void Energy::UpdateOrbitalKinEAvg(int inc) {
 };
 
 void Energy::UpdateOrbitalDissEAvg(void) {
-	orbitDissEAvg.push_back(0);
+	orbitDissEAvg[1] = orbitDissEAvg[0];
+	orbitDissEAvg[0] = 0;
 
 	switch (consts->fric_type) {
 		//Linear dissipation
 	case LINEAR:
-		orbitDissEAvg[orbitKinEAvg.size() - 1] = 2 * orbitKinEAvg[orbitKinEAvg.size() - 1] * consts->alpha.Value(); //Joules per meter
+		orbitDissEAvg[0] = 2 * orbitKinEAvg * consts->alpha.Value(); //Joules per meter
 		break;
 	case QUADRATIC:
-		orbitDissEAvg[orbitKinEAvg.size() - 1] = 2 * orbitKinEAvg[orbitKinEAvg.size() - 1] * consts->alpha.Value() / consts->h.Value();
+		orbitDissEAvg[0] = 2 * orbitKinEAvg * consts->alpha.Value() / consts->h.Value();
 		break;
 	}
+
+	//Reset time position after updating orbital values
+	timePos = 0;
 
 };
 
 void Energy::IsConverged(void) {
-	residual.push_back(fabs(orbitDissEAvg[orbitKinEAvg.size() - 1] - orbitDissEAvg[orbitKinEAvg.size() - 2]));
+	residual.push_back(fabs(orbitDissEAvg[1] - orbitDissEAvg[0]));
 	if (residual.size() > 8) {
 		//check latest value for convergence
 		if (residual[residual.size() - 1] < consts->converge.Value()) {

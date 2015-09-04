@@ -18,7 +18,7 @@ private:
 
 public:
 	Mass(Mesh *, int, int, Globals * Consts, Field * Eta);
-	
+
 	void UpdateMass();
 };
 

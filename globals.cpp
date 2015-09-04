@@ -253,7 +253,7 @@ void Globals::SetDefault(void) {
 	dLon.SetValue(90);
 
 	//Time step
-	timeStep.SetValue(80.);
+	timeStep.SetValue(40.);
 
 	//Convergence Criteria
 	converge.SetValue(1e-7);
