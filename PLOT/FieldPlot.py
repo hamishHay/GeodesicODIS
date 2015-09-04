@@ -214,6 +214,8 @@ if __name__=="__main__":
 
     elif option == 2:
 
+        print("Option 2 selected: Plotting dissipation over time.\n")
+
         ODIS = ODISPlot(orbitnum=0,figdim=(1,1),figsize=(4,3),saveName="obliq_diss")
 
         ODIS.ReadDissipationData()
@@ -221,5 +223,9 @@ if __name__=="__main__":
         ODIS.PlotDissipation()
 
         ODIS.ShowFig()
+
+    else:
+
+        print("Argument one must be either option 1 or 2.")
 
         #ODIS.SaveFig()
