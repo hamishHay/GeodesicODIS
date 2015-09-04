@@ -551,11 +551,7 @@ void Solver::Explicit() {
 
 	while (simulationTime <= consts->endTime.Value() && !energy->converged) {
 
-<<<<<<< .merge_file_jvBBuX
-		timeStepCount += consts->timeStep.Value();
-=======
 		timeStepCount+=dt;
->>>>>>> .merge_file_lNhCGY
 
 		UpdatePotential();
 
