@@ -292,34 +292,39 @@ inline void Solver::UpdateFullPotential(void) {
 }
 
 inline void Solver::InterpPole(Field * field) {
-	double L[4];
-	double x[5];
-	int inc = 1;
+	//double L[4];
+	//double x[5];
+	//int inc = 1;
 
-	// North pole:
-	int i = 0;
-	for (int k = 0; k < 2; k++) {
-		for (int j = 0; j < field->fieldLonLen; j++) {
+	//// North pole:
+	//int i = 0;
+	//for (int k = 0; k < 2; k++) {
+	//	for (int j = 0; j < field->fieldLonLen; j++) {
 
-			x[0] = field->lat[i];
-			x[1] = field->lat[i + inc];
-			x[2] = field->lat[i + inc * 2];
-			x[3] = field->lat[i + inc * 3];
-			x[4] = field->lat[i + inc * 4];
+	//		x[0] = field->lat[i];
+	//		x[1] = field->lat[i + inc];
+	//		x[2] = field->lat[i + inc * 2];
+	//		x[3] = field->lat[i + inc * 3];
+	//		x[4] = field->lat[i + inc * 4];
 
-			//solve for each quadratic term
-			L[0] = (x[0] - x[2])*(x[0] - x[3])*(x[0] - x[4]) / ((x[1] - x[2])*(x[1] - x[3])*(x[1] - x[4])) * field->solution[i + inc][j]; //L1
-			L[1] = (x[0] - x[1])*(x[0] - x[3])*(x[0] - x[4]) / ((x[2] - x[1])*(x[2] - x[3])*(x[2] - x[4])) * field->solution[i + inc * 2][j]; //L2
-			L[2] = (x[0] - x[1])*(x[0] - x[2])*(x[0] - x[4]) / ((x[3] - x[1])*(x[3] - x[2])*(x[3] - x[4])) * field->solution[i + inc * 3][j]; //L3
-			L[3] = (x[0] - x[1])*(x[0] - x[2])*(x[0] - x[3]) / ((x[4] - x[1])*(x[4] - x[2])*(x[4] - x[3])) * field->solution[i + inc * 4][j];
+	//		//solve for each quadratic term
+	//		L[0] = (x[0] - x[2])*(x[0] - x[3])*(x[0] - x[4]) / ((x[1] - x[2])*(x[1] - x[3])*(x[1] - x[4])) * field->solution[i + inc][j]; //L1
+	//		L[1] = (x[0] - x[1])*(x[0] - x[3])*(x[0] - x[4]) / ((x[2] - x[1])*(x[2] - x[3])*(x[2] - x[4])) * field->solution[i + inc * 2][j]; //L2
+	//		L[2] = (x[0] - x[1])*(x[0] - x[2])*(x[0] - x[4]) / ((x[3] - x[1])*(x[3] - x[2])*(x[3] - x[4])) * field->solution[i + inc * 3][j]; //L3
+	//		L[3] = (x[0] - x[1])*(x[0] - x[2])*(x[0] - x[3]) / ((x[4] - x[1])*(x[4] - x[2])*(x[4] - x[3])) * field->solution[i + inc * 4][j];
 
-			field->solution[i][j] = L[0] + L[1] + L[2] + L[3];
-		}
+	//		field->solution[i][j] = L[0] + L[1] + L[2] + L[3];
+	//	}
 
-		inc = -inc;
-		i = field->fieldLatLen - 1;
+	//	inc = -inc;
+	//	i = field->fieldLatLen - 1;
 
+	//}
+	for (int j = 0; j < field->fieldLonLen; j++) {
+		field->solution[0][j] = linearInterp1(field, 0, j);
+		field->solution[field->fieldLatLen - 1][j] = linearInterp1(field, field->fieldLatLen - 1, j);
 	}
+
 };
 
 inline void Solver::UpdateEastVel(Field * U, Field * UNEW, Field * V, Field * ETA){
