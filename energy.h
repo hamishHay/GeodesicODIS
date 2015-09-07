@@ -17,6 +17,8 @@ private:
 	int timePos;
 	int totalSize;
 
+	double median;
+
 	void UpdateDtDissEAvg(void);
 	void UpdateOrbitalDissEAvg(void);
 
@@ -38,6 +40,8 @@ public:
 	//vector of length m, for average kinetic energy at periapse for m orbits in simulation.
 	double orbitKinEAvg;
 	double orbitDissEAvg[2];
+
+	std::vector<double> dissipation;
 
 	void UpdateKinE(void);
 

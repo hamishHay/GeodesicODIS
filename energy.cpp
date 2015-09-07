@@ -109,6 +109,8 @@ void Energy::UpdateOrbitalDissEAvg(void) {
 	//Reset time position after updating orbital values
 	timePos = 0;
 
+	dissipation.push_back(orbitDissEAvg[0]);
+
 };
 
 void Energy::IsConverged(void) {
@@ -126,6 +128,16 @@ void Energy::IsConverged(void) {
 					break;
 				}
 			}
+		}
+	}
+
+	// Find median
+	if (dissipation.size() >= 30) {
+		std::nth_element(dissipation.begin(), dissipation.begin() + dissipation.size() / 2, dissipation.end());
+		median = dissipation[dissipation[dissipation.size() / 2]];
+		if (fabs(orbitDissEAvg[1] - median)/median * 100 < 0.5) {
+			std::cout << "Dissipation within 0.5% of the median." << std::endl;
+			converged = true;
 		}
 	}
 

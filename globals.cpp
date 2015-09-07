@@ -259,7 +259,7 @@ void Globals::SetDefault(void) {
 	converge.SetValue(1e-7);
 
 	//Angular velocity
-	angVel.SetValue(0.456e-5);
+	angVel.SetValue(4.56e-6);
 
 	//Orbital period
 	period.SetValue(2*pi/angVel.Value());
