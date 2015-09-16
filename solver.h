@@ -26,6 +26,8 @@ public:
 	double simulationTime = 0;
 	int orbitNumber = 0;
 	int iteration = 0;
+	int convergeCount = 0;
+	int convergeMax = 5;
 
 	double dt;
 

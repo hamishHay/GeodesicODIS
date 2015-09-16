@@ -31,7 +31,7 @@ class Globals {
 private:
 	void SetDefault(void);
 	void OutputConsts(void);
-	
+
 public:
 	OutFiles Output;
 	std::vector<IGlobalVar *> allGlobals;
@@ -42,7 +42,7 @@ public:
 
 	std::string path;
 	char cpath[512];
-	
+
 	GlobalVar<double> angVel;
 	GlobalVar<double> radius; //Object Radius
 	GlobalVar<double> loveK2; // k_2 Love Number
@@ -58,12 +58,12 @@ public:
 	GlobalVar<double> dLat;
 	GlobalVar<double> dLon;
 	GlobalVar<double> period;
-	GlobalVar<int> endTime;
+	GlobalVar<double> endTime;
 	GlobalVar<std::string> potential;
 	GlobalVar<std::string> friction;
 	GlobalVar<bool> init;
 	GlobalVar<double> converge;
-		
+
 	Globals();
 	Globals(int action);
 	int ReadGlobals(void);

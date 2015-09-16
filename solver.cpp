@@ -554,7 +554,8 @@ void Solver::Explicit() {
 	//Update cell energies and globally averaged energy
 	energy->UpdateKinE();
 
-	while (simulationTime <= consts->endTime.Value() && !energy->converged) {
+	while (simulationTime <= consts->endTime.Value() && convergeCount <= convergeMax) {
+
 
 		timeStepCount+=dt;
 
@@ -591,6 +592,7 @@ void Solver::Explicit() {
 
 			//Check for convergence
 			if (orbitNumber>1) energy->IsConverged();
+			if (energy->converged) convergeCount++;
 
 			outstring << std::fixed << std::setprecision(2) << simulationTime / 86400.0 << " days: \t" << 100 * (simulationTime / consts->endTime.Value()) << "%\t" << output;
 			Out->Write(OUT_MESSAGE, &outstring);
@@ -598,6 +600,7 @@ void Solver::Explicit() {
 			DumpSolutions(output);
 			output++;
 		}
+
 		iteration++;
 	}
 
@@ -653,7 +656,7 @@ void Solver::DumpSolutions(int out_num) {
 		fclose(dissFile);
 
 		if (energy->converged) DumpFields(out_num);
-		else if (out_num % 1 == 0) DumpFields(out_num); //dump every 5 orbits
+		else if (out_num % 5 == 0) DumpFields(out_num); //dump every 5 orbits
 	}
 };
 

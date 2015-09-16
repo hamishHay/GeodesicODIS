@@ -106,6 +106,7 @@ class ODISPlot:
     def ReadDissipationData(self,directory = os.getcwd()):
         self.diss = np.loadtxt(directory + "/diss.txt")[1:] # In Watts
         self.diss *= 1e3 # Convert to mWatts
+        self.resid = abs(self.diss[1:]-self.diss[:-1])*1e-3
 
     def PlotField(self,cformat=2,cticks=[]):
         self.currentFig += 1
@@ -160,7 +161,9 @@ class ODISPlot:
         self.currentFig += 1
 
         orbits = np.linspace(0,len(self.diss)-1,len(self.diss))
-        print(orbits,self.diss)
+        print(orbits)
+        print(self.resid)
+        
 
         ax = self.fig.add_subplot(self.figDim[0],self.figDim[1],self.currentFig)
         p1 = ax.plot(orbits,self.diss,color='k',linewidth=0.6)
@@ -224,8 +227,25 @@ if __name__=="__main__":
 
         ODIS.ShowFig()
 
+    elif option == 3:
+
+        print("Option 3 selected: Plotting velocity.\n")
+
+        num = int(sys.argv[2])
+
+        ODIS = ODISPlot(orbitnum=num,figdim=(1,2),figsize=(10,3),saveName="Test")
+
+        data_v = ODIS.ReadFieldData("north_vel")
+        ODIS.PlotField(cticks = [])
+        data_u = ODIS.ReadFieldData("east_vel")
+        ODIS.PlotField(cticks = [])
+
+        ODIS.SetSuperTitle("Test")
+
+        ODIS.ShowFig()
+
     else:
 
-        print("Argument one must be either option 1 or 2.")
+        print("Argument one must be either option 1, 2, or 3.")
 
         #ODIS.SaveFig()

@@ -9,6 +9,7 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <algorithm>
 
 Energy::Energy(Mesh * mesh, int lat, int lon, Globals * Consts, Field * UVel, Field * VVel, Mass * MassField) : Field (mesh, lat, lon)
 {
@@ -114,8 +115,28 @@ void Energy::UpdateOrbitalDissEAvg(void) {
 };
 
 void Energy::IsConverged(void) {
+	if (dissipation.size() > 10 && !converged) {
+		for (int i=derivative.size(); i < dissipation.size() - 1; i++) {
+			derivative.push_back(dissipation[i+1]-dissipation[i]);
+		}
+
+		for (int i=derivative.size()-2; i < derivative.size()-1; i++) {
+			// Check for minima
+			if (derivative[i] < 0 && derivative[i+1] > 0) {
+				minima.push_back(i);
+				std::cout<<"Minima found at orbit "<<i<<std::endl;
+			}
+			else if (derivative[i] > 0 && derivative[i+1] < 0) {
+				maxima.push_back(i);
+				std::cout<<"Maxima found at orbit "<<i<<std::endl;
+			}
+		}
+
+		if (maxima.size() == 2 || minima.size() == 2) converged = true;
+	}
+
 	residual.push_back(fabs(orbitDissEAvg[1] - orbitDissEAvg[0]));
-	if (residual.size() > 8) {
+	if (residual.size() > 8 && !converged) {
 		//check latest value for convergence
 		if (residual[residual.size() - 1] < consts->converge.Value()) {
 			converged = true;
@@ -131,17 +152,6 @@ void Energy::IsConverged(void) {
 		}
 	}
 
-	// Find median
-	if (dissipation.size() >= 30) {
-		std::nth_element(dissipation.begin(), dissipation.begin() + dissipation.size() / 2, dissipation.end());
-		median = dissipation[dissipation[dissipation.size() / 2]];
-		if (fabs(orbitDissEAvg[1] - median)/median * 100 < 0.5) {
-			std::cout << "Dissipation within 0.5% of the median." << std::endl;
-			converged = true;
-		}
-	}
-
-
 	if (residual[residual.size() - 1] > 1e5) {
 		consts->outstring << std::endl << "Residual is now greater than 100,000. Your model appears to have blown up. Sorry Chum." << std::endl;
 		consts->Output.Write(ERR_MESSAGE, &consts->outstring);
@@ -150,4 +160,6 @@ void Energy::IsConverged(void) {
 
 	printf("\t Resdiual: %1.4e \n", residual[residual.size() - 1]);
 	if (converged) std::cout << "Convergence criteria met." << std::endl;
+
+	count += 1;
 };

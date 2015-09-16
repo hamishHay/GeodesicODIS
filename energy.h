@@ -18,6 +18,8 @@ private:
 	int totalSize;
 
 	double median;
+	int count = 0;
+	int mark = 0;
 
 	void UpdateDtDissEAvg(void);
 	void UpdateOrbitalDissEAvg(void);
@@ -42,6 +44,9 @@ public:
 	double orbitDissEAvg[2];
 
 	std::vector<double> dissipation;
+	std::vector<double> derivative;
+	std::vector<double> minima;
+	std::vector<double> maxima;
 
 	void UpdateKinE(void);
 
