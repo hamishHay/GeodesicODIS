@@ -25,6 +25,7 @@
 #include <iostream>
 #include <algorithm>
 #include <cstring>
+#include <math.h>
 
 Globals::Globals() :Globals(1) {};
 
@@ -103,11 +104,7 @@ Globals::Globals(int action) {
 
 	OutputConsts();
 
-  std::cout<<"endTime: "<<endTime.Value()<<std::endl;
-	std::cout<<"period: "<<period.Value()<<std::endl;
 	endTime.SetValue(endTime.Value()*period.Value());
-
-	std::cout<<"endTime: "<<endTime.Value();
 
 	if (friction.Value() == "LINEAR") fric_type = LINEAR;
 	else if (friction.Value() == "QUADRATIC") fric_type = QUADRATIC;

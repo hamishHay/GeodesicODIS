@@ -66,6 +66,7 @@ public:
 
 	Globals();
 	Globals(int action);
+
 	int ReadGlobals(void);
 };
 

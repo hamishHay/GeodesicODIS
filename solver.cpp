@@ -656,7 +656,7 @@ void Solver::DumpSolutions(int out_num) {
 		fclose(dissFile);
 
 		if (energy->converged) DumpFields(out_num);
-		else if (out_num % 5 == 0) DumpFields(out_num); //dump every 5 orbits
+		else if (out_num % 20 == 0) DumpFields(out_num); //dump every 5 orbits
 	}
 };
 
