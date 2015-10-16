@@ -28,6 +28,7 @@ public:
 	int iteration = 0;
 	int convergeCount = 0;
 	int convergeMax = 5;
+	double outputCount = 0.;
 
 	double dt;
 

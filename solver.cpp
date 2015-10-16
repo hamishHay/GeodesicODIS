@@ -268,24 +268,31 @@ inline void Solver::UpdateFullPotential(void) {
 	double lon = 0;
 	double B = consts->angVel.Value()*simulationTime;
 	double A = 0.25 * pow(consts->angVel.Value(),2)*pow(consts->radius.Value(),2);
+	double sin2Lat = 0;
+	double cos2Lat = 0;
+  double cosLat = 0;
 
 	for (int i = 0; i < dUlat->fieldLatLen; i++) {
-		lat = dUlat->lat[i]  ;
+		lat = dUlat->lat[i];
+		sin2Lat = dUlat->sin2Lat[i];
+		cos2Lat = dUlat->cos2Lat[i];
 		for (int j = 0; j < dUlat->fieldLonLen; j++) {
 			lon = dUlat->lon[j];
-			dUlat->solution[i][j] = consts->theta.Value()*-6 * cos(2 * lat)*(cos(lon - B) + cos(lon + B));
-			dUlat->solution[i][j] += consts->e.Value()*(-9.*sin(2 * lat)*cos(B));
-			dUlat->solution[i][j] += consts->e.Value()*(-1.5*sin(2 * lat) * (7 * cos(2 * lon - B) - cos(2 * lon + B)));
+			dUlat->solution[i][j] = consts->theta.Value()*-6 * cos2Lat*(cos(lon - B) + cos(lon + B));
+			dUlat->solution[i][j] += consts->e.Value()*(-9.*sin2Lat*cos(B));
+			dUlat->solution[i][j] += consts->e.Value()*(-1.5*sin2Lat * (7 * cos(2 * lon - B) - cos(2 * lon + B)));
 			dUlat->solution[i][j] *= A;
 		}
 	}
 
 	for (int i = 0; i < dUlon->fieldLatLen; i++) {
-		lat = dUlon->lat[i]  ;
+		lat = dUlon->lat[i];
+		sin2Lat = dUlon->sin2Lat[i];
+		cosLat = dUlon->cosLat[i];
 		for (int j = 0; j < dUlon->fieldLonLen; j++) {
-			lon = dUlon->lon[j]  ;
-			dUlon->solution[i][j] = consts->theta.Value() * 3 * sin(2 * lat)*(sin(lon - B) + sin(lon + B));
-			dUlon->solution[i][j] += consts->e.Value() * 3 * cos(lat)*cos(lat)*(-7 * sin(2 * lon - B) + sin(2 * lon + B));
+			lon = dUlon->lon[j];
+			dUlon->solution[i][j] = consts->theta.Value() * 3 * sin2Lat*(sin(lon - B) + sin(lon + B));
+			dUlon->solution[i][j] += consts->e.Value() * 3 * cosLat*cosLat*(-7 * sin(2 * lon - B) + sin(2 * lon + B));
 			dUlon->solution[i][j] *= A;
 		}
 	}
@@ -321,8 +328,10 @@ inline void Solver::InterpPole(Field * field) {
 
 	//}
 	for (int j = 0; j < field->fieldLonLen; j++) {
-		field->solution[0][j] = linearInterp1(field, 0, j);
-		field->solution[field->fieldLatLen - 1][j] = linearInterp1(field, field->fieldLatLen - 1, j);
+		// field->solution[0][j] = linearInterp1(field, 0, j);
+		// field->solution[field->fieldLatLen - 1][j] = linearInterp1(field, field->fieldLatLen - 1, j);
+		field->solution[0][j] = lagrangeInterp3(field, 0, j);
+		field->solution[field->fieldLatLen - 1][j] = lagrangeInterp3(field, field->fieldLatLen - 1, j);
 	}
 
 };
@@ -491,25 +500,47 @@ inline void Solver::UpdateSurfaceHeight(Field * ETA, Field * ETANEW, Field * U, 
 	double vdLat = v->dLat;
 	double vdLon = u->dLon;
 
-	double hRadius = consts->h.Value() / consts->radius.Value();
+
+	double h = consts->h.Value();
+	double hRadius = h / consts->radius.Value();
 
 	for (int i = 1; i < eta->fieldLatLen-1; i++) {
 		cosLat = eta->cosLat[i];
 		for (int j = 0; j < eta->fieldLonLen; j++) {
+			// northv = (h+(eta->solution[i-1][j]+eta->solution[i][j])*0.5)*V->solution[i - 1][j] * v->cosLat[i - 1];
+			// southv = (h+(eta->solution[i][j]+eta->solution[i+1][j])*0.5)*V->solution[i][j] * v->cosLat[i];
 			northv = V->solution[i - 1][j] * v->cosLat[i - 1];
 			southv = V->solution[i][j] * v->cosLat[i];
 
+			//vGrad = (h+eta->solution[i][j])*(northv - southv) / vdLat;
 			vGrad = (northv - southv) / vdLat;
+
+			// if (j != 0 && j != eta->fieldLonLen-1) {
+			// 	eastu = (h+0.5*(ETA->solution[i][j]+ETA->solution[i][j+1]))*U->solution[i][j];
+			// 	westu = (h+0.5*(ETA->solution[i][j-1]+ETA->solution[i][j]))*U->solution[i][j - 1];
+			// }
+			// else if (j == eta->fieldLonLen-1) {
+			// 	eastu = (h+0.5*(ETA->solution[i][0]+ETA->solution[i][eta->fieldLonLen-1]))*U->solution[i][j];
+			// 	westu = (h+0.5*(ETA->solution[i][j-1]+ETA->solution[i][eta->fieldLonLen-1]))*U->solution[i][U->fieldLonLen - 1];
+			// }
+			// else {
+			// 	eastu = (h+0.5*(ETA->solution[i][j+1]+ETA->solution[i][j]))*U->solution[i][j];
+			// 	westu = (h+0.5*(ETA->solution[i][j]+ETA->solution[i][eta->fieldLonLen-1]))*U->solution[i][U->fieldLonLen - 1];
+			// }
 
 			if (j != 0) {
 				eastu = U->solution[i][j];
 				westu = U->solution[i][j - 1];
 			}
 			else {
-				westu = U->solution[i][U->fieldLonLen - 1];
 				eastu = U->solution[i][j];
+				westu = U->solution[i][U->fieldLonLen - 1];
 			}
 
+			// if (h+ETA->solution[i][j] < 0.0) std::cout<<"Bottom out error D:"<<std::endl;
+
+			//uGrad = (h+ETA->solution[i][j])*(eastu - westu) / vdLon;
+			 //(h+ETA->solution[i][j])*
 			uGrad = (eastu - westu) / vdLon;
 
 			ETANEW->solution[i][j] = hRadius/cosLat*(-vGrad - uGrad)*dt + ETA->solution[i][j];
@@ -554,10 +585,11 @@ void Solver::Explicit() {
 	//Update cell energies and globally averaged energy
 	energy->UpdateKinE();
 
-	while (simulationTime <= consts->endTime.Value() && convergeCount <= convergeMax) {
+	while (simulationTime <= consts->endTime.Value() && !energy->converged) {
 
 
 		timeStepCount+=dt;
+		outputCount+=dt;
 
 		UpdatePotential();
 
@@ -590,17 +622,25 @@ void Solver::Explicit() {
 
 			energy->UpdateOrbitalKinEAvg(inc);
 
-			//Check for convergence
+			// Check for convergence
 			if (orbitNumber>1) energy->IsConverged();
 			if (energy->converged) convergeCount++;
 
 			outstring << std::fixed << std::setprecision(2) << simulationTime / 86400.0 << " days: \t" << 100 * (simulationTime / consts->endTime.Value()) << "%\t" << output;
 			Out->Write(OUT_MESSAGE, &outstring);
 
-			DumpSolutions(output);
-			output++;
+			// DumpSolutions(output);
+			// output++;
+
 		}
 
+		if (outputCount>= consts->period.Value()) {
+			DumpSolutions(output);
+			outputCount -= consts->period.Value();
+			output++;
+		}
+		// DumpSolutions(output);
+		// output++;
 		iteration++;
 	}
 
@@ -653,10 +693,13 @@ void Solver::DumpSolutions(int out_num) {
 		//fopen_s for windows
 		FILE * dissFile = fopen(&(consts->path + SEP + "diss.txt")[0], "a+");
 		fprintf(dissFile, "%.15f \n", energy->orbitDissEAvg[1]);
+		//fprintf(dissFile, "%.15f \n", 2*consts->alpha.Value()*energy->dtKinEAvg[out_num]);
 		fclose(dissFile);
 
 		if (energy->converged) DumpFields(out_num);
-		else if (out_num % 20 == 0) DumpFields(out_num); //dump every 5 orbits
+		else if (out_num % 1 == 0) DumpFields(out_num); //dump every 5 orbits
+
+		// DumpFields(out_num); //FOR DEBUGGING
 	}
 };
 

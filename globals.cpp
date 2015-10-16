@@ -229,8 +229,8 @@ void Globals::SetDefault(void) {
 	loveH2.SetValue(.2);
 
 	//Love reduction factor
-	loveReduct.SetValue(1 + loveK2.Value() - loveH2.Value());
-
+	//loveReduct.SetValue(1 + loveK2.Value() - loveH2.Value());
+	loveReduct.SetValue(0.920012);
 	//Ocean thickness
 	h.SetValue(400);
 

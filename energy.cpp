@@ -23,6 +23,9 @@ Energy::Energy(Mesh * mesh, int lat, int lon, Globals * Consts, Field * UVel, Fi
 
 	dtKinEAvg = new double[totalSize+1];
 	dtDissEAvg = new double[totalSize+1];
+
+	orbitDissEAvg[1] = 0;
+	orbitDissEAvg[0] = 0;
 };
 
 void Energy::UpdateKinE(void) {
@@ -54,7 +57,7 @@ void Energy::UpdateDtKinEAvg(void) {
 			kineticSum += this->solution[i][j];
 		}
 	}
-	dtKinEAvg[timePos] = kineticSum;// / (4 * pi*pow(consts->radius.Value(),2)); //Joules per meter^2
+	dtKinEAvg[timePos] = kineticSum / (4 * pi*pow(consts->radius.Value(),2)); //Joules per meter^2
 
 	//Automatically update dissipation - ensures vectors of samelength
 	UpdateDtDissEAvg();
@@ -107,7 +110,7 @@ void Energy::UpdateOrbitalDissEAvg(void) {
 		break;
 	}
 
-	orbitDissEAvg[0] = orbitDissEAvg[0]/(4*pi*pow(consts->radius.Value(),2));
+	//orbitDissEAvg[0] = orbitDissEAvg[0]/(4*pi*pow(consts->radius.Value(),2));
 
 	//Reset time position after updating orbital values
 	timePos = 0;
@@ -117,47 +120,47 @@ void Energy::UpdateOrbitalDissEAvg(void) {
 };
 
 void Energy::IsConverged(void) {
-	// if (dissipation.size() > 50 && !converged && consts->h.Value() >= 1000) {
-	// 	for (int i=derivative.size(); i < dissipation.size() - 1; i++) {
-	// 		derivative.push_back(dissipation[i+1]-dissipation[i]);
-	// 	}
-	//
-	// 	for (int i=derivative.size()-2; i < derivative.size()-1; i++) {
-	// 		// Check for minima
-	// 		if (derivative[i] < 0 && derivative[i+1] > 0) {
-	// 			minima.push_back(i);
-	// 			std::cout<<"Minima found at orbit "<<i<<std::endl;
-	// 		}
-	// 		else if (derivative[i] > 0 && derivative[i+1] < 0) {
-	// 			maxima.push_back(i);
-	// 			std::cout<<"Maxima found at orbit "<<i<<std::endl;
-	// 		}
-	// 	}
-	//
-	// 	if (maxima.size() == 2 || minima.size() == 2) converged = true;
-	// }
+	if (dissipation.size() > 10 && !converged) {
+		for (int i=derivative.size(); i < dissipation.size() - 1; i++) {
+			derivative.push_back(dissipation[i+1]-dissipation[i]);
+		}
 
-	residual.push_back(fabs(orbitDissEAvg[1] - orbitDissEAvg[0]));
-	if (residual.size() > 100 && !converged) {
-		//check latest value for convergence
-		for (unsigned int i = dissipation.size() - 2; i > dissipation.size() - 80; i--) {
-			converged = true;
-			if (fabs(dissipation[dissipation.size()-1]-dissipation[i])/dissipation[dissipation.size()-1]*100 >= 0.5) {
-				converged = false; //reset if previous two values not converged
-				break;
+		for (int i=derivative.size()-2; i < derivative.size()-1; i++) {
+			// Check for minima
+			if (derivative[i] < 0 && derivative[i+1] > 0) {
+				minima.push_back(i);
+				std::cout<<"Minima found at orbit "<<i<<std::endl;
+			}
+			else if (derivative[i] > 0 && derivative[i+1] < 0) {
+				maxima.push_back(i);
+				std::cout<<"Maxima found at orbit "<<i<<std::endl;
 			}
 		}
+
+		if (maxima.size() == 2 || minima.size() == 2) converged = true;
 	}
 
+	//residual.push_back(fabs(orbitDissEAvg[1] - orbitDissEAvg[0]));
+	//if (residual.size() > 10 && !converged) {
+		//check latest value for convergence
+	//	for (unsigned int i = dissipation.size() - 2; i > dissipation.size() - 80; i--) {
+	//		converged = true;
+	//		if (fabs(dissipation[dissipation.size()-1]-dissipation[i])/dissipation[dissipation.size()-1]*100 >= 0.5) {
+	//			converged = false; //reset if previous two values not converged
+	//			break;
+	//		}
+	//	}
+	//}
+
 	residual.push_back(fabs(orbitDissEAvg[1] - orbitDissEAvg[0]));
-	if (residual.size() > 100 && !converged) {
+	if (residual.size() > 6 && !converged) {
 		//check latest value for convergence
 		if (residual[residual.size() - 1] < consts->converge.Value()) {
 			converged = true;
 
 			//check previous two values for convergence also:
 			//Convergence will be reset if convergence is not consistent over three orbits.
-			for (unsigned int i = residual.size() - 2; i > residual.size() - 40; i--) {
+			for (unsigned int i = residual.size() - 2; i > residual.size() - 5; i--) {
 				if (residual[i] > consts->converge.Value()) {
 					converged = false; //reset if previous two values not converged
 					break;

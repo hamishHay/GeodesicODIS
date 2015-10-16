@@ -23,16 +23,20 @@ Mesh::Mesh(Globals * Globals) //non-default constructor
 	latLength = dLat*2. + 1.;
 	dLat = 0.5*180. / dLat;
 
+	std::cout<<"dlat: "<<dLat<<std::endl;
+
 	//dLat = 180. / dLat;
 
-	if (fmod(360., dLon) == 0)
-	{
-		lonLength = (int)(360. / dLon);
-	}
-	else dLon = NULL; //Raise exception
+	// if (fmod(360., dLon) == 0)
+	// {
+	// 	lonLength = (int)(360. / dLon);
+	// }
+	// else dLon = NULL; //Raise exception
 
 	lonLength = dLon*2.;
 	dLon = 0.5*360. / dLon;
+
+	std::cout<<"dlon: "<<dLon<<std::endl;
 
 	//Populate lat vector with co-latitude
 	int count = 0;
@@ -48,7 +52,7 @@ Mesh::Mesh(Globals * Globals) //non-default constructor
 
 	for (int j = 0; j < lonLength; j++) lon.push_back(j*dLon);
 
-	CalculateDt();
+	//CalculateDt();
 };
 
 int Mesh::ReturnLatLen(void) const
@@ -110,7 +114,7 @@ void Mesh::CalculateDt(void){
 
 	outstring << std::endl << "\t Average gravitational wave speed = sqrt(gh): " << waveSpeed <<std::endl;
 
-	double dt = 0.8*globals->radius.Value()/(2*waveSpeed)*cos((90 - dLat)*radConv)*dLon*radConv;
+	double dt = 0.5*globals->radius.Value()/(2*waveSpeed)*cos((90 - dLat)*radConv)*dLon*radConv;
 
 	outstring << "\t Time step calculated: " << dt << std::endl;
 
