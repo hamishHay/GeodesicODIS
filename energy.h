@@ -14,6 +14,10 @@ private:
 	Field * v;
 	Mass * mass;
 
+	double ** massArray;
+	double ** vArray;
+	double ** uArray;
+
 	int timePos;
 	int totalSize;
 
@@ -48,7 +52,7 @@ public:
 	std::vector<double> minima;
 	std::vector<double> maxima;
 
-	void UpdateKinE(void);
+	void UpdateKinE(double **, double **);
 
 	//Function finds globally averaged kinetic energy at the current timestep and appends it
 	//to timeStepGlobalAvg

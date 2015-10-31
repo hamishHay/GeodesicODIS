@@ -14,9 +14,13 @@
 Energy::Energy(Mesh * mesh, int lat, int lon, Globals * Consts, Field * UVel, Field * VVel, Mass * MassField) : Field (mesh, lat, lon)
 {
 	consts = Consts;
-	u = UVel;
-	v = VVel;
+	// u = UVel;
+	// v = VVel;
 	mass = MassField;
+
+	// uArray = u->solution;
+	// vArray = v->solution;
+	massArray = mass->solution;
 
 	timePos = 0;
 	totalSize = (int) (consts->period.Value()/consts->timeStep.Value());
@@ -28,13 +32,13 @@ Energy::Energy(Mesh * mesh, int lat, int lon, Globals * Consts, Field * UVel, Fi
 	orbitDissEAvg[0] = 0;
 };
 
-void Energy::UpdateKinE(void) {
+void Energy::UpdateKinE(double ** u, double ** v) {
 	switch (consts->fric_type) {
 		//Linear dissipation
 	case LINEAR:
 		for (int i = 0; i < fieldLatLen - 1; i++) {
 			for (int j = 0; j < fieldLonLen; j++) {
-				this->solution[i][j] = 0.5*mass->solution[i][j] * (pow(u->solution[i][j], 2) + pow(v->solution[i][j], 2));
+				solution[i][j] = 0.5*massArray[i][j] * (u[i][j]*u[i][j] + v[i][j]*v[i][j]);
 			}
 		}
 		break;
@@ -42,7 +46,7 @@ void Energy::UpdateKinE(void) {
 	case QUADRATIC:
 		for (int i = 0; i < fieldLatLen - 1; i++) {
 			for (int j = 0; j < fieldLonLen; j++) {
-				this->solution[i][j] = 0.5*mass->solution[i][j] * pow((pow(u->solution[i][j], 2) + pow(v->solution[i][j], 2)), 1.5);
+				solution[i][j] = 0.5*massArray[i][j] * pow((u[i][j]*u[i][j] + v[i][j]*v[i][j]), 1.5);
 			}
 		}
 		break;
@@ -54,7 +58,7 @@ void Energy::UpdateDtKinEAvg(void) {
 
 	for (int i = 0; i < fieldLatLen-1; i++) {
 		for (int j = 0; j < fieldLonLen; j++) {
-			kineticSum += this->solution[i][j];
+			kineticSum += solution[i][j];
 		}
 	}
 	dtKinEAvg[timePos] = kineticSum / (4 * pi*pow(consts->radius.Value(),2)); //Joules per meter^2
@@ -120,7 +124,7 @@ void Energy::UpdateOrbitalDissEAvg(void) {
 };
 
 void Energy::IsConverged(void) {
-	if (dissipation.size() > 10 && !converged) {
+	if (dissipation.size() > 20 && !converged && (consts->h.Value() > 10.0)) {
 		for (int i=derivative.size(); i < dissipation.size() - 1; i++) {
 			derivative.push_back(dissipation[i+1]-dissipation[i]);
 		}

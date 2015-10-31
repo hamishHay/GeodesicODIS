@@ -16,7 +16,7 @@ private:
 	void UpdateEccRadPotential(void);
 	void UpdateEccLibPotential(void);
 	void UpdateEccPotential(void);
-	void UpdateObliqPotential(void);
+	inline void UpdateObliqPotential(void) __attribute__((always_inline));
 	void UpdateFullPotential(void);
 
 	void ReadInitialConditions(void);
@@ -38,7 +38,6 @@ public:
 
 	Potential tide;
 
-
 	Globals * consts;
 	Mesh * grid;
 	Field * dUlon;
@@ -48,8 +47,44 @@ public:
 	Field * u;
 	Energy * energy;
 
+	double ** etaOldArray;
+	double ** etaNewArray;
+
+	double ** vOldArray;
+	double ** vNewArray;
+
+	double ** uOldArray;
+	double ** uNewArray;
+
+	double ** dUlonArray;
+	double ** dUlatArray;
+
+	double ** vDissArray;
+	double ** uDissArray;
+
+	double ** vNEAvgArray;
+	double ** uSWAvgArray;
+
+	int uLatLen;
+	int uLonLen;
+	double udLon;
+	double udLat;
+
+	int vLatLen;
+	int vLonLen;
+	double vdLon;
+	double vdLat;
+
+	int etaLatLen;
+	int etaLonLen;
+	double etadLon;
+	double etadLat;
+
+	Field * etaOld;
 	Field * etaNew;
+	Field * vOld;
 	Field * vNew;
+	Field * uOld;
 	Field * uNew;
 
 	Field * etaNewHalf;
@@ -77,10 +112,10 @@ public:
 	void Implicit();
 	void CrankNicolson();
 
-	void UpdatePotential();
-	void UpdateEastVel(Field * U, Field * UNEW, Field * V, Field * ETA);
-	void UpdateNorthVel(Field * V, Field * VNEW, Field * U, Field * ETA);
-	void UpdateSurfaceHeight(Field * ETA, Field * ETANEW, Field * U, Field * V);
+	inline void UpdatePotential() __attribute__((always_inline));
+	inline void UpdateEastVel() __attribute__((always_inline));
+	inline void UpdateNorthVel() __attribute__((always_inline));
+	inline void UpdateSurfaceHeight() __attribute__((always_inline));
 
 	void InterpPole(Field * Field);
 
