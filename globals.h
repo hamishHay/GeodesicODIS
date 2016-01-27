@@ -58,12 +58,12 @@ public:
 	GlobalVar<double> dLat; //NUMBER of cells in latitude
 	GlobalVar<double> dLon; //NUMBER of cells in longitude
 	GlobalVar<double> period;
-	GlobalVar<int> endTime;
+	GlobalVar<double> endTime;
 	GlobalVar<std::string> potential;
 	GlobalVar<std::string> friction;
 	GlobalVar<bool> init;
 	GlobalVar<double> converge;
-
+	
 	// Variables to switch on or off output of certain Variables
 	// i.e., setting kinetic to true outputs global averaged kinetic energy
 	GlobalVar<bool> diss;
@@ -73,9 +73,9 @@ public:
 	// Time in fraction of orbital period for output of all parameters
 	GlobalVar<double> outputTime;
 
-
 	Globals();
 	Globals(int action);
+
 	int ReadGlobals(void);
 };
 

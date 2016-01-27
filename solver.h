@@ -16,7 +16,7 @@ private:
 	void UpdateEccRadPotential(void);
 	void UpdateEccLibPotential(void);
 	void UpdateEccPotential(void);
-	void UpdateObliqPotential(void);
+	inline void UpdateObliqPotential(void) __attribute__((always_inline));
 	void UpdateFullPotential(void);
 
 	void ReadInitialConditions(void);
@@ -24,15 +24,19 @@ private:
 
 public:
 	double simulationTime = 0;
-	int orbitNumber = 1;
+	int orbitNumber = 0;
 	int iteration = 0;
+	int convergeCount = 0;
+	int convergeMax = 5;
+	double outputCount = 0.;
+
+	double dt;
 
 	std::ostringstream outstring;
 
 	OutFiles * Out;
 
 	Potential tide;
-
 
 	Globals * consts;
 	Mesh * grid;
@@ -43,8 +47,44 @@ public:
 	Field * u;
 	Energy * energy;
 
+	double ** etaOldArray;
+	double ** etaNewArray;
+
+	double ** vOldArray;
+	double ** vNewArray;
+
+	double ** uOldArray;
+	double ** uNewArray;
+
+	double ** dUlonArray;
+	double ** dUlatArray;
+
+	double ** vDissArray;
+	double ** uDissArray;
+
+	double ** vNEAvgArray;
+	double ** uSWAvgArray;
+
+	int uLatLen;
+	int uLonLen;
+	double udLon;
+	double udLat;
+
+	int vLatLen;
+	int vLonLen;
+	double vdLon;
+	double vdLat;
+
+	int etaLatLen;
+	int etaLonLen;
+	double etadLon;
+	double etadLat;
+
+	Field * etaOld;
 	Field * etaNew;
+	Field * vOld;
 	Field * vNew;
+	Field * uOld;
 	Field * uNew;
 
 	Field * etaNewHalf;
@@ -53,6 +93,14 @@ public:
 
 	Field * vDissTerm;
 	Field * uDissTerm;
+
+	Field * vNorthEastAvg;
+	Field * uSouthWestAvg;
+
+	double * cosMinusB;
+	double * cosPlusB;
+	double * sinMinusB;
+	double * sinPlusB;
 
 	Solver(int type, int dump, Globals *, Mesh *, Field *, Field*, Field *, Field *, Field *, Energy *);
 
@@ -64,10 +112,12 @@ public:
 	void Implicit();
 	void CrankNicolson();
 
-	void UpdatePotential();
-	void UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Field * ETA, double dt);
-	void UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Field * ETA, double dt);
-	void UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Field * V, Field * ETA, double dt);
+	inline void UpdatePotential() __attribute__((always_inline));
+	inline void UpdateEastVel() __attribute__((always_inline));
+	inline void UpdateNorthVel() __attribute__((always_inline));
+	inline void UpdateSurfaceHeight() __attribute__((always_inline));
+
+	void InterpPole(Field * Field);
 
 	void DumpSolutions(int output_num);
 	void DumpFields(int output_num);

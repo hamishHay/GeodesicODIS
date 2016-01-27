@@ -1,6 +1,10 @@
-ocean thickness; 	 	 	 400.0;		 	 	 h;
-friction coefficient; 	 	 	 2.28e-07;		 	 	 alpha;
-simulation end time; 	 	 	 10;		 	 	 endTime;
-initial conditions; 	 	 	 false;		 	 	 init;
-latitude spacing;               45;         dLat;
-longitude spacing;              60;               dLon;
+ocean thickness; 	 	 	 1.0; 	 	 	 h; 
+friction coefficient; 	 	 	 0.1; 	 	 	 alpha; 
+potential; 	 	 	 ECC; 	 	 	 potential; 
+simulation end time; 	 	 	 1000; 	 	 	 endTime; 
+friction type; 	 	 	 QUADRATIC; 	 	 	 friction;
+ time step; 	 	 	 40; 	 	 	 timeStep; 
+latitude spacing; 	 	 	 90.0; 	 	 	 lat; 
+longitude spacing; 	 	 	 180.0; 	 	 	 lon; 
+initial conditions; 	 	 	 false; 	 	 	 init; 
+converge; 	 	 	 1e-07; 	 	 	 convergence criteria; 

@@ -14,63 +14,31 @@ class Process:
         self.complete = False
         self.node = Node
         self.childrenPos = []
-        self.directory = os.getcwd() + "\\h" + str(self.h) + "_alpha" + str(self.a)
+        self.directory = os.getcwd() + "/h" + str(self.h) + "_alpha" + str(self.a)
         self.results_dir = self.directory #os.getcwd() + "\\Results\\h" + str(self.h) + "_alpha" + str(self.a)
         self.init = "true"
-        self.ODIS_PATH = /source/ODIS/ODIS
+        self.ODIS_PATH = "/source/ODIS/BUILD/ODIS"
 
-        if self.h <= 35:
-            if self.node[0] == 0 and self.node[1] == dim[1] - 1: #top and right
-                self.childrenPos.append((self.node[0]+1,self.node[1]))
-                self.max_children = 1
-            elif self.node[0] == 0: #right
-                self.childrenPos.append((self.node[0]+1,self.node[1]))
-                self.childrenPos.append((self.node[0],self.node[1]+1))
-                self.max_children = 2
-            elif self.node[0] == dim[0] - 1: #left
-                self.max_children = 0
-            else: #interior
-                self.childrenPos.append((self.node[0]+1,self.node[1]))
-                self.max_children = 1
-        else:
-            if self.node[0] == dim[0] - 1 and self.node[1] == 0: #bottom and left
-                self.childrenPos.append((self.node[0],self.node[1]+1))
-                self.max_children = 1
-            elif self.node[1] == 0 and self.node[0] != dim[0] - 1: #bottom
-                self.childrenPos.append((self.node[0]+1,self.node[1]))
-                self.childrenPos.append((self.node[0],self.node[1]+1))
-                self.max_children = 2
-            elif self.node[1] == dim[1] - 1: #top
-                self.max_children = 0
-            else:
-                self.childrenPos.append((self.node[0],self.node[1]+1))
-                self.max_children = 1
+        if self.node[0] == 0 and self.node[1] == dim[1] - 1: #top and right
+            self.childrenPos.append((self.node[0]+1,self.node[1]))
+            self.max_children = 1
+        elif self.node[0] == 0: #right
+            self.childrenPos.append((self.node[0]+1,self.node[1]))
+            self.childrenPos.append((self.node[0],self.node[1]+1))
+            self.max_children = 2
+        elif self.node[0] == dim[0] - 1: #left
+            self.max_children = 0
+        else: #interior
+            self.childrenPos.append((self.node[0]+1,self.node[1]))
+            self.max_children = 1
 
-        self.latnum = 90
-        self.lonnum = 45
-        self.dt = 100
+        self.latnum = 45
+        self.lonnum = 60
+        self.dt = 160
 
-        if (self.h < 35):
-            self.latnum = 90 #2
-        elif (self.h < 100):
-            self.latnum = 60 # 3
-        elif (self.h < 1000):
-            self.latnum = 60 #3
-        elif (self.h < 10000):
-            self.latnum = 90 # 2
-        elif (self.h <= 50000):
-            self.latnum = 90 # 2
-        else:
-            self.latnum = 90 # 2
-            self.dt = 25
-
-        if (self.a >= 6e-8):
-            self.dt = 105
-        #elif (self.a >= 1e-8):
-        #    self.dt = 64
-        else:
-            self.dt = 40
-
+        if self.h >= 1000:
+            self.latnum = 90
+            self.lonnum = 90
 
     def __repr__(self):
         return str(self.id)
@@ -87,12 +55,12 @@ class Process:
         self.CreateInputFile()
 
     def CreateInputFile(self):
-        f = open(self.directory+"\\input.in",'w')
+        f = open(self.directory+"/input.in",'w')
         f.write("ocean thickness; \t \t \t " + str(self.h) +"; \t \t \t h; \n")
         f.write("friction coefficient; \t \t \t " + str(self.a) +"; \t \t \t alpha; \n")
-        f.write("potential; \t \t \t OBLIQ; \t \t \t potential; \n")
+        f.write("potential; \t \t \t ECC; \t \t \t potential; \n")
         f.write("simulation end time; \t \t \t " + str(100) +"; \t \t \t endTime; \n")
-
+        f.write("friction type; \t \t \t QUADRATIC; \t \t \t friction;" )
 
         f.write("time step; \t \t \t " + str(self.dt) +"; \t \t \t timeStep; \n")
         f.write("latitude spacing; \t \t \t " + str(self.latnum) +"; \t \t \t lat; \n")
@@ -108,7 +76,7 @@ class Process:
             conv = 5e-7
         else:
             conv = 1e-7
-        #conv = 1e-7
+
         f.write("converge; \t \t \t " + str(conv) +"; \t \t \t convergence criteria; \n")
 
 
@@ -118,15 +86,14 @@ class Process:
         self.CreateDir()
         if self.node == (0,0):
             input("Press any key after adding initial conditions to process 1...")
-        print("attempting to run " + self.directory + "\\ODIS.exe")
-        self.pro = sub.Popen([self.directory + "\\ODIS.exe"], shell=True)
+        print("attempting to run " + self.directory + "/ODIS")
+        self.pro = sub.Popen([self.directory + "/ODIS"], shell=False)
         self.start = True
 
     def Wait(self):
         exit_code = self.pro.wait()
         self.complete = True
         return exit_code
-
 
     def IsRun(self):
         if self.start:

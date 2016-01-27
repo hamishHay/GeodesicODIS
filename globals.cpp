@@ -25,6 +25,7 @@
 #include <iostream>
 #include <algorithm>
 #include <cstring>
+#include <math.h>
 
 Globals::Globals() :Globals(1) {};
 
@@ -233,7 +234,7 @@ int Globals::ReadGlobals(void) {
 void Globals::SetDefault(void) {
 
 	//Satellite Radius
-	radius.SetValue(2574.7e3);
+	radius.SetValue(2574.73e3);
 
 	//k_2 love number
 	loveK2.SetValue(.120);
@@ -242,22 +243,22 @@ void Globals::SetDefault(void) {
 	loveH2.SetValue(.2);
 
 	//Love reduction factor
-	loveReduct.SetValue(1 + loveK2.Value() - loveH2.Value());
-
+	//loveReduct.SetValue(1 + loveK2.Value() - loveH2.Value());
+	loveReduct.SetValue(0.920012);
 	//Ocean thickness
 	h.SetValue(400);
 
 	//Surface gravity
-	g.SetValue(1.3);
+	g.SetValue(1.35);
 
 	//Semimajor axis
-	a.SetValue(1221865e3);
+	a.SetValue(1221.87e6);
 
 	//Eccentricity
 	e.SetValue(0.0288);
 
 	//Obliquity
-	theta.SetValue(0.32*pi / 180);
+	theta.SetValue(0.32*pi / 180.);
 
 	//Coefficient of linear friction
 	alpha.SetValue(2.28e-7);
@@ -270,16 +271,19 @@ void Globals::SetDefault(void) {
 	period.SetValue(16. * 24 * 60 * 60);
 
 	//Time step
-	timeStep.SetValue(80.);
+	timeStep.SetValue(40.);
 
 	//Convergence Criteria
 	converge.SetValue(1e-7);
 
 	//Angular velocity
-	angVel.SetValue(2 * pi / period.Value());
+	angVel.SetValue(4.56e-6);
+
+	//Orbital period
+	period.SetValue(2*pi/angVel.Value());
 
 	//Simulation end time
-	endTime.SetValue(80);
+	endTime.SetValue(80.);
 
 	//Potential
 	potential.SetValue("ECC");

@@ -10,11 +10,18 @@ private:
 	int latLength;
 	int lonLength;
 
+	void CalculateDt(void);
+
 public:
 //	Mesh(); //constructor
 
+	std::ostringstream outstring;
+
 	double dLon;
 	double dLat;
+
+	Globals * globals;
+
 	Mesh(Globals *);
 
 	int ReturnLatLen(void) const;

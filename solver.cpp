@@ -39,23 +39,70 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 	//Assign member pointers to passed in pointers from main.cpp
 	consts = Consts;
 	grid = Grid;
-	dUlon = UGradLon;
-	dUlat = UGradLat;
+	// dUlon = UGradLon;
+	// dUlat = UGradLat;
 	u = VelU;
 	v = VelV;
 	eta = Eta;
 	energy = EnergyField;
 
+	etaOld = new Field(grid,0,0);
+	etaOldArray = etaOld->solution;
+
 	etaNew = new Field(grid,0,0);
+	etaNewArray = etaNew->solution;
+
+	uOld = new Field(grid,0,1);
+	uOldArray = uOld->solution;
+
 	uNew = new Field(grid,0,1);
+	uNewArray = uNew->solution;
+
+	vOld = new Field(grid,1,0);
+	vOldArray = vOld->solution;
+
 	vNew = new Field(grid,1,0);
+	vNewArray = vNew->solution;
 
 	vDissTerm = new Field(grid, 1, 0);
-	uDissTerm = new Field(grid, 0, 1);
+	vDissArray = vDissTerm->solution;
 
-	*etaNew = *eta;
-	*uNew = *u;
-	*etaNew = *eta;
+	uDissTerm = new Field(grid, 0, 1);
+	uDissArray = uDissTerm->solution;
+
+	vNorthEastAvg = new Field(grid, 1, 0);
+	vNEAvgArray = vNorthEastAvg->solution;
+
+	uSouthWestAvg = new Field(grid, 0, 1);
+	uSWAvgArray = uSouthWestAvg->solution;
+
+	dUlat = new Field(grid,1,0);
+	dUlatArray = dUlat->solution;
+
+	dUlon = new Field(grid,0,1);
+	dUlonArray = dUlon->solution;
+
+	uLatLen = u->fieldLatLen;
+	uLonLen = u->fieldLonLen;
+	udLon = u->dLon;
+	udLat = u->dLat;
+
+	vLatLen = v->fieldLatLen;
+	vLonLen = v->fieldLonLen;
+	vdLon = v->dLon;
+	vdLat = v->dLat;
+
+	etaLatLen = eta->fieldLatLen;
+	etaLonLen = eta->fieldLonLen;
+	etadLon = eta->dLon;
+	etadLat = eta->dLat;
+
+	dt = consts->timeStep.Value();
+
+	cosMinusB = new double[dUlat->fieldLonLen];
+	cosPlusB = new double[dUlat->fieldLonLen];
+	sinMinusB = new double[dUlon->fieldLonLen];
+	sinPlusB = new double[dUlon->fieldLonLen];
 
 	if (consts->potential.Value() == "ECC_RAD") tide = ECC_RAD;
 	else if (consts->potential.Value() == "ECC_LIB") tide = ECC_LIB;
@@ -122,117 +169,177 @@ void Solver::UpdatePotential() {
 	}
 }
 
-void Solver::UpdateEccLibPotential(void) {
-	double lat = 0;
-	double lon = 0;
+inline void Solver::UpdateEccLibPotential(void) {
+	double sin2Lat = 0;
+	double cosLat = 0;
+	double B = consts->angVel.Value()*simulationTime;
+	double A = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->e.Value();
+	double Alat, Alon = 0;
+
+	for (int j = 0; j < dUlat->fieldLonLen; j++) {
+		cosMinusB[j] = cos(2 * dUlat->lon[j] - B);
+		cosPlusB[j] = cos(2 * dUlat->lon[j] + B);
+	}
+
+	for (int j = 0; j < dUlon->fieldLonLen; j++) {
+		sinMinusB[j] = sin(2 * dUlon->lon[j] - B);
+		sinPlusB[j] = sin(2 * dUlon->lon[j] + B);
+	}
+
+	Alat = A * -1.5;
+	for (int i = 0; i < dUlat->fieldLatLen; i++) {
+		//lat = 2*dUlat->lat[i];
+		sin2Lat = dUlat->sin2Lat[i];
+		for (int j = 0; j < dUlat->fieldLonLen; j++) {
+			dUlatArray[i][j] = Alat*(sin2Lat * (7 * cosMinusB[j] - cosPlusB[j])); //P22
+		}
+	}
+
+	Alon = A * 3;
+	for (int i = 0; i < dUlon->fieldLatLen; i++) {
+		cosLat = dUlon->cosLat[i];
+		for (int j = 0; j < dUlon->fieldLonLen; j++) {
+			dUlonArray[i][j] = Alon * cosLat*cosLat*(-7 * sinMinusB[j] + sinPlusB[j]); //P22
+		}
+	}
+}
+
+inline void Solver::UpdateEccPotential(void) {
+	double cosLat = 0;
+	double sin2Lat = 0;
+	double cosB = 0;
 	double B = consts->angVel.Value()*simulationTime;
 	double A = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->e.Value();
 
+	for (int j = 0; j < dUlat->fieldLonLen; j++) {
+		cosMinusB[j] = cos(2 * dUlat->lon[j] - B);
+		cosPlusB[j] = cos(2 * dUlat->lon[j] + B);
+	}
+
+	cosB = cos(B);
 	for (int i = 0; i < dUlat->fieldLatLen; i++) {
-		lat = dUlat->lat[i] * radConv;
+		sin2Lat = dUlat->sin2Lat[i];
 		for (int j = 0; j < dUlat->fieldLonLen; j++) {
-			lon = dUlat->lon[j] * radConv;
-			dUlat->solution[i][j] = A*(- 1.5*sin(2*lat) * (7 * cos(2*lon - B) - cos(2*lon + B))); //P22
+			//lon = dUlat->lon[j];
+			dUlatArray[i][j] = A*((-1.5*sin2Lat * (7 * cosMinusB[j] - cosPlusB[j])) + (-9.*sin2Lat*cosB)); //P22 + P20
 		}
 	}
 
+	for (int j = 0; j < dUlon->fieldLonLen; j++) {
+		sinMinusB[j] = sin(2 * dUlon->lon[j] - B);
+		sinPlusB[j] = sin(2 * dUlon->lon[j] + B);
+	}
+
 	for (int i = 0; i < dUlon->fieldLatLen; i++) {
-		lat = dUlon->lat[i] * radConv;
+		cosLat = dUlon->cosLat[i];
 		for (int j = 0; j < dUlon->fieldLonLen; j++) {
-			lon = dUlon->lon[j] * radConv;
-			dUlon->solution[i][j] = A *3* cos(lat)*cos(lat)*(-7 * sin(2*lon - B) + sin(2*lon + B)); //P22
+			//lon = dUlon->lon[j];
+			dUlonArray[i][j] = A * 3 * cosLat*cosLat*(-7 * sinMinusB[j] + sinPlusB[j]); //P22
 		}
 	}
 }
 
-void Solver::UpdateEccPotential(void) {
-	double lat = 0;
-	double lon = 0;
+inline void Solver::UpdateEccRadPotential(void) {
+	double cosB = 0;
+	double sin2Lat = 0;
 	double B = consts->angVel.Value()*simulationTime;
 	double A = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->e.Value();
+	double value = 0;
 
+	cosB = cos(B);
 	for (int i = 0; i < dUlat->fieldLatLen; i++) {
-		lat = dUlat->lat[i] * radConv;
+		sin2Lat = dUlat->sin2Lat[i]; //sin(2*lat)
+		value = A*(-9.*sin2Lat*cosB);
 		for (int j = 0; j < dUlat->fieldLonLen; j++) {
-			lon = dUlat->lon[j] * radConv;
-			dUlat->solution[i][j] = A*(-1.5*sin(2 * lat) * (7 * cos(2 * lon - B) - cos(2 * lon + B))) + A*(-9.*sin(2 * lat)*cos(B)); //P22 + P20
-		}
-	}
-
-	for (int i = 0; i < dUlon->fieldLatLen; i++) {
-		lat = dUlon->lat[i] * radConv;
-		for (int j = 0; j < dUlon->fieldLonLen; j++) {
-			lon = dUlon->lon[j] * radConv;
-			dUlon->solution[i][j] = A * 3 * cos(lat)*cos(lat)*(-7 * sin(2 * lon - B) + sin(2 * lon + B)); //P22
+			dUlatArray[i][j] = value; // P20
 		}
 	}
 }
 
-void Solver::UpdateEccRadPotential(void) {
-	double lat = 0;
-	double B = consts->angVel.Value()*simulationTime;
-	double A = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->e.Value();//consts->theta.Value();//
-
-	for (int i = 0; i < dUlat->fieldLatLen; i++) {
-		lat = dUlat->lat[i] * radConv;
-		for (int j = 0; j < dUlat->fieldLonLen; j++) {
-			dUlat->solution[i][j] = A*(-9.*sin(2*lat)*cos(B)); // P20
-		}
-	}
-}
-
-void Solver::UpdateObliqPotential(void) {
-	double lat = 0;
-	double lon = 0;
+inline void Solver::UpdateObliqPotential(void) {
+	double cos2Lat = 0;
+	double sin2Lat = 0;
+	double value = 0;
 	double B = consts->angVel.Value()*simulationTime;
 	double A = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->theta.Value();
 
+	for (int j = 0; j < dUlat->fieldLonLen; j++) {
+		cosMinusB[j] = cos(dUlat->lon[j] - B);
+		cosPlusB[j] = cos(dUlat->lon[j] + B);
+	}
+
 	for (int i = 0; i < dUlat->fieldLatLen; i++) {
-		lat = dUlat->lat[i] * radConv;
+		//lat = dUlat->lat[i];
+		cos2Lat = dUlat->cos2Lat[i];
+		value = -6 * A*cos2Lat;
 		for (int j = 0; j < dUlat->fieldLonLen; j++) {
-			lon = dUlat->lon[j] * radConv;
-			dUlat->solution[i][j] = -6 * A*cos(2 * lat)*(cos(lon - B) + cos(lon + B)); //P21
+			//lon = dUlat->lon[j];
+			dUlatArray[i][j] = value*(cosMinusB[j] + cosPlusB[j]); //P21
 		}
 	}
 
+	for (int j = 0; j < dUlon->fieldLonLen; j++) {
+		sinMinusB[j] = sin(dUlon->lon[j] - B);
+		sinPlusB[j] = sin(dUlon->lon[j] + B);
+	}
+
 	for (int i = 0; i < dUlon->fieldLatLen; i++) {
-		lat = dUlon->lat[i] * radConv;
+		//lat = dUlon->lat[i]  ;
+		sin2Lat = dUlon->sin2Lat[i];
+		value = 3 * A * sin2Lat;
 		for (int j = 0; j < dUlon->fieldLonLen; j++) {
-			lon = dUlon->lon[j] * radConv;
-			dUlon->solution[i][j] = 3 * A * sin(2 * lat)*(sin(lon - B) + sin(lon + B)); //P21
+			//lon = dUlon->lon[j];
+			dUlonArray[i][j] = value*(sinMinusB[j] + sinPlusB[j]); //P21
 		}
 	}
 }
 
-void Solver::UpdateFullPotential(void) {
-	double lat = 0;
+inline void Solver::UpdateFullPotential(void) {
 	double lon = 0;
+	double lat;
 	double B = consts->angVel.Value()*simulationTime;
 	double A = 0.25 * pow(consts->angVel.Value(),2)*pow(consts->radius.Value(),2);
+	double sin2Lat = 0;
+	double cos2Lat = 0;
+  double cosLat = 0;
 
 	for (int i = 0; i < dUlat->fieldLatLen; i++) {
-		lat = dUlat->lat[i] * radConv;
+		lat = dUlat->lat[i];
+		sin2Lat = dUlat->sin2Lat[i];
+		cos2Lat = dUlat->cos2Lat[i];
 		for (int j = 0; j < dUlat->fieldLonLen; j++) {
-			lon = dUlat->lon[j] * radConv;
-			dUlat->solution[i][j] = consts->theta.Value()*-6 * cos(2 * lat)*(cos(lon - B) + cos(lon + B));
-			dUlat->solution[i][j] += consts->e.Value()*(-9.*sin(2 * lat)*cos(B));
-			dUlat->solution[i][j] += consts->e.Value()*(-1.5*sin(2 * lat) * (7 * cos(2 * lon - B) - cos(2 * lon + B)));
-			dUlat->solution[i][j] *= A;
+			lon = dUlat->lon[j];
+			dUlatArray[i][j] = consts->theta.Value()*-6 * cos2Lat*(cos(lon - B) + cos(lon + B));
+			dUlatArray[i][j] += consts->e.Value()*(-9.*sin2Lat*cos(B));
+			dUlatArray[i][j] += consts->e.Value()*(-1.5*sin2Lat * (7 * cos(2 * lon - B) - cos(2 * lon + B)));
+			dUlatArray[i][j] *= A;
 		}
 	}
 
 	for (int i = 0; i < dUlon->fieldLatLen; i++) {
-		lat = dUlon->lat[i] * radConv;
+		lat = dUlon->lat[i];
+		sin2Lat = dUlon->sin2Lat[i];
+		cosLat = dUlon->cosLat[i];
 		for (int j = 0; j < dUlon->fieldLonLen; j++) {
-			lon = dUlon->lon[j] * radConv;
-			dUlon->solution[i][j] = consts->theta.Value() * 3 * sin(2 * lat)*(sin(lon - B) + sin(lon + B));
-			dUlon->solution[i][j] += consts->e.Value() * 3 * cos(lat)*cos(lat)*(-7 * sin(2 * lon - B) + sin(2 * lon + B));
-			dUlon->solution[i][j] *= A;
+			lon = dUlon->lon[j];
+			dUlonArray[i][j] = consts->theta.Value() * 3 * sin2Lat*(sin(lon - B) + sin(lon + B));
+			dUlonArray[i][j] += consts->e.Value() * 3 * cosLat*cosLat*(-7 * sin(2 * lon - B) + sin(2 * lon + B));
+			dUlonArray[i][j] *= A;
 		}
 	}
 }
 
-void Solver::UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Field * ETA, double dt){
+inline void Solver::InterpPole(Field * field) {
+	for (int j = 0; j < field->fieldLonLen; j++) {
+		// field->solution[0][j] = linearInterp1(field, 0, j);
+		// field->solution[field->fieldLatLen - 1][j] = linearInterp1(field, field->fieldLatLen - 1, j);
+		field->solution[0][j] = lagrangeInterp3(field, 0, j);
+		field->solution[field->fieldLatLen - 1][j] = lagrangeInterp3(field, field->fieldLatLen - 1, j);
+	}
+
+};
+
+inline void Solver::UpdateEastVel(){
 	double coriolis = 0;
 	double tidalForce = 0;
 
@@ -241,71 +348,101 @@ void Solver::UpdateEastVel(Field * UOLD, Field * UNEW, Field * U, Field * V, Fie
 	double eastEta = 0;
 	double westEta = 0;
 
-	double lat;
 	double alpha = consts->alpha.Value();
+	double angVel = consts->angVel.Value();
+
+	for (int i = 1; i < uLatLen - 1; i++) {
+		for (int j = 0; j < uLonLen; j++) {
+			if (j < vLonLen - 1) {
+				vNEAvgArray[i][j] = 0.25*(vOldArray[i][j] + vOldArray[i - 1][j] + vOldArray[i][j + 1] + vOldArray[i - 1][j + 1]);
+			}
+			else {
+				vNEAvgArray[i][j] = 0.25*(vOldArray[i][j] + vOldArray[i - 1][j] + vOldArray[i][0] + vOldArray[i - 1][0]);
+			}
+		}
+	}
+
 
 	switch (consts->fric_type) {
 	case LINEAR:
-		for (int i = 1; i < u->fieldLatLen - 1; i++) {
-			for (int j = 0; j < u->fieldLonLen; j++) {
-				uDissTerm->solution[i][j] = U->solution[i][j] * alpha;
+		for (int i = 1; i < uLatLen - 1; i++) {
+			for (int j = 0; j < uLonLen; j++) {
+				uDissArray[i][j] = uOldArray[i][j] * alpha;
 			}
 		}
 		break;
 
 	case QUADRATIC:
 		double alphah = alpha / consts->h.Value();
-		for (int i = 1; i < u->fieldLatLen - 1; i++) {
-			for (int j = 0; j < u->fieldLonLen; j++) {
-				uDissTerm->solution[i][j] = alphah * U->solution[i][j] * sqrt(U->solution[i][j]*U->solution[i][j] + V->NorthEastAvg(i, j)*V->NorthEastAvg(i, j));
+
+		 for (int i = 1; i < uLatLen - 1; i++) {
+		 	for (int j = 0; j < uLonLen; j++) {
+				uDissArray[i][j] = alphah * uOldArray[i][j] * sqrt(uOldArray[i][j]*uOldArray[i][j] + vNEAvgArray[i][j]*vNEAvgArray[i][j]);
 			}
 		}
 		break;
 	}
 
+	double loveRadius = consts->loveReduct.Value() / consts->radius.Value();
+	double gRadius = consts->g.Value() / consts->radius.Value();
+	double coriolisFactor = 0;
+	double tidalFactor = 0;
+	double surfFactor = 0;
 
-	for (int i = 1; i < u->fieldLatLen - 1; i++) {
-		lat = u->lat[i] * radConv;
-		for (int j = 0; j < u->fieldLonLen; j++) {
-			eastEta = ETA->EastP(i, j);
-			westEta = ETA->CenterP(i, j);
+	double * uCosLat = uOld->cosLat;
+	double * uSinLat = uOld->sinLat;
 
-			dSurfLon = (eastEta - westEta) / (eta->dLon*radConv);
 
-			surfHeight = (consts->g.Value() / (consts->radius.Value()*cos(lat)))*dSurfLon;
+	for (int i = 1; i < uLatLen - 1; i++) {
+		coriolisFactor =  2. * angVel*uSinLat[i];
+		tidalFactor = loveRadius/uCosLat[i];
+		surfFactor = gRadius/uCosLat[i];
+		for (int j = 0; j < uLonLen; j++) {
+			if (j != uLonLen - 1) eastEta = etaOldArray[i][j+1];//ETA->solution[i][j + 1];
+			else eastEta = etaOldArray[i][0];//ETA->solution[i][0];
 
-			coriolis = 2. * consts->angVel.Value()*sin(lat)*V->NorthEastAvg(i, j);
-			tidalForce = consts->loveReduct.Value()*(1. / (consts->radius.Value()*cos(lat)))* dUlon->solution[i][j];
+			westEta = etaOldArray[i][j];//ETA->solution[i][j];
 
-			UNEW->solution[i][j] = (coriolis - surfHeight + tidalForce - uDissTerm->solution[i][j])*dt + UOLD->solution[i][j];
+			dSurfLon = (eastEta - westEta) / (etadLon);
+
+			surfHeight = surfFactor*dSurfLon;
+
+			coriolis = coriolisFactor*vNEAvgArray[i][j];
+			tidalForce = tidalFactor * dUlonArray[i][j];
+
+			uNewArray[i][j] = (coriolis - surfHeight + tidalForce - uDissArray[i][j])*dt + uOldArray[i][j];
+
+
 		}
 	}
 
-	for (int j = 0; j < u->fieldLonLen; j++) {
-		//UNEW->solution[0][j] = linearInterp2(UNEW, 0, j);
-		//UNEW->solution[u->fieldLatLen - 1][j] = linearInterp2(UNEW, u->fieldLatLen - 1, j);
-		UNEW->solution[0][j] = lagrangeInterp2(UNEW, 0, j);
-		UNEW->solution[u->fieldLatLen - 1][j] = lagrangeInterp2(UNEW, u->fieldLatLen - 1, j);
-		//UNEW->solution[0][j] = 0;
-		//UNEW->solution[u->fieldLatLen - 1][j] = 0;
-	}
 
-	/*double npoleSum = 0;
+	// InterpPole(UNEW);
+
+	for (int j = 0; j < uLonLen; j++) {
+		// uNewArray[0][j] = linearInterp1Array(u,uNewArray, 0, j);
+		// uNewArray[uLatLen - 1][j] = linearInterp1Array(u,uNewArray, uLatLen - 1, j);
+    uNewArray[0][j] = lagrangeInterp3ArrayCenter(u,uNewArray, 0, j);
+    uNewArray[uLatLen - 1][j] = lagrangeInterp3ArrayCenter(u,uNewArray, uLatLen - 1, j);
+		// uNewArray[0][j] = uNewArray[1][j];
+	  // uNewArray[uLatLen - 1][j] = uNewArray[uLatLen - 2][j];
+	}
+	double npoleSum = 0;
 	double spoleSum = 0;
-	for (int j = 0; j < u->fieldLonLen; j++) {
-		npoleSum += UNEW->solution[0][j];
-		spoleSum += UNEW->solution[u->fieldLatLen - 1][j];
+	for (int j = 0; j < uLonLen; j++) {
+		npoleSum += uNewArray[0][j];
+		spoleSum += uNewArray[uLatLen - 1][j];
 	}
-	npoleSum = npoleSum / u->fieldLonLen;
-	spoleSum = spoleSum / u->fieldLonLen;
+	npoleSum = npoleSum / uLonLen;
+	spoleSum = spoleSum / uLonLen;
 
-	for (int j = 0; j < u->fieldLonLen; j++) {
-		UNEW->solution[0][j] = npoleSum;
-		UNEW->solution[u->fieldLatLen - 1][j] = spoleSum;
-	}*/
+	for (int j = 0; j < uLonLen; j++) {
+		uNewArray[0][j] = npoleSum;
+		uNewArray[uLatLen - 1][j] = spoleSum;
+	}
 }
 
-void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Field * ETA, double dt){
+inline void Solver::UpdateNorthVel(){
 	double coriolis = 0;
 	double tidalForce = 0;
 	double dSurfLat = 0;
@@ -314,49 +451,70 @@ void Solver::UpdateNorthVel(Field * VOLD, Field * VNEW, Field * U, Field * V, Fi
 	double northEta = 0;
 	double southEta = 0;
 
-	double lat;
-
 	double alpha = consts->alpha.Value();
+	double angVel = consts->angVel.Value();
+
+	for (int i = 0; i < vLatLen; i++) {
+		for (int j = 0; j < vLonLen; j++) {
+			if (j > 0) {
+				uSWAvgArray[i][j] = 0.25*(uOldArray[i][j] + uOldArray[i + 1][j] + uOldArray[i][j - 1] + uOldArray[i + 1][j - 1]);
+			}
+			else {
+				uSWAvgArray[i][j] = 0.25*(uOldArray[i][j] + uOldArray[i + 1][j] + uOldArray[i][uLonLen - 1] + uOldArray[i + 1][uLonLen - 1]);
+			}
+		}
+
+	}
 
 	switch (consts->fric_type) {
 	case LINEAR:
-		for (int i = 0; i < v->fieldLatLen; i++) {
-			for (int j = 0; j < v->fieldLonLen; j++) {
-				vDissTerm->solution[i][j] = V->solution[i][j] * alpha;
+		for (int i = 0; i < vLatLen; i++) {
+			for (int j = 0; j < vLonLen; j++) {
+				vDissArray[i][j] = vOldArray[i][j] * alpha;
 			}
 		}
 		break;
 
 	case QUADRATIC:
 		double alphah = alpha / consts->h.Value();
-		for (int i = 0; i < v->fieldLatLen; i++) {
-			for (int j = 0; j < v->fieldLonLen; j++) {
-				vDissTerm->solution[i][j] = alphah * V->solution[i][j] * sqrt(V->solution[i][j]*V->solution[i][j] + U->SouthWestAvg(i, j)*U->SouthWestAvg(i, j));
+		for (int i = 0; i < vLatLen; i++) {
+			for (int j = 0; j < vLonLen; j++) {
+				vDissArray[i][j] = alphah * vOldArray[i][j] * sqrt(vOldArray[i][j] * vOldArray[i][j] + uSWAvgArray[i][j]*uSWAvgArray[i][j]);
 			}
 		}
 		break;
 	}
 
-	for (int i = 0; i < v->fieldLatLen; i++) {
-		lat = v->lat[i] * radConv;
-		for (int j = 0; j < v->fieldLonLen; j++) {
-			northEta = eta->solution[i][j];//ETA->CenterP(i, j);
-			southEta = eta->solution[i + 1][j];//ETA->SouthP(i, j);
+	double loveRadius = consts->loveReduct.Value() / consts->radius.Value();
+	double gRadius = consts->g.Value() / consts->radius.Value();
+	double coriolisFactor = 0;
 
-			dSurfLat = (northEta - southEta) / (eta->dLat*radConv);
+	// std::cout<<vOldArray[0][0]<<'\t';
+	// std::cout<<vOldArray[0][1]<<std::endl;
+	for (int i = 0; i < vLatLen; i++) {
+		coriolisFactor = 2. * angVel * v->sinLat[i];
+		for (int j = 0; j < vLonLen; j++) {
+			northEta = etaOldArray[i][j];//eta->solution[i][j];
+			southEta = etaOldArray[i+1][j];//eta->solution[i + 1][j];
 
-			surfHeight = (consts->g.Value() / consts->radius.Value())*dSurfLat;
+			dSurfLat = (northEta - southEta) / etadLat;
 
-			coriolis = 2. * consts->angVel.Value()*sin(lat)*U->SouthWestAvg(i, j);
 
-			tidalForce = consts->loveReduct.Value()*(1. / consts->radius.Value())* dUlat->solution[i][j];
+			surfHeight = gRadius*dSurfLat;
 
-			VNEW->solution[i][j] = (-coriolis - surfHeight + tidalForce - vDissTerm->solution[i][j])*dt + VOLD->solution[i][j];
+			coriolis =  coriolisFactor*uSWAvgArray[i][j];
+
+			tidalForce = loveRadius * dUlatArray[i][j];
+
+			vNewArray[i][j] = (-coriolis - surfHeight + tidalForce - vDissArray[i][j])*dt + vOldArray[i][j];
+			// vNewArray[i][j] = (tidalForce)*dt + vOldArray[i][j];
+
 		}
 	}
+
 }
 
-void Solver::UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Field * V, Field * ETA, double dt){
+inline void Solver::UpdateSurfaceHeight(){
 	double vGrad = 0;
 	double uGrad = 0;
 	double northv = 0;
@@ -364,53 +522,61 @@ void Solver::UpdateSurfaceHeight(Field * ETAOLD, Field * ETANEW, Field * U, Fiel
 	double eastu = 0;
 	double westu = 0;
 
-	double lat;
+	double cosLat;
+	double vdLat = v->dLat;
+	double vdLon = u->dLon;
 
 
-	for (int i = 1; i < eta->fieldLatLen-1; i++) {
-		lat = eta->lat[i] * radConv;
-		for (int j = 0; j < eta->fieldLonLen; j++) {
-			northv = V->CenterP(i - 1, j)*cos(v->lat[i - 1] * radConv);
-			southv = V->CenterP(i, j)*cos(v->lat[i] * radConv);
+	double h = consts->h.Value();
+	double hRadius = h / consts->radius.Value();
 
-			vGrad = (northv - southv) / (v->dLat*radConv);
+	for (int i = 1; i < etaLatLen-1; i++) {
+		cosLat = eta->cosLat[i];
+		for (int j = 0; j < etaLonLen; j++) {
+			northv = vNewArray[i - 1][j] * v->cosLat[i - 1];
+			southv = vNewArray[i][j] * v->cosLat[i];
 
-			if (j == 0) {
-				westu = U->solution[i][U->fieldLonLen-1];
-				eastu = U->solution[i][j];
+			vGrad = (northv - southv) / vdLat;
+
+
+			if (j != 0) {
+				eastu = uNewArray[i][j];
+				westu = uNewArray[i][j - 1];
 			}
 			else {
-				eastu = U->solution[i][j];
-				westu = U->solution[i][j-1];
+				eastu = uNewArray[i][j];
+				westu = uNewArray[i][uLonLen - 1];
 			}
 
-			uGrad = (eastu - westu) / (u->dLon*radConv);
+			uGrad = (eastu - westu) / vdLon;
 
-			ETANEW->solution[i][j] = consts->h.Value() / (consts->radius.Value()*cos(lat))*(-vGrad - uGrad)*dt + ETAOLD->solution[i][j];
+			etaNewArray[i][j] = hRadius/cosLat*(-vGrad - uGrad)*dt + etaOldArray[i][j];
 		}
 	}
 
-	for (int j = 0; j < eta->fieldLonLen; j++) {
-		//ETANEW->solution[0][j] = linearInterp1(ETANEW, 0, j);
-		//ETANEW->solution[eta->fieldLatLen - 1][j] = linearInterp1(ETANEW, eta->fieldLatLen - 1, j);
-		ETANEW->solution[0][j] = lagrangeInterp3(ETANEW, 0, j);
-		ETANEW->solution[eta->fieldLatLen - 1][j] = lagrangeInterp3(ETANEW, eta->fieldLatLen - 1, j);
+	// InterpPole(ETANEW);
+
+	for (int j = 0; j < etaLonLen; j++) {
+		// etaNewArray[0][j] = linearInterp1Array(eta,etaNewArray, 0, j);
+		// etaNewArray[etaLatLen - 1][j] = linearInterp1Array(eta,etaNewArray, etaLatLen - 1, j);
+    etaNewArray[0][j] = lagrangeInterp3ArrayCenter(eta,etaNewArray, 0, j);
+    etaNewArray[etaLatLen - 1][j] = lagrangeInterp3ArrayCenter(eta,etaNewArray, etaLatLen - 1, j);
 	}
 
 	//Average eta out at poles
 
 	double npoleSum = 0;
 	double spoleSum = 0;
-	for (int j = 0; j < eta->fieldLonLen; j++) {
-		npoleSum += ETANEW->solution[0][j];
-		spoleSum += ETANEW->solution[eta->fieldLatLen - 1][j];
+	for (int j = 0; j < etaLonLen; j++) {
+		npoleSum += etaNewArray[0][j];
+		spoleSum += etaNewArray[etaLatLen - 1][j];
 	}
-	npoleSum = npoleSum / eta->fieldLonLen;
-	spoleSum = spoleSum / eta->fieldLonLen;
+	npoleSum = npoleSum / etaLonLen;
+	spoleSum = spoleSum / etaLonLen;
 
-	for (int j = 0; j < eta->fieldLonLen; j++) {
-		ETANEW->solution[0][j] = npoleSum;
-		ETANEW->solution[eta->fieldLatLen - 1][j] = spoleSum;
+	for (int j = 0; j < etaLonLen; j++) {
+		etaNewArray[0][j] = npoleSum;
+		etaNewArray[etaLatLen - 1][j] = spoleSum;
 	}
 }
 
@@ -421,68 +587,95 @@ void Solver::Explicit() {
 	//Check for stability
 	outstring << "Entering time loop:\n\n";
 	outstring << "End time: \t" << consts->endTime.Value() / 86400.0 << " days\n";
-	outstring << "Time step: \t" << consts->timeStep.Value() << " seconds\n\n";
+	outstring << "Time step: \t" << dt << " seconds\n\n";
 	Out->Write(OUT_MESSAGE, &outstring);
 
 	int output = 0;
 
-	int outputTime = (int)(16 * 24 * 60 * 60) / (consts->timeStep.Value());///46080/10;// 34560;
-	int inc = outputTime;
+	double timeStepCount = 0;
+	int inc = (int) (consts->period.Value()/dt);
+
 	DumpSolutions(-1);
 
-	//for (int j = 0; j < u->fieldLonLen; j++) {
-	//	u->solution[0][j] = 0;
-	//	u->solution[u->fieldLatLen - 1][j] = 0;
-	//	//UNEW->solution[0][j] = lagrangeInterp(UNEW, 0, j);
-	//	//UNEW->solution[u->fieldLatLen - 1][j] = lagrangeInterp(UNEW, u->fieldLatLen - 1, j);
-	//}
-
 	//Update cell energies and globally averaged energy
-	energy->UpdateKinE();
+	energy->UpdateKinE(uNewArray,vNewArray);
 
 	while (simulationTime <= consts->endTime.Value() && !energy->converged) {
 
+
+		timeStepCount+=dt;
+		outputCount+=dt;
+
 		UpdatePotential();
 
-		simulationTime = simulationTime + consts->timeStep.Value();
+		simulationTime += dt;
 
 		//Solve for v
-		UpdateNorthVel(v, vNew, u, v, eta, consts->timeStep.Value());
+		UpdateNorthVel();
 
 		//solve for u
-		UpdateEastVel(u, uNew, u, v, eta, consts->timeStep.Value());
+		UpdateEastVel();
 
 		//Solve for eta based on new u and v
-		UpdateSurfaceHeight(eta, etaNew, uNew, vNew, eta, consts->timeStep.Value());
+		UpdateSurfaceHeight();
 
-		//Overwite previous timestep solutions at end of iteration.
-		*eta = *etaNew;
-		*u = *uNew;
-		*v = *vNew;
+		// *etaOldArray = *etaNewArray;
+		// **etaOldArray = **etaNewArray;
+		// *uOldArray = *uNewArray;
+		// **uOldArray = **uNewArray;
+		// *vOldArray = *vNewArray;
+		// **vOldArray = **vNewArray;
 
-		if (fmod(iteration, (outputTime / inc)) == 0) {
-			//Update Kinetic Energy Field
-			energy->UpdateKinE();
-
-			//Update Globally Avergaed Kinetic Energy
-			energy->UpdateDtKinEAvg();
+		for (int i = 0; i < vLatLen; i++) {
+			for (int j = 0; j < vLonLen; j++) {
+				vOldArray[i][j] = vNewArray[i][j];
+			}
 		}
 
-		//Check for output
-		if (fmod(iteration, outputTime) == 0) {//11520/10/2outputTime/10/2
-			energy->UpdateOrbitalKinEAvg(inc);
-			//std::cout << energy->isConverged;
+		for (int i = 0; i < uLatLen; i++) {
+			for (int j = 0; j < uLonLen; j++) {
+				uOldArray[i][j] = uNewArray[i][j];
+			}
+		}
 
-			//Check for convergence
+		for (int i = 0; i < etaLatLen; i++) {
+			for (int j = 0; j < etaLonLen; j++) {
+				etaOldArray[i][j] = etaNewArray[i][j];
+			}
+		}
+
+		energy->UpdateKinE(uNewArray,vNewArray);
+
+		energy->UpdateDtKinEAvg();
+
+		//Check for output
+
+		if (timeStepCount >= consts->period.Value()) {
+		//if (true) {
+			orbitNumber++;
+			timeStepCount = timeStepCount - consts->period.Value();
+
+			energy->UpdateOrbitalKinEAvg(inc);
+
+			// Check for convergence
 			if (orbitNumber>1) energy->IsConverged();
+			if (energy->converged) convergeCount++;
 
 			outstring << std::fixed << std::setprecision(2) << simulationTime / 86400.0 << " days: \t" << 100 * (simulationTime / consts->endTime.Value()) << "%\t" << output;
 			Out->Write(OUT_MESSAGE, &outstring);
 
+			// DumpSolutions(output);
+			// output++;
+
+		}
+
+		if (outputCount>= consts->period.Value()) {
 			DumpSolutions(output);
+			outputCount -= consts->period.Value();
 			output++;
 		}
-		if (fmod(iteration, consts->period.Value()/consts->timeStep.Value()) == 0) orbitNumber++;
+		// DumpSolutions(output);
+		// output++;
 		iteration++;
 	}
 
@@ -523,22 +716,25 @@ void Solver::DumpSolutions(int out_num) {
 		std::ofstream vLat(consts->path + SEP + "Grid" + SEP + "v_lat.txt", std::ofstream::out);
 		std::ofstream vLon(consts->path + SEP + "Grid" + SEP + "v_lon.txt", std::ofstream::out);
 
-		for (int j = 0; j < u->ReturnFieldLonLen(); j++) uLon << u->lon[j] << '\t';
-		for (int i = 0; i < u->ReturnFieldLatLen(); i++) uLat << u->lat[i] << '\t';
+		for (int j = 0; j < u->ReturnFieldLonLen(); j++) uLon << u->lon[j] * 1 / radConv << '\t';
+		for (int i = 0; i < u->ReturnFieldLatLen(); i++) uLat << u->lat[i] * 1 / radConv << '\t';
 
-		for (int j = 0; j < v->ReturnFieldLonLen(); j++) vLon << v->lon[j] << '\t';
-		for (int i = 0; i < v->ReturnFieldLatLen(); i++) vLat << v->lat[i] << '\t';
+		for (int j = 0; j < v->ReturnFieldLonLen(); j++) vLon << v->lon[j] * 1 / radConv << '\t';
+		for (int i = 0; i < v->ReturnFieldLatLen(); i++) vLat << v->lat[i] * 1 / radConv << '\t';
 	}
 
 	else {
 		//fopen for linux
 		//fopen_s for windows
 		FILE * dissFile = fopen(&(consts->path + SEP + "diss.txt")[0], "a+");
-		fprintf(dissFile, "%.15f \n", energy->orbitDissEAvg[energy->orbitDissEAvg.size() - 1]);
+		fprintf(dissFile, "%.15f \n", energy->orbitDissEAvg[1]);
+		//fprintf(dissFile, "%.15f \n", 2*consts->alpha.Value()*energy->dtKinEAvg[out_num]);
 		fclose(dissFile);
 
 		if (energy->converged) DumpFields(out_num);
-		else if (out_num % 1 == 0) DumpFields(out_num); //dump every 5 orbits
+		else if (out_num % 5 == 0) DumpFields(out_num); //dump every 5 orbits
+
+		// DumpFields(out_num); //FOR DEBUGGING
 	}
 };
 
@@ -547,9 +743,9 @@ void Solver::ReadInitialConditions(void) {
 	std::ifstream northVel(consts->path + SEP + "InitialConditions" + SEP + "v_vel.txt", std::ifstream::in);
 	std::ifstream displacement(consts->path + SEP + "InitialConditions" + SEP + "eta.txt", std::ifstream::in);
 
-	CopyInitialConditions(eastVel, u);
-	CopyInitialConditions(northVel, v);
-	CopyInitialConditions(displacement, eta);
+	CopyInitialConditions(eastVel, uOld);
+	CopyInitialConditions(northVel, vOld);
+	CopyInitialConditions(displacement, etaOld);
 };
 
 void Solver::CopyInitialConditions(std::ifstream & file, Field * inField) {
@@ -580,16 +776,17 @@ void Solver::DumpFields(int output_num) {
 
 	for (int i = 0; i < u->ReturnFieldLatLen(); i++) {
 		for (int j = 0; j < u->ReturnFieldLonLen(); j++) {
-			uFile << uNew->solution[i][j] << '\t';
-			etaFile << etaNew->solution[i][j] << '\t';
+			uFile << uNewArray[i][j] << '\t';
+			// etaFile << etaNew->solution[i][j] << '\t';
+			etaFile << etaNewArray[i][j] << '\t';
 		}
 		uFile << std::endl;
 		etaFile << std::endl;
 	}
 
-	for (int i = 0; i < v->fieldLatLen; i++) {
-		for (int j = 0; j < v->fieldLonLen; j++) {
-			vFile << vNew->solution[i][j] << '\t';
+	for (int i = 0; i < vLatLen; i++) {
+		for (int j = 0; j < vLonLen; j++) {
+			vFile << vOldArray[i][j] << '\t';
 		}
 		vFile << std::endl;
 	}

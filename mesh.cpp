@@ -5,8 +5,10 @@
 
 //Mesh::Mesh():Mesh(2., 2.) {}; //default constructor
 
-Mesh::Mesh(Globals * globals) //non-default constructor
+Mesh::Mesh(Globals * Globals) //non-default constructor
 {
+
+	globals = Globals;
 
 	dLat = globals->dLat.Value();
 	dLon = globals->dLon.Value();
@@ -20,19 +22,23 @@ Mesh::Mesh(Globals * globals) //non-default constructor
 
 	latLength = dLat*2. + 1.;
 	dLat = 0.5*180. / dLat;
-	
+
+	std::cout<<"dlat: "<<dLat<<std::endl;
+
 	//dLat = 180. / dLat;
 
-	if (fmod(360., dLon) == 0)
-	{
-		lonLength = (int)(360. / dLon);
-	}
-	else dLon = NULL; //Raise exception
+	// if (fmod(360., dLon) == 0)
+	// {
+	// 	lonLength = (int)(360. / dLon);
+	// }
+	// else dLon = NULL; //Raise exception
 
 	lonLength = dLon*2.;
 	dLon = 0.5*360. / dLon;
 
-	//Populate lat vector with co-latitude 
+	std::cout<<"dlon: "<<dLon<<std::endl;
+
+	//Populate lat vector with co-latitude
 	int count = 0;
 	int i = 0;
 	double currentLat = 90;
@@ -41,10 +47,12 @@ Mesh::Mesh(Globals * globals) //non-default constructor
 		currentLat -= dLat;
 		count++;
 	}
-	
+
 	//latLength = lat.size(); //EDIT
 
 	for (int j = 0; j < lonLength; j++) lon.push_back(j*dLon);
+
+	//CalculateDt();
 };
 
 int Mesh::ReturnLatLen(void) const
@@ -98,3 +106,20 @@ std::vector<double> Mesh::WestP(int i, int j)
 	std::vector<double> point = { lat[i], lon[j-2] };
 	return point;
 };
+
+void Mesh::CalculateDt(void){
+	outstring << std::endl << "Calculating time step: " << std::endl;
+
+	double waveSpeed = sqrt(globals->g.Value()*globals->h.Value());
+
+	outstring << std::endl << "\t Average gravitational wave speed = sqrt(gh): " << waveSpeed <<std::endl;
+
+	double dt = 0.5*globals->radius.Value()/(2*waveSpeed)*cos((90 - dLat)*radConv)*dLon*radConv;
+
+	outstring << "\t Time step calculated: " << dt << std::endl;
+
+	globals->timeStep.SetValue(dt);
+
+	globals->Output.Write(OUT_MESSAGE,&outstring);
+
+}
