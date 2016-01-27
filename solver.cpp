@@ -398,10 +398,10 @@ inline void Solver::UpdateEastVel(){
 		tidalFactor = loveRadius/uCosLat[i];
 		surfFactor = gRadius/uCosLat[i];
 		for (int j = 0; j < uLonLen; j++) {
-			if (j != uLonLen - 1) eastEta = etaOldArray[i][j+1];//ETA->solution[i][j + 1];
-			else eastEta = etaOldArray[i][0];//ETA->solution[i][0];
+			if (j != uLonLen - 1) eastEta = etaOldArray[i][j+1];
+			else eastEta = etaOldArray[i][0];
 
-			westEta = etaOldArray[i][j];//ETA->solution[i][j];
+			westEta = etaOldArray[i][j];
 
 			dSurfLon = (eastEta - westEta) / (etadLon);
 
@@ -415,9 +415,6 @@ inline void Solver::UpdateEastVel(){
 
 		}
 	}
-
-
-	// InterpPole(UNEW);
 
 	for (int j = 0; j < uLonLen; j++) {
 		// uNewArray[0][j] = linearInterp1Array(u,uNewArray, 0, j);
@@ -489,13 +486,11 @@ inline void Solver::UpdateNorthVel(){
 	double gRadius = consts->g.Value() / consts->radius.Value();
 	double coriolisFactor = 0;
 
-	// std::cout<<vOldArray[0][0]<<'\t';
-	// std::cout<<vOldArray[0][1]<<std::endl;
 	for (int i = 0; i < vLatLen; i++) {
 		coriolisFactor = 2. * angVel * v->sinLat[i];
 		for (int j = 0; j < vLonLen; j++) {
-			northEta = etaOldArray[i][j];//eta->solution[i][j];
-			southEta = etaOldArray[i+1][j];//eta->solution[i + 1][j];
+			northEta = etaOldArray[i][j];
+			southEta = etaOldArray[i+1][j];
 
 			dSurfLat = (northEta - southEta) / etadLat;
 
@@ -507,7 +502,6 @@ inline void Solver::UpdateNorthVel(){
 			tidalForce = loveRadius * dUlatArray[i][j];
 
 			vNewArray[i][j] = (-coriolis - surfHeight + tidalForce - vDissArray[i][j])*dt + vOldArray[i][j];
-			// vNewArray[i][j] = (tidalForce)*dt + vOldArray[i][j];
 
 		}
 	}
@@ -554,8 +548,6 @@ inline void Solver::UpdateSurfaceHeight(){
 		}
 	}
 
-	// InterpPole(ETANEW);
-
 	for (int j = 0; j < etaLonLen; j++) {
 		// etaNewArray[0][j] = linearInterp1Array(eta,etaNewArray, 0, j);
 		// etaNewArray[etaLatLen - 1][j] = linearInterp1Array(eta,etaNewArray, etaLatLen - 1, j);
@@ -564,7 +556,6 @@ inline void Solver::UpdateSurfaceHeight(){
 	}
 
 	//Average eta out at poles
-
 	double npoleSum = 0;
 	double spoleSum = 0;
 	for (int j = 0; j < etaLonLen; j++) {
@@ -618,13 +609,6 @@ void Solver::Explicit() {
 
 		//Solve for eta based on new u and v
 		UpdateSurfaceHeight();
-
-		// *etaOldArray = *etaNewArray;
-		// **etaOldArray = **etaNewArray;
-		// *uOldArray = *uNewArray;
-		// **uOldArray = **uNewArray;
-		// *vOldArray = *vNewArray;
-		// **vOldArray = **vNewArray;
 
 		for (int i = 0; i < vLatLen; i++) {
 			for (int j = 0; j < vLonLen; j++) {
@@ -726,7 +710,7 @@ void Solver::DumpSolutions(int out_num) {
 	else {
 		//fopen for linux
 		//fopen_s for windows
-		FILE * dissFile = fopen(&(consts->path + SEP + "diss.txt")[0], "a+");
+		FILE * dissFile = fopen(&(consts->path + SEP + "energy.txt")[0], "a+");
 		fprintf(dissFile, "%.15f \n", energy->orbitDissEAvg[1]);
 		//fprintf(dissFile, "%.15f \n", 2*consts->alpha.Value()*energy->dtKinEAvg[out_num]);
 		fclose(dissFile);
