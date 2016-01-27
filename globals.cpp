@@ -37,7 +37,8 @@ Globals::Globals(int action) {
 	else {
 		SetDefault();
 
-		//Append variable IDs;
+		//Append variable IDs to all global variables, then add them to variable list
+		//All variables described in globals.h
 		radius.SetStringID("radius");
 		allGlobals.push_back(&radius);
 
@@ -97,6 +98,18 @@ Globals::Globals(int action) {
 
 		init.SetStringID("initial conditions");
 		allGlobals.push_back(&init);
+
+		diss.SetStringID("dissipation output");
+		allGlobals.push_back(&diss);
+
+		kinetic.SetStringID("kinetic output");
+		allGlobals.push_back(&kinetic);
+
+		work.SetStringID("work flux output");
+		allGlobals.push_back(&work);
+
+		outputTime.SetStringID("output time");
+		allGlobals.push_back(&outputTime);
 
 		ReadGlobals(); //Read globals from input.in file
 	}
@@ -158,6 +171,7 @@ int Globals::ReadGlobals(void) {
 					else if (allGlobals[i]->IsType("bool")) {
 						value >> valStr;
 						if (valStr == "false") valBool = false;
+						else if (varStr == "true") valBool = true;
 						((GlobalVar<bool> *) allGlobals[i])->SetValue(valBool);
 						added = true;
 						allGlobals[i]->Added(added);
@@ -177,7 +191,7 @@ int Globals::ReadGlobals(void) {
 				i++;
 			} while (i < allGlobals.size() && !added);
 
-			std::getline(inputFile, line, ';'); //Ignores last part of input file
+			std::getline(inputFile, line, ';'); //Ignores last part of input file line
 		};
 
 		inputFile.close();
@@ -253,7 +267,7 @@ void Globals::SetDefault(void) {
 	dLon.SetValue(90);
 
 	//Orbital period
-	period.SetValue(16 * 24 * 60 * 60);
+	period.SetValue(16. * 24 * 60 * 60);
 
 	//Time step
 	timeStep.SetValue(80.);
@@ -275,9 +289,23 @@ void Globals::SetDefault(void) {
 
 	//Initial conditions
 	init.SetValue(false);
+
+	//Output dissipated energy?
+	diss.SetValue(true);
+
+	//Output kinetic energy?
+	kinetic.SetValue(false);
+
+	//Output work flux?
+	work.SetValue(false);
+
+	//Output time in fraction of orbital period. Default is set to output
+	//every period.
+	outputTime.SetValue(1);
 };
 
 void Globals::OutputConsts(void){
+	// Print all constants to output file.
 	outstring << "Model parameters: " << std::endl;
 	for (unsigned int i = 0; i < allGlobals.size(); i++){
 
