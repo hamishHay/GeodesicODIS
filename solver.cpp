@@ -19,6 +19,7 @@
 #include "mathRoutines.h"
 #include "energy.h"
 #include "outFiles.h"
+#include "vector"
 
 #include <math.h>
 #include <iostream>
@@ -296,7 +297,6 @@ inline void Solver::UpdateObliqPotential(void) {
 
 inline void Solver::UpdateFullPotential(void) {
 	double lon = 0;
-	double lat;
 	double B = consts->angVel.Value()*simulationTime;
 	double A = 0.25 * pow(consts->angVel.Value(),2)*pow(consts->radius.Value(),2);
 	double sin2Lat = 0;
@@ -304,7 +304,6 @@ inline void Solver::UpdateFullPotential(void) {
   double cosLat = 0;
 
 	for (int i = 0; i < dUlat->fieldLatLen; i++) {
-		lat = dUlat->lat[i];
 		sin2Lat = dUlat->sin2Lat[i];
 		cos2Lat = dUlat->cos2Lat[i];
 		for (int j = 0; j < dUlat->fieldLonLen; j++) {
@@ -317,7 +316,6 @@ inline void Solver::UpdateFullPotential(void) {
 	}
 
 	for (int i = 0; i < dUlon->fieldLatLen; i++) {
-		lat = dUlon->lat[i];
 		sin2Lat = dUlon->sin2Lat[i];
 		cosLat = dUlon->cosLat[i];
 		for (int j = 0; j < dUlon->fieldLonLen; j++) {
@@ -582,6 +580,9 @@ void Solver::Explicit() {
 	Out->Write(OUT_MESSAGE, &outstring);
 
 	int output = 0;
+	int outCount = 0;
+	// int mun = (int) consts->period.Value()/consts->timeStep.Value()*consts->outputTime.Value();
+	// int outPos[5] = {0, mun*0, mun*1, mun*2, mun*3};
 
 	double timeStepCount = 0;
 	int inc = (int) (consts->period.Value()/dt);
@@ -590,6 +591,7 @@ void Solver::Explicit() {
 
 	//Update cell energies and globally averaged energy
 	energy->UpdateKinE(uNewArray,vNewArray);
+	// energy->UpdateDtKinEAvg();
 
 	while (simulationTime <= consts->endTime.Value() && !energy->converged) {
 
@@ -633,34 +635,32 @@ void Solver::Explicit() {
 		energy->UpdateDtKinEAvg();
 
 		//Check for output
-
 		if (timeStepCount >= consts->period.Value()) {
-		//if (true) {
 			orbitNumber++;
-			timeStepCount = timeStepCount - consts->period.Value();
+			timeStepCount -= consts->period.Value();
 
 			energy->UpdateOrbitalKinEAvg(inc);
 
 			// Check for convergence
-			if (orbitNumber>1) energy->IsConverged();
+			energy->IsConverged();
 			if (energy->converged) convergeCount++;
 
 			outstring << std::fixed << std::setprecision(2) << simulationTime / 86400.0 << " days: \t" << 100 * (simulationTime / consts->endTime.Value()) << "%\t" << output;
 			Out->Write(OUT_MESSAGE, &outstring);
 
-			// DumpSolutions(output);
-			// output++;
-
-		}
-
-		if (outputCount>= consts->period.Value()) {
-			DumpSolutions(output);
-			outputCount -= consts->period.Value();
 			output++;
+			outCount++;
+			DumpSolutions(output);
+			outCount = 1;
+
 		}
-		// DumpSolutions(output);
-		// output++;
+		else if (timeStepCount >= consts->period.Value()*consts->outputTime.Value()*outCount) {
+			output++;
+			outCount++;
+			DumpSolutions(output);
+		}
 		iteration++;
+
 	}
 
 	//deallocate memory assigned to temporary fields
@@ -711,12 +711,15 @@ void Solver::DumpSolutions(int out_num) {
 		//fopen for linux
 		//fopen_s for windows
 		FILE * dissFile = fopen(&(consts->path + SEP + "energy.txt")[0], "a+");
-		fprintf(dissFile, "%.15f \n", energy->orbitDissEAvg[1]);
-		//fprintf(dissFile, "%.15f \n", 2*consts->alpha.Value()*energy->dtKinEAvg[out_num]);
+		// fprintf(dissFile, "%.15f \n", energy->orbitDissEAvg[1]);
+		fprintf(dissFile, "%.15f \n", energy->orbitKinEAvg);
+		// fprintf(dissFile, "%.15f \n", energy->dtKinEAvg[energy->timePos-1]);
+		// fprintf(dissFile, "%.15f \n", energy->dtDissEAvg[energy->timePos-1]);
+		// fprintf(dissFile, "%.15f \n", energy->dissipation[energy->dissipation.size()-1]);
 		fclose(dissFile);
 
 		if (energy->converged) DumpFields(out_num);
-		else if (out_num % 5 == 0) DumpFields(out_num); //dump every 5 orbits
+		// else if (out_num % 5 == 0) DumpFields(out_num); //dump every 5 orbits
 
 		// DumpFields(out_num); //FOR DEBUGGING
 	}

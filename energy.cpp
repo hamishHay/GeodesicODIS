@@ -30,6 +30,8 @@ Energy::Energy(Mesh * mesh, int lat, int lon, Globals * Consts, Field * UVel, Fi
 
 	orbitDissEAvg[1] = 0;
 	orbitDissEAvg[0] = 0;
+
+	dissipation.push_back(0);
 };
 
 void Energy::UpdateKinE(double ** u, double ** v) {
@@ -80,7 +82,7 @@ void Energy::UpdateDtDissEAvg(void) {
 		consts->Output.TerminateODIS();
 	}
 
-	timePos += 1;
+	timePos ++;
 };
 
 
@@ -93,7 +95,7 @@ void Energy::UpdateOrbitalKinEAvg(int inc) {
 		orbitKinEAvg += dtKinEAvg[i];
 	}
 
-	orbitKinEAvg /= inc;
+	orbitKinEAvg /= timePos;//inc;
 
 	//Automatically update dissipation
 	UpdateOrbitalDissEAvg();

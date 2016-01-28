@@ -18,7 +18,7 @@ private:
 	double ** vArray;
 	double ** uArray;
 
-	int timePos;
+
 	int totalSize;
 
 	double median;
@@ -30,6 +30,8 @@ private:
 
 public:
 	Energy(Mesh*, int, int, Globals *, Field *, Field *, Mass *);
+	int timePos;
+	std::vector<double> dissipation;
 
 	bool converged = false;
 
@@ -47,7 +49,7 @@ public:
 	double orbitKinEAvg;
 	double orbitDissEAvg[2];
 
-	std::vector<double> dissipation;
+
 	std::vector<double> derivative;
 	std::vector<double> minima;
 	std::vector<double> maxima;
