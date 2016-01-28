@@ -119,7 +119,7 @@ void Energy::UpdateOrbitalDissEAvg(void) {
 	//orbitDissEAvg[0] = orbitDissEAvg[0]/(4*pi*pow(consts->radius.Value(),2));
 
 	//Reset time position after updating orbital values
-	timePos = 0;
+	// timePos = 0;
 
 	dissipation.push_back(orbitDissEAvg[0]);
 

@@ -579,7 +579,7 @@ void Solver::Explicit() {
 	outstring << "Time step: \t" << dt << " seconds\n\n";
 	Out->Write(OUT_MESSAGE, &outstring);
 
-	int output = 0;
+	// int output = 0;
 	int outCount = 0;
 	// int mun = (int) consts->period.Value()/consts->timeStep.Value()*consts->outputTime.Value();
 	// int outPos[5] = {0, mun*0, mun*1, mun*2, mun*3};
@@ -650,14 +650,16 @@ void Solver::Explicit() {
 
 			output++;
 			outCount++;
-			DumpSolutions(output);
+			DumpSolutions(-2);
 			outCount = 1;
+
+			energy->timePos = 0;
 
 		}
 		else if (timeStepCount >= consts->period.Value()*consts->outputTime.Value()*outCount) {
 			output++;
 			outCount++;
-			DumpSolutions(output);
+			DumpSolutions(1);
 		}
 		iteration++;
 
@@ -685,12 +687,14 @@ void Solver::DumpSolutions(int out_num) {
 		mkdir(&(consts->path + SEP + "NorthVelocity" + SEP)[0], NULL);
 		mkdir(&(consts->path + SEP + "Displacement" + SEP)[0], NULL);
 		mkdir(&(consts->path + SEP + "Grid" + SEP)[0], NULL);
+		mkdir(&(consts->path + SEP + "Energy" + SEP)[0], NULL);
 
 #elif __linux__
 		mkdir(&(consts->path +  SEP + "EastVelocity" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
 		mkdir(&(consts->path +  SEP + "NorthVelocity" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
 		mkdir(&(consts->path +  SEP + "Displacement" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
 		mkdir(&(consts->path +  SEP + "Grid" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
+		mkdir(&(consts->path +  SEP + "Energy" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
 
 #endif
 		//remove(&(consts->path + SEP + "diss.txt")[0]);
@@ -706,17 +710,45 @@ void Solver::DumpSolutions(int out_num) {
 		for (int j = 0; j < v->ReturnFieldLonLen(); j++) vLon << v->lon[j] * 1 / radConv << '\t';
 		for (int i = 0; i < v->ReturnFieldLatLen(); i++) vLat << v->lat[i] * 1 / radConv << '\t';
 	}
+	else if (out_num == -2) {
+		FILE * dissFile;
+		if (consts->kinetic.Value())
+		{
+			dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "kinetic_energy.txt")[0], "a+");
+			fprintf(dissFile, "%.15f \n", energy->dtKinEAvg[energy->timePos-1]);
+			fclose(dissFile);
 
+			dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "kinetic_energy_orb_avg.txt")[0], "a+");
+			fprintf(dissFile, "%.15f \n", energy->orbitKinEAvg);
+			fclose(dissFile);
+		}
+	}
 	else {
 		//fopen for linux
 		//fopen_s for windows
-		FILE * dissFile = fopen(&(consts->path + SEP + "energy.txt")[0], "a+");
-		// fprintf(dissFile, "%.15f \n", energy->orbitDissEAvg[1]);
-		fprintf(dissFile, "%.15f \n", energy->orbitKinEAvg);
-		// fprintf(dissFile, "%.15f \n", energy->dtKinEAvg[energy->timePos-1]);
-		// fprintf(dissFile, "%.15f \n", energy->dtDissEAvg[energy->timePos-1]);
-		// fprintf(dissFile, "%.15f \n", energy->dissipation[energy->dissipation.size()-1]);
-		fclose(dissFile);
+		FILE * dissFile;
+		if (consts->kinetic.Value())
+		{
+			dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "kinetic_energy.txt")[0], "a+");
+			fprintf(dissFile, "%.15f \n", energy->dtKinEAvg[energy->timePos-1]);
+			fclose(dissFile);
+		}
+		if (consts->diss.Value())
+		{
+			dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "diss_energy.txt")[0], "a+");
+			fprintf(dissFile, "%.15f \n", energy->dtDissEAvg[energy->timePos-1]);
+			fclose(dissFile);
+		}
+		if (consts->work.Value())
+		{
+			dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "energy.txt")[0], "a+");
+			// fprintf(dissFile, "%.15f \n", energy->orbitDissEAvg[1]);
+			fprintf(dissFile, "%.15f \n", energy->orbitKinEAvg);
+			// fprintf(dissFile, "%.15f \n", energy->dtKinEAvg[energy->timePos-1]);
+			// fprintf(dissFile, "%.15f \n", energy->dtDissEAvg[energy->timePos-1]);
+			// fprintf(dissFile, "%.15f \n", energy->dissipation[energy->dissipation.size()-1]);
+			fclose(dissFile);
+		}
 
 		if (energy->converged) DumpFields(out_num);
 		// else if (out_num % 5 == 0) DumpFields(out_num); //dump every 5 orbits
