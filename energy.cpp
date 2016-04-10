@@ -143,7 +143,7 @@ void Energy::IsConverged(void) {
 			}
 		}
 
-		if (maxima.size() == 2 || minima.size() == 2) converged = true;
+		if (minima.size() == 2) converged = true;
 	}
 
 	//residual.push_back(fabs(orbitDissEAvg[1] - orbitDissEAvg[0]));

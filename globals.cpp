@@ -172,7 +172,9 @@ int Globals::ReadGlobals(void) {
 					else if (allGlobals[i]->IsType("bool")) {
 						value >> valStr;
 						if (valStr == "false") valBool = false;
-						else if (varStr == "true") valBool = true;
+						else if (valStr == "true") {
+							valBool = true;
+						}
 						((GlobalVar<bool> *) allGlobals[i])->SetValue(valBool);
 						added = true;
 						allGlobals[i]->Added(added);

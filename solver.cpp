@@ -415,10 +415,10 @@ inline void Solver::UpdateEastVel(){
 	}
 
 	for (int j = 0; j < uLonLen; j++) {
-		// uNewArray[0][j] = linearInterp1Array(u,uNewArray, 0, j);
-		// uNewArray[uLatLen - 1][j] = linearInterp1Array(u,uNewArray, uLatLen - 1, j);
-    uNewArray[0][j] = lagrangeInterp3ArrayCenter(u,uNewArray, 0, j);
-    uNewArray[uLatLen - 1][j] = lagrangeInterp3ArrayCenter(u,uNewArray, uLatLen - 1, j);
+		uNewArray[0][j] = linearInterp1Array(u,uNewArray, 0, j);
+		uNewArray[uLatLen - 1][j] = linearInterp1Array(u,uNewArray, uLatLen - 1, j);
+    // uNewArray[0][j] = lagrangeInterp3ArrayCenter(u,uNewArray, 0, j);
+    // uNewArray[uLatLen - 1][j] = lagrangeInterp3ArrayCenter(u,uNewArray, uLatLen - 1, j);
 		// uNewArray[0][j] = uNewArray[1][j];
 	  // uNewArray[uLatLen - 1][j] = uNewArray[uLatLen - 2][j];
 	}
@@ -653,13 +653,16 @@ void Solver::Explicit() {
 			DumpSolutions(-2);
 			outCount = 1;
 
-			energy->timePos = 0;
+			energy->timePos = 0; //Reset time position after energy data output
+			// DumpFields(orbitNumber);
+			DumpFields(output);
 
 		}
 		else if (timeStepCount >= consts->period.Value()*consts->outputTime.Value()*outCount) {
 			output++;
 			outCount++;
 			DumpSolutions(1);
+			DumpFields(output);
 		}
 		iteration++;
 
@@ -715,11 +718,20 @@ void Solver::DumpSolutions(int out_num) {
 		if (consts->kinetic.Value())
 		{
 			dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "kinetic_energy.txt")[0], "a+");
-			fprintf(dissFile, "%.15f \n", energy->dtKinEAvg[energy->timePos-1]);
+			fprintf(dissFile, "%.30f \n", energy->dtKinEAvg[energy->timePos-1]);
 			fclose(dissFile);
 
 			dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "kinetic_energy_orb_avg.txt")[0], "a+");
-			fprintf(dissFile, "%.15f \n", energy->orbitKinEAvg);
+			fprintf(dissFile, "%.30f \n", energy->orbitKinEAvg);
+			fclose(dissFile);
+		}
+		if (consts->diss.Value()) {
+			dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "diss_energy.txt")[0], "a+");
+			fprintf(dissFile, "%.30f \n", energy->dtDissEAvg[energy->timePos-1]);
+			fclose(dissFile);
+
+			dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "diss_energy_orb_avg.txt")[0], "a+");
+			fprintf(dissFile, "%.30f \n", energy->orbitDissEAvg[0]);
 			fclose(dissFile);
 		}
 	}
@@ -730,20 +742,20 @@ void Solver::DumpSolutions(int out_num) {
 		if (consts->kinetic.Value())
 		{
 			dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "kinetic_energy.txt")[0], "a+");
-			fprintf(dissFile, "%.15f \n", energy->dtKinEAvg[energy->timePos-1]);
+			fprintf(dissFile, "%.30f \n", energy->dtKinEAvg[energy->timePos-1]);
 			fclose(dissFile);
 		}
 		if (consts->diss.Value())
 		{
 			dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "diss_energy.txt")[0], "a+");
-			fprintf(dissFile, "%.15f \n", energy->dtDissEAvg[energy->timePos-1]);
+			fprintf(dissFile, "%.30f \n", energy->dtDissEAvg[energy->timePos-1]);
 			fclose(dissFile);
 		}
 		if (consts->work.Value())
 		{
 			dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "energy.txt")[0], "a+");
 			// fprintf(dissFile, "%.15f \n", energy->orbitDissEAvg[1]);
-			fprintf(dissFile, "%.15f \n", energy->orbitKinEAvg);
+			fprintf(dissFile, "%.30f \n", energy->orbitKinEAvg);
 			// fprintf(dissFile, "%.15f \n", energy->dtKinEAvg[energy->timePos-1]);
 			// fprintf(dissFile, "%.15f \n", energy->dtDissEAvg[energy->timePos-1]);
 			// fprintf(dissFile, "%.15f \n", energy->dissipation[energy->dissipation.size()-1]);
