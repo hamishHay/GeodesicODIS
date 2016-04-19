@@ -110,6 +110,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 	else if (consts->potential.Value() == "ECC") tide = ECC;
 	else if (consts->potential.Value() == "OBLIQ") tide = OBLIQ;
 	else if (consts->potential.Value() == "FULL") tide = FULL;
+	else if (consts->potential.Value() == "TOTAL") tide = TOTAL;
 	else {
 		outstring << "No potential forcing found." << std::endl;
 		Out->Write(ERR_MESSAGE, &outstring);
@@ -166,6 +167,10 @@ void Solver::UpdatePotential() {
 
 	case FULL:
 		UpdateFullPotential();
+		break;
+
+	case TOTAL:
+		UpdateTotalPotential();
 		break;
 	}
 }
@@ -323,6 +328,97 @@ inline void Solver::UpdateFullPotential(void) {
 			dUlonArray[i][j] = consts->theta.Value() * 3 * sin2Lat*(sin(lon - B) + sin(lon + B));
 			dUlonArray[i][j] += consts->e.Value() * 3 * cosLat*cosLat*(-7 * sin(2 * lon - B) + sin(2 * lon + B));
 			dUlonArray[i][j] *= A;
+		}
+	}
+}
+
+inline void Solver::UpdateTotalPotential(void) {
+	// Total time-dependent and static parts of the tidal potential, accurate to second order
+	// in both eccentricity and obliquity
+	double factor;
+	double factor2;
+	double cosLat = 0;
+	double cos2Lat = 0;
+	double sin2Lat = 0;
+	double sinLon = 0;
+	double cosLon = 0;
+	double sin2Lon = 0;
+	double cos2Lon = 0;
+	double lon = 0;
+	double t_omega = consts->angVel.Value()*simulationTime;
+	double e = consts->e.Value();
+	double theta = consts->theta.Value();
+
+	double cos_t_omega = cos(t_omega);
+	double sin_t_omega = sin(t_omega);
+	double cos_2t_omega = cos(2*t_omega);
+	double cos_3t_omega = cos(3*t_omega);
+	double cos_4t_omega = cos(4*t_omega);
+
+	double A = 0;
+	double B = 0;
+	double C = 0;
+	double D = 0;
+	double E = 0;
+	double F = 0;
+	double G = 0;
+
+	factor = 0.03125 * (consts->angVel.Value() * consts->angVel.Value() * consts->radius.Value() * consts->radius.Value());
+	factor2 = -0.5 * (consts->angVel.Value() * consts->angVel.Value() * consts->radius.Value() * consts->radius.Value());
+
+	A = - (4 + 15 * e*e + 20. * e * cos_t_omega + 43 * e*e * cos_2t_omega);
+	B = 2 * e * (4 + 25 * e * cos_t_omega) * sin_t_omega;
+	C = - 2 * theta*theta * (2 + 3*e*e + 6*e*cos_t_omega + 9 * e * e *cos_2t_omega);
+	D = -2 * (2 - 5*e*e + 6*e*cos_t_omega + 17 * e*e*cos_2t_omega);
+	E = 4 * e * (4 + 17*e*cos_t_omega)*sin_t_omega;
+	F = -(-2+theta*theta);
+
+
+	for (int i = 0; i < dUlon->fieldLatLen; i++) {
+		cosLat = dUlon->cosLat[i];
+		sin2Lat = dUlon->sin2Lat[i];
+		for (int j = 0; j < dUlon->fieldLonLen; j++) {
+			sinLon = dUlon->sinLon[j];
+			cosLon = dUlon->cosLon[j];
+			sin2Lon = dUlon->sin2Lon[j];
+			cos2Lon = dUlon->cos2Lon[j];
+			lon = dUlon->lon[j];
+			dUlonArray[i][j] = 12 * theta * sin2Lat * sin_t_omega * (A * sinLon + B * cosLon);
+			dUlonArray[i][j] += 6*cosLat*cosLat * (C * sin(2 * (t_omega + lon)) + F * (D * sin2Lon + E *cos2Lon));
+			dUlonArray[i][j] *= factor;
+
+			//Static part
+			// dUlonArray[i][j] -= factor2 * (3*cosLat*cosLat*sin2Lon);
+		}
+	}
+
+	G = - (2 + 3 * e*e)*(-2 + 3*theta*theta) + 3*e*(4-7*theta*theta)*cos_t_omega;
+	G += 6*(theta*theta + e*e*(3 - 7*theta*theta))*cos_2t_omega;
+	G += 3*e*theta*theta * (7*cos_3t_omega + 17*e*cos_4t_omega);
+	G *= -6.0;
+
+	C *= -0.5;
+	D *= -0.5;
+	E *= 0.5;
+	// F *= 0.5;
+
+
+	for (int i = 0; i < dUlat->fieldLatLen; i++) {
+		cosLat = dUlat->cosLat[i];
+		sin2Lat = dUlat->sin2Lat[i];
+		for (int j = 0; j < dUlat->fieldLonLen; j++) {
+			sinLon = dUlat->sinLon[j];
+			cosLon = dUlat->cosLon[j];
+			sin2Lon = dUlat->sin2Lon[j];
+			cos2Lon = dUlat->cos2Lon[j];
+			lon = dUlat->lon[j];
+			dUlatArray[i][j] = G * sin2Lat;
+			dUlatArray[i][j] += 24 * theta * cos2Lat * sin_t_omega * (-A * cosLon + B * sinLon);
+			dUlatArray[i][j] += -6*sin2Lat * (C * cos(2 * (t_omega + lon)) + F * (D * cos2Lon + E *sin2Lon));
+			dUlatArray[i][j] *= factor;
+
+			//Static part
+			// dUlatArray[i][j] -= factor2 * (3*sin2Lat*cosLon*cosLon);
 		}
 	}
 }

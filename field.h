@@ -26,6 +26,10 @@ public:
 	double * sinLat;
 	double * cos2Lat;
 	double * sin2Lat;
+	double * cosLon;
+	double * sinLon;
+	double * cos2Lon;
+	double * sin2Lon;
 
 	double dLat;
 	double dLon;

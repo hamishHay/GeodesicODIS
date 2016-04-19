@@ -11,13 +11,14 @@ class Solver {
 private:
 	int solverType;
 	int dumpTime;
-	enum Potential {OBLIQ, ECC_RAD, ECC_LIB, ECC, FULL};
+	enum Potential {OBLIQ, ECC_RAD, ECC_LIB, ECC, FULL, TOTAL};
 
 	void UpdateEccRadPotential(void);
 	void UpdateEccLibPotential(void);
 	void UpdateEccPotential(void);
 	inline void UpdateObliqPotential(void) __attribute__((always_inline));
 	void UpdateFullPotential(void);
+	void UpdateTotalPotential(void);
 
 	void ReadInitialConditions(void);
 	void CopyInitialConditions(std::ifstream & file, Field *);

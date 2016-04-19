@@ -8,7 +8,7 @@
 class IGlobalVar
 {
 public:
-	virtual std::string StringID() = 0; 
+	virtual std::string StringID() = 0;
 	virtual bool IsType(std::string) = 0;
 
 	void Added(bool boolValue) {
