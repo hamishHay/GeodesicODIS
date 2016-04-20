@@ -47,6 +47,7 @@ public:
 	Field * eta;
 	Field * v;
 	Field * u;
+	Field * depth;
 	Energy * energy;
 
 	double ** etaOldArray;
@@ -66,6 +67,8 @@ public:
 
 	double ** vNEAvgArray;
 	double ** uSWAvgArray;
+
+	double ** depthArray;
 
 	int uLatLen;
 	int uLonLen;
@@ -104,7 +107,7 @@ public:
 	double * sinMinusB;
 	double * sinPlusB;
 
-	Solver(int type, int dump, Globals *, Mesh *, Field *, Field*, Field *, Field *, Field *, Energy *);
+	Solver(int type, int dump, Globals *, Mesh *, Field *, Field*, Field *, Field *, Field *, Energy *, Field *);
 
 	void Solve();
 

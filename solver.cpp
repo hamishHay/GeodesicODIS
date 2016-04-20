@@ -32,7 +32,7 @@
 #include <sys/stat.h>
 #include <errno.h>
 
-Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradLon, Field * UGradLat, Field * VelU, Field * VelV, Field * Eta, Energy * EnergyField) {
+Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradLon, Field * UGradLat, Field * VelU, Field * VelV, Field * Eta, Energy * EnergyField, Field * Depth) {
 	solverType = type;
 	dumpTime = dump;
 	Out = &Consts->Output;
@@ -82,6 +82,9 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 
 	dUlon = new Field(grid,0,1);
 	dUlonArray = dUlon->solution;
+
+	depth = Depth;
+	depthArray = Depth->solution;
 
 	uLatLen = u->fieldLatLen;
 	uLonLen = u->fieldLonLen;
@@ -869,10 +872,12 @@ void Solver::ReadInitialConditions(void) {
 	std::ifstream eastVel(consts->path + SEP + "InitialConditions" + SEP + "u_vel.txt", std::ifstream::in);
 	std::ifstream northVel(consts->path + SEP + "InitialConditions" + SEP + "v_vel.txt", std::ifstream::in);
 	std::ifstream displacement(consts->path + SEP + "InitialConditions" + SEP + "eta.txt", std::ifstream::in);
+	std::ifstream ocean_thickness(consts->path + SEP + "InitialConditions" + SEP + "h.txt", std::ifstream::in);
 
 	CopyInitialConditions(eastVel, uOld);
 	CopyInitialConditions(northVel, vOld);
 	CopyInitialConditions(displacement, etaOld);
+	CopyInitialConditions(ocean_thickness, depth);
 };
 
 void Solver::CopyInitialConditions(std::ifstream & file, Field * inField) {

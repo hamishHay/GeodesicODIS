@@ -16,13 +16,14 @@ int main(void)
 	Field * eta = new Field(grid,0,0);
 	Field * dUlat = new Field(grid,1,0);
 	Field * dUlon = new Field(grid,0,1);
+	Field * h = new Field(grid,0,0);
 
 	//conserved quantities:
 	Mass * mass = new Mass(grid, 0, 0, constants, eta);
 	Energy * energy = new Energy(grid, 0, 0, constants, u, v, mass);
 
 	// Enter solver/time loop
-	Solver * solution = new Solver(0, 1, constants, grid, dUlon, dUlat,  u, v, eta, energy);
+	Solver * solution = new Solver(0, 1, constants, grid, dUlon, dUlat,  u, v, eta, energy, h);
 	solution->Solve();
 	// Simulation end
 
@@ -36,6 +37,7 @@ int main(void)
 	delete eta;
 	delete dUlat;
 	delete dUlon;
+	delete h;
 
     return 0;
 }
