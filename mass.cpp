@@ -5,9 +5,10 @@
 
 #include <math.h>
 
-Mass::Mass(Mesh * mesh, int lat, int lon, Globals * Consts, Field * Eta) : Field(mesh, lat, lon) {
+Mass::Mass(Mesh * mesh, int lat, int lon, Globals * Consts, Field * Eta, Field * Thickness) : Field(mesh, lat, lon) {
 	consts = Consts;
 	eta = Eta;
+	thickness = Thickness;
 
 	UpdateMass();
 };
@@ -21,7 +22,7 @@ void Mass::UpdateMass(void) {
 };
 
 void Mass::UpdateCellMass(int i, int j) {
-	solution[i][j] = pow((consts->radius.Value() + consts->h.Value()), 3) - pow(consts->radius.Value(), 3);
+	solution[i][j] = pow((consts->radius.Value() + thickness->solution[i][j]), 3) - pow(consts->radius.Value(), 3);
 
 	solution[i][j] *= (sin(lat[i]) - sin(lat[i] - dLat));
 

@@ -19,7 +19,7 @@ int main(void)
 	Field * h = new Field(grid,0,0);
 
 	//conserved quantities:
-	Mass * mass = new Mass(grid, 0, 0, constants, eta);
+	Mass * mass = new Mass(grid, 0, 0, constants, eta, h);
 	Energy * energy = new Energy(grid, 0, 0, constants, u, v, mass);
 
 	// Enter solver/time loop

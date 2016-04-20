@@ -10,6 +10,7 @@ class Mass : public Field {
 private:
 	Globals * consts;
 	Field * eta;
+	Field * thickness;
 
 	double totalMass=0;
 
@@ -17,7 +18,7 @@ private:
 	void UpdateTotalMass(void);
 
 public:
-	Mass(Mesh *, int, int, Globals * Consts, Field * Eta);
+	Mass(Mesh *, int, int, Globals * Consts, Field * Eta, Field * Thickness);
 
 	void UpdateMass();
 };
