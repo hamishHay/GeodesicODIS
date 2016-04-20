@@ -470,10 +470,11 @@ inline void Solver::UpdateEastVel(){
 		break;
 
 	case QUADRATIC:
-		double alphah = alpha / consts->h.Value();
+		double alphah = 0.0;
 
 		 for (int i = 1; i < uLatLen - 1; i++) {
 		 	for (int j = 0; j < uLonLen; j++) {
+				alphah = alpha / depthArray[i][j];
 				uDissArray[i][j] = alphah * uOldArray[i][j] * sqrt(uOldArray[i][j]*uOldArray[i][j] + vNEAvgArray[i][j]*vNEAvgArray[i][j]);
 			}
 		}
@@ -570,9 +571,10 @@ inline void Solver::UpdateNorthVel(){
 		break;
 
 	case QUADRATIC:
-		double alphah = alpha / consts->h.Value();
+		double alphah = 0.0;
 		for (int i = 0; i < vLatLen; i++) {
 			for (int j = 0; j < vLonLen; j++) {
+				alphah = alpha / depthArray[i][j];
 				vDissArray[i][j] = alphah * vOldArray[i][j] * sqrt(vOldArray[i][j] * vOldArray[i][j] + uSWAvgArray[i][j]*uSWAvgArray[i][j]);
 			}
 		}
@@ -618,8 +620,8 @@ inline void Solver::UpdateSurfaceHeight(){
 	double vdLon = u->dLon;
 
 
-	double h = consts->h.Value();
-	double hRadius = h / consts->radius.Value();
+	double r = consts->radius.Value();
+	double hRadius = 0.0;
 
 	for (int i = 1; i < etaLatLen-1; i++) {
 		cosLat = eta->cosLat[i];
@@ -640,6 +642,8 @@ inline void Solver::UpdateSurfaceHeight(){
 			}
 
 			uGrad = (eastu - westu) / vdLon;
+
+			hRadius = depthArray[i][j] / r;
 
 			etaNewArray[i][j] = hRadius/cosLat*(-vGrad - uGrad)*dt + etaOldArray[i][j];
 		}
@@ -872,12 +876,19 @@ void Solver::ReadInitialConditions(void) {
 	std::ifstream eastVel(consts->path + SEP + "InitialConditions" + SEP + "u_vel.txt", std::ifstream::in);
 	std::ifstream northVel(consts->path + SEP + "InitialConditions" + SEP + "v_vel.txt", std::ifstream::in);
 	std::ifstream displacement(consts->path + SEP + "InitialConditions" + SEP + "eta.txt", std::ifstream::in);
-	std::ifstream ocean_thickness(consts->path + SEP + "InitialConditions" + SEP + "h.txt", std::ifstream::in);
+	// std::ifstream ocean_thickness(consts->path + SEP + "InitialConditions" + SEP + "h.txt", std::ifstream::in);
 
 	CopyInitialConditions(eastVel, uOld);
 	CopyInitialConditions(northVel, vOld);
 	CopyInitialConditions(displacement, etaOld);
-	CopyInitialConditions(ocean_thickness, depth);
+	// CopyInitialConditions(ocean_thickness, depth);
+
+	for (int i = 0; i < depth->ReturnFieldLatLen() - 1; i++) {
+		for (int j = 0; j < depth->ReturnFieldLonLen(); j++) {
+			if ((double) i > (double) depth->ReturnFieldLatLen()*5./8.) depthArray[i][j] = 10e3;
+			else depthArray[i][j] = 5e3;
+		}
+	}
 };
 
 void Solver::CopyInitialConditions(std::ifstream & file, Field * inField) {
@@ -909,7 +920,7 @@ void Solver::DumpFields(int output_num) {
 	for (int i = 0; i < u->ReturnFieldLatLen(); i++) {
 		for (int j = 0; j < u->ReturnFieldLonLen(); j++) {
 			uFile << uNewArray[i][j] << '\t';
-			// etaFile << etaNew->solution[i][j] << '\t';
+			// etaFile << depthArray[i][j] << '\t';
 			etaFile << etaNewArray[i][j] << '\t';
 		}
 		uFile << std::endl;
