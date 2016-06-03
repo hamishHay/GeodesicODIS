@@ -692,6 +692,8 @@ void Solver::Explicit() {
 
 	DumpSolutions(-1);
 
+	energy->mass->UpdateMass();
+
 	//Update cell energies and globally averaged energy
 	energy->UpdateKinE(uNewArray,vNewArray);
 	// energy->UpdateDtKinEAvg();
@@ -734,6 +736,7 @@ void Solver::Explicit() {
 		}
 
 		energy->UpdateKinE(uNewArray,vNewArray);
+		// std::cout<<energy->dtKinEAvg[energy->timePos-1]<<std::endl;
 
 		energy->UpdateDtKinEAvg();
 
@@ -883,10 +886,23 @@ void Solver::ReadInitialConditions(void) {
 	CopyInitialConditions(displacement, etaOld);
 	// CopyInitialConditions(ocean_thickness, depth);
 
-	for (int i = 0; i < depth->ReturnFieldLatLen() - 1; i++) {
+	double l_thin = -50.0 * radConv;
+	double l_thick = -70.0 * radConv;
+	double h_thick = 1e4;
+	double h_thin = 360.0;
+	double gradient = (h_thick - h_thin)/(l_thick - l_thin);
+
+
+	for (int i = 0; i < depth->ReturnFieldLatLen(); i++) {
 		for (int j = 0; j < depth->ReturnFieldLonLen(); j++) {
-			if ((double) i > (double) depth->ReturnFieldLatLen()*5./8.) depthArray[i][j] = 10e3;
-			else depthArray[i][j] = 5e3;
+			// if ((double) i > (double) depth->ReturnFieldLatLen()*5./8.) depthArray[i][j] = 10e3;
+			// else depthArray[i][j] = 5e3;
+
+			if (depth->lat[i] < l_thick) depthArray[i][j] = h_thick;
+			else if (depth->lat[i] < l_thin) depthArray[i][j] = h_thin + gradient*(depth->lat[i] - l_thin);
+			else depthArray[i][j] = h_thin;
+
+
 		}
 	}
 };
