@@ -7,8 +7,8 @@ BUILDDIR = /source/build/
 
 all: ODIS
 
-ODIS: main.o mathRoutines.o outFiles.o globals.o mesh.o field.o mass.o energy.o solver.o
-	$(CC) main.o mathRoutines.o outFiles.o globals.o mesh.o field.o mass.o energy.o solver.o -o ODIS
+ODIS: main.o mathRoutines.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o solver.o
+	$(CC) main.o mathRoutines.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o solver.o -o ODIS
 
 main.o: main.cpp
 	$(CC) $(CFLAGS) main.cpp
@@ -27,6 +27,9 @@ mesh.o: mesh.cpp
 
 field.o: field.cpp
 	$(CC) $(CFLAGS) field.cpp
+
+depth.o: depth.cpp
+	$(CC) $(CFLAGS) depth.cpp
 
 mass.o: mass.cpp
 	$(CC) $(CFLAGS) mass.cpp

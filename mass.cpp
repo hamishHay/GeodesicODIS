@@ -1,11 +1,12 @@
 #include "field.h"
+#include "depth.h"
 #include "energy.h"
 #include "mass.h"
 #include "globals.h"
 
 #include <math.h>
 
-Mass::Mass(Mesh * mesh, int lat, int lon, Globals * Consts, Field * Eta, Field * Thickness) : Field(mesh, lat, lon) {
+Mass::Mass(Mesh * mesh, int lat, int lon, Globals * Consts, Field * Eta, Depth * Thickness) : Field(mesh, lat, lon) {
 	consts = Consts;
 	eta = Eta;
 	thickness = Thickness;

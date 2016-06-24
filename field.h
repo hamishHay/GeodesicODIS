@@ -13,13 +13,6 @@ public:
 	int fieldLatLen;
 	int fieldLonLen;
 
-	// std::vector<double> lat;
-	// std::vector<double> lon;
-	// std::vector<double> cosLat;
-	// std::vector<double> sinLat;
-	// std::vector<double> cos2Lat;
-	// std::vector<double> sin2Lat;
-
 	double * lat;
 	double * lon;
 	double * cosLat;
@@ -38,21 +31,13 @@ public:
 
 	std::vector<double> opp; //Pointer to opposite cell if at the pole
 	Mesh * grid; //pointer to global Mesh object
-	//std::vector<std::vector<double>> solution; //2D vector array
+
 	double ** solution;
 
 	Field(Mesh *,int,int); //Constructor
 
 	int ReturnFieldLatLen();
 	int ReturnFieldLonLen();
-
-	double CenterP(int, int); //solution value at center point
-	double NorthP(int, int); //solution value at point (i+2,j)
-	double NorthEastP(int, int); //solution value at point (i+2,j+2)
-	double SouthP(int, int); //solution value at point (i-2,j)
-	double SouthWestP(int, int);
-	double EastP(int, int); //solution value at point (i,j+2)
-	double WestP(int, int); //solution value at point (i,j-2)
 
 	double SouthWestAvg(int, int);
 	double NorthEastAvg(int, int);

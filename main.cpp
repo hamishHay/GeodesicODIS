@@ -1,5 +1,6 @@
 #include "mesh.h"
 #include "field.h"
+#include "depth.h"
 #include "globals.h"
 #include "solver.h"
 #include "mass.h"
@@ -16,7 +17,7 @@ int main(void)
 	Field * eta = new Field(grid,0,0);
 	Field * dUlat = new Field(grid,1,0);
 	Field * dUlon = new Field(grid,0,1);
-	Field * h = new Field(grid,0,0);
+	Depth * h = new Depth(grid);
 
 	//conserved quantities:
 	Mass * mass = new Mass(grid, 0, 0, constants, eta, h);

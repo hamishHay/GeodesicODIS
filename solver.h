@@ -4,6 +4,7 @@
 #include "field.h"
 #include "globals.h"
 #include "mesh.h"
+#include "depth.h"
 #include "energy.h"
 #include "outFiles.h"
 
@@ -47,7 +48,7 @@ public:
 	Field * eta;
 	Field * v;
 	Field * u;
-	Field * depth;
+	Depth * depth;
 	Energy * energy;
 
 	double ** etaOldArray;
@@ -107,7 +108,7 @@ public:
 	double * sinMinusB;
 	double * sinPlusB;
 
-	Solver(int type, int dump, Globals *, Mesh *, Field *, Field*, Field *, Field *, Field *, Energy *, Field *);
+	Solver(int type, int dump, Globals *, Mesh *, Field *, Field*, Field *, Field *, Field *, Energy *, Depth *);
 
 	void Solve();
 

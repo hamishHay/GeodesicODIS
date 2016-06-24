@@ -3,6 +3,7 @@
 
 #include "vector"
 #include "field.h"
+#include "depth.h"
 #include "globals.h"
 #include "mesh.h"
 
@@ -10,7 +11,7 @@ class Mass : public Field {
 private:
 	Globals * consts;
 	Field * eta;
-	Field * thickness;
+	Depth * thickness;
 
 	double totalMass=0;
 
@@ -18,7 +19,7 @@ private:
 	void UpdateTotalMass(void);
 
 public:
-	Mass(Mesh *, int, int, Globals * Consts, Field * Eta, Field * Thickness);
+	Mass(Mesh *, int, int, Globals * Consts, Field * Eta, Depth * Thickness);
 
 	void UpdateMass();
 };

@@ -15,6 +15,7 @@
 #include "solver.h"
 #include "globals.h"
 #include "field.h"
+#include "depth.h"
 #include "mesh.h"
 #include "mathRoutines.h"
 #include "energy.h"
@@ -32,7 +33,7 @@
 #include <sys/stat.h>
 #include <errno.h>
 
-Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradLon, Field * UGradLat, Field * VelU, Field * VelV, Field * Eta, Energy * EnergyField, Field * Depth) {
+Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradLon, Field * UGradLat, Field * VelU, Field * VelV, Field * Eta, Energy * EnergyField, Depth * Depth_h) {
 	solverType = type;
 	dumpTime = dump;
 	Out = &Consts->Output;
@@ -83,8 +84,8 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 	dUlon = new Field(grid,0,1);
 	dUlonArray = dUlon->solution;
 
-	depth = Depth;
-	depthArray = Depth->solution;
+	depth = Depth_h;
+	depthArray = Depth_h->solution;
 
 	uLatLen = u->fieldLatLen;
 	uLonLen = u->fieldLonLen;
@@ -623,29 +624,36 @@ inline void Solver::UpdateSurfaceHeight(){
 	double r = consts->radius.Value();
 	double hRadius = 0.0;
 
+	int i_h = 0;
+	int j_h = 0;
+
 	for (int i = 1; i < etaLatLen-1; i++) {
 		cosLat = eta->cosLat[i];
+		i_h = i*2;
 		for (int j = 0; j < etaLonLen; j++) {
-			northv = vNewArray[i - 1][j] * v->cosLat[i - 1];
-			southv = vNewArray[i][j] * v->cosLat[i];
+			j_h = j*2;
+			northv = depthArray[i_h - 1][j_h] * vNewArray[i - 1][j] * v->cosLat[i - 1];
+			southv = depthArray[i_h + 1][j_h] * vNewArray[i][j] * v->cosLat[i];
 
 			vGrad = (northv - southv) / vdLat;
 
 
 			if (j != 0) {
-				eastu = uNewArray[i][j];
-				westu = uNewArray[i][j - 1];
+				eastu = depthArray[i_h][j_h + 1] * uNewArray[i][j];
+				westu = depthArray[i_h][j_h - 1] * uNewArray[i][j - 1];
 			}
 			else {
-				eastu = uNewArray[i][j];
-				westu = uNewArray[i][uLonLen - 1];
+				eastu = depthArray[i_h][j_h + 1] * uNewArray[i][j];
+				westu = depthArray[i_h][uLonLen*2] * uNewArray[i][uLonLen - 1];
 			}
 
 			uGrad = (eastu - westu) / vdLon;
 
-			hRadius = depthArray[i][j] / r;
+			// hRadius = depthArray[i][j] / r;
 
-			etaNewArray[i][j] = hRadius/cosLat*(-vGrad - uGrad)*dt + etaOldArray[i][j];
+			// etaNewArray[i][j] = hRadius/cosLat*(-vGrad - uGrad)*dt + etaOldArray[i][j];
+
+			etaNewArray[i][j] = 1.0/cosLat*(-vGrad - uGrad)*dt + etaOldArray[i][j];
 		}
 	}
 
