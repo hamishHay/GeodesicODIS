@@ -518,19 +518,19 @@ inline void Solver::UpdateEastVel(){
 		// uNewArray[0][j] = uNewArray[1][j];
 	  // uNewArray[uLatLen - 1][j] = uNewArray[uLatLen - 2][j];
 	}
-	double npoleSum = 0;
-	double spoleSum = 0;
-	for (int j = 0; j < uLonLen; j++) {
-		npoleSum += uNewArray[0][j];
-		spoleSum += uNewArray[uLatLen - 1][j];
-	}
-	npoleSum = npoleSum / uLonLen;
-	spoleSum = spoleSum / uLonLen;
+	//double npoleSum = 0;
+	//double spoleSum = 0;
+	//for (int j = 0; j < uLonLen; j++) {
+	//	npoleSum += uNewArray[0][j];
+	//	spoleSum += uNewArray[uLatLen - 1][j];
+	//}
+	//npoleSum = npoleSum / uLonLen;
+	//spoleSum = spoleSum / uLonLen;
 
-	for (int j = 0; j < uLonLen; j++) {
-		uNewArray[0][j] = npoleSum;
-		uNewArray[uLatLen - 1][j] = spoleSum;
-	}
+	//for (int j = 0; j < uLonLen; j++) {
+	//	uNewArray[0][j] = npoleSum;
+	//	uNewArray[uLatLen - 1][j] = spoleSum;
+	//}
 }
 
 inline void Solver::UpdateNorthVel(){
@@ -587,7 +587,6 @@ inline void Solver::UpdateNorthVel(){
 			southEta = etaOldArray[i+1][j];
 
 			dSurfLat = (northEta - southEta) / etadLat;
-
 
 			surfHeight = gRadius*dSurfLat;
 
@@ -752,6 +751,7 @@ void Solver::Explicit() {
 			energy->timePos = 0; //Reset time position after energy data output
 			// DumpFields(orbitNumber);
 			DumpFields(output);
+                        std::cout<<"Time: "<<timeStepCount/consts->period.Value()<<std::endl;
 
 		}
 		else if (timeStepCount >= consts->period.Value()*consts->outputTime.Value()*outCount) {
@@ -759,6 +759,7 @@ void Solver::Explicit() {
 			outCount++;
 			DumpSolutions(1);
 			DumpFields(output);
+                        std::cout<<"Time: "<<timeStepCount/consts->period.Value()<<std::endl;
 		}
 		iteration++;
 
