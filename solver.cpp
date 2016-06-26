@@ -48,7 +48,8 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 	eta = Eta;
 	energy = EnergyField;
 
-	etaOld = new Field(grid,0,0);
+	// etaOld = new Field(grid,0,0);
+	etaOld = eta;
 	etaOldArray = etaOld->solution;
 
 	etaNew = new Field(grid,0,0);
@@ -71,6 +72,15 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 
 	uDissTerm = new Field(grid, 0, 1);
 	uDissArray = uDissTerm->solution;
+
+	etaVAvg = new Field(grid, 1, 0);
+	etaVAvgArray = etaVAvg->solution;
+
+	etaUAvg = new Field(grid, 0, 1);
+	etaUAvgArray = etaUAvg->solution;
+
+	etaInterp = new Field(grid, 1, 1);
+	etaInterpArray = etaInterp->solution;
 
 	vNorthEastAvg = new Field(grid, 1, 0);
 	vNEAvgArray = vNorthEastAvg->solution;
@@ -472,10 +482,14 @@ inline void Solver::UpdateEastVel(){
 
 	case QUADRATIC:
 		double alphah = 0.0;
+		int i_h = 0;
+		int j_h = 0;
 
-		 for (int i = 1; i < uLatLen - 1; i++) {
-		 	for (int j = 0; j < uLonLen; j++) {
-				alphah = alpha / depthArray[i][j];
+		for (int i = 1; i < uLatLen - 1; i++) {
+			i_h = i*2;
+			for (int j = 0; j < uLonLen; j++) {
+				j_h = j*2;
+				alphah = alpha / (depthArray[i_h][j_h+1] + etaUAvgArray[i][j]);
 				uDissArray[i][j] = alphah * uOldArray[i][j] * sqrt(uOldArray[i][j]*uOldArray[i][j] + vNEAvgArray[i][j]*vNEAvgArray[i][j]);
 			}
 		}
@@ -579,9 +593,13 @@ inline void Solver::UpdateNorthVel(){
 
 	case QUADRATIC:
 		double alphah = 0.0;
+		int i_h = 0;
+		int j_h = 0;
 		for (int i = 0; i < vLatLen; i++) {
+			i_h = i*2;
 			for (int j = 0; j < vLonLen; j++) {
-				alphah = alpha / depthArray[i][j];
+				j_h = j*2;
+				alphah = alpha / (depthArray[i_h+1][j_h] + etaVAvgArray[i][j]);
 				vDissArray[i][j] = alphah * vOldArray[i][j] * sqrt(vOldArray[i][j] * vOldArray[i][j] + uSWAvgArray[i][j]*uSWAvgArray[i][j]);
 			}
 		}
@@ -630,7 +648,32 @@ inline void Solver::UpdateSurfaceHeight(){
 
 	double cosLat;
 	double vdLat = v->dLat;
-	double vdLon = u->dLon;
+	double vdLon = v->dLon;
+	double interpLonLen = etaInterp->fieldLonLen;
+
+
+	for (int i = 0; i < vLatLen; i++) {
+		for (int j = 0; j < vLonLen; j++) {
+			if (j > 0) {
+				etaVAvgArray[i][j] = 0.25*(etaOldArray[i][j] + etaOldArray[i + 1][j] + etaInterpArray[i][j] + etaInterpArray[i][j - 1]);
+			}
+			else {
+				etaVAvgArray[i][j] = 0.25*(etaOldArray[i][j] + etaOldArray[i + 1][j] + etaInterpArray[i][j] + etaInterpArray[i][vLonLen - 1]);
+			}
+		}
+	}
+
+	for (int i = 1; i < uLatLen - 1; i++) {
+		for (int j = 0; j < uLonLen; j++) {
+			if (j < uLonLen - 1) {
+				etaUAvgArray[i][j] = 0.25*(etaOldArray[i][j] + etaOldArray[i][j + 1] + etaInterpArray[i - 1][j] + etaInterpArray[i][j]);
+			}
+			else {
+				etaUAvgArray[i][j] = 0.25*(etaOldArray[i][j] + etaOldArray[i][0] + etaInterpArray[i - 1][j] + etaInterpArray[i][j]);
+			}
+		}
+	}
+
 
 
 	double r = consts->radius.Value();
@@ -644,8 +687,8 @@ inline void Solver::UpdateSurfaceHeight(){
 		i_h = i*2;
 		for (int j = 0; j < etaLonLen; j++) {
 			j_h = j*2;
-			northv = depthArray[i_h - 1][j_h] * vNewArray[i - 1][j] * v->cosLat[i - 1];
-			southv = depthArray[i_h + 1][j_h] * vNewArray[i][j] * v->cosLat[i];
+			northv = (etaVAvgArray[i - 1][j] + depthArray[i_h - 1][j_h]) * vNewArray[i - 1][j] * v->cosLat[i - 1];
+			southv = (etaVAvgArray[i][j] + depthArray[i_h + 1][j_h]) * vNewArray[i][j] * v->cosLat[i];
 			// northv =  vNewArray[i - 1][j] * v->cosLat[i - 1];
 			// southv =  vNewArray[i][j] * v->cosLat[i];
 
@@ -653,14 +696,14 @@ inline void Solver::UpdateSurfaceHeight(){
 
 
 			if (j != 0) {
-				eastu = depthArray[i_h][j_h + 1] * uNewArray[i][j];
-				westu = depthArray[i_h][j_h - 1] * uNewArray[i][j - 1];
+				eastu = (etaUAvgArray[i][j] + depthArray[i_h][j_h + 1]) * uNewArray[i][j];
+				westu = (etaUAvgArray[i][j - 1] + depthArray[i_h][j_h - 1]) * uNewArray[i][j - 1];
 				// eastu = uNewArray[i][j];
 				// westu = uNewArray[i][j - 1];
 			}
 			else {
-				eastu = depthArray[i_h][j_h + 1] * uNewArray[i][j];
-				westu = depthArray[i_h][uLonLen*2 - 1] * uNewArray[i][uLonLen - 1];
+				eastu = (etaUAvgArray[i][j] + depthArray[i_h][j_h + 1]) * uNewArray[i][j];
+				westu = (etaUAvgArray[i][uLonLen - 1] + depthArray[i_h][uLonLen*2 - 1]) * uNewArray[i][uLonLen - 1];
 				// eastu = uNewArray[i][j];
 				// westu = uNewArray[i][uLonLen - 1];
 			}
@@ -698,6 +741,23 @@ inline void Solver::UpdateSurfaceHeight(){
 	}
 }
 
+
+inline void Solver::InterpSurfaceHeight() {
+	int interpLatLen = etaInterp->ReturnFieldLatLen();
+	int interpLonLen = etaInterp->ReturnFieldLonLen();
+
+	for (int i = 0; i < interpLatLen; i++) {
+		for (int j = 0; j < interpLonLen; j++) {
+			if (j < interpLonLen - 1) {
+				etaInterpArray[i][j] = 0.25*(etaOldArray[i][j] + etaOldArray[i][j + 1] + etaOldArray[i + 1][j] + etaOldArray[i + 1][j + 1]);
+			}
+			else {
+				etaInterpArray[i][j] = 0.25*(etaOldArray[i][j] + etaOldArray[i][0] + etaOldArray[i + 1][j] + etaOldArray[i + 1][0]);
+			}
+		}
+
+	}
+}
 
 void Solver::Explicit() {
 	InitialConditions();
@@ -761,6 +821,12 @@ void Solver::Explicit() {
 			}
 		}
 
+		InterpSurfaceHeight();
+
+		energy->mass->UpdateMass();
+		// std::cout<<"Total Mass"<<energy->mass->totalMass<<std::endl;
+
+
 		energy->UpdateKinE(uNewArray,vNewArray);
 		// std::cout<<energy->dtKinEAvg[energy->timePos-1]<<std::endl;
 
@@ -788,6 +854,7 @@ void Solver::Explicit() {
 			energy->timePos = 0; //Reset time position after energy data output
 			// DumpFields(orbitNumber);
 			DumpFields(output);
+			std::cout<<"Total Mass"<<energy->mass->totalMass<<std::endl;
 
 		}
 		else if (timeStepCount >= consts->period.Value()*consts->outputTime.Value()*outCount) {
@@ -795,6 +862,7 @@ void Solver::Explicit() {
 			outCount++;
 			DumpSolutions(1);
 			DumpFields(output);
+			std::cout<<"Total Mass"<<energy->mass->totalMass<<std::endl;
 		}
 		iteration++;
 
@@ -914,7 +982,7 @@ void Solver::ReadInitialConditions(void) {
 
 	double l_thin = -30.0 * radConv;
 	double l_thick = -70.0 * radConv;
-	double h_thick = 2e3;
+	double h_thick = 360.0;
 	double h_thin = 360.0;//360.0;
 	double gradient = (h_thick - h_thin)/(l_thick - l_thin);
 
@@ -959,10 +1027,21 @@ void Solver::DumpFields(int output_num) {
 	std::ofstream vFile(consts->path + SEP + "NorthVelocity" + SEP + "v_vel_" + out + ".txt", std::ofstream::out);
 	std::ofstream etaFile(consts->path + SEP + "Displacement" + SEP + "eta_" + out + ".txt", std::ofstream::out);
 
+
+	std::cout<<"Outputing solvable fields "<<output_num<<std::endl;
+
+	// for (int i = 0; i < depth->ReturnFieldLatLen(); i++) {
+	// 	for (int j = 0; j < depth->ReturnFieldLonLen(); j++) {
+	// 		// uFile << uNewArray[i][j] << '\t';
+	// 		etaFile << depthArray[i][j] << '\t';
+	// 		// etaFile << etaNewArray[i][j] << '\t';
+	// 	}
+	// 	etaFile << std::endl;
+	// }
+
 	for (int i = 0; i < etaNew->ReturnFieldLatLen(); i++) {
 		for (int j = 0; j < etaNew->ReturnFieldLonLen(); j++) {
 			uFile << uNewArray[i][j] << '\t';
-			// etaFile << depthArray[i][j] << '\t';
 			etaFile << etaNewArray[i][j] << '\t';
 		}
 		uFile << std::endl;

@@ -69,6 +69,10 @@ public:
 	double ** vNEAvgArray;
 	double ** uSWAvgArray;
 
+	double ** etaVAvgArray;
+	double ** etaUAvgArray;
+	double ** etaInterpArray;
+
 	double ** depthArray;
 
 	int uLatLen;
@@ -103,6 +107,10 @@ public:
 	Field * vNorthEastAvg;
 	Field * uSouthWestAvg;
 
+	Field * etaVAvg;
+	Field * etaUAvg;
+	Field * etaInterp;
+
 	double * cosMinusB;
 	double * cosPlusB;
 	double * sinMinusB;
@@ -122,6 +130,7 @@ public:
 	inline void UpdateEastVel() __attribute__((always_inline));
 	inline void UpdateNorthVel() __attribute__((always_inline));
 	inline void UpdateSurfaceHeight() __attribute__((always_inline));
+	inline void InterpSurfaceHeight() __attribute__((always_inline));
 
 	void InterpPole(Field * Field);
 

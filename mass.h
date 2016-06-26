@@ -13,12 +13,13 @@ private:
 	Field * eta;
 	Depth * thickness;
 
-	double totalMass=0;
+
 
 	void UpdateCellMass(int i, int j);
 	void UpdateTotalMass(void);
 
 public:
+	double totalMass=0;
 	Mass(Mesh *, int, int, Globals * Consts, Field * Eta, Depth * Thickness);
 
 	void UpdateMass();

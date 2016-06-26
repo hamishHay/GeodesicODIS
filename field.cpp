@@ -85,38 +85,6 @@ int Field::ReturnFieldLonLen(){
 	return fieldLonLen;
 };
 
-double Field::CenterP(int lat, int lon){
-	return solution[lat][lon];
-};
-
-double Field::EastP(int lat, int lon){
-	if (lon >= fieldLonLen - 1) return solution[lat][lon - (fieldLonLen-1)];
-	else return solution[lat][lon + 1];
-};
-
-double Field::NorthP(int lat, int lon){
-	return solution[lat - 1][lon];
-};
-
-double Field::NorthEastP(int lat, int lon){
-	if (lon >= fieldLonLen - 1) return solution[lat - 1][lon - (fieldLonLen - 1)];
-	else return solution[lat - 1][lon + 1];
-}
-
-double Field::WestP(int lat, int lon){
-	if (lon <= 0) return solution[lat][(fieldLonLen - 1) - lon];
-	else return solution[lat][lon - 1];
-};
-
-double Field::SouthP(int lat, int lon){
-	return solution[lat + 1][lon];
-};
-
-double Field::SouthWestP(int lat, int lon){
-	if (lon <= 0) return solution[lat+1][(fieldLonLen-1) - lon];
-	else return solution[lat + 1][lon - 1];
-};
-
 double Field::SouthWestAvg(int i, int j) {
 	if (j > 0) {
 		return 0.25*(solution[i][j] + solution[i + 1][j] + solution[i][j - 1] + solution[i + 1][j - 1]);
