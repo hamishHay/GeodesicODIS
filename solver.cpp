@@ -492,21 +492,27 @@ inline void Solver::UpdateEastVel(){
 	double * uSinLat = uOld->sinLat;
 
 
+	int i_h = 0;
+	int j_h = 0;
+
 	for (int i = 1; i < uLatLen - 1; i++) {
+		i_h = i*2;
+
 		coriolisFactor =  2. * angVel*uSinLat[i];
 		tidalFactor = loveRadius/uCosLat[i];
 		surfFactor = gRadius/uCosLat[i];
 		for (int j = 0; j < uLonLen; j++) {
-			if (j != uLonLen - 1) eastEta = etaOldArray[i][j+1];
-			else eastEta = etaOldArray[i][0];
+			j_h = j*2;
+			if (j != uLonLen - 1) eastEta = depthArray[i_h][j_h + 2] + etaOldArray[i][j+1];
+			else eastEta = depthArray[i_h][0] + etaOldArray[i][0];
 
-			westEta = etaOldArray[i][j];
+			westEta = depthArray[i_h][j_h] + etaOldArray[i][j];
 
 			dSurfLon = (eastEta - westEta) / (etadLon);
 
 			surfHeight = surfFactor*dSurfLon;
 
-			coriolis = coriolisFactor*vNEAvgArray[i][j];
+			coriolis = coriolisFactor * vNEAvgArray[i][j];
 			tidalForce = tidalFactor * dUlonArray[i][j];
 
 			uNewArray[i][j] = (coriolis - surfHeight + tidalForce - uDissArray[i][j])*dt + uOldArray[i][j];
@@ -586,11 +592,17 @@ inline void Solver::UpdateNorthVel(){
 	double gRadius = consts->g.Value() / consts->radius.Value();
 	double coriolisFactor = 0;
 
+	int i_h = 0;
+	int j_h = 0;
+
 	for (int i = 0; i < vLatLen; i++) {
 		coriolisFactor = 2. * angVel * v->sinLat[i];
+		i_h = i*2;
 		for (int j = 0; j < vLonLen; j++) {
-			northEta = etaOldArray[i][j];
-			southEta = etaOldArray[i+1][j];
+			j_h = j*2;
+
+			northEta = depthArray[i_h][j_h] + etaOldArray[i][j];
+			southEta = depthArray[i_h+2][j_h] + etaOldArray[i+1][j];
 
 			dSurfLat = (northEta - southEta) / etadLat;
 
@@ -634,6 +646,8 @@ inline void Solver::UpdateSurfaceHeight(){
 			j_h = j*2;
 			northv = depthArray[i_h - 1][j_h] * vNewArray[i - 1][j] * v->cosLat[i - 1];
 			southv = depthArray[i_h + 1][j_h] * vNewArray[i][j] * v->cosLat[i];
+			// northv =  vNewArray[i - 1][j] * v->cosLat[i - 1];
+			// southv =  vNewArray[i][j] * v->cosLat[i];
 
 			vGrad = (northv - southv) / vdLat;
 
@@ -641,19 +655,23 @@ inline void Solver::UpdateSurfaceHeight(){
 			if (j != 0) {
 				eastu = depthArray[i_h][j_h + 1] * uNewArray[i][j];
 				westu = depthArray[i_h][j_h - 1] * uNewArray[i][j - 1];
+				// eastu = uNewArray[i][j];
+				// westu = uNewArray[i][j - 1];
 			}
 			else {
 				eastu = depthArray[i_h][j_h + 1] * uNewArray[i][j];
-				westu = depthArray[i_h][uLonLen*2] * uNewArray[i][uLonLen - 1];
+				westu = depthArray[i_h][uLonLen*2 - 1] * uNewArray[i][uLonLen - 1];
+				// eastu = uNewArray[i][j];
+				// westu = uNewArray[i][uLonLen - 1];
 			}
 
 			uGrad = (eastu - westu) / vdLon;
 
-			// hRadius = depthArray[i][j] / r;
+			hRadius = 1.0 / r;
 
 			// etaNewArray[i][j] = hRadius/cosLat*(-vGrad - uGrad)*dt + etaOldArray[i][j];
 
-			etaNewArray[i][j] = 1.0/cosLat*(-vGrad - uGrad)*dt + etaOldArray[i][j];
+			etaNewArray[i][j] = hRadius/cosLat*(-vGrad - uGrad)*dt + etaOldArray[i][j];
 		}
 	}
 
@@ -894,10 +912,10 @@ void Solver::ReadInitialConditions(void) {
 	CopyInitialConditions(displacement, etaOld);
 	// CopyInitialConditions(ocean_thickness, depth);
 
-	double l_thin = -50.0 * radConv;
+	double l_thin = -30.0 * radConv;
 	double l_thick = -70.0 * radConv;
-	double h_thick = 1e4;
-	double h_thin = 360.0;
+	double h_thick = 2e3;
+	double h_thin = 360.0;//360.0;
 	double gradient = (h_thick - h_thin)/(l_thick - l_thin);
 
 
@@ -941,8 +959,8 @@ void Solver::DumpFields(int output_num) {
 	std::ofstream vFile(consts->path + SEP + "NorthVelocity" + SEP + "v_vel_" + out + ".txt", std::ofstream::out);
 	std::ofstream etaFile(consts->path + SEP + "Displacement" + SEP + "eta_" + out + ".txt", std::ofstream::out);
 
-	for (int i = 0; i < u->ReturnFieldLatLen(); i++) {
-		for (int j = 0; j < u->ReturnFieldLonLen(); j++) {
+	for (int i = 0; i < etaNew->ReturnFieldLatLen(); i++) {
+		for (int j = 0; j < etaNew->ReturnFieldLonLen(); j++) {
 			uFile << uNewArray[i][j] << '\t';
 			// etaFile << depthArray[i][j] << '\t';
 			etaFile << etaNewArray[i][j] << '\t';
