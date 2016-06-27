@@ -489,7 +489,8 @@ inline void Solver::UpdateEastVel(){
 			i_h = i*2;
 			for (int j = 0; j < uLonLen; j++) {
 				j_h = j*2;
-				alphah = alpha / (depthArray[i_h][j_h+1] + etaUAvgArray[i][j]);
+				alphah = alpha / (depthArray[i_h][j_h+1]+ etaUAvgArray[i][j]);
+				// alphah = alpha / (depthArray[i_h][j_h+1]);
 				uDissArray[i][j] = alphah * uOldArray[i][j] * sqrt(uOldArray[i][j]*uOldArray[i][j] + vNEAvgArray[i][j]*vNEAvgArray[i][j]);
 			}
 		}
@@ -600,6 +601,7 @@ inline void Solver::UpdateNorthVel(){
 			for (int j = 0; j < vLonLen; j++) {
 				j_h = j*2;
 				alphah = alpha / (depthArray[i_h+1][j_h] + etaVAvgArray[i][j]);
+				// alphah = alpha / (depthArray[i_h+1][j_h]);
 				vDissArray[i][j] = alphah * vOldArray[i][j] * sqrt(vOldArray[i][j] * vOldArray[i][j] + uSWAvgArray[i][j]*uSWAvgArray[i][j]);
 			}
 		}
@@ -689,21 +691,27 @@ inline void Solver::UpdateSurfaceHeight(){
 			j_h = j*2;
 			northv = (etaVAvgArray[i - 1][j] + depthArray[i_h - 1][j_h]) * vNewArray[i - 1][j] * v->cosLat[i - 1];
 			southv = (etaVAvgArray[i][j] + depthArray[i_h + 1][j_h]) * vNewArray[i][j] * v->cosLat[i];
+			// northv = ( depthArray[i_h - 1][j_h]) * vNewArray[i - 1][j] * v->cosLat[i - 1];
+			// southv = ( depthArray[i_h + 1][j_h]) * vNewArray[i][j] * v->cosLat[i];
 			// northv =  vNewArray[i - 1][j] * v->cosLat[i - 1];
 			// southv =  vNewArray[i][j] * v->cosLat[i];
 
 			vGrad = (northv - southv) / vdLat;
 
 
-			if (j != 0) {
+			if (j > 0) {
 				eastu = (etaUAvgArray[i][j] + depthArray[i_h][j_h + 1]) * uNewArray[i][j];
 				westu = (etaUAvgArray[i][j - 1] + depthArray[i_h][j_h - 1]) * uNewArray[i][j - 1];
+				// eastu = (depthArray[i_h][j_h + 1]) * uNewArray[i][j];
+				// westu = (depthArray[i_h][j_h - 1]) * uNewArray[i][j - 1];
 				// eastu = uNewArray[i][j];
 				// westu = uNewArray[i][j - 1];
 			}
 			else {
-				eastu = (etaUAvgArray[i][j] + depthArray[i_h][j_h + 1]) * uNewArray[i][j];
 				westu = (etaUAvgArray[i][uLonLen - 1] + depthArray[i_h][uLonLen*2 - 1]) * uNewArray[i][uLonLen - 1];
+				eastu = (etaUAvgArray[i][j] + depthArray[i_h][j_h + 1]) * uNewArray[i][j];
+				// eastu = (depthArray[i_h][j_h + 1]) * uNewArray[i][j];
+				// westu = (depthArray[i_h][uLonLen*2 - 1]) * uNewArray[i][uLonLen - 1];
 				// eastu = uNewArray[i][j];
 				// westu = uNewArray[i][uLonLen - 1];
 			}
@@ -982,8 +990,8 @@ void Solver::ReadInitialConditions(void) {
 
 	double l_thin = -30.0 * radConv;
 	double l_thick = -70.0 * radConv;
-	double h_thick = 360.0;
-	double h_thin = 360.0;//360.0;
+	double h_thick = consts->h.Value();
+	double h_thin = consts->h.Value();
 	double gradient = (h_thick - h_thin)/(l_thick - l_thin);
 
 
@@ -1034,6 +1042,15 @@ void Solver::DumpFields(int output_num) {
 	// 	for (int j = 0; j < depth->ReturnFieldLonLen(); j++) {
 	// 		// uFile << uNewArray[i][j] << '\t';
 	// 		etaFile << depthArray[i][j] << '\t';
+	// 		// etaFile << etaNewArray[i][j] << '\t';
+	// 	}
+	// 	etaFile << std::endl;
+	// }
+	//
+	// for (int i = 0; i < etaInterp->ReturnFieldLatLen(); i++) {
+	// 	for (int j = 0; j < etaInterp->ReturnFieldLonLen(); j++) {
+	// 		// uFile << uNewArray[i][j] << '\t';
+	// 		etaFile << etaInterpArray[i][j] << '\t';
 	// 		// etaFile << etaNewArray[i][j] << '\t';
 	// 	}
 	// 	etaFile << std::endl;

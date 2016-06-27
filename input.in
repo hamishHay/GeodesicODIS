@@ -8,7 +8,7 @@ semimajor axis; 	 	 	 238040000.0; 	 	 	 h;
 eccentricity; 	 	 	 0.0047; 	 	 	 h;
 obliquity; 	 	 	 0.00014; 	 	 	 h;
 orbital period; 	 	 	 118327.40691486979; 	 	 	 h;
-ocean thickness; 	 	 	 100.0; 	 	 	 h;
+ocean thickness; 	 	 	 360.0; 	 	 	 h;
 friction coefficient; 	 	 	 0.001; 	 	 	 alpha;
 potential; 	 	 	 OBLIQ; 	 	 	 potential;
 simulation end time; 	 	 	 80; 	 	 	 endTime;
