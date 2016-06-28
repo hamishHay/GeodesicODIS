@@ -651,30 +651,30 @@ inline void Solver::UpdateSurfaceHeight(){
 	double cosLat;
 	double vdLat = v->dLat;
 	double vdLon = v->dLon;
-	double interpLonLen = etaInterp->fieldLonLen;
+	// double interpLonLen = etaInterp->fieldLonLen;
 
-
-	for (int i = 0; i < vLatLen; i++) {
-		for (int j = 0; j < vLonLen; j++) {
-			if (j > 0) {
-				etaVAvgArray[i][j] = 0.25*(etaOldArray[i][j] + etaOldArray[i + 1][j] + etaInterpArray[i][j] + etaInterpArray[i][j - 1]);
-			}
-			else {
-				etaVAvgArray[i][j] = 0.25*(etaOldArray[i][j] + etaOldArray[i + 1][j] + etaInterpArray[i][j] + etaInterpArray[i][vLonLen - 1]);
-			}
-		}
-	}
-
-	for (int i = 1; i < uLatLen - 1; i++) {
-		for (int j = 0; j < uLonLen; j++) {
-			if (j < uLonLen - 1) {
-				etaUAvgArray[i][j] = 0.25*(etaOldArray[i][j] + etaOldArray[i][j + 1] + etaInterpArray[i - 1][j] + etaInterpArray[i][j]);
-			}
-			else {
-				etaUAvgArray[i][j] = 0.25*(etaOldArray[i][j] + etaOldArray[i][0] + etaInterpArray[i - 1][j] + etaInterpArray[i][j]);
-			}
-		}
-	}
+	//
+	// for (int i = 0; i < vLatLen; i++) {
+	// 	for (int j = 0; j < vLonLen; j++) {
+	// 		if (j > 0) {
+	// 			etaVAvgArray[i][j] = 0.25*(etaOldArray[i][j] + etaOldArray[i + 1][j] + etaInterpArray[i][j] + etaInterpArray[i][j - 1]);
+	// 		}
+	// 		else {
+	// 			etaVAvgArray[i][j] = 0.25*(etaOldArray[i][j] + etaOldArray[i + 1][j] + etaInterpArray[i][j] + etaInterpArray[i][vLonLen - 1]);
+	// 		}
+	// 	}
+	// }
+	//
+	// for (int i = 1; i < uLatLen - 1; i++) {
+	// 	for (int j = 0; j < uLonLen; j++) {
+	// 		if (j < uLonLen - 1) {
+	// 			etaUAvgArray[i][j] = 0.25*(etaOldArray[i][j] + etaOldArray[i][j + 1] + etaInterpArray[i - 1][j] + etaInterpArray[i][j]);
+	// 		}
+	// 		else {
+	// 			etaUAvgArray[i][j] = 0.25*(etaOldArray[i][j] + etaOldArray[i][0] + etaInterpArray[i - 1][j] + etaInterpArray[i][j]);
+	// 		}
+	// 	}
+	// }
 
 
 
@@ -689,10 +689,10 @@ inline void Solver::UpdateSurfaceHeight(){
 		i_h = i*2;
 		for (int j = 0; j < etaLonLen; j++) {
 			j_h = j*2;
-			northv = (etaVAvgArray[i - 1][j] + depthArray[i_h - 1][j_h]) * vNewArray[i - 1][j] * v->cosLat[i - 1];
-			southv = (etaVAvgArray[i][j] + depthArray[i_h + 1][j_h]) * vNewArray[i][j] * v->cosLat[i];
-			// northv = ( depthArray[i_h - 1][j_h]) * vNewArray[i - 1][j] * v->cosLat[i - 1];
-			// southv = ( depthArray[i_h + 1][j_h]) * vNewArray[i][j] * v->cosLat[i];
+			// northv = (etaVAvgArray[i - 1][j] + depthArray[i_h - 1][j_h]) * vNewArray[i - 1][j] * v->cosLat[i - 1];
+			// southv = (etaVAvgArray[i][j] + depthArray[i_h + 1][j_h]) * vNewArray[i][j] * v->cosLat[i];
+			northv = ( depthArray[i_h - 1][j_h]) * vNewArray[i - 1][j] * v->cosLat[i - 1];
+			southv = ( depthArray[i_h + 1][j_h]) * vNewArray[i][j] * v->cosLat[i];
 			// northv =  vNewArray[i - 1][j] * v->cosLat[i - 1];
 			// southv =  vNewArray[i][j] * v->cosLat[i];
 
@@ -700,18 +700,18 @@ inline void Solver::UpdateSurfaceHeight(){
 
 
 			if (j > 0) {
-				eastu = (etaUAvgArray[i][j] + depthArray[i_h][j_h + 1]) * uNewArray[i][j];
-				westu = (etaUAvgArray[i][j - 1] + depthArray[i_h][j_h - 1]) * uNewArray[i][j - 1];
-				// eastu = (depthArray[i_h][j_h + 1]) * uNewArray[i][j];
-				// westu = (depthArray[i_h][j_h - 1]) * uNewArray[i][j - 1];
+				// eastu = (etaUAvgArray[i][j] + depthArray[i_h][j_h + 1]) * uNewArray[i][j];
+				// westu = (etaUAvgArray[i][j - 1] + depthArray[i_h][j_h - 1]) * uNewArray[i][j - 1];
+				eastu = (depthArray[i_h][j_h + 1]) * uNewArray[i][j];
+				westu = (depthArray[i_h][j_h - 1]) * uNewArray[i][j - 1];
 				// eastu = uNewArray[i][j];
 				// westu = uNewArray[i][j - 1];
 			}
 			else {
-				westu = (etaUAvgArray[i][uLonLen - 1] + depthArray[i_h][uLonLen*2 - 1]) * uNewArray[i][uLonLen - 1];
-				eastu = (etaUAvgArray[i][j] + depthArray[i_h][j_h + 1]) * uNewArray[i][j];
-				// eastu = (depthArray[i_h][j_h + 1]) * uNewArray[i][j];
-				// westu = (depthArray[i_h][uLonLen*2 - 1]) * uNewArray[i][uLonLen - 1];
+				// westu = (etaUAvgArray[i][uLonLen - 1] + depthArray[i_h][uLonLen*2 - 1]) * uNewArray[i][uLonLen - 1];
+				// eastu = (etaUAvgArray[i][j] + depthArray[i_h][j_h + 1]) * uNewArray[i][j];
+				eastu = (depthArray[i_h][j_h + 1]) * uNewArray[i][j];
+				westu = (depthArray[i_h][uLonLen*2 - 1]) * uNewArray[i][uLonLen - 1];
 				// eastu = uNewArray[i][j];
 				// westu = uNewArray[i][uLonLen - 1];
 			}
@@ -829,7 +829,7 @@ void Solver::Explicit() {
 			}
 		}
 
-		InterpSurfaceHeight();
+		// InterpSurfaceHeight();
 
 		energy->mass->UpdateMass();
 		// std::cout<<"Total Mass"<<energy->mass->totalMass<<std::endl;
@@ -994,16 +994,28 @@ void Solver::ReadInitialConditions(void) {
 	double h_thin = consts->h.Value();
 	double gradient = (h_thick - h_thin)/(l_thick - l_thin);
 
+	double a = 3.05341713424;
+	double b = 23.3512417731;
+	double c = 69.4949191477;
+	double d = 26.5174736599;
 
+	double xmax = 35.0687830387;
+	double xmin = 0.95550802051;
+	double x = 0.0;
+	
 	for (int i = 0; i < depth->ReturnFieldLatLen(); i++) {
 		for (int j = 0; j < depth->ReturnFieldLonLen(); j++) {
 			// if ((double) i > (double) depth->ReturnFieldLatLen()*5./8.) depthArray[i][j] = 10e3;
 			// else depthArray[i][j] = 5e3;
 
-			if (depth->lat[i] < l_thick) depthArray[i][j] = h_thick;
-			else if (depth->lat[i] < l_thin) depthArray[i][j] = h_thin + gradient*(depth->lat[i] - l_thin);
-			else depthArray[i][j] = h_thin;
+			// if (depth->lat[i] < l_thick) depthArray[i][j] = h_thick;
+			// else if (depth->lat[i] < l_thin) depthArray[i][j] = h_thin + gradient*(depth->lat[i] - l_thin);
+			// else depthArray[i][j] = h_thin;
+			x = a + b*depth->lat[i] + c*pow(depth->lat[i],2.0) + d*pow(depth->lat[i],3.0);
 
+			if (depth->lat[i] < l_thick) depthArray[i][j] = h_thick;
+			else if (depth->lat[i] < l_thin) depthArray[i][j] = (l_thick - l_thin) * (x - xmin)/(xmax -xmin) + l_thin;
+			else depthArray[i][j] = h_thin;
 
 		}
 	}
