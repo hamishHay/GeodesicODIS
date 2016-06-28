@@ -140,6 +140,8 @@ class ODISPlot:
         x = np.linspace(0,360,len(u[0]))
         y = np.linspace(-90,90,len(u))
 
+        mag = np.flipud(mag)
+
         ax = self.fig.add_subplot(self.figDim[0],self.figDim[1],self.currentFig)
         p1 = ax.pcolormesh(x,y,mag,cmap=self.cmap,vmin=0,rasterized=False)
         cs1 = ax.contour(x,y,mag,8,colors='k',linewidths=0.4)
@@ -153,7 +155,12 @@ class ODISPlot:
         u = func_u(x,y)
         v = func_v(x,y)
 
-        # ax.quiver(x,y,u,v,pivot='middle',width=0.002,headwidth=3,scale=scale)
+        u = np.flipud(u)
+        v = np.flipud(v)
+
+        # scale = 1/(0.001*np.amax(mag))
+
+        ax.quiver(x,y,u,v,width=0.002,headwidth=3,scale=scale)
 
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("bottom", size="5%", pad=0.5)
@@ -350,7 +357,7 @@ if __name__=="__main__":
         data_v = ODIS.ReadFieldData("north_vel")
         data_u = ODIS.ReadFieldData("east_vel")
 
-        ODIS.PlotVelocity(data_u,data_v,cformat=2,scale=1/0.3,cticks=[])
+        ODIS.PlotVelocity(data_u,data_v,cformat=2,scale=1/0.1,cticks=[])
 
         ODIS.SetSuperTitle("Test")
 

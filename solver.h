@@ -49,7 +49,10 @@ public:
 	Field * v;
 	Field * u;
 	Depth * depth;
+	Depth * newRadius;
 	Energy * energy;
+
+	double ** newRadiusArray;
 
 	double ** etaOldArray;
 	double ** etaNewArray;

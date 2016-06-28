@@ -97,6 +97,9 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 	depth = Depth_h;
 	depthArray = Depth_h->solution;
 
+	newRadius = new Depth(grid);
+	newRadiusArray = newRadius->solution;
+
 	uLatLen = u->fieldLatLen;
 	uLonLen = u->fieldLonLen;
 	udLon = u->dLon;
@@ -870,7 +873,7 @@ void Solver::Explicit() {
 			outCount++;
 			DumpSolutions(1);
 			DumpFields(output);
-			std::cout<<"Total Mass"<<energy->mass->totalMass<<std::endl;
+			std::cout<<"Total Mass: "<<energy->mass->totalMass<<std::endl;
 		}
 		iteration++;
 
@@ -988,10 +991,10 @@ void Solver::ReadInitialConditions(void) {
 	CopyInitialConditions(displacement, etaOld);
 	// CopyInitialConditions(ocean_thickness, depth);
 
-	double l_thin = -30.0 * radConv;
-	double l_thick = -70.0 * radConv;
-	double h_thick = consts->h.Value();
-	double h_thin = consts->h.Value();
+	double l_thin = -10.0 * radConv;
+	double l_thick = -90.0 * radConv;
+	double h_thick = 5000;
+	double h_thin = 1000;
 	double gradient = (h_thick - h_thin)/(l_thick - l_thin);
 
 	double a = 3.05341713424;
@@ -1002,7 +1005,7 @@ void Solver::ReadInitialConditions(void) {
 	double xmax = 35.0687830387;
 	double xmin = 0.95550802051;
 	double x = 0.0;
-	
+
 	for (int i = 0; i < depth->ReturnFieldLatLen(); i++) {
 		for (int j = 0; j < depth->ReturnFieldLonLen(); j++) {
 			// if ((double) i > (double) depth->ReturnFieldLatLen()*5./8.) depthArray[i][j] = 10e3;
@@ -1013,8 +1016,9 @@ void Solver::ReadInitialConditions(void) {
 			// else depthArray[i][j] = h_thin;
 			x = a + b*depth->lat[i] + c*pow(depth->lat[i],2.0) + d*pow(depth->lat[i],3.0);
 
-			if (depth->lat[i] < l_thick) depthArray[i][j] = h_thick;
-			else if (depth->lat[i] < l_thin) depthArray[i][j] = (l_thick - l_thin) * (x - xmin)/(xmax -xmin) + l_thin;
+			// if (depth->lat[i] < l_thick) depthArray[i][j] = h_thick;
+			// else depthArray[i][j] = (h_thick - h_thin) * (x - xmin)/(xmax -xmin) + h_thin;
+			if (depth->lat[i] < l_thin) depthArray[i][j] = (h_thick - h_thin) * (x - xmin)/(xmax -xmin) + h_thin;
 			else depthArray[i][j] = h_thin;
 
 		}
