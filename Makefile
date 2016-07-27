@@ -1,6 +1,8 @@
 CC=g++
 
-CFLAGS= -Ofast -c -Wall  -std=c++11
+HOME=/usr/local
+
+CFLAGS= -Ofast -c -Wall  -std=c++11 -I/usr/local/hdf5/include -lhdf5
 
 SRCDIR = /source/ODIS/
 BUILDDIR = /source/build/
@@ -41,4 +43,4 @@ solver.o: solver.cpp
 	$(CC) $(CFLAGS) solver.cpp
 
 clean:
-	rm -r *o ODIS NorthVelocity EastVelocity Displacement Grid
+	rm -r *o ODIS NorthVelocity EastVelocity Displacement Grid Energy

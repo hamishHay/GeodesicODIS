@@ -6,6 +6,9 @@
 #include "mass.h"
 #include "energy.h"
 
+
+#include "H5Cpp.h"
+
 int main(void)
 {
 	//Read constants values (0) or use defaults (1)
