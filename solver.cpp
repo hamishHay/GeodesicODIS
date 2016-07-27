@@ -549,19 +549,19 @@ inline void Solver::UpdateEastVel(){
 	}
 
 	//if (tide!=OBLIQ) {
-		double npoleSum = 0;
-		double spoleSum = 0;
-		for (int j = 0; j < uLonLen; j++) {
-			npoleSum += uNewArray[0][j];
-			spoleSum += uNewArray[uLatLen - 1][j];
-		}
-		npoleSum = npoleSum / uLonLen;
-		spoleSum = spoleSum / uLonLen;
+	double npoleSum = 0;
+	double spoleSum = 0;
+	for (int j = 0; j < uLonLen; j++) {
+		npoleSum += uNewArray[0][j];
+		spoleSum += uNewArray[uLatLen - 1][j];
+	}
+	npoleSum = npoleSum / uLonLen;
+	spoleSum = spoleSum / uLonLen;
 
-		for (int j = 0; j < uLonLen; j++) {
-			uNewArray[0][j] = npoleSum;
-			uNewArray[uLatLen - 1][j] = spoleSum;
-		}
+	for (int j = 0; j < uLonLen; j++) {
+		uNewArray[0][j] = npoleSum;
+		uNewArray[uLatLen - 1][j] = spoleSum;
+	}
 	//}
 }
 
@@ -735,8 +735,8 @@ inline void Solver::UpdateSurfaceHeight(){
 	for (int j = 0; j < etaLonLen; j++) {
 		 //etaNewArray[0][j] = linearInterp1Array(eta,etaNewArray, 0, j);
 		 //etaNewArray[etaLatLen - 1][j] = linearInterp1Array(eta,etaNewArray, etaLatLen - 1, j);
-                 etaNewArray[0][j] = lagrangeInterp3ArrayCenter(eta,etaNewArray, 0, j);
-                 etaNewArray[etaLatLen - 1][j] = lagrangeInterp3ArrayCenter(eta,etaNewArray, etaLatLen - 1, j);
+    etaNewArray[0][j] = lagrangeInterp3ArrayCenter(eta,etaNewArray, 0, j);
+    etaNewArray[etaLatLen - 1][j] = lagrangeInterp3ArrayCenter(eta,etaNewArray, etaLatLen - 1, j);
 	}
 
 	//Average eta out at poles
