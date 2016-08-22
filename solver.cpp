@@ -790,7 +790,7 @@ void Solver::Explicit() {
 	double timeStepCount = 0;
 	int inc = (int) (consts->period.Value()/dt);
 
-	DumpSolutions(-1);
+	DumpSolutions(-1,timeStepCount);
 
 	energy->mass->UpdateMass();
 
@@ -837,7 +837,7 @@ void Solver::Explicit() {
 
 		// InterpSurfaceHeight();
 
-		energy->mass->UpdateMass();
+		// energy->mass->UpdateMass();
 		// std::cout<<"Total Mass"<<energy->mass->totalMass<<std::endl;
 
 
@@ -850,7 +850,7 @@ void Solver::Explicit() {
 		if (timeStepCount >= consts->period.Value()) {
 			orbitNumber++;
 			timeStepCount -= consts->period.Value();
-
+      std::cout<<"TIME: "<<timeStepCount<<", "<<consts->period.Value()<<std::endl;
 			energy->UpdateOrbitalKinEAvg(inc);
 
 			// Check for convergence
@@ -862,19 +862,20 @@ void Solver::Explicit() {
 
 			output++;
 			outCount++;
-			DumpSolutions(-2);
+			DumpSolutions(-2, timeStepCount);
 			outCount = 1;
 
 			energy->timePos = 0; //Reset time position after energy data output
 			// DumpFields(orbitNumber);
 			DumpFields(output);
-			std::cout<<"Total Mass"<<energy->mass->totalMass<<std::endl;
+			// std::cout<<"Total Mass"<<energy->mass->totalMass<<std::endl;
 
 		}
 		else if (timeStepCount >= consts->period.Value()*consts->outputTime.Value()*outCount) {
 			output++;
+                        std::cout<<"TIME: "<<timeStepCount<<", "<<consts->period.Value()<<std::endl;
 			outCount++;
-			DumpSolutions(1);
+			DumpSolutions(1, timeStepCount);
 			DumpFields(output);
 			std::cout<<"Total Mass: "<<energy->mass->totalMass<<std::endl;
 		}
@@ -893,7 +894,7 @@ void Solver::Explicit() {
 
 };
 
-void Solver::DumpSolutions(int out_num) {
+void Solver::DumpSolutions(int out_num, double time) {
 
 	if (out_num == -1) {
 
@@ -941,7 +942,7 @@ void Solver::DumpSolutions(int out_num) {
 		}
 		if (consts->diss.Value()) {
 			dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "diss_energy.txt")[0], "a+");
-			fprintf(dissFile, "%.30f \n", energy->dtDissEAvg[energy->timePos-1]);
+			fprintf(dissFile, "%.30f \t %.10f \n", energy->dtDissEAvg[energy->timePos-1], time);
 			fclose(dissFile);
 
 			dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "diss_energy_orb_avg.txt")[0], "a+");
@@ -962,7 +963,7 @@ void Solver::DumpSolutions(int out_num) {
 		if (consts->diss.Value())
 		{
 			dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "diss_energy.txt")[0], "a+");
-			fprintf(dissFile, "%.30f \n", energy->dtDissEAvg[energy->timePos-1]);
+			fprintf(dissFile, "%.30f \t %.10f \n", energy->dtDissEAvg[energy->timePos-1], time);
 			fclose(dissFile);
 		}
 		if (consts->work.Value())

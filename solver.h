@@ -137,7 +137,7 @@ public:
 
 	void InterpPole(Field * Field);
 
-	void DumpSolutions(int output_num);
+	void DumpSolutions(int output_num, double time);
 	void DumpFields(int output_num);
 };
 
