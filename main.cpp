@@ -6,11 +6,23 @@
 #include "mass.h"
 #include "energy.h"
 
+#include <iostream>
 
-#include "H5Cpp.h"
+//#include "H5Cpp.h"
+
+using namespace std;
+
+
+extern"C"
+{
+    void test_();
+}
 
 int main(void)
 {
+
+	test_();
+
 	//Read constants values (0) or use defaults (1)
 	Globals * constants = new Globals(0);
 

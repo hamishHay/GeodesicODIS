@@ -2,15 +2,20 @@ CC=g++
 
 HOME=/usr/local
 
-CFLAGS= -Ofast -c -Wall  -std=c++11 -I/usr/local/hdf5/include -lhdf5
+#-I/usr/local/hdf5/include -lhdf5
+
+CFLAGS= -Ofast -c -Wall  -std=c++11
 
 SRCDIR = /source/ODIS/
 BUILDDIR = /source/build/
 
 all: ODIS
 
-ODIS: main.o mathRoutines.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o solver.o
-	$(CC) main.o mathRoutines.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o solver.o -o ODIS
+ODIS: test.o main.o mathRoutines.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o solver.o
+	$(CC) test.o -lgfortran main.o mathRoutines.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o solver.o -o ODIS
+
+test.o: test.f90
+	gfortran -c test.f90
 
 main.o: main.cpp
 	$(CC) $(CFLAGS) main.cpp
