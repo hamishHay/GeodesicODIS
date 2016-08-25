@@ -1,4 +1,6 @@
-CC=g++
+CC = g++-6
+
+F = gfortran-6
 
 HOME=/usr/local
 
@@ -6,16 +8,20 @@ HOME=/usr/local
 
 CFLAGS= -Ofast -c -Wall  -std=c++11
 
+FFLAGS= -c -I/source/SHTOOLS/modules -m64 -fPIC -O3 -ffast-math -L/source/SHTOOLS/lib -lSHTOOLS -L/usr/local/lib -lfftw3 -lm -llapack -lblas
+
+FLINK = -lgfortran -L/source/SHTOOLS/lib -lSHTOOLS -L/usr/local/lib -lfftw3
+
 SRCDIR = /source/ODIS/
 BUILDDIR = /source/build/
 
 all: ODIS
 
-ODIS: test.o main.o mathRoutines.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o solver.o
-	$(CC) test.o -lgfortran main.o mathRoutines.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o solver.o -o ODIS
+ODIS: extractSHCoeff.o main.o mathRoutines.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o solver.o
+	$(CC) extractSHCoeff.o $(FLINK)  main.o mathRoutines.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o solver.o -o ODIS -lgfortran
 
-test.o: test.f90
-	gfortran -c test.f90
+extractSHCoeff.o: extractSHCoeff.f95
+	$(F) $(FFLAGS) extractSHCoeff.f95
 
 main.o: main.cpp
 	$(CC) $(CFLAGS) main.cpp
