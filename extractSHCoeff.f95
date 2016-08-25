@@ -18,10 +18,7 @@ subroutine ExtractSHCoeff(DATA, N, L_MAX, HARM)
   real*8, intent(out) :: HARM(2,L_MAX+1,L_MAX+1)
   integer :: L_MAX_RETURN
 
-  ! write(*,*) 'INSIDE TEST'
-
   call SHExpandDH (grid=DATA, n=N, cilm=HARM, lmax=L_MAX_RETURN, lmax_calc=L_MAX, sampling=2)
 
-  ! write(*,*) 'OUTSIDE TEST'
   return
 end subroutine ExtractSHCoeff

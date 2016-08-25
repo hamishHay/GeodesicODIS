@@ -872,6 +872,7 @@ void Solver::Explicit() {
 		//Solve for eta based on new u and v
 		UpdateSurfaceHeight();
 
+		//Call SHTOOLS to find spherical harmonic expansion of etaNew.
 		ExtractSHCoeff();
 
 		for (int i = 0; i < vLatLen; i++) {
