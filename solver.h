@@ -4,6 +4,7 @@
 #include "field.h"
 #include "globals.h"
 #include "mesh.h"
+#include "depth.h"
 #include "energy.h"
 #include "outFiles.h"
 
@@ -47,7 +48,11 @@ public:
 	Field * eta;
 	Field * v;
 	Field * u;
+	Depth * depth;
+	Depth * newRadius;
 	Energy * energy;
+
+	double ** newRadiusArray;
 
 	double ** etaOldArray;
 	double ** etaNewArray;
@@ -66,6 +71,12 @@ public:
 
 	double ** vNEAvgArray;
 	double ** uSWAvgArray;
+
+	double ** etaVAvgArray;
+	double ** etaUAvgArray;
+	double ** etaInterpArray;
+
+	double ** depthArray;
 
 	int uLatLen;
 	int uLonLen;
@@ -99,12 +110,19 @@ public:
 	Field * vNorthEastAvg;
 	Field * uSouthWestAvg;
 
+	Field * etaVAvg;
+	Field * etaUAvg;
+	Field * etaInterp;
+
 	double * cosMinusB;
 	double * cosPlusB;
 	double * sinMinusB;
 	double * sinPlusB;
 
-	Solver(int type, int dump, Globals *, Mesh *, Field *, Field*, Field *, Field *, Field *, Energy *);
+	double ** SH_cos_coeff;
+	double ** SH_sin_coeff;
+
+	Solver(int type, int dump, Globals *, Mesh *, Field *, Field*, Field *, Field *, Field *, Energy *, Depth *);
 
 	void Solve();
 
@@ -118,10 +136,13 @@ public:
 	inline void UpdateEastVel() __attribute__((always_inline));
 	inline void UpdateNorthVel() __attribute__((always_inline));
 	inline void UpdateSurfaceHeight() __attribute__((always_inline));
+	inline void InterpSurfaceHeight() __attribute__((always_inline));
+
+	inline void ExtractSHCoeff() __attribute__((always_inline));
 
 	void InterpPole(Field * Field);
 
-	void DumpSolutions(int output_num);
+	void DumpSolutions(int output_num, double time);
 	void DumpFields(int output_num);
 };
 

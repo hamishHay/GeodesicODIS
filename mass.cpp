@@ -1,27 +1,33 @@
 #include "field.h"
+#include "depth.h"
 #include "energy.h"
 #include "mass.h"
 #include "globals.h"
 
 #include <math.h>
 
-Mass::Mass(Mesh * mesh, int lat, int lon, Globals * Consts, Field * Eta) : Field(mesh, lat, lon) {
+Mass::Mass(Mesh * mesh, int lat, int lon, Globals * Consts, Field * Eta, Depth * Thickness) : Field(mesh, lat, lon) {
 	consts = Consts;
 	eta = Eta;
+	thickness = Thickness;
 
 	UpdateMass();
 };
 
 void Mass::UpdateMass(void) {
+	totalMass = 0;
 	for (int i = 0; i < fieldLatLen; i++) {
 		for (int j = 0; j < fieldLonLen; j++) {
 			UpdateCellMass(i, j);
+			totalMass += solution[i][j];
 		}
 	}
+
+	// std::cout<<"Mass residual: "<<fabs(totalMass-oldMass)<<std::endl;
 };
 
 void Mass::UpdateCellMass(int i, int j) {
-	solution[i][j] = pow((consts->radius.Value() + consts->h.Value()), 3) - pow(consts->radius.Value(), 3);
+	solution[i][j] = pow((consts->radius.Value() + thickness->solution[i*2][j*2] + eta->solution[i][j]), 3) - pow(consts->radius.Value(), 3);
 
 	solution[i][j] *= (sin(lat[i]) - sin(lat[i] - dLat));
 

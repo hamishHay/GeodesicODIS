@@ -1,13 +1,12 @@
-#ifndef FIELD_H
-#define FIELD_H
+#ifndef DEPTH_H
+#define DEPTH_H
 
 #include "vector"
 #include "mesh.h"
 
 //Class to populate fields (i.e. velocity etc) at HALF grid spacing
-class Field {
+class Depth {
 private:
-
 
 public:
 	int fieldLatLen;
@@ -26,15 +25,13 @@ public:
 
 	double dLat;
 	double dLon;
-	//int latStaggered = 0;
-
 
 	std::vector<double> opp; //Pointer to opposite cell if at the pole
 	Mesh * grid; //pointer to global Mesh object
 
 	double ** solution;
 
-	Field(Mesh *,int,int); //Constructor
+	Depth(Mesh *); //Constructor
 
 	int ReturnFieldLatLen();
 	int ReturnFieldLonLen();

@@ -1,12 +1,21 @@
 #include "mesh.h"
 #include "field.h"
+#include "depth.h"
 #include "globals.h"
 #include "solver.h"
 #include "mass.h"
 #include "energy.h"
 
+#include <iostream>
+
+//#include "H5Cpp.h"
+
+using namespace std;
+
+
 int main(void)
 {
+
 	//Read constants values (0) or use defaults (1)
 	Globals * constants = new Globals(0);
 
@@ -16,13 +25,14 @@ int main(void)
 	Field * eta = new Field(grid,0,0);
 	Field * dUlat = new Field(grid,1,0);
 	Field * dUlon = new Field(grid,0,1);
+	Depth * h = new Depth(grid);
 
 	//conserved quantities:
-	Mass * mass = new Mass(grid, 0, 0, constants, eta);
+	Mass * mass = new Mass(grid, 0, 0, constants, eta, h);
 	Energy * energy = new Energy(grid, 0, 0, constants, u, v, mass);
 
 	// Enter solver/time loop
-	Solver * solution = new Solver(0, 1, constants, grid, dUlon, dUlat,  u, v, eta, energy);
+	Solver * solution = new Solver(0, 1, constants, grid, dUlon, dUlat,  u, v, eta, energy, h);
 	solution->Solve();
 	// Simulation end
 
@@ -36,6 +46,7 @@ int main(void)
 	delete eta;
 	delete dUlat;
 	delete dUlon;
+	delete h;
 
     return 0;
 }

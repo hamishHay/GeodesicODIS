@@ -1,5 +1,5 @@
 #include "vector"
-#include "field.h"
+#include "depth.h"
 #include "mesh.h"
 #include "mathRoutines.h"
 #include <math.h>
@@ -7,49 +7,38 @@
 
 using namespace std;
 
-Field::Field(Mesh *mesh, int latStagg, int lonStagg) {
+Depth::Depth(Mesh * mesh) {
+  bool latStagg;
 	grid = mesh;
 
-	dLat = grid->dLat*2;
-	dLon = grid->dLon*2;
+	dLat = grid->dLat;
+	dLon = grid->dLon;
 
-	fieldLonLen = grid->ReturnLonLen() / 2;
+	fieldLonLen = grid->ReturnLonLen();
 
-	if (latStagg) fieldLatLen = (grid->ReturnLatLen() - 1 )/ 2;
-	else fieldLatLen = 1 + (grid->ReturnLatLen() - 1)/ 2;
-	//if (lonStagg) fieldLonLen--;
+  latStagg = false;
 
+  fieldLatLen = grid->ReturnLatLen();
 
 	solution = new double*[fieldLatLen];
-	for (int i = 0; i < fieldLatLen; i++) {
+	for (int i = 0; i < fieldLatLen; i++)
+  {
 		solution[i] = new double[fieldLonLen];
-		for (int j = 0; j < fieldLonLen; j++) {
+		for (int j = 0; j < fieldLonLen; j++)
+    {
 			solution[i][j] = 0; //Initial Guess
 		}
 	}
 
 	lat = new double[fieldLatLen];
-	for (int i = 0; i < fieldLatLen; i++) {
-		if (latStagg) lat[i] = grid->lat[i * 2 + 1];
-		else lat[i] = grid->lat[i * 2];
-	}
+	for (int i = 0; i < fieldLatLen; i++) lat[i] = grid->lat[i];
+
 
 	// Make sure last value is 90 exactly
 	if (!latStagg) lat[fieldLatLen-1] = -90.0;
 
 	lon = new double[fieldLonLen];
-	for (int j = 0; j < fieldLonLen; j++) {
-		if (lonStagg) lon[j] = grid->lon[j * 2 + 1];
-		else lon[j] = grid->lon[j * 2];
-	}
-
-	//populate opp pointer
-	//fieldLonLen must be an even number
-	opp.resize(fieldLonLen);
-	for (int i = 0; i < fieldLonLen; i++) {
-		if (i < fieldLonLen / 2) opp[i] = fieldLonLen / 2 + i;
-		else opp[i] = i - fieldLonLen / 2;
-	}
+	for (int j = 0; j < fieldLonLen; j++) lon[j] = grid->lon[j];
 
 	cosLat = new double[fieldLatLen];
 	sinLat = new double[fieldLatLen];
@@ -77,15 +66,16 @@ Field::Field(Mesh *mesh, int latStagg, int lonStagg) {
 	dLon *= radConv;
 };
 
-int Field::ReturnFieldLatLen(){
+int Depth::ReturnFieldLatLen(){
 	return fieldLatLen;
 };
 
-int Field::ReturnFieldLonLen(){
+int Depth::ReturnFieldLonLen(){
 	return fieldLonLen;
 };
 
-double Field::SouthWestAvg(int i, int j) {
+
+double Depth::SouthWestAvg(int i, int j) {
 	if (j > 0) {
 		return 0.25*(solution[i][j] + solution[i + 1][j] + solution[i][j - 1] + solution[i + 1][j - 1]);
 	}
@@ -94,7 +84,7 @@ double Field::SouthWestAvg(int i, int j) {
 	}
 };
 
-double Field::NorthEastAvg(int i, int j) {
+double Depth::NorthEastAvg(int i, int j) {
 	if (j < fieldLonLen-1) {
 		return 0.25*(solution[i][j] + solution[i - 1][j] + solution[i][j + 1] + solution[i - 1][j + 1]);
 	}

@@ -1,4 +1,5 @@
 #include "mesh.h"
+#include "depth.h"
 #include "globals.h"
 #include "math.h"
 #include "vector"
@@ -41,7 +42,7 @@ Mesh::Mesh(Globals * Globals) //non-default constructor
 	//Populate lat vector with co-latitude
 	int count = 0;
 	int i = 0;
-	double currentLat = 90;
+	double currentLat = 90.0;
 	while (count < latLength) {
 		lat.push_back(currentLat);
 		currentLat -= dLat;
