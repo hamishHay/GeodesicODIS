@@ -33,6 +33,12 @@
 #include <sys/stat.h>
 #include <errno.h>
 
+extern"C"
+{
+    // void __modtest_MOD_test(double *, int *, double *);
+		void extractshcoeff_(double *, int *, int *, double *);
+}
+
 Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradLon, Field * UGradLat, Field * VelU, Field * VelV, Field * Eta, Energy * EnergyField, Depth * Depth_h) {
 	solverType = type;
 	dumpTime = dump;
@@ -99,6 +105,13 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 
 	newRadius = new Depth(grid);
 	newRadiusArray = newRadius->solution;
+
+	SH_cos_coeff = new double*[3+1];
+	SH_sin_coeff = new double*[3+1];
+	for (int i=0; i<3+1; i++) {
+		SH_cos_coeff[i] = new double[3+1];
+		SH_sin_coeff[i] = new double[3+1];
+	}
 
 	uLatLen = u->fieldLatLen;
 	uLonLen = u->fieldLonLen;
@@ -773,6 +786,48 @@ inline void Solver::InterpSurfaceHeight() {
 	}
 }
 
+inline void Solver::ExtractSHCoeff(void) {
+	double * fort_array;
+	double * fort_harm_coeff;
+
+	int l_max = 3;
+	int coeff_num = 2*(l_max + 1)*(l_max + 1);
+
+	int i_len = etaOld->ReturnFieldLatLen() - 1; //minus 1 required as SHTOOLS requires even samples in latitude
+	int j_len = etaOld->ReturnFieldLonLen();
+
+ 	int n = i_len*j_len;
+
+	fort_array = new double[n*n];
+  fort_harm_coeff = new double[coeff_num];
+
+	int count = 0;
+	for (int i = 0; i<i_len; i++) {
+		for (int j = 0; j<j_len; j++) {
+			fort_array[count] = etaNewArray[i][j];
+			count++;
+		}
+	}
+
+	extractshcoeff_(fort_array, &i_len, &l_max, fort_harm_coeff);
+
+
+	count = 0;
+	for (int j=0; j<l_max+1; j++) {
+		for (int k=0; k<l_max+1; k++) {
+			SH_cos_coeff[j][k] = fort_harm_coeff[count];
+			SH_sin_coeff[j][k] = fort_harm_coeff[4*(l_max+1) - 1 + count];
+			count++;
+		}
+	}
+
+	// for (int i=0; i<coeff_num; i++) std::cout<<fort_harm_coeff[i]<<std::endl;
+
+	delete fort_array;
+	delete fort_harm_coeff;
+
+}
+
 void Solver::Explicit() {
 	InitialConditions();
 
@@ -816,6 +871,8 @@ void Solver::Explicit() {
 
 		//Solve for eta based on new u and v
 		UpdateSurfaceHeight();
+
+		ExtractSHCoeff();
 
 		for (int i = 0; i < vLatLen; i++) {
 			for (int j = 0; j < vLonLen; j++) {
@@ -1022,14 +1079,14 @@ void Solver::ReadInitialConditions(void) {
 
 			//if (depth->lat[i] < l_thin) depthArray[i][j] = (h_thick - h_thin) * (x - xmin)/(xmax -xmin) + h_thin;
 			//else depthArray[i][j] = h_thin;
-                        l_thin = 0.0;
-                        //if (i > depth->ReturnFieldLatLen() - 2) depthArray[i][j] = h_thick;
-                        if (depth->lat[i] <= l_thin) depthArray[i][j] = -(h_thick-h_thin)*0.5*(sin(2*depth->lat[i] + pi*0.5) - 1) + h_thin;
-                        else depthArray[i][j] = h_thin;
+      l_thin = 0.0;
+      //if (i > depth->ReturnFieldLatLen() - 2) depthArray[i][j] = h_thick;
+      if (depth->lat[i] <= l_thin) depthArray[i][j] = -(h_thick-h_thin)*0.5*(sin(2*depth->lat[i] + pi*0.5) - 1) + h_thin;
+      else depthArray[i][j] = h_thin;
 
 		}
-                //if (i > depth->ReturnFieldLatLen() - 3) depthArray[i][j] = h_thick;
-                std::cout<<depthArray[i][0]<<'\t'<<depth->lat[i]/radConv<<std::endl;
+  //if (i > depth->ReturnFieldLatLen() - 3) depthArray[i][j] = h_thick;
+  // std::cout<<depthArray[i][0]<<'\t'<<depth->lat[i]/radConv<<std::endl;
 	}
 };
 

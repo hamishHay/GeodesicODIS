@@ -119,6 +119,9 @@ public:
 	double * sinMinusB;
 	double * sinPlusB;
 
+	double ** SH_cos_coeff;
+	double ** SH_sin_coeff;
+
 	Solver(int type, int dump, Globals *, Mesh *, Field *, Field*, Field *, Field *, Field *, Energy *, Depth *);
 
 	void Solve();
@@ -134,6 +137,8 @@ public:
 	inline void UpdateNorthVel() __attribute__((always_inline));
 	inline void UpdateSurfaceHeight() __attribute__((always_inline));
 	inline void InterpSurfaceHeight() __attribute__((always_inline));
+
+	inline void ExtractSHCoeff() __attribute__((always_inline));
 
 	void InterpPole(Field * Field);
 
