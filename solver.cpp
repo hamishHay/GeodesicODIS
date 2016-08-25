@@ -366,7 +366,7 @@ inline void Solver::UpdateTotalPotential(void) {
 	// Total time-dependent and static parts of the tidal potential, accurate to second order
 	// in both eccentricity and obliquity
 	double factor;
-	double factor2;
+	// double factor2;
 	double cosLat = 0;
 	double cos2Lat = 0;
 	double sin2Lat = 0;
@@ -394,7 +394,7 @@ inline void Solver::UpdateTotalPotential(void) {
 	double G = 0;
 
 	factor = 0.03125 * (consts->angVel.Value() * consts->angVel.Value() * consts->radius.Value() * consts->radius.Value());
-	factor2 = -0.5 * (consts->angVel.Value() * consts->angVel.Value() * consts->radius.Value() * consts->radius.Value());
+	// factor2 = -0.5 * (consts->angVel.Value() * consts->angVel.Value() * consts->radius.Value() * consts->radius.Value());
 
 	A = - (4 + 15 * e*e + 20. * e * cos_t_omega + 43 * e*e * cos_2t_omega);
 	B = 2 * e * (4 + 25 * e * cos_t_omega) * sin_t_omega;
@@ -1054,34 +1054,13 @@ void Solver::ReadInitialConditions(void) {
 	// CopyInitialConditions(ocean_thickness, depth);
 
 	double l_thin = -10.0 * radConv;
-	double l_thick = -90.0 * radConv;
 	double h_thick = consts->h.Value();
 	double h_thin = 1000.0;
-	double gradient = (h_thick - h_thin)/(l_thick - l_thin);
 
-	double a = 3.05341713424;
-	double b = 23.3512417731;
-	double c = 69.4949191477;
-	double d = 26.5174736599;
-
-	double xmax = 35.0687830387;
-	double xmin = 0.95550802051;
-	double x = 0.0;
 
 	for (int i = 0; i < depth->ReturnFieldLatLen(); i++) {
 		for (int j = 0; j < depth->ReturnFieldLonLen(); j++) {
-			// if ((double) i > (double) depth->ReturnFieldLatLen()*5./8.) depthArray[i][j] = 10e3;
-			// else depthArray[i][j] = 5e3;
-
-			//if (depth->lat[i] < l_thick) depthArray[i][j] = h_thick;
-			//else if (depth->lat[i] < l_thin) depthArray[i][j] = h_thin + gradient*(depth->lat[i] - l_thin);
-			//else depthArray[i][j] = h_thin;
-			x = a + b*depth->lat[i] + c*pow(depth->lat[i],2.0) + d*pow(depth->lat[i],3.0);
-
-			//if (depth->lat[i] < l_thin) depthArray[i][j] = (h_thick - h_thin) * (x - xmin)/(xmax -xmin) + h_thin;
-			//else depthArray[i][j] = h_thin;
       l_thin = 0.0;
-      //if (i > depth->ReturnFieldLatLen() - 2) depthArray[i][j] = h_thick;
       if (depth->lat[i] <= l_thin) depthArray[i][j] = -(h_thick-h_thin)*0.5*(sin(2*depth->lat[i] + pi*0.5) - 1) + h_thin;
       else depthArray[i][j] = h_thin;
 
