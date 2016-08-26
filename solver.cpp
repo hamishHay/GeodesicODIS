@@ -800,8 +800,8 @@ inline void Solver::ExtractSHCoeff(void) {
   fort_harm_coeff = new double[coeff_num];
 
 	int count = 0;
-	for (int i = 0; i<i_len; i++) {
-		for (int j = 0; j<j_len; j++) {
+	for (int j = 0; j<j_len; j++) {
+		for (int i = 0; i<i_len; i++) {
 			fort_array[count] = etaNewArray[i][j];
 			count++;
 		}
@@ -813,13 +813,13 @@ inline void Solver::ExtractSHCoeff(void) {
 	count = 0;
 	for (int j=0; j<l_max+1; j++) {
 		for (int k=0; k<l_max+1; k++) {
-			SH_cos_coeff[j][k] = fort_harm_coeff[count];
-			SH_sin_coeff[j][k] = fort_harm_coeff[4*(l_max+1) - 1 + count];
-			count++;
+			SH_cos_coeff[k][j] = fort_harm_coeff[count];
+			SH_sin_coeff[k][j] = fort_harm_coeff[count+1];
+			count+=2;
 		}
 	}
 
-	// for (int i=0; i<coeff_num; i++) std::cout<<fort_harm_coeff[i]<<std::endl;
+	// for (int i=0; i<coeff_num; i++) std::cout<<"Coeff: "<<fort_harm_coeff[i]<<std::endl;
 
 	delete fort_array;
 	delete fort_harm_coeff;
@@ -924,12 +924,31 @@ void Solver::Explicit() {
 			energy->timePos = 0; //Reset time position after energy data output
 			// DumpFields(orbitNumber);
 			DumpFields(output);
+
+			int l_max = 3;
+			for (int j=0; j<l_max+1; j++) {
+				for (int k=0; k<l_max+1; k++) {
+					std::cout<<"l="<<j<<", m="<<k<<":\t"<<SH_cos_coeff[j][k]<<std::endl;
+					// std::cout<<"l="<<j<<", m="<<k<<":\t"<<SH_sin_coeff[j][k]<<std::endl;
+
+				}
+			}
+
+			for (int j=0; j<l_max+1; j++) {
+				for (int k=0; k<l_max+1; k++) {
+					// std::cout<<"l="<<j<<", m="<<k<<":\t"<<SH_cos_coeff[j][k]<<std::endl;
+					std::cout<<"l="<<j<<", m="<<k<<":\t"<<SH_sin_coeff[j][k]<<std::endl;
+
+				}
+			}
+
+
 			// std::cout<<"Total Mass"<<energy->mass->totalMass<<std::endl;
 
 		}
 		else if (timeStepCount >= consts->period.Value()*consts->outputTime.Value()*outCount) {
 			output++;
-                        std::cout<<"TIME: "<<timeStepCount<<", "<<consts->period.Value()<<std::endl;
+      std::cout<<"TIME: "<<timeStepCount<<", "<<consts->period.Value()<<std::endl;
 			outCount++;
 			DumpSolutions(1, timeStepCount);
 			DumpFields(output);
