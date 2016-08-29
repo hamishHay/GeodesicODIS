@@ -55,6 +55,7 @@ public:
 	GlobalVar<double> theta; //obliquity
 	GlobalVar<double> timeStep;
 	GlobalVar<double> alpha;
+	GlobarVar<int> l_max; //Maximum spherical harmonic degree for expansions
 	GlobalVar<double> dLat; //NUMBER of cells in latitude
 	GlobalVar<double> dLon; //NUMBER of cells in longitude
 	GlobalVar<double> period;
@@ -63,7 +64,7 @@ public:
 	GlobalVar<std::string> friction;
 	GlobalVar<bool> init;
 	GlobalVar<double> converge;
-	
+
 	// Variables to switch on or off output of certain Variables
 	// i.e., setting kinetic to true outputs global averaged kinetic energy
 	GlobalVar<bool> diss;
