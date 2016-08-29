@@ -61,13 +61,13 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 	etaNew = new Field(grid,0,0);
 	etaNewArray = etaNew->solution;
 
-	uOld = new Field(grid,0,1);
+	uOld = u; //new Field(grid,0,1);
 	uOldArray = uOld->solution;
 
 	uNew = new Field(grid,0,1);
 	uNewArray = uNew->solution;
 
-	vOld = new Field(grid,1,0);
+	vOld = v; //new Field(grid,1,0);
 	vOldArray = vOld->solution;
 
 	vNew = new Field(grid,1,0);
@@ -94,17 +94,17 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 	uSouthWestAvg = new Field(grid, 0, 1);
 	uSWAvgArray = uSouthWestAvg->solution;
 
-	dUlat = new Field(grid,1,0);
+	dUlat = UGradLat;// new Field(grid,1,0);
 	dUlatArray = dUlat->solution;
 
-	dUlon = new Field(grid,0,1);
+	dUlon = UGradLon; // new Field(grid,0,1);
 	dUlonArray = dUlon->solution;
 
 	depth = Depth_h;
 	depthArray = Depth_h->solution;
 
-	newRadius = new Depth(grid);
-	newRadiusArray = newRadius->solution;
+	//newRadius = new Depth(grid);
+	//newRadiusArray = newRadius->solution;
 
 	l_max = consts->l_max.Value();
 
