@@ -55,7 +55,7 @@ public:
 	GlobalVar<double> theta; //obliquity
 	GlobalVar<double> timeStep;
 	GlobalVar<double> alpha;
-	GlobarVar<int> l_max; //Maximum spherical harmonic degree for expansions
+	GlobalVar<int> l_max; //Maximum spherical harmonic degree for expansions
 	GlobalVar<double> dLat; //NUMBER of cells in latitude
 	GlobalVar<double> dLon; //NUMBER of cells in longitude
 	GlobalVar<double> period;
