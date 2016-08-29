@@ -20,8 +20,6 @@ subroutine ExtractSHCoeff(DATA, N, L_MAX, HARM)
   integer :: l,m
 
   call SHExpandDH (grid=DATA, n=N, cilm=HARM, lmax=L_MAX_RETURN, lmax_calc=L_MAX, sampling=2)
-
-  ! write(*,*) 'COS:'
   !
   ! do l=1,l_max+1
   !   do m=1,l_max+1

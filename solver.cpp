@@ -106,11 +106,13 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 	newRadius = new Depth(grid);
 	newRadiusArray = newRadius->solution;
 
-	SH_cos_coeff = new double*[3+1];
-	SH_sin_coeff = new double*[3+1];
-	for (int i=0; i<3+1; i++) {
-		SH_cos_coeff[i] = new double[3+1];
-		SH_sin_coeff[i] = new double[3+1];
+	l_max = 15;
+
+	SH_cos_coeff = new double*[l_max+1];
+	SH_sin_coeff = new double*[l_max+1];
+	for (int i=0; i<l_max+1; i++) {
+		SH_cos_coeff[i] = new double[l_max+1];
+		SH_sin_coeff[i] = new double[l_max+1];
 	}
 
 	uLatLen = u->fieldLatLen;
@@ -788,7 +790,6 @@ inline void Solver::ExtractSHCoeff(void) {
 	double * fort_array;
 	double * fort_harm_coeff;
 
-	int l_max = 3;
 	int coeff_num = 2*(l_max + 1)*(l_max + 1);
 
 	int i_len = etaOld->ReturnFieldLatLen() - 1; //minus 1 required as SHTOOLS requires even samples in latitude
@@ -809,7 +810,6 @@ inline void Solver::ExtractSHCoeff(void) {
 
 	extractshcoeff_(fort_array, &i_len, &l_max, fort_harm_coeff);
 
-
 	count = 0;
 	for (int j=0; j<l_max+1; j++) {
 		for (int k=0; k<l_max+1; k++) {
@@ -818,6 +818,8 @@ inline void Solver::ExtractSHCoeff(void) {
 			count+=2;
 		}
 	}
+
+
 
 	// for (int i=0; i<coeff_num; i++) std::cout<<"Coeff: "<<fort_harm_coeff[i]<<std::endl;
 
@@ -873,6 +875,8 @@ void Solver::Explicit() {
 		//Call SHTOOLS to find spherical harmonic expansion of etaNew.
 		ExtractSHCoeff();
 
+
+
 		for (int i = 0; i < vLatLen; i++) {
 			for (int j = 0; j < vLonLen; j++) {
 				vOldArray[i][j] = vNewArray[i][j];
@@ -925,7 +929,6 @@ void Solver::Explicit() {
 			// DumpFields(orbitNumber);
 			DumpFields(output);
 
-			int l_max = 3;
 			for (int j=0; j<l_max+1; j++) {
 				for (int k=0; k<l_max+1; k++) {
 					std::cout<<"l="<<j<<", m="<<k<<":\t"<<SH_cos_coeff[j][k]<<std::endl;
@@ -1115,6 +1118,9 @@ void Solver::DumpFields(int output_num) {
 	std::ofstream vFile(consts->path + SEP + "NorthVelocity" + SEP + "v_vel_" + out + ".txt", std::ofstream::out);
 	std::ofstream etaFile(consts->path + SEP + "Displacement" + SEP + "eta_" + out + ".txt", std::ofstream::out);
 	std::ofstream dissFile(consts->path + SEP + "Energy" + SEP + "diss_" + out + ".txt", std::ofstream::out);
+	std::ofstream aFile(consts->path + SEP + "Displacement" + SEP + "a_" + out + ".txt", std::ofstream::out);
+	std::ofstream bFile(consts->path + SEP + "Displacement" + SEP + "b_" + out + ".txt", std::ofstream::out);
+
 
 
 	std::cout<<"Outputing solvable fields "<<output_num<<std::endl;
@@ -1170,4 +1176,15 @@ void Solver::DumpFields(int output_num) {
 		}
 		vFile << std::endl;
 	}
+
+	for (int i = 0; i < l_max; i++) {
+		for (int j = 0; j < l_max; j++) {
+			aFile << SH_cos_coeff[i][j] << '\t';
+			bFile << SH_sin_coeff[i][j] << '\t';
+		}
+		aFile << std::endl;
+		bFile << std::endl;
+	}
+
+
 };

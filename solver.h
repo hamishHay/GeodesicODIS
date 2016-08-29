@@ -122,6 +122,8 @@ public:
 	double ** SH_cos_coeff;
 	double ** SH_sin_coeff;
 
+	int l_max;
+
 	Solver(int type, int dump, Globals *, Mesh *, Field *, Field*, Field *, Field *, Field *, Energy *, Depth *);
 
 	void Solve();
