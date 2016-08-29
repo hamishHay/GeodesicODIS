@@ -106,7 +106,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 	newRadius = new Depth(grid);
 	newRadiusArray = newRadius->solution;
 
-	l_max = 15;
+	l_max = consts->l_max.Value();
 
 	SH_cos_coeff = new double*[l_max+1];
 	SH_sin_coeff = new double*[l_max+1];
