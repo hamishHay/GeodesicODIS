@@ -18,8 +18,8 @@
 //
 // FILE: main.cpp
 // DESCRIPTION: main program function. Controls allocation of all solvable and
-//							and transportable quantities in the model domain, as well as
-//							global constants and generation of the numerical grid.
+//              and transportable quantities in the model domain, as well as
+//              global constants and generation of the numerical grid.
 //
 // 	Version 			 			Date 									Programmer
 // 		0.1			|				29/07/2016				|				H. Hay				|
