@@ -55,7 +55,7 @@ public:
 
 	// Vector to store a 'list' of all global constants.
 	// Note that it stores the template IGlobalVar pointer rather than GlobalVar.
-	// This is allows multiple types to be stored in one vector instance. 
+	// This is allows multiple types to be stored in one vector instance.
 	std::vector<IGlobalVar *> allGlobals;
 
 	Friction fric_type;
@@ -81,6 +81,7 @@ public:
 	GlobalVar<double> theta; // obliquity
 	GlobalVar<double> timeStep; // Simulation timestep
 	GlobalVar<double> alpha; // drag coefficient
+	GlobalVar<int> l_max; //Maximum spherical harmonic degree for expansions
 	GlobalVar<double> dLat; //NUMBER of cells in latitude
 	GlobalVar<double> dLon; //NUMBER of cells in longitude
 	GlobalVar<double> period; // orbital period (=rotation period), assuming syncronous rotation.

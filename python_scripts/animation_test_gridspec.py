@@ -13,12 +13,12 @@ import types
 import sys
 
 
-# plt.rc('font', family='serif')
-# plt.rc('font',serif='Palatino')
-# # for Palatino and other serif fonts use:
-# # rc('font',**{'family':'serif','serif':['Palatino']})
-# plt.rc('text', usetex=True)
-# plt.rc('text.latex',preamble='\\usepackage{siunitx}')
+plt.rc('font', family='serif')
+plt.rc('font',serif='Palatino')
+# for Palatino and other serif fonts use:
+# rc('font',**{'family':'serif','serif':['Palatino']})
+plt.rc('text', usetex=True)
+plt.rc('text.latex',preamble='\\usepackage{siunitx}')
 
 plt.rcParams['contour.negative_linestyle'] = 'solid'
 
@@ -26,7 +26,7 @@ plt.rcParams['contour.negative_linestyle'] = 'solid'
 
 # plt.rcParams['animation.ffmpeg_path'] = '/usr/bin/ffmpeg'
 directory = os.getcwd()
-file = "/home/hamish/ODIS/test_eta"
+file = "/dataSSD/hamish/paper2/var_thickness_test/h2km"
 # file = "/inResTime"
 
 def GrabData(i,name_id):
@@ -75,6 +75,8 @@ for i in frames:
 
 disp_min = min(mins)
 disp_max = max(maxs)
+disp_max = 200
+disp_min = -800
 
 mins = []
 maxs = []
@@ -88,6 +90,7 @@ for i in frames:
 
 vel_min = min(mins)
 vel_max = max(maxs)
+vel_max = 1.2
 
 
 data_disp = GrabData(1,2)
@@ -153,7 +156,7 @@ ax3 = plt.subplot(gs[1,:])
 line1, = ax3.plot([],[],'r-',linewidth=1.0)
 
 ax3.set_xlim(0, orbit_num[-1])
-ax3.set_ylim(0, 50)#1.2*max(data_diss))
+ax3.set_ylim(0, 1)#1.2*max(data_diss))
 ax3.set_ylabel('Dissipation (\si{\watt\per\metre\squared})')
 ax3.set_xlabel('Orbit Number')
 #ax3.set_yscale('log')
@@ -200,7 +203,7 @@ def animate(i):
     quad5 = ax2.contour(x2,y2,vel,levels=levels_u,colors='k',linewidths=0.7)
     plt.hold('on')
     vel = vel/vel_max
-    quad4 = ax2.quiver(x2[::res], y2[::res], data_u[::res,::res],data_v[::res,::res],color='k',scale=35)#,linewidth=0.4,density=0.8,arrowsize=3)#, start_points=seeds)
+    quad4 = ax2.quiver(x2[::res], y2[::res], data_u[::res,::res],data_v[::res,::res],color='k',scale=1/0.04,width=0.002,pivot='mid')#,arrowsize=3)#, start_points=seeds)
     # quad4.set_UVC(data_u[::res,::res],data_v[::res,::res])
 
 
@@ -226,7 +229,7 @@ gs.tight_layout(fig)
 print(frames)
 
 anim = manimation.FuncAnimation(fig, animate,init_func=init,frames = frames,blit=False,interval=1000,repeat=False)
-mywriter = manimation.FFMpegWriter(fps=20,bitrate=8000)
+mywriter = manimation.FFMpegWriter(fps=40,bitrate=8000)
 
 # anim.save('h1000_cD0.1_2.gif', writer = 'imagemagick',dpi=300,fps=10)
 anim.save('var_thick.mp4', writer = mywriter,dpi=300, extra_args=['-vcodec', 'libx264'])

@@ -73,7 +73,7 @@ class ODISPlot:
     def ReadFieldData(self,field="displacement",directory = os.getcwd()):
         orbitnum=str(self.orbit)
 
-        name = ["/EastVelocity/u_vel_"+orbitnum+".txt", "/NorthVelocity/v_vel_"+orbitnum+".txt", "/Displacement/eta_"+orbitnum+".txt"]
+        name = ["/EastVelocity/u_vel_"+orbitnum+".txt", "/NorthVelocity/v_vel_"+orbitnum+".txt", "/Displacement/eta_"+orbitnum+".txt", "/Energy/diss_"+orbitnum+".txt"]
 
         if field=="displacement":
             name = name[2]
@@ -84,6 +84,9 @@ class ODISPlot:
         elif field=="east_vel":
             name = name[0]
             self.caxisLabel = "East Velocity, $v$ (\\si{\\metre\\per\\second})"
+        elif field=="dissipation":
+            name = name[3]
+            self.caxisLabel = "Dissipated Energy, [\si{\watt}]"
         else:
             print("Field " + field + "not recognised. Exiting.")
             sys.exit()
@@ -113,18 +116,21 @@ class ODISPlot:
         self.resid = abs(self.diss[1:]-self.diss[:-1])*1e-3
         return self.diss
 
-    def PlotField(self,cformat=2,cticks=[]):
+    def PlotField(self,data=[],cformat=2,cticks=[]):
         self.currentFig += 1
+
+        if len(data) == 0:
+            data=self.data
 
         ax = self.fig.add_subplot(self.figDim[0],self.figDim[1],self.currentFig)
         self.loadFieldAxisOptions(ax)
 
-        p1 = ax.pcolormesh(self.x,self.y,self.data,cmap=self.cmap,rasterized=False)
+        p1 = ax.pcolormesh(self.x,self.y,data,cmap=self.cmap,rasterized=False)
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("bottom", size="5%", pad=0.5)
         c1 = plt.colorbar(p1, cax = cax, format='%.' +str(cformat) + 'f',orientation="horizontal")
 
-        cs1 = ax.contour(self.x,self.y,self.data,8,colors='k',linewidths=0.4)
+        cs1 = ax.contour(self.x,self.y,data,8,colors='k',linewidths=0.4)
 
         self.loadFieldColourOptions(c1,ax,cticks)
 
@@ -140,6 +146,8 @@ class ODISPlot:
         x = np.linspace(0,360,len(u[0]))
         y = np.linspace(-90,90,len(u))
 
+        mag = np.flipud(mag)
+
         ax = self.fig.add_subplot(self.figDim[0],self.figDim[1],self.currentFig)
         p1 = ax.pcolormesh(x,y,mag,cmap=self.cmap,vmin=0,rasterized=False)
         cs1 = ax.contour(x,y,mag,8,colors='k',linewidths=0.4)
@@ -153,7 +161,12 @@ class ODISPlot:
         u = func_u(x,y)
         v = func_v(x,y)
 
-        # ax.quiver(x,y,u,v,pivot='middle',width=0.002,headwidth=3,scale=scale)
+        u = np.flipud(u)
+        v = np.flipud(v)
+
+        # scale = 1/(0.001*np.amax(mag))
+
+        ax.quiver(x,y,u,v,width=0.002,headwidth=3,scale=scale)
 
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("bottom", size="5%", pad=0.5)
@@ -338,7 +351,7 @@ if __name__=="__main__":
 
     if option == 1:
 
-        print("Option 1 selected: Plotting displacement and velocity.\n")
+        print("Option " + str(option) + "selected: Plotting displacement and velocity.\n")
 
         num = int(sys.argv[2])
 
@@ -350,7 +363,7 @@ if __name__=="__main__":
         data_v = ODIS.ReadFieldData("north_vel")
         data_u = ODIS.ReadFieldData("east_vel")
 
-        ODIS.PlotVelocity(data_u,data_v,cformat=2,scale=1/0.3,cticks=[])
+        ODIS.PlotVelocity(data_u,data_v,cformat=2,scale=1/0.1,cticks=[])
 
         ODIS.SetSuperTitle("Test")
 
@@ -360,7 +373,7 @@ if __name__=="__main__":
 
     elif option == 2:
 
-        print("Option 2 selected: Plotting dissipation over time.\n")
+        print("Option " + str(option) + "selected: Plotting dissipation over time.\n")
 
         ODIS = ODISPlot(orbitnum=0,figdim=(1,1),figsize=(10,5),saveName="Dissipation")
 
@@ -381,7 +394,7 @@ if __name__=="__main__":
 
     elif option == 3:
 
-        print("Option 3 selected: Plotting velocity.\n")
+        print("Option " + str(option) + "selected: Plotting velocity.\n")
 
         num = int(sys.argv[2])
 
@@ -400,7 +413,29 @@ if __name__=="__main__":
 
     elif option == 4:
 
-        print("Option 2 selected: Plotting dissipation over time.\n")
+        print("Option " + str(option) + "selected: Plotting displacement and dissipated energy.\n")
+
+        num = int(sys.argv[2])
+
+        ODIS = ODISPlot(orbitnum=num,figdim=(1,2),figsize=(10,3),saveName="Test")
+
+        ODIS.ReadFieldData("displacement")
+        ODIS.PlotField(cticks = [])
+
+        data_d = ODIS.ReadFieldData("dissipation")
+
+        ODIS.cmap = cm.magma
+
+        ODIS.PlotField(data_d)
+
+        ODIS.SetSuperTitle("Test")
+
+        ODIS.ShowFig()
+
+
+    elif option == 5:
+
+        print("Option " + str(option) + "selected: Plotting dissipation over time.\n")
 
         ODIS = ODISPlot(orbitnum=0,figdim=(1,1),figsize=(6,5),saveName="obliq_diss")
 
@@ -418,6 +453,6 @@ if __name__=="__main__":
 
     else:
 
-        print("Argument one must be either option 1, 2, or 3.")
+        print("Argument one must be either option 1-5.")
 
         #ODIS.SaveFig()

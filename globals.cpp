@@ -101,6 +101,9 @@ Globals::Globals(int action) {
 		alpha.SetStringID("friction coefficient");
 		allGlobals.push_back(&alpha);
 
+		l_max.SetStringID("SH degree");
+		allGlobals.push_back(&l_max);
+
 		dLat.SetStringID("latitude spacing");
 		allGlobals.push_back(&dLat);
 
@@ -319,6 +322,9 @@ void Globals::SetDefault(void)
 
 	//Coefficient of linear friction
 	alpha.SetValue(2.28e-7);
+
+	//Maximum spherical harmonic degree for expansion
+	l_max.SetValue(10);
 
 	//Lat and long spacing
 	dLat.SetValue(45);

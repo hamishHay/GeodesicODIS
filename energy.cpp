@@ -126,25 +126,25 @@ void Energy::UpdateOrbitalDissEAvg(void) {
 };
 
 void Energy::IsConverged(void) {
-	if (dissipation.size() > 20 && !converged && (consts->h.Value() > 10.0)) {
-		for (int i=derivative.size(); i < dissipation.size() - 1; i++) {
-			derivative.push_back(dissipation[i+1]-dissipation[i]);
-		}
-
-		for (int i=derivative.size()-2; i < derivative.size()-1; i++) {
-			// Check for minima
-			if (derivative[i] < 0 && derivative[i+1] > 0) {
-				minima.push_back(i);
-				std::cout<<"Minima found at orbit "<<i<<std::endl;
-			}
-			else if (derivative[i] > 0 && derivative[i+1] < 0) {
-				maxima.push_back(i);
-				std::cout<<"Maxima found at orbit "<<i<<std::endl;
-			}
-		}
-
-		if (minima.size() == 2) converged = true;
-	}
+	// if (dissipation.size() > 20 && !converged && (consts->h.Value() > 10.0)) {
+	// 	for (int i=derivative.size(); i < dissipation.size() - 1; i++) {
+	// 		derivative.push_back(dissipation[i+1]-dissipation[i]);
+	// 	}
+	//
+	// 	for (int i=derivative.size()-2; i < derivative.size()-1; i++) {
+	// 		// Check for minima
+	// 		if (derivative[i] < 0 && derivative[i+1] > 0) {
+	// 			minima.push_back(i);
+	// 			std::cout<<"Minima found at orbit "<<i<<std::endl;
+	// 		}
+	// 		else if (derivative[i] > 0 && derivative[i+1] < 0) {
+	// 			maxima.push_back(i);
+	// 			std::cout<<"Maxima found at orbit "<<i<<std::endl;
+	// 		}
+	// 	}
+	//
+	// 	if (minima.size() == 2) converged = true;
+	// }
 
 	//residual.push_back(fabs(orbitDissEAvg[1] - orbitDissEAvg[0]));
 	//if (residual.size() > 10 && !converged) {
@@ -181,6 +181,7 @@ void Energy::IsConverged(void) {
 		consts->Output.TerminateODIS();
 	}
 
+	converged = false;
 	printf("\t Resdiual: %1.4e \n", residual[residual.size() - 1]);
 	if (converged) std::cout << "Convergence criteria met." << std::endl;
 

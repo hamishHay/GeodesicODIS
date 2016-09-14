@@ -28,13 +28,22 @@
 
 #include "mesh.h"
 #include "field.h"
+#include "depth.h"
 #include "globals.h"
 #include "solver.h"
 #include "mass.h"
 #include "energy.h"
 
+#include <iostream>
+
+//#include "H5Cpp.h"
+
+using namespace std;
+
+
 int main(void)
 {
+<<<<<<< HEAD
 	// Read in global constants from input.in file with 0, and use defaults
 	// with 1 (currently set to Titan parameters). All constants are stored in the
 	// class "Globals".

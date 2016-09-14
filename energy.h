@@ -12,7 +12,6 @@ private:
 	Globals * consts;
 	Field * u;
 	Field * v;
-	Mass * mass;
 
 	double ** massArray;
 	double ** vArray;
@@ -29,6 +28,7 @@ private:
 	void UpdateOrbitalDissEAvg(void);
 
 public:
+	Mass * mass;
 	Energy(Mesh*, int, int, Globals *, Field *, Field *, Mass *);
 	int timePos;
 	std::vector<double> dissipation;

@@ -1,5 +1,5 @@
 // FILE: field.h
-// DESCRIPTION: header file for the field class. The term field is used simply 
+// DESCRIPTION: header file for the field class. The term field is used simply
 //							to refer to a solvable quantity that is found over the numerical
 //							domain. Field will generate a 2D array to store some qunatity
 //							at positions that are staggered over the 2D grid, based on a mesh
@@ -55,14 +55,6 @@ public:
 
 	int ReturnFieldLatLen();
 	int ReturnFieldLonLen();
-
-	double CenterP(int, int); //solution value at center point
-	double NorthP(int, int); //solution value at point (i+2,j)
-	double NorthEastP(int, int); //solution value at point (i+2,j+2)
-	double SouthP(int, int); //solution value at point (i-2,j)
-	double SouthWestP(int, int);
-	double EastP(int, int); //solution value at point (i,j+2)
-	double WestP(int, int); //solution value at point (i,j-2)
 
 	double SouthWestAvg(int, int);
 	double NorthEastAvg(int, int);
