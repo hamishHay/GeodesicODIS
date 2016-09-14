@@ -43,7 +43,6 @@ using namespace std;
 
 int main(void)
 {
-<<<<<<< HEAD
 	// Read in global constants from input.in file with 0, and use defaults
 	// with 1 (currently set to Titan parameters). All constants are stored in the
 	// class "Globals".
