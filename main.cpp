@@ -66,18 +66,20 @@ int main(void)
   Field * dUlat = new Field(grid,1,0); // Latitudinal tidal potential gradient. Staggered south.
   Field * dUlon = new Field(grid,0,1); // Longitudinal tidal potential gradient. Staggered east.
 
+  Depth * h = new Depth(grid);
+
   // Allocate memory for (hopefully) conserved quantities, mass and energy.
   // Classes Mass and Energy use Field as a parent class, and must be passed the
   // quantities on which they are derived.
 
-  Mass * mass = new Mass(grid, 0, 0, constants, eta);
+  Mass * mass = new Mass(grid, 0, 0, constants, eta, h);
   Energy * energy = new Energy(grid, 0, 0, constants, u, v, mass);
 
   // Allocate space for class tupe Solver. Solver creates the environment to
   // begin the numerical calculations, with pointer access to all necessary
   // quantiies.
 
-  Solver * solution = new Solver(0, 1, constants, grid, dUlon, dUlat,  u, v, eta, energy);
+  Solver * solution = new Solver(0, 1, constants, grid, dUlon, dUlat,  u, v, eta, energy, h);
 
   // Begin the calculations by calling the Solve member function. Probably
   // overkill.
