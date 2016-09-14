@@ -1,14 +1,14 @@
 // FILE: globals.h
 // DESCRIPTION: Header file for the globals class. Globals is an object designed
-//							to store useful model constants that, if necessary, are accessible
-//							anywhere in the code. These are listed and defined below in the
-//							public section of the class below, but include useful quantities
-//							like planetary radius, rotation rate, drag coefficient, etc. Each
-//							variable is of type GlobalVar (defined in globalVar.h), with the
-// 							corresponding machine type held therein.
+//              to store useful model constants that, if necessary, are accessible
+//              anywhere in the code. These are listed and defined below in the
+//              public section of the class below, but include useful quantities
+//              like planetary radius, rotation rate, drag coefficient, etc. Each
+//              variable is of type GlobalVar (defined in globalVar.h), with the
+//              corresponding machine type held therein.
 //
-// 	Version 			 			Date 									Programmer
-// 		0.1			|				13/09/2016				|				H. Hay				|
+//   Version              Date                   Programmer
+//     0.1      |        13/09/2016        |        H. Hay        |
 // ---- Initial version of ODIS, described in Hay and Matsuyama (2016)
 
 
@@ -45,67 +45,67 @@ enum Friction { LINEAR, QUADRATIC }; // enumerate for drag type, selected by use
 //Class stores all global values
 class Globals {
 private:
-	// Two member functions for setting all constants (default is for Titan)
-	void SetDefault(void);
-	void OutputConsts(void); // Print all constants to output file.
+  // Two member functions for setting all constants (default is for Titan)
+  void SetDefault(void);
+  void OutputConsts(void); // Print all constants to output file.
 
 public:
-	// Class containing functions to output errors and messages, or terminate ODIS.
-	OutFiles Output;
+  // Class containing functions to output errors and messages, or terminate ODIS.
+  OutFiles Output;
 
-	// Vector to store a 'list' of all global constants.
-	// Note that it stores the template IGlobalVar pointer rather than GlobalVar.
-	// This is allows multiple types to be stored in one vector instance.
-	std::vector<IGlobalVar *> allGlobals;
+  // Vector to store a 'list' of all global constants.
+  // Note that it stores the template IGlobalVar pointer rather than GlobalVar.
+  // This is allows multiple types to be stored in one vector instance.
+  std::vector<IGlobalVar *> allGlobals;
 
-	Friction fric_type;
+  Friction fric_type;
 
-	// Stringstream for composing outgoing messages, which is then passed to Output.
-	std::ostringstream outstring;
+  // Stringstream for composing outgoing messages, which is then passed to Output.
+  std::ostringstream outstring;
 
   // string to store path of current simulation.
-	std::string path;
+  std::string path;
 
-	// character array for identical string from 'path'
-	char cpath[PATH];
+  // character array for identical string from 'path'
+  char cpath[PATH];
 
-	GlobalVar<double> angVel; // Angular velocity
-	GlobalVar<double> radius; // Body radius
-	GlobalVar<double> loveK2; // k_2 Love Number
-	GlobalVar<double> loveH2; // h_2 Love Number
-	GlobalVar<double> loveReduct; //Love's reduction factor
-	GlobalVar<double> h; //Ocean thickness
-	GlobalVar<double> g; //Surface Gravity
-	GlobalVar<double> a; //SemiMajor Axis
-	GlobalVar<double> e; //Eccentricity
-	GlobalVar<double> theta; // obliquity
-	GlobalVar<double> timeStep; // Simulation timestep
-	GlobalVar<double> alpha; // drag coefficient
-	GlobalVar<int> l_max; //Maximum spherical harmonic degree for expansions
-	GlobalVar<double> dLat; //NUMBER of cells in latitude
-	GlobalVar<double> dLon; //NUMBER of cells in longitude
-	GlobalVar<double> period; // orbital period (=rotation period), assuming syncronous rotation.
-	GlobalVar<double> endTime; // maximum simulation run time
-	GlobalVar<std::string> potential; // string for tidal potential type
-	GlobalVar<std::string> friction; // string for drag type
-	GlobalVar<bool> init; // boolean for using initial conditions
-	GlobalVar<double> converge; // convergence criteria for ODIS.
+  GlobalVar<double> angVel; // Angular velocity
+  GlobalVar<double> radius; // Body radius
+  GlobalVar<double> loveK2; // k_2 Love Number
+  GlobalVar<double> loveH2; // h_2 Love Number
+  GlobalVar<double> loveReduct; //Love's reduction factor
+  GlobalVar<double> h; //Ocean thickness
+  GlobalVar<double> g; //Surface Gravity
+  GlobalVar<double> a; //SemiMajor Axis
+  GlobalVar<double> e; //Eccentricity
+  GlobalVar<double> theta; // obliquity
+  GlobalVar<double> timeStep; // Simulation timestep
+  GlobalVar<double> alpha; // drag coefficient
+  GlobalVar<int> l_max; //Maximum spherical harmonic degree for expansions
+  GlobalVar<double> dLat; //NUMBER of cells in latitude
+  GlobalVar<double> dLon; //NUMBER of cells in longitude
+  GlobalVar<double> period; // orbital period (=rotation period), assuming syncronous rotation.
+  GlobalVar<double> endTime; // maximum simulation run time
+  GlobalVar<std::string> potential; // string for tidal potential type
+  GlobalVar<std::string> friction; // string for drag type
+  GlobalVar<bool> init; // boolean for using initial conditions
+  GlobalVar<double> converge; // convergence criteria for ODIS.
 
-	// Variables to switch on or off output of certain Variables
-	// i.e., setting kinetic to true outputs global averaged kinetic energy
-	GlobalVar<bool> diss; // dissipated energy
-	GlobalVar<bool> kinetic; // kinetic energy
-	GlobalVar<bool> work; // work flux - currently not implemented.
+  // Variables to switch on or off output of certain Variables
+  // i.e., setting kinetic to true outputs global averaged kinetic energy
+  GlobalVar<bool> diss; // dissipated energy
+  GlobalVar<bool> kinetic; // kinetic energy
+  GlobalVar<bool> work; // work flux - currently not implemented.
 
-	// Time in fraction of orbital period for output of all parameters
-	GlobalVar<double> outputTime;
+  // Time in fraction of orbital period for output of all parameters
+  GlobalVar<double> outputTime;
 
-	// constructor to initialise and/or read all variables from input file.
-	Globals();
-	Globals(int action); // action is either 1 (use defaults) or 0 (read input)
+  // constructor to initialise and/or read all variables from input file.
+  Globals();
+  Globals(int action); // action is either 1 (use defaults) or 0 (read input)
 
-	// Member function to read global variables from input.in file.
-	int ReadGlobals(void);
+  // Member function to read global variables from input.in file.
+  int ReadGlobals(void);
 };
 
 
