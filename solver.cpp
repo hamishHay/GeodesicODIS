@@ -1077,7 +1077,7 @@ void Solver::ReadInitialConditions(void) {
 
 	double l_thin = -10.0 * radConv;
 	double h_thick = consts->h.Value();
-	double h_thin = 1000.0;
+	double h_thin = 500.0;
 
 
 	for (int i = 0; i < depth->ReturnFieldLatLen(); i++) {

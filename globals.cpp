@@ -79,7 +79,7 @@ Globals::Globals(int action) {
 		alpha.SetStringID("friction coefficient");
 		allGlobals.push_back(&alpha);
 
-		l_max.SetStringID("SH degree");
+		l_max.SetStringID("sh degree");
 		allGlobals.push_back(&l_max);
 
 		dLat.SetStringID("latitude spacing");
