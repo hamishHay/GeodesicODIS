@@ -36,11 +36,6 @@
 
 #include <iostream>
 
-//#include "H5Cpp.h"
-
-using namespace std;
-
-
 int main(void)
 {
   // Read in global constants from input.in file with 0, and use defaults
