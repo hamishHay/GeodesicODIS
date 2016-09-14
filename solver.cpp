@@ -735,6 +735,7 @@ void Solver::Explicit() {
 			orbitNumber++;
 			timeStepCount -= consts->period.Value();
 
+
 			energy->UpdateOrbitalKinEAvg(inc);
 
 			// Check for convergence

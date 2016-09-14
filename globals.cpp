@@ -1,3 +1,14 @@
+// FILE: globals.cpp
+// DESCRIPTION: main file for the globals class. Globals is an object designed
+//							to store useful model constants that, if necessary, are accessible
+//							anywhere in the code. This file contains the constructors and member
+//							functions defined in globals.h, which populate the list of global
+//							variables and read their input values from the input.in file.
+//
+// 	Version 			 			Date 									Programmer
+// 		0.1			|				13/09/2016				|				H. Hay				|
+// ---- Initial version of ODIS, described in Hay and Matsuyama (2016)
+
 #ifdef _WIN32
 #include <direct.h>
 #include <Windows.h>
@@ -27,19 +38,30 @@
 #include <cstring>
 #include <math.h>
 
+// Points constructor to second, optional constructor. --> Not actually necessary?
 Globals::Globals() :Globals(1) {};
 
 Globals::Globals(int action) {
+	// Constructor assings stringIDs and automatically reads from the input file.
+
+	// set simulation path to that from the Output class.
 	path = Output.path;
 
+	// copy the string path to a character array
 	strcpy(cpath, path.c_str());
 
+	// Yes, currently action is redundant.
 	if (action) SetDefault();
 	else {
 		SetDefault();
 
-		//Append variable IDs to all global variables, then add them to variable list
-		//All variables described in globals.h
+		// Append variable IDs to all global variables, then add them to variable list.
+		// Variables require a string ID so the correct variable can be matched to that
+		// being read from input.in.
+
+		// All variables described in globals.h
+
+		// Please keep *all* string ID's in lower case.
 		radius.SetStringID("radius");
 		allGlobals.push_back(&radius);
 
@@ -115,10 +137,13 @@ Globals::Globals(int action) {
 		ReadGlobals(); //Read globals from input.in file
 	}
 
+	// Print out all constants to output.txt
 	OutputConsts();
 
+	// Convert end time from units of orbital period to seconds.
 	endTime.SetValue(endTime.Value()*period.Value());
 
+	// identify friction type and select the corresponding enum value.
 	if (friction.Value() == "LINEAR") fric_type = LINEAR;
 	else if (friction.Value() == "QUADRATIC") fric_type = QUADRATIC;
 	else {
@@ -128,16 +153,26 @@ Globals::Globals(int action) {
 	}
 };
 
-int Globals::ReadGlobals(void) {
-	//Function to read model input parameters from input.in only.
-	//Avoids the need to recompile for each different model setup.
-	std::ifstream inputFile(path + SEP + "input.in",std::ifstream::in);
-	std::string line, varStr, varVal;
+int Globals::ReadGlobals(void)
+{
+	// Function to read model input parameters from input.in only.
+	// Avoids the need to recompile for each different model setup.
 
+	// in stream for input.in file
+	std::ifstream inputFile(path + SEP + "input.in",std::ifstream::in);
+
+	// varID: string to contain the variable ID from input.in.
+	// varVal: string to contain the actual variable value from input.in
+	std::string varID, varVal;
+
+	// variables to store any inputs of specific types
 	int valInt;
 	double valDouble;
 	bool valBool = true;
 	std::string valStr;
+
+	// boolean to record whether any constant variables have been added to the list
+	// or not.
 	bool added=false;
 
 	if (inputFile.is_open())
@@ -146,35 +181,48 @@ int Globals::ReadGlobals(void) {
 		outstring << "Found input file." << std::endl;
 		Output.Write(OUT_MESSAGE, &outstring);
 
-		while (std::getline(inputFile >> std::ws, line, ';')) { //>> std::ws removes any leading whitespace
 
-			//Convert string to lower case
-			std::transform(line.begin(), line.end(), line.begin(), ::tolower);
+		while (std::getline(inputFile >> std::ws, varID, ';')) //>> std::ws removes any leading whitespace
+		{
+			// varID now contains string up to the first ";" --> this is the stringID.
+
+			// Convert string to lower case
+			std::transform(varID.begin(), varID.end(), varID.begin(), ::tolower);
 			std::getline(inputFile >> std::ws, varVal, ';');
+
+			// string stream to convert string into numerical value
 			std::stringstream value(varVal);
 
 			added = false;
 			unsigned int i = 0; //unsigned to remove warnings
-			do {
-				if (line == allGlobals[i]->StringID()) {
-					if (allGlobals[i]->IsType("double")) {
-						value >> valDouble;
+
+			do
+			{
+				// iterate until correct stringID found
+				if (varID == allGlobals[i]->StringID())
+				{
+					// assign global variable to that in val based on type
+					if (allGlobals[i]->IsType("double"))
+					{
+						value >> valDouble; // converts stringstream to double
+						// casting required here to correctly access elements in allGlobals
+						// vector.
 						((GlobalVar<double > *) allGlobals[i])->SetValue(valDouble);
 						added = true;
 						allGlobals[i]->Added(added);
 					}
-					else if (allGlobals[i]->IsType("int")) {
+					else if (allGlobals[i]->IsType("int"))
+					{
 						value >> valInt;
 						((GlobalVar<int> *) allGlobals[i])->SetValue(valInt);
 						added = true;
 						allGlobals[i]->Added(added);
 					}
-					else if (allGlobals[i]->IsType("bool")) {
-						value >> valStr;
+					else if (allGlobals[i]->IsType("bool"))
+					{
+						value >> valStr; // this should be valBool? maybe >> doesn't work with bool
 						if (valStr == "false") valBool = false;
-						else if (valStr == "true") {
-							valBool = true;
-						}
+						else if (valStr == "true") valBool = true;
 						((GlobalVar<bool> *) allGlobals[i])->SetValue(valBool);
 						added = true;
 						allGlobals[i]->Added(added);
@@ -194,13 +242,15 @@ int Globals::ReadGlobals(void) {
 				i++;
 			} while (i < allGlobals.size() && !added);
 
-			std::getline(inputFile, line, ';'); //Ignores last part of input file line
+			// The end of each line in input.in is the purely for verbosity. This line
+			// assigns the third column in input.in to varID, but it is never used.
+			std::getline(inputFile, varID, ';');
 		};
 
+		// reading of input file is complete.
 		inputFile.close();
 
-
-
+		// Check for any unassigned global variables
 		for (unsigned int i = 0; i < allGlobals.size(); i++){
 			if (!allGlobals[i]->IsAdded()) {
 				outstring << "WARNING: Unassigned global constant: " << allGlobals[i]->StringID() << ". " << std::endl;
@@ -224,16 +274,21 @@ int Globals::ReadGlobals(void) {
 			}
 		}
 	}
-	else {
-
+	else
+	{
+		// if input.in cannot be found, terminate the program.
 		outstring << "Unable to open 'input.in' file." << std::endl << std::endl;
 		Output.Write(ERR_MESSAGE, &outstring);
 		Output.TerminateODIS();
 	}
+
 	return 0;
 };
 
-void Globals::SetDefault(void) {
+void Globals::SetDefault(void)
+{
+	// Member function acts as a backup in case no variables are assigned. Perhaps
+	// it would be safer to simply require a fully populated input.in file?
 
 	//Satellite Radius
 	radius.SetValue(2574.73e3);
@@ -310,7 +365,8 @@ void Globals::SetDefault(void) {
 	outputTime.SetValue(1);
 };
 
-void Globals::OutputConsts(void){
+void Globals::OutputConsts(void)
+{
 	// Print all constants to output file.
 	outstring << "Model parameters: " << std::endl;
 	for (unsigned int i = 0; i < allGlobals.size(); i++){

@@ -1,47 +1,57 @@
+// FILE: field.h
+// DESCRIPTION: header file for the field class. The term field is used simply 
+//							to refer to a solvable quantity that is found over the numerical
+//							domain. Field will generate a 2D array to store some qunatity
+//							at positions that are staggered over the 2D grid, based on a mesh
+//							type object. Note that field quantities are stored at half the
+//							grid spacing defined in mesh.
+//
+// 	Version 			 			Date 									Programmer
+// 		0.1			|				13/09/2016				|				H. Hay				|
+// ---- Initial version of ODIS, described in Hay and Matsuyama (2016)
+
+
 #ifndef FIELD_H
 #define FIELD_H
 
-#include "vector"
 #include "mesh.h"
 
-//Class to populate fields (i.e. velocity etc) at HALF grid spacing
 class Field {
 private:
 
-
 public:
+	// Number of nodes in latitude and longitude
 	int fieldLatLen;
 	int fieldLonLen;
 
-	// std::vector<double> lat;
-	// std::vector<double> lon;
-	// std::vector<double> cosLat;
-	// std::vector<double> sinLat;
-	// std::vector<double> cos2Lat;
-	// std::vector<double> sin2Lat;
-
+	// 1D arrays of positions in latitude and longitude
 	double * lat;
 	double * lon;
-	double * cosLat;
+
+	// 1D arrays trigonometric quantities that only need to be calculated once.
+	// These are essentially lookup tables calculated upon the field initialisation.
+	double * cosLat; //cos(latitude)
 	double * sinLat;
-	double * cos2Lat;
+	double * cos2Lat; //cos(2*latitude)
 	double * sin2Lat;
 	double * cosLon;
 	double * sinLon;
 	double * cos2Lon;
 	double * sin2Lon;
 
+	// node spacing
 	double dLat;
 	double dLon;
-	//int latStaggered = 0;
 
+	// mesh object used to base staggered grid around.
+	Mesh * grid;
 
-	std::vector<double> opp; //Pointer to opposite cell if at the pole
-	Mesh * grid; //pointer to global Mesh object
-	//std::vector<std::vector<double>> solution; //2D vector array
+	// 2D array for the numerical solution of the field
 	double ** solution;
 
-	Field(Mesh *,int,int); //Constructor
+	// Constructor. First int is for latitude staggering and second is for longitude
+	// staggering (1 or 0).
+	Field(Mesh *, int, int);
 
 	int ReturnFieldLatLen();
 	int ReturnFieldLonLen();
