@@ -910,7 +910,9 @@ void Solver::Explicit() {
 		if (timeStepCount >= consts->period.Value()) {
 			orbitNumber++;
 			timeStepCount -= consts->period.Value();
+
       std::cout<<"TIME: "<<timeStepCount<<", "<<consts->period.Value()<<std::endl;
+
 			energy->UpdateOrbitalKinEAvg(inc);
 
 			// Check for convergence
