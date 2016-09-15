@@ -873,7 +873,7 @@ void Solver::Explicit() {
     UpdateSurfaceHeight();
 
     //Call SHTOOLS to find spherical harmonic expansion of etaNew.
-    ExtractSHCoeff();
+    // ExtractSHCoeff();
 
 
 
@@ -931,21 +931,21 @@ void Solver::Explicit() {
       // DumpFields(orbitNumber);
       DumpFields(output);
 
-      for (int j=0; j<l_max+1; j++) {
-        for (int k=0; k<l_max+1; k++) {
-          std::cout<<"l="<<j<<", m="<<k<<":\t"<<SH_cos_coeff[j][k]<<std::endl;
-          // std::cout<<"l="<<j<<", m="<<k<<":\t"<<SH_sin_coeff[j][k]<<std::endl;
-
-        }
-      }
-
-      for (int j=0; j<l_max+1; j++) {
-        for (int k=0; k<l_max+1; k++) {
-          // std::cout<<"l="<<j<<", m="<<k<<":\t"<<SH_cos_coeff[j][k]<<std::endl;
-          std::cout<<"l="<<j<<", m="<<k<<":\t"<<SH_sin_coeff[j][k]<<std::endl;
-
-        }
-      }
+      // for (int j=0; j<l_max+1; j++) {
+      //   for (int k=0; k<l_max+1; k++) {
+      //     std::cout<<"l="<<j<<", m="<<k<<":\t"<<SH_cos_coeff[j][k]<<std::endl;
+      //     // std::cout<<"l="<<j<<", m="<<k<<":\t"<<SH_sin_coeff[j][k]<<std::endl;
+      //
+      //   }
+      // }
+      //
+      // for (int j=0; j<l_max+1; j++) {
+      //   for (int k=0; k<l_max+1; k++) {
+      //     // std::cout<<"l="<<j<<", m="<<k<<":\t"<<SH_cos_coeff[j][k]<<std::endl;
+      //     std::cout<<"l="<<j<<", m="<<k<<":\t"<<SH_sin_coeff[j][k]<<std::endl;
+      //
+      //   }
+      // }
 
 
       // std::cout<<"Total Mass"<<energy->mass->totalMass<<std::endl;
@@ -1087,6 +1087,8 @@ void Solver::ReadInitialConditions(void) {
       l_thin = 0.0;
       if (depth->lat[i] <= l_thin) depthArray[i][j] = -(h_thick-h_thin)*0.5*(sin(2*depth->lat[i] + pi*0.5) - 1) + h_thin;
       else depthArray[i][j] = h_thin;
+
+      depthArray[i][j] = h_thick;
 
     }
   //if (i > depth->ReturnFieldLatLen() - 3) depthArray[i][j] = h_thick;
