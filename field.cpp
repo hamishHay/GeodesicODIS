@@ -39,12 +39,18 @@ Field::Field(Mesh *mesh, int latStagg, int lonStagg)
   else fieldLatLen = 1 + (grid->ReturnLatLen() - 1)/ 2;
 
   // allocate memory for the solution
+  // solution = new double*[fieldLatLen];
+  // for (int i = 0; i < fieldLatLen; i++) {
+  //   solution[i] = new double[fieldLonLen];
+  //   for (int j = 0; j < fieldLonLen; j++) {
+  //     solution[i][j] = 0; //Initial Guess
+  //   }
+  // }
+
   solution = new double*[fieldLatLen];
-  for (int i = 0; i < fieldLatLen; i++) {
-    solution[i] = new double[fieldLonLen];
-    for (int j = 0; j < fieldLonLen; j++) {
-      solution[i][j] = 0; //Initial Guess
-    }
+  solution[0] = new double[fieldLatLen * fieldLonLen];
+  for (int i=1; i < fieldLatLen; i++) {
+    solution[i] = &solution[0][i*fieldLonLen];
   }
 
   // allocate and assign position values for lat and lon.
