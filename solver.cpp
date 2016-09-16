@@ -32,6 +32,11 @@
 #include <cstdio>
 #include <sys/stat.h>
 #include <errno.h>
+#include "H5Cpp.h"
+
+#ifndef H5_NO_NAMESPACE
+    using namespace H5;
+#endif
 
 extern"C"
 {
@@ -115,6 +120,20 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
     SH_sin_coeff[i] = new double[l_max+1];
   }
 
+  // etaNewArray = (double **) malloc(Eta->ReturnFieldLatLen()*sizeof(double*));
+  // etaNewArray[0] = (double *) malloc(Eta->ReturnFieldLonLen()*sizeof(double));
+  // for (int i=1; i<Eta->ReturnFieldLatLen(); i++) etaNewArray[i] = etaNewArray[0]+i*Eta->ReturnFieldLonLen();
+
+
+
+  // for(int j= 0; j < Eta->fieldLatLen; j++) {
+  //   for(int k= 0; k < Eta->fieldLonLen; k++) {
+  //   std::cout << j << " " << k << " " << &etaNewArray[j][k] << std::endl;
+  //   }
+  // }
+
+
+
   uLatLen = u->fieldLatLen;
   uLonLen = u->fieldLonLen;
   udLon = u->dLon;
@@ -131,6 +150,18 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   etadLat = eta->dLat;
 
   dt = consts->timeStep.Value();
+
+  // int count = 1;
+  // for (int i = 0; i < etaLatLen; i++) {
+  //   for (int j = 0; j < etaLonLen; j++) {
+  //     etaNewArray[i][j] = 5.0;
+  //     std::cout << etaNewArray[i][j]<< std::endl;\
+  //     count++;
+  //   }
+  // }
+
+  // std::cout << "HI " <<count <<'\t'<<etaLatLen*etaLonLen<< std::endl;
+
 
   cosMinusB = new double[dUlat->fieldLonLen];
   cosPlusB = new double[dUlat->fieldLonLen];
@@ -851,6 +882,7 @@ void Solver::Explicit() {
 
   //Update cell energies and globally averaged energy
   energy->UpdateKinE(uNewArray,vNewArray);
+
   // energy->UpdateDtKinEAvg();
 
   while (simulationTime <= consts->endTime.Value() && !energy->converged) {
@@ -865,6 +897,7 @@ void Solver::Explicit() {
 
     //Solve for v
     UpdateNorthVel();
+
 
     //solve for u
     UpdateEastVel();
@@ -1160,7 +1193,48 @@ void Solver::DumpFields(int output_num) {
       break;
   }
 
+  const H5std_string FILE_NAME("data.h5");
+  const H5std_string DATASET_NAME("eta");
 
+  float * eta1D = new float[etaLatLen*etaLonLen];
+  for (int i=0; i<etaLatLen;i++) {
+    for (int j=0; j<etaLonLen; j++) {
+      eta1D[i*etaLonLen + j] = (float)etaNewArray[i][j];
+    }
+  }
+
+  H5File file( FILE_NAME, H5F_ACC_TRUNC);
+  hsize_t dimsf_eta[2] = {etaLatLen, etaLonLen};
+  DataSpace dataspace_eta(2, dimsf_eta);
+  // DoubleType datatype(PredType::NATIVE_DOUBLE);
+  // datatype.setOrder(H5T_ORDER_LE);
+
+  DataSet dataset_eta = file.createDataSet(DATASET_NAME,  PredType::NATIVE_FLOAT, dataspace_eta);
+  dataset_eta.write(eta1D, PredType::NATIVE_FLOAT);
+
+  delete[] eta1D;
+
+  //----------------------------------------------
+
+  float * v1D = new float[vLatLen*vLonLen];
+  for (int i=0; i<vLatLen;i++) {
+    for (int j=0; j<vLonLen; j++) {
+      v1D[i*vLonLen + j] = (float)vNewArray[i][j];
+    }
+  }
+
+  const H5std_string DATASET_NAME2("v");
+
+  // H5File file( FILE_NAME, H5F_ACC_TRUNC);
+  hsize_t dimsf_v[2] = {vLatLen, vLonLen};
+  DataSpace dataspace_v(2, dimsf_v);
+  // DoubleType datatype(PredType::NATIVE_FLOAT);
+  // datatype.setOrder(H5T_ORDER_LE);
+
+  DataSet dataset_v = file.createDataSet(DATASET_NAME2,  PredType::NATIVE_FLOAT, dataspace_v);
+  dataset_v.write(v1D, PredType::NATIVE_FLOAT);
+
+  delete[] v1D;
 
   for (int i = 0; i < etaNew->ReturnFieldLatLen(); i++) {
     for (int j = 0; j < etaNew->ReturnFieldLonLen(); j++) {
