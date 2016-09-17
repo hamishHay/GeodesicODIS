@@ -8,6 +8,12 @@
 #include "energy.h"
 #include "outFiles.h"
 
+#include "H5Cpp.h"
+
+#ifndef H5_NO_NAMESPACE
+    using namespace H5;
+#endif
+
 class Solver {
 private:
 	int solverType;
@@ -123,6 +129,26 @@ public:
 	double ** SH_sin_coeff;
 
 	int l_max;
+
+  //------------------------Objects for HDF5 Storage----------------------------
+
+  //
+  // const H5std_string FILE_NAME("data.h5"); // File name for all solvable variables
+  //
+  // const
+  //
+  // const H5std_string DATASET_NAME("displacement");
+  // const H5std_string DATASET_NAME("north velocity");
+  // const H5std_string DATASET_NAME("east velocity");
+  //
+  // float * etaOutput;
+  // float * vOutput;
+  // float * uOutput;
+  //
+  // H5File ODIS_Data( FILE_NAME, H5F_ACC_TRUNC); // Master data file
+  //
+  // hsize_t dimsf_eta[2] = {etaLatLen, etaLonLen};
+  // DataSpace dataspace_eta(2, dimsf_eta);
 
 	Solver(int type, int dump, Globals *, Mesh *, Field *, Field*, Field *, Field *, Field *, Energy *, Depth *);
 

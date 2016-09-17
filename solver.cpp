@@ -1193,48 +1193,89 @@ void Solver::DumpFields(int output_num) {
       break;
   }
 
-  const H5std_string FILE_NAME("data.h5");
-  const H5std_string DATASET_NAME("eta");
-
+  // const H5std_string FILE_NAME("data.h5");
+  // const H5std_string DATASET_NAME("eta");
+  //
   float * eta1D = new float[etaLatLen*etaLonLen];
   for (int i=0; i<etaLatLen;i++) {
     for (int j=0; j<etaLonLen; j++) {
       eta1D[i*etaLonLen + j] = (float)etaNewArray[i][j];
     }
   }
-
-  H5File file( FILE_NAME, H5F_ACC_TRUNC);
-  hsize_t dimsf_eta[2] = {etaLatLen, etaLonLen};
-  DataSpace dataspace_eta(2, dimsf_eta);
-  // DoubleType datatype(PredType::NATIVE_DOUBLE);
-  // datatype.setOrder(H5T_ORDER_LE);
-
-  DataSet dataset_eta = file.createDataSet(DATASET_NAME,  PredType::NATIVE_FLOAT, dataspace_eta);
-  dataset_eta.write(eta1D, PredType::NATIVE_FLOAT);
-
-  delete[] eta1D;
+  //
+  // H5File file( FILE_NAME, H5F_ACC_TRUNC);
+  // hsize_t dimsf_eta[3] = {2, etaLatLen, etaLonLen};
+  // DataSpace dataspace_eta(3, dimsf_eta);
+  // // DoubleType datatype(PredType::NATIVE_DOUBLE);
+  // // datatype.setOrder(H5T_ORDER_LE);
+  //
+  // DataSet dataset_eta = file.createDataSet(DATASET_NAME,  PredType::NATIVE_FLOAT, dataspace_eta);
+  // dataset_eta.write(eta1D, PredType::NATIVE_FLOAT);
+  //
+  // hsize_t start[3] = {1, 0, 0};
+  // hsize_t count[3] = {1, 1, 5};
+  //
+  // H5Sselect_hyperslab(dataset_eta, H5S_SELECT_SET, start, NULL, count, NULL);
+  //
+  // dataset_eta.write(eta1D, PredType::NATIVE_FLOAT);
+  //
+  // delete[] eta1D;
 
   //----------------------------------------------
 
-  float * v1D = new float[vLatLen*vLonLen];
-  for (int i=0; i<vLatLen;i++) {
-    for (int j=0; j<vLonLen; j++) {
-      v1D[i*vLonLen + j] = (float)vNewArray[i][j];
-    }
-  }
+  // float * v1D = new float[vLatLen*vLonLen];
+  // for (int i=0; i<vLatLen;i++) {
+  //   for (int j=0; j<vLonLen; j++) {
+  //     v1D[i*vLonLen + j] = (float)vNewArray[i][j];
+  //   }
+  // }
+  //
+  // const H5std_string DATASET_NAME2("v");
+  //
+  // // H5File file( FILE_NAME, H5F_ACC_TRUNC);
+  // hsize_t dimsf_v[2] = {vLatLen, vLonLen};
+  // DataSpace dataspace_v(2, dimsf_v);
+  // // DoubleType datatype(PredType::NATIVE_FLOAT);
+  // // datatype.setOrder(H5T_ORDER_LE);
+  //
+  // DataSet dataset_v = file.createDataSet(DATASET_NAME2,  PredType::NATIVE_FLOAT, dataspace_v);
+  // dataset_v.write(v1D, PredType::NATIVE_FLOAT);
+  //
+  // delete[] v1D;
 
-  const H5std_string DATASET_NAME2("v");
 
-  // H5File file( FILE_NAME, H5F_ACC_TRUNC);
-  hsize_t dimsf_v[2] = {vLatLen, vLonLen};
-  DataSpace dataspace_v(2, dimsf_v);
-  // DoubleType datatype(PredType::NATIVE_FLOAT);
-  // datatype.setOrder(H5T_ORDER_LE);
+  const hsize_t nrows = etaLatLen;
+  const hsize_t ncols = etaLonLen;
+  const hsize_t rank = 3;
+  const char saveFilePath[] = "data.h5";
 
-  DataSet dataset_v = file.createDataSet(DATASET_NAME2,  PredType::NATIVE_FLOAT, dataspace_v);
-  dataset_v.write(v1D, PredType::NATIVE_FLOAT);
+  // Create HDF5 file
+  hid_t file = H5Fcreate(saveFilePath, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
-  delete[] v1D;
+  hsize_t dims[rank] = {0, nrows, ncols};
+  hsize_t max_dims[rank] = {2, nrows, ncols};
+  hid_t file_space = H5Screate_simple(rank, dims, max_dims); // 3D data space
+
+  hid_t plist = H5Pcreate(H5P_DATASET_CREATE);
+  H5Pset_layout(plist, H5D_CHUNKED);
+  hsize_t chunk_dims[rank] = {2, nrows, ncols};
+  H5Pset_chunk(plist, rank, chunk_dims);
+  std::cout << "- Property list created" << std::endl;
+
+  // // Create dataset
+  hid_t dset = H5Dcreate(file, "dset1", H5T_NATIVE_FLOAT, file_space, H5P_DEFAULT, plist, H5P_DEFAULT);
+
+  // Create memory space
+  hid_t mem_space = H5Screate_simple(rank, dims, NULL);
+
+  file_space = H5Dget_space(dset);
+  hsize_t start[rank] = {0, 0, 0};
+  hsize_t count[rank] = {2, nrows, ncols};
+  H5Sselect_hyperslab(file_space, H5S_SELECT_SET, start, NULL, count, NULL);
+
+  H5Dwrite(dset, H5T_NATIVE_FLOAT, mem_space, file_space, H5P_DEFAULT, eta1D);
+
+  Out->TerminateODIS();
 
   for (int i = 0; i < etaNew->ReturnFieldLatLen(); i++) {
     for (int j = 0; j < etaNew->ReturnFieldLonLen(); j++) {
