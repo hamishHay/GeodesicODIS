@@ -1263,8 +1263,8 @@ void Solver::DumpFields(int output_num) {
 
   // ret = H5Dwrite(dataset, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, eta1D);
 
-  start[0] = 1;
-  start[1] = 0;
+  start[0] = 0;
+  start[1] = 1;
   start[2] = 0;
 
   count[0] = 1;
