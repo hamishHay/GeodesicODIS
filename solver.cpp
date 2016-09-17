@@ -1249,6 +1249,8 @@ void Solver::DumpFields(int output_num) {
   const hsize_t rank = 3;
   const char saveFilePath[] = "data.h5";
   herr_t ret;
+  hsize_t start[3];
+  hsize_t count[3];
 
   // Create HDF5 file
   hid_t file = H5Fcreate(saveFilePath, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
@@ -1259,7 +1261,21 @@ void Solver::DumpFields(int output_num) {
 
   hid_t dataset = H5Dcreate(file, "test1", H5T_NATIVE_FLOAT, data_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
-  ret = H5Dwrite(dataset, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, eta1D);
+  // ret = H5Dwrite(dataset, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, eta1D);
+
+  start[0] = 0;
+  start[1] = 0;
+  start[2] = 0;
+
+  count[0] = nrows*ncols;
+  count[1] = 1;
+  count[2] = 1;
+
+  ret = H5Sselect_hyperslab(data_space, H5S_SELECT_SET, start, NULL, count, NULL);
+
+
+
+
 
 
   // hid_t plist = H5Pcreate(H5P_DATASET_CREATE);
