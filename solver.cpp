@@ -1261,8 +1261,6 @@ void Solver::DumpFields(int output_num) {
 
   hid_t dataset = H5Dcreate(file, "test1", H5T_NATIVE_FLOAT, data_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
-  // ret = H5Dwrite(dataset, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, eta1D);
-
   start[0] = 1;
   start[1] = 0;
   start[2] = 0;
@@ -1277,44 +1275,17 @@ void Solver::DumpFields(int output_num) {
 
   hid_t mem_space = H5Screate_simple(rank, dims, NULL);
 
-  // data_space = H5Dget_space(dataset);
-
   ret = H5Sselect_hyperslab(data_space, H5S_SELECT_SET, start, NULL, count, NULL);
 
   ret = H5Dwrite(dataset, H5T_NATIVE_FLOAT, mem_space, data_space, H5P_DEFAULT, eta1D);
 
-  // dims[0] = 0;
-  // H5Sset_extent_simple(mem_space, rank, dims, NULL);
-
   start[0] = 0;
-
-  // data_space = H5Dget_space(dataset);
 
   H5Sselect_hyperslab(data_space, H5S_SELECT_SET, start, NULL, count, NULL);
 
   ret = H5Dwrite(dataset, H5T_NATIVE_FLOAT, mem_space, data_space, H5P_DEFAULT, eta1D);
 
-  // ret = H5Sselect_hyperslab(data_space, H5S_SELECT_SET, start, NULL, count, NULL);
 
-
-  // hid_t plist = H5Pcreate(H5P_DATASET_CREATE);
-  // H5Pset_layout(plist, H5D_CHUNKED);
-  // hsize_t chunk_dims[rank] = {2, nrows, ncols};
-  // H5Pset_chunk(plist, rank, chunk_dims);
-  // std::cout << "- Property list created" << std::endl;
-  //
-  // // // Create dataset
-  // hid_t dset = H5Dcreate(file, "dset1", H5T_NATIVE_FLOAT, file_space, H5P_DEFAULT, plist, H5P_DEFAULT);
-  //
-  // // Create memory space
-  // hid_t mem_space = H5Screate_simple(rank, dims, NULL);
-  //
-  // file_space = H5Dget_space(dset);
-  // hsize_t start[rank] = {0, 0, 0};
-  // hsize_t count[rank] = {2, nrows, ncols};
-  // H5Sselect_hyperslab(file_space, H5S_SELECT_SET, start, NULL, count, NULL);
-  //
-  // H5Dwrite(dset, H5T_NATIVE_FLOAT, mem_space, file_space, H5P_DEFAULT, eta1D);
 
   Out->TerminateODIS();
 
