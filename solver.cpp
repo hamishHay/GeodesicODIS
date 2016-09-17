@@ -1271,16 +1271,19 @@ void Solver::DumpFields(int output_num) {
   count[1] = nrows;
   count[2] = ncols;
 
+  dims[0] = 1;
+  dims[1] = nrows;
+  dims[2] = ncols;
+
+  hid_t mem_space = H5Screate_simple(rank, dims, NULL);
+
+  file_space = H5Dget_space(dataset);
+
   ret = H5Sselect_hyperslab(data_space, H5S_SELECT_SET, start, NULL, count, NULL);
 
-  hsize_t dim1[] = {nrows*ncols};
 
 
-  hid_t mid1 = H5Screate_simple(1, dim1, NULL);
-
-  ret = H5Sselect_hyperslab(mid1, H5S_SELECT_SET, start, NULL, count, NULL);
-
-  ret = H5Dwrite(dataset, H5T_NATIVE_FLOAT, mid1, data_space, H5P_DEFAULT, eta1D);
+  ret = H5Dwrite(dataset, H5T_NATIVE_FLOAT, mem_space, data_space, H5P_DEFAULT, eta1D);
 
 
 
