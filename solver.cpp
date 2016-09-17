@@ -1269,7 +1269,7 @@ void Solver::DumpFields(int output_num) {
 
   count[0] = 1;
   count[1] = 1;
-  count[2] = 1;
+  count[2] = 2;
 
   ret = H5Sselect_hyperslab(data_space, H5S_SELECT_SET, start, NULL, count, NULL);
 
