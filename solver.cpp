@@ -1248,6 +1248,7 @@ void Solver::DumpFields(int output_num) {
   const hsize_t ncols = etaLonLen;
   const hsize_t rank = 3;
   const char saveFilePath[] = "data.h5";
+  herr_t ret;
 
   // Create HDF5 file
   hid_t file = H5Fcreate(saveFilePath, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
