@@ -1285,6 +1285,8 @@ void Solver::DumpFields(int output_num) {
 
   start[0] = 0;
 
+  data_space - H5Dget_space(dataset);
+
   H5Sselect_hyperslab(data_space, H5S_SELECT_SET, start, NULL, count, NULL);
 
   ret = H5Sselect_hyperslab(data_space, H5S_SELECT_SET, start, NULL, count, NULL);
