@@ -1273,7 +1273,7 @@ void Solver::DumpFields(int output_num) {
 
   ret = H5Sselect_hyperslab(data_space, H5S_SELECT_SET, start, NULL, count, NULL);
 
-
+  ret = H5Dwrite(dataset, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, eta1D);
 
 
 
