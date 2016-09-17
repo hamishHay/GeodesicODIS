@@ -1273,8 +1273,10 @@ void Solver::DumpFields(int output_num) {
 
   ret = H5Sselect_hyperslab(data_space, H5S_SELECT_SET, start, NULL, count, NULL);
 
+  hsize_t dim1[2] = {nrows,ncols};
+  
 
-  hid_t mid1 = H5Screate_simple(rank, dims, NULL);
+  hid_t mid1 = H5Screate_simple(2, dim1, NULL);
 
   ret = H5Sselect_hyperslab(mid1, H5S_SELECT_SET, start, NULL, count, NULL);
 
