@@ -1277,7 +1277,7 @@ void Solver::DumpFields(int output_num) {
 
   hid_t mem_space = H5Screate_simple(rank, dims, NULL);
 
-  file_space = H5Dget_space(dataset);
+  data_space = H5Dget_space(dataset);
 
   ret = H5Sselect_hyperslab(data_space, H5S_SELECT_SET, start, NULL, count, NULL);
 
