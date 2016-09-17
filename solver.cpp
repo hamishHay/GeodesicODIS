@@ -1277,15 +1277,17 @@ void Solver::DumpFields(int output_num) {
 
   hid_t mem_space = H5Screate_simple(rank, dims, NULL);
 
-  // data_space = H5Dget_space(dataset);
+  data_space = H5Dget_space(dataset);
 
   ret = H5Sselect_hyperslab(data_space, H5S_SELECT_SET, start, NULL, count, NULL);
 
-
-
   ret = H5Dwrite(dataset, H5T_NATIVE_FLOAT, mem_space, data_space, H5P_DEFAULT, eta1D);
 
+  start[0] = 0;
 
+  H5Sselect_hyperslab(data_space, H5S_SELECT_SET, start, NULL, count, NULL);
+
+  ret = H5Sselect_hyperslab(data_space, H5S_SELECT_SET, start, NULL, count, NULL);
 
 
   // hid_t plist = H5Pcreate(H5P_DATASET_CREATE);
