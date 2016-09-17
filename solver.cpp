@@ -1257,7 +1257,7 @@ void Solver::DumpFields(int output_num) {
   hsize_t max_dims[rank] = {2, nrows, ncols};
   hid_t data_space = H5Screate_simple(rank, dims, max_dims); // 3D data space
 
-  dataset = H5Dcreate(file, "test1", H5T_NATIVE_FLOAT, data_space, H5P_DEFAULT);
+  hid_t dataset = H5Dcreate(file, "test1", H5T_NATIVE_FLOAT, data_space, H5P_DEFAULT);
 
   ret = H5Dwrite(dataset, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, eta1D);
 
