@@ -1318,7 +1318,7 @@ void Solver::DumpFields(int output_num) {
     float * diss_avg_1D = new float[1];
     diss_avg_1D[0] = energy->dtDissEAvg[energy->timePos-1];
 
-    start_1D = output_num - 1;
+    start_1D[0] = output_num - 1;
 
     H5Sselect_hyperslab(data_space_1D_avg, H5S_SELECT_SET, start, NULL, count_1D, NULL);
 
