@@ -171,16 +171,15 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 
   rank_field = 3;
 
-  dataFilePath = new char[sizeof("data.h5")];
-  dataFilePath = "data.h5";
+  char dataFile[] = "data.h5";
 
   start = new hsize_t[3];
   count = new hsize_t[3];
 
   // Create HDF5 file
-  file = H5Fcreate(dataFilePath, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  file = H5Fcreate(dataFile, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
-  time_slices = 1;
+  // time_slices = 1;
 
   dims_eta = new hsize_t[3];
   dims_eta[0] = time_slices;
