@@ -167,7 +167,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   u_rows = uLatLen;
   u_cols = uLonLen;
 
-  time_slices = (consts->endTime.Value()/consts->period.Value())/consts->outputTime.Value();
+  time_slices = (consts->endTime.Value()/consts->period.Value())/consts->outputTime.Value()+ 1;
 
   rank_field = 3;
 
