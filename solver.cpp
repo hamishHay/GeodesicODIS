@@ -1283,7 +1283,7 @@ void Solver::DumpFields(int output_num) {
   // Write Displacement Field
 
   std::cout << output_num - 1 << std::endl;
-  start[0] = output_num-1;
+  start[0] = 0;
   start[1] = 0;
   start[2] = 0;
 
