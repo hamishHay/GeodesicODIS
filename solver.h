@@ -196,7 +196,7 @@ public:
   hid_t mem_space;
   hid_t data_set;
 
-  const char dataFilePath[];
+  const char * dataFilePath;
 
   hsize_t * dims;
   hsize_t * max_dims;
