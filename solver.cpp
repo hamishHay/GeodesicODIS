@@ -219,6 +219,10 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   data_set_u = H5Dcreate(file, "east velocity", H5T_NATIVE_FLOAT, data_space_u, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   data_set_v = H5Dcreate(file, "north velocity", H5T_NATIVE_FLOAT, data_space_v, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
+  dims_eta[0] = 1;
+  dims_u[0] = 1;
+  dims_v[0] = 1;
+
   mem_space_eta = H5Screate_simple(rank_field, dims_eta, NULL);
   mem_space_u = H5Screate_simple(rank_field, dims_u, NULL);
   mem_space_v = H5Screate_simple(rank_field, dims_v, NULL);
@@ -1302,10 +1306,10 @@ void Solver::DumpFields(int output_num) {
 
   hid_t mid = H5Screate_simple(rank_field, dimm, NULL);
 
-  H5Sselect_hyperslab(mid, H5S_SELECT_SET, start, NULL, count, NULL);
+  H5Sselect_hyperslab(mem_space_eta, H5S_SELECT_SET, start, NULL, count, NULL);
 
 
-  H5Dwrite(data_set_eta, H5T_NATIVE_FLOAT, mid, data_space_eta, H5P_DEFAULT, eta_1D);
+  H5Dwrite(data_set_eta, H5T_NATIVE_FLOAT, mem_space_eta, data_space_eta, H5P_DEFAULT, eta_1D);
 
   // H5Dwrite(data_set_eta, H5T_NATIVE_FLOAT, mem_space_eta, data_space_eta, H5P_DEFAULT, eta_1D);
 
