@@ -1282,11 +1282,11 @@ void Solver::DumpFields(int output_num) {
 
   // Write Displacement Field
 
-  start[0] = 0;
+  start[0] = output_num-1;
   start[1] = 0;
   start[2] = 0;
 
-  count[0] = output_num-1;
+  count[0] = 1;
   count[1] = eta_rows;
   count[2] = eta_cols;
 
