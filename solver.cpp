@@ -1307,7 +1307,7 @@ void Solver::DumpFields(int output_num) {
 
   H5Dwrite(data_set_eta, H5T_NATIVE_FLOAT, mid, data_space_eta, H5P_DEFAULT, eta_1D);
 
-  H5Dwrite(data_set_eta, H5T_NATIVE_FLOAT, mem_space_eta, data_space_eta, H5P_DEFAULT, eta_1D);
+  // H5Dwrite(data_set_eta, H5T_NATIVE_FLOAT, mem_space_eta, data_space_eta, H5P_DEFAULT, eta_1D);
 
 
   //
