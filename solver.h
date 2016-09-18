@@ -143,17 +143,17 @@ public:
   hsize_t v_rows;
   hsize_t v_cols;
 
-  hsize_t rank_field;
+  const hsize_t rank_field;
 
-  char dataFilePath[];
+  const char dataFilePath[];
 
-  hsize_t start[3];
-  hsize_t count[3];
+  hsize_t start[];
+  hsize_t count[];
 
   hid_t file;
 
-  hsize_t dims[rank_field];
-  hsize_t max_dims[rank_field];
+  hsize_t dims[];
+  hsize_t max_dims[];
 
   hid_t data_space;
   hid_t mem_space;
