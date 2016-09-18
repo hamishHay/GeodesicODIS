@@ -132,10 +132,32 @@ public:
 
   //------------------------Objects for HDF5 Storage----------------------------
 
-  float * eta1D;
-  const hsize_t nrows;
-  
+  float * eta_1D;
+  float * u_1D;
+  float * v_1D;
 
+  hsize_t eta_rows;
+  hsize_t eta_cols;
+  hsize_t u_rows;
+  hsize_t u_cols;
+  hsize_t v_rows;
+  hsize_t v_cols;
+
+  hsize_t rank_field = 3;
+
+  const char dataFilePath[] = "data.h5";
+
+  hsize_t start[3];
+  hsize_t count[3];
+
+  hid_t file;
+
+  hsize_t dims[rank_field];
+  hsize_t max_dims[rank_field];
+
+  hid_t data_space;
+  hid_t mem_space;
+  hid_t data_set;
 
   //
   // const H5std_string FILE_NAME("data.h5"); // File name for all solvable variables
