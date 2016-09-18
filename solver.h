@@ -198,11 +198,11 @@ public:
 
   const char dataFilePath[];
 
-  hsize_t dims[];
-  hsize_t max_dims[];
-  
-  hsize_t start[];
-  hsize_t count[];
+  hsize_t * dims;
+  hsize_t * max_dims;
+
+  hsize_t * start;
+  hsize_t * count;
 };
 
 #endif
