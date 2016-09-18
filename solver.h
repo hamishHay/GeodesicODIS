@@ -188,6 +188,7 @@ public:
   hsize_t v_cols;
 
   hsize_t rank_field;
+  hsize_t rank_avg;
 
   hid_t file;
 
@@ -195,29 +196,37 @@ public:
   hid_t data_space_u;
   hid_t data_space_v;
   hid_t data_space_diss;
+  hid_t data_space_1D_avg;
 
   hid_t mem_space_eta;
   hid_t mem_space_u;
   hid_t mem_space_v;
   hid_t mem_space_diss;
+  hid_t mem_space_1D_avg;
 
   hid_t data_set_eta;
   hid_t data_set_u;
   hid_t data_set_v;
   hid_t data_set_diss;
+  hid_t data_set_1D_avg;
 
   char * dataFilePath;
 
   hsize_t * dims_eta;
   hsize_t * dims_u;
   hsize_t * dims_v;
+  hsize_t * dims_1D_avg;
 
   hsize_t * max_dims_eta;
   hsize_t * max_dims_u;
   hsize_t * max_dims_v;
+  hsize_t * max_dims_1D_avg;
 
   hsize_t * start;
   hsize_t * count;
+
+  hsize_t * start_1D;
+  hsize_t * count_1D;
 
   hsize_t time_slices;
 };

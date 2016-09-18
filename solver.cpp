@@ -157,13 +157,11 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 
 #if _WIN32
     mkdir(&(consts->path + SEP + "Grid" + SEP)[0], NULL);
-    mkdir(&(consts->path + SEP + "Energy" + SEP)[0], NULL);
 
     mkdir(&(consts->path +  SEP + "DATA" + SEP)[0], NULL);
 
 #elif __linux__
     mkdir(&(consts->path +  SEP + "Grid" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
-    mkdir(&(consts->path +  SEP + "Energy" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
 
     mkdir(&(consts->path +  SEP + "DATA" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
 
@@ -182,7 +180,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   u_rows = uLatLen;
   u_cols = uLonLen;
 
-  time_slices = (consts->endTime.Value()/consts->period.Value())/consts->outputTime.Value()+ 1;
+  time_slices = (consts->endTime.Value()/consts->period.Value())/consts->outputTime.Value() + 1;
 
   rank_field = 3;
 
@@ -190,6 +188,9 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 
   start = new hsize_t[3];
   count = new hsize_t[3];
+
+  start_1D = new hsize_t[1];
+  count_1D = new hsize_t[1];
 
   // Create HDF5 file
   file = H5Fcreate(dataFile, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
@@ -211,6 +212,9 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   dims_v[1] = v_rows;
   dims_v[2] = v_cols;
 
+  dims_1D_avg = new hsize_t[1];
+  dims_1D_avg = 1;
+
   max_dims_eta = new hsize_t[3];
   max_dims_eta[0] = time_slices;
   max_dims_eta[1] = eta_rows;
@@ -226,20 +230,26 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   max_dims_v[1] = v_rows;
   max_dims_v[2] = v_cols;
 
+  max_dims_1D_avg = new hsize_t[1];
+  max_dims_1D_avg[0] = time_slices;
+
   data_space_eta = H5Screate_simple(rank_field, max_dims_eta, NULL); // 3D data space
   data_space_u = H5Screate_simple(rank_field, max_dims_u, NULL);
   data_space_v = H5Screate_simple(rank_field, max_dims_v, NULL);
   data_space_diss = H5Screate_simple(rank_field, max_dims_eta, NULL);
+  data_space_1D_avg = H5Screate_simple(rank_1D, max_dims_1D_avg, NULL);
 
   data_set_eta = H5Dcreate(file, "displacement", H5T_NATIVE_FLOAT, data_space_eta, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   data_set_u = H5Dcreate(file, "east velocity", H5T_NATIVE_FLOAT, data_space_u, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   data_set_v = H5Dcreate(file, "north velocity", H5T_NATIVE_FLOAT, data_space_v, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   data_set_diss = H5Dcreate(file, "dissipated energy", H5T_NATIVE_FLOAT, data_space_diss, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  data_set_1D_avg = H5Dcreate(file, "dissipated energy avg.", H5T_NATIVE_FLOAT, data_space_1D_avg, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
   mem_space_eta = H5Screate_simple(rank_field, dims_eta, NULL);
   mem_space_u = H5Screate_simple(rank_field, dims_u, NULL);
   mem_space_v = H5Screate_simple(rank_field, dims_v, NULL);
   mem_space_diss = H5Screate_simple(rank_field, dims_eta, NULL);
+  mem_space_1D_avg = H5Screate_simple(rank_1D, dims_1D_avg, NULL);
 
   start[0] = 0;
   start[1] = 0;
@@ -249,7 +259,9 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   count[1] = eta_rows;
   count[2] = eta_cols;
 
-  //wot
+  start_1D[0] = 0;
+  count_1D[0] = 1;
+
 };
 
 int Solver::InitialConditions(void) {
@@ -1296,6 +1308,16 @@ void Solver::DumpFields(int output_num) {
   H5Sselect_hyperslab(data_space_diss, H5S_SELECT_SET, start, NULL, count, NULL);
 
   H5Dwrite(data_set_diss, H5T_NATIVE_FLOAT, mem_space_diss, data_space_diss, H5P_DEFAULT, diss_1D);
+
+
+  // ----------------------- Write north velocity field ------------------------
+
+  H5Sselect_hyperslab(data_space_1D_avg, H5S_SELECT_SET, start, NULL, count_1D, NULL);
+
+  H5Dwrite(data_set_1D_avg, H5T_NATIVE_FLOAT, mem_space_1D_avg, data_space_1D_avg, H5P_DEFAULT, energy->dtDissEAvg[energy->timePos-1]);
+
+
+
 
 
   for (int i = 0; i < etaNew->ReturnFieldLatLen(); i++) {
