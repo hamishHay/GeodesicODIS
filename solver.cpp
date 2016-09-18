@@ -1286,7 +1286,7 @@ void Solver::DumpFields(int output_num) {
   start[1] = 0;
   start[2] = 0;
 
-  count[0] = (hsize_t) output_num;
+  count[0] = output_num-1;
   count[1] = eta_rows;
   count[2] = eta_cols;
 
