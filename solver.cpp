@@ -156,18 +156,12 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   }
 
 #if _WIN32
-    mkdir(&(consts->path +  SEP + "EastVelocity" + SEP)[0], NULL);
-    mkdir(&(consts->path + SEP + "NorthVelocity" + SEP)[0], NULL);
-    mkdir(&(consts->path + SEP + "Displacement" + SEP)[0], NULL);
     mkdir(&(consts->path + SEP + "Grid" + SEP)[0], NULL);
     mkdir(&(consts->path + SEP + "Energy" + SEP)[0], NULL);
 
     mkdir(&(consts->path +  SEP + "DATA" + SEP)[0], NULL);
 
 #elif __linux__
-    mkdir(&(consts->path +  SEP + "EastVelocity" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
-    mkdir(&(consts->path +  SEP + "NorthVelocity" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
-    mkdir(&(consts->path +  SEP + "Displacement" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
     mkdir(&(consts->path +  SEP + "Grid" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
     mkdir(&(consts->path +  SEP + "Energy" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
 
@@ -1212,14 +1206,8 @@ void Solver::CopyInitialConditions(std::ifstream & file, Field * inField) {
 void Solver::DumpFields(int output_num) {
   std::string out = std::to_string(output_num);
 
-  std::ofstream uFile(consts->path + SEP + "EastVelocity" + SEP + "u_vel_" + out + ".txt", std::ofstream::out);
-  std::ofstream vFile(consts->path + SEP + "NorthVelocity" + SEP + "v_vel_" + out + ".txt", std::ofstream::out);
-  std::ofstream etaFile(consts->path + SEP + "Displacement" + SEP + "eta_" + out + ".txt", std::ofstream::out);
-  std::ofstream dissFile(consts->path + SEP + "Energy" + SEP + "diss_" + out + ".txt", std::ofstream::out);
   std::ofstream aFile(consts->path + SEP + "Displacement" + SEP + "a_" + out + ".txt", std::ofstream::out);
   std::ofstream bFile(consts->path + SEP + "Displacement" + SEP + "b_" + out + ".txt", std::ofstream::out);
-
-
 
   std::cout<<"Outputing solvable fields "<<output_num<<std::endl;
 
