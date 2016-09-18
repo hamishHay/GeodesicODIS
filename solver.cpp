@@ -173,6 +173,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   eta_1D = new float[etaLatLen*etaLonLen];
   v_1D = new float[vLatLen*vLonLen];
   u_1D = new float[uLatLen*uLonLen];
+  diss_1D = new float[etaLatLen*etaLonLen];
 
   eta_rows = etaLatLen;
   eta_cols = etaLonLen;
@@ -228,18 +229,17 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   data_space_eta = H5Screate_simple(rank_field, max_dims_eta, NULL); // 3D data space
   data_space_u = H5Screate_simple(rank_field, max_dims_u, NULL);
   data_space_v = H5Screate_simple(rank_field, max_dims_v, NULL);
+  data_space_diss = H5Screate_simple(rank_field, max_dims_eta, NULL);
 
   data_set_eta = H5Dcreate(file, "displacement", H5T_NATIVE_FLOAT, data_space_eta, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   data_set_u = H5Dcreate(file, "east velocity", H5T_NATIVE_FLOAT, data_space_u, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   data_set_v = H5Dcreate(file, "north velocity", H5T_NATIVE_FLOAT, data_space_v, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-
-  dims_eta[0] = 1;
-  dims_u[0] = 1;
-  dims_v[0] = 1;
+  data_set_diss = H5Dcreate(file, "north velocity", H5T_NATIVE_FLOAT, data_space_diss, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
   mem_space_eta = H5Screate_simple(rank_field, dims_eta, NULL);
   mem_space_u = H5Screate_simple(rank_field, dims_u, NULL);
   mem_space_v = H5Screate_simple(rank_field, dims_v, NULL);
+  mem_space_diss = H5Screate_simple(rank_field, dims_eta, NULL);
 
   start[0] = 0;
   start[1] = 0;
@@ -1231,14 +1231,22 @@ void Solver::DumpFields(int output_num) {
       eta_1D[i*etaLonLen + j] = (float)etaNewArray[i][j];
     }
   }
+
   for (int i=0; i<uLatLen;i++) {
     for (int j=0; j<uLonLen; j++) {
       u_1D[i*uLonLen + j] = (float)uNewArray[i][j];
     }
   }
+
   for (int i=0; i<vLatLen;i++) {
     for (int j=0; j<vLonLen; j++) {
       v_1D[i*vLonLen + j] = (float)vNewArray[i][j];
+    }
+  }
+
+  for (int i=0; i<etaLatLen;i++) {
+    for (int j=0; j<etaLonLen; j++) {
+      diss_1D[i*etaLonLen + j] = (float)energy->solution[i][j]*2.0*factor;
     }
   }
 
@@ -1279,6 +1287,16 @@ void Solver::DumpFields(int output_num) {
   H5Dwrite(data_set_u, H5T_NATIVE_FLOAT, mem_space_u, data_space_u, H5P_DEFAULT, u_1D);
 
 
+  // ----------------------- Write north velocity field ------------------------
+
+  count[1] = eta_rows;
+  count[2] = eta_cols;
+
+  H5Sselect_hyperslab(data_space_diss, H5S_SELECT_SET, start, NULL, count, NULL);
+
+  H5Dwrite(data_set_diss, H5T_NATIVE_FLOAT, mem_space_diss, data_space_diss, H5P_DEFAULT, diss_1D);
+
+
   for (int i = 0; i < etaNew->ReturnFieldLatLen(); i++) {
     for (int j = 0; j < etaNew->ReturnFieldLonLen(); j++) {
       dissFile << energy->solution[i][j]*2.0*factor << '\t';
@@ -1290,7 +1308,7 @@ void Solver::DumpFields(int output_num) {
     // uFile << std::endl;
     // etaFile << std::endl;
   }
-  // 
+  //
   // for (int i = 0; i < vLatLen; i++) {
   //   for (int j = 0; j < vLonLen; j++) {
   //     vFile << vOldArray[i][j] << '\t';

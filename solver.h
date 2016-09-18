@@ -178,6 +178,7 @@ public:
   float * eta_1D;
   float * u_1D;
   float * v_1D;
+  float * diss_1D;
 
   hsize_t eta_rows;
   hsize_t eta_cols;
@@ -193,14 +194,17 @@ public:
   hid_t data_space_eta;
   hid_t data_space_u;
   hid_t data_space_v;
+  hid_t data_space_diss;
 
   hid_t mem_space_eta;
   hid_t mem_space_u;
   hid_t mem_space_v;
+  hid_t mem_space_diss;
 
   hid_t data_set_eta;
   hid_t data_set_u;
   hid_t data_set_v;
+  hid_t data_set_diss;
 
   char * dataFilePath;
 
