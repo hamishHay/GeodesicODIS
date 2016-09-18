@@ -145,7 +145,7 @@ public:
 
   const hsize_t rank_field;
 
-  const char dataFilePath[];
+
 
   hsize_t start[];
   hsize_t count[];
@@ -199,6 +199,8 @@ public:
 
 	void DumpSolutions(int output_num, double time);
 	void DumpFields(int output_num);
+
+  const char dataFilePath[];
 };
 
 #endif
