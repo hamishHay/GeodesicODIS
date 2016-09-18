@@ -19,6 +19,6 @@ latitude spacing; 	 	 	 4; 	 	 	 lat;
 longitude spacing; 	 	 	 6; 	 	 	 lon;
 initial conditions; 	 	 	 true; 	 	 	 init;
 converge; 	 	 	 1e-14; 	 	 	 convergence criteria;
-output time;     0.5;              outputTime;
+output time;     0.05;              outputTime;
 kinetic output;         true;           kinetic;
 dissipation output;             true;          diss;
