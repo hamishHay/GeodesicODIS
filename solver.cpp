@@ -1162,6 +1162,7 @@ void Solver::DumpFields(int output_num) {
 
   std::cout<<"Outputing solvable fields "<<output_num<<std::endl;
 
+
   // for (int i = 0; i < depth->ReturnFieldLatLen(); i++) {
   //   for (int j = 0; j < depth->ReturnFieldLonLen(); j++) {
   //     // uFile << uNewArray[i][j] << '\t';
