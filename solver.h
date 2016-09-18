@@ -188,7 +188,7 @@ public:
   hsize_t v_cols;
 
   hsize_t rank_field;
-  hsize_t rank_avg;
+  hsize_t rank_1D;
 
   hid_t file;
 

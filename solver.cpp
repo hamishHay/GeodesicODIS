@@ -214,7 +214,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   dims_v[2] = v_cols;
 
   dims_1D_avg = new hsize_t[1];
-  dims_1D_avg = 1;
+  dims_1D_avg[0] = 1;
 
   max_dims_eta = new hsize_t[3];
   max_dims_eta[0] = time_slices;
