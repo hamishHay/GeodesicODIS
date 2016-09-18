@@ -190,6 +190,8 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   start = new hsize_t[3];
   count = new hsize_t[3];
 
+  std::cout << "Help" << std::endl;
+
   start_1D = new hsize_t[1];
   count_1D = new hsize_t[1];
 
@@ -262,6 +264,8 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 
   start_1D[0] = 0;
   count_1D[0] = 1;
+
+  std::cout << "Help again" << std::endl;
 
 };
 
