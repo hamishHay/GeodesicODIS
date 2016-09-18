@@ -191,7 +191,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 
   rank_field = 3;
 
-  char dataFile[] = "DATA" + SEP + "data.h5";
+  char dataFile[] = "DATA/data.h5";
 
   start = new hsize_t[3];
   count = new hsize_t[3];
