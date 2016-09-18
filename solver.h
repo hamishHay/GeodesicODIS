@@ -132,6 +132,11 @@ public:
 
   //------------------------Objects for HDF5 Storage----------------------------
 
+  float * eta1D;
+  const hsize_t nrows;
+  
+
+
   //
   // const H5std_string FILE_NAME("data.h5"); // File name for all solvable variables
   //
