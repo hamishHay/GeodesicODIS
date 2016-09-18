@@ -1297,15 +1297,9 @@ void Solver::DumpFields(int output_num) {
 
   // H5Dset_extent(data_space_eta, dims_eta)
 
-  data_space_eta = H5Dget_space(data_set_eta);
-
   H5Sselect_hyperslab(data_space_eta, H5S_SELECT_SET, start, NULL, count, NULL);
 
-  // H5Sselect_hyperslab(mem_space_eta, H5S_SELECT_SET, start, NULL, count, NULL);
-
   H5Dwrite(data_set_eta, H5T_NATIVE_FLOAT, mem_space_eta, data_space_eta, H5P_DEFAULT, eta_1D);
-
-  // H5Dwrite(data_set_eta, H5T_NATIVE_FLOAT, mem_space_eta, data_space_eta, H5P_DEFAULT, eta_1D);
 
 
   //
