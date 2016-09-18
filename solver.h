@@ -186,23 +186,36 @@ public:
   hsize_t v_rows;
   hsize_t v_cols;
 
-  const hsize_t rank_field;
-
+  hsize_t rank_field;
 
   hid_t file;
 
+  hid_t data_space_eta;
+  hid_t data_space_u;
+  hid_t data_space_v;
 
-  hid_t data_space;
-  hid_t mem_space;
-  hid_t data_set;
+  hid_t mem_space_eta;
+  hid_t mem_space_u;
+  hid_t mem_space_v;
 
-  const char * dataFilePath;
+  hid_t data_set_eta;
+  hid_t data_set_u;
+  hid_t data_set_v;
 
-  hsize_t * dims;
-  hsize_t * max_dims;
+  char * dataFilePath;
+
+  hsize_t * dims_eta;
+  hsize_t * dims_u;
+  hsize_t * dims_v;
+
+  hsize_t * max_dims_eta;
+  hsize_t * max_dims_u;
+  hsize_t * max_dims_v;
 
   hsize_t * start;
   hsize_t * count;
+
+  hsize_t time_slices;
 };
 
 #endif

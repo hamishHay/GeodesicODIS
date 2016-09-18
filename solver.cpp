@@ -120,20 +120,6 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
     SH_sin_coeff[i] = new double[l_max+1];
   }
 
-  // etaNewArray = (double **) malloc(Eta->ReturnFieldLatLen()*sizeof(double*));
-  // etaNewArray[0] = (double *) malloc(Eta->ReturnFieldLonLen()*sizeof(double));
-  // for (int i=1; i<Eta->ReturnFieldLatLen(); i++) etaNewArray[i] = etaNewArray[0]+i*Eta->ReturnFieldLonLen();
-
-
-
-  // for(int j= 0; j < Eta->fieldLatLen; j++) {
-  //   for(int k= 0; k < Eta->fieldLonLen; k++) {
-  //   std::cout << j << " " << k << " " << &etaNewArray[j][k] << std::endl;
-  //   }
-  // }
-
-
-
   uLatLen = u->fieldLatLen;
   uLonLen = u->fieldLonLen;
   udLon = u->dLon;
@@ -150,17 +136,6 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   etadLat = eta->dLat;
 
   dt = consts->timeStep.Value();
-
-  // int count = 1;
-  // for (int i = 0; i < etaLatLen; i++) {
-  //   for (int j = 0; j < etaLonLen; j++) {
-  //     etaNewArray[i][j] = 5.0;
-  //     std::cout << etaNewArray[i][j]<< std::endl;\
-  //     count++;
-  //   }
-  // }
-
-  // std::cout << "HI " <<count <<'\t'<<etaLatLen*etaLonLen<< std::endl;
 
 
   cosMinusB = new double[dUlat->fieldLonLen];
@@ -179,6 +154,84 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
     Out->Write(ERR_MESSAGE, &outstring);
     Out->TerminateODIS();
   }
+
+
+  eta_1D = new float[etaLatLen*etaLonLen];
+  v_1D = new float[vLatLen*vLonLen];
+  u_1D = new float[uLatLen*uLonLen];
+
+  eta_rows = etaLatLen;
+  eta_cols = etaLonLen;
+  v_rows = vLatLen;
+  v_cols = vLonLen;
+  u_rows = uLatLen;
+  u_cols = uLonLen;
+
+  time_slices = consts->endTime.Value()/consts->outputTime.Value();
+
+  rank_field = 3;
+
+  saveFilePath = new char[sizeof("data.h5")];
+  saveFilePath[0] = "data.h5";
+
+  start = new hsize_t[3];
+  count = new hsize_t[3];
+
+  // Create HDF5 file
+  file = H5Fcreate(saveFilePath, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+
+
+
+  dims_eta = new hsize_t[3];
+  dims_eta[0] = time_slices;
+  dims_eta[1] = eta_rows;
+  dims_eta[2] = eta_cols;
+
+  dims_u = new hsize_t[3];
+  dims_u[0] = time_slices;
+  dims_u[1] = u_rows;
+  dims_u[2] = u_cols;
+
+  dims_v = new hsize_t[3];
+  dims_v[0] = time_slices;
+  dims_v[1] = v_rows;
+  dims_v[2] = v_cols;
+
+  max_dims_eta = new hsize_t[3];
+  max_dims_eta[0] = time_slices;
+  max_dims_eta[1] = eta_rows;
+  max_dims_eta[2] = eta_cols;
+
+  max_dims_u = new hsize_t[3];
+  max_dims_u[0] = time_slices;
+  max_dims_u[1] = u_rows;
+  max_dims_u[2] = u_cols;
+
+  max_dims_v = new hsize_t[3];
+  max_dims_v[0] = time_slices;
+  max_dims_v[1] = v_rows;
+  max_dims_v[2] = v_cols;
+
+  data_space_eta = H5Screate_simple(rank, dims, NULL); // 3D data space
+  data_space_u = H5Screate_simple(rank, dims, NULL);
+  data_space_v = H5Screate_simple(rank, dims, NULL);
+
+  data_set_eta = H5Dcreate(file, "displacement", H5T_NATIVE_FLOAT, data_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  data_set_u = H5Dcreate(file, "east velocity", H5T_NATIVE_FLOAT, data_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  data_set_v = H5Dcreate(file, "north velocity", H5T_NATIVE_FLOAT, data_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+  mem_space_eta = H5Screate_simple(rank, dims_eta, NULL);
+  mem_space_u = H5Screate_simple(rank, dims_u, NULL);
+  mem_space_v = H5Screate_simple(rank, dims_v, NULL);
+
+  start[0] = 0;
+  start[1] = 0;
+  start[2] = 0;
+
+  count[0] = 1;
+  count[1] = nrows;
+  count[2] = ncols;
+
 };
 
 int Solver::InitialConditions(void) {
@@ -1194,97 +1247,55 @@ void Solver::DumpFields(int output_num) {
       break;
   }
 
-  // const H5std_string FILE_NAME("data.h5");
-  // const H5std_string DATASET_NAME("eta");
-  //
+
   float * eta1D = new float[etaLatLen*etaLonLen];
   for (int i=0; i<etaLatLen;i++) {
     for (int j=0; j<etaLonLen; j++) {
       eta1D[i*etaLonLen + j] = (float)etaNewArray[i][j];
     }
   }
+
+
+  // const hsize_t nrows = etaLatLen;
+  // const hsize_t ncols = etaLonLen;
+  // const hsize_t rank = 3;
+  // const char saveFilePath[] = "data.h5";
+  // herr_t ret;
+  // hsize_t start[3];
+  // hsize_t count[3];
   //
-  // H5File file( FILE_NAME, H5F_ACC_TRUNC);
-  // hsize_t dimsf_eta[3] = {2, etaLatLen, etaLonLen};
-  // DataSpace dataspace_eta(3, dimsf_eta);
-  // // DoubleType datatype(PredType::NATIVE_DOUBLE);
-  // // datatype.setOrder(H5T_ORDER_LE);
+  // // Create HDF5 file
+  // hid_t file = H5Fcreate(saveFilePath, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
   //
-  // DataSet dataset_eta = file.createDataSet(DATASET_NAME,  PredType::NATIVE_FLOAT, dataspace_eta);
-  // dataset_eta.write(eta1D, PredType::NATIVE_FLOAT);
+  // hsize_t dims[rank] = {2, nrows, ncols};
+  // hsize_t max_dims[rank] = {2, nrows, ncols};
+  // hid_t data_space = H5Screate_simple(rank, dims, NULL); // 3D data space
   //
-  // hsize_t start[3] = {1, 0, 0};
-  // hsize_t count[3] = {1, 1, 5};
+  // hid_t dataset = H5Dcreate(file, "test1", H5T_NATIVE_FLOAT, data_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   //
-  // H5Sselect_hyperslab(dataset_eta, H5S_SELECT_SET, start, NULL, count, NULL);
+  // start[0] = 1;
+  // start[1] = 0;
+  // start[2] = 0;
   //
-  // dataset_eta.write(eta1D, PredType::NATIVE_FLOAT);
+  // count[0] = 1;
+  // count[1] = nrows;
+  // count[2] = ncols;
   //
-  // delete[] eta1D;
-
-  //----------------------------------------------
-
-  // float * v1D = new float[vLatLen*vLonLen];
-  // for (int i=0; i<vLatLen;i++) {
-  //   for (int j=0; j<vLonLen; j++) {
-  //     v1D[i*vLonLen + j] = (float)vNewArray[i][j];
-  //   }
-  // }
+  // dims[0] = 1;
+  // dims[1] = nrows;
+  // dims[2] = ncols;
   //
-  // const H5std_string DATASET_NAME2("v");
+  // hid_t mem_space = H5Screate_simple(rank, dims, NULL);
   //
-  // // H5File file( FILE_NAME, H5F_ACC_TRUNC);
-  // hsize_t dimsf_v[2] = {vLatLen, vLonLen};
-  // DataSpace dataspace_v(2, dimsf_v);
-  // // DoubleType datatype(PredType::NATIVE_FLOAT);
-  // // datatype.setOrder(H5T_ORDER_LE);
+  // ret = H5Sselect_hyperslab(data_space, H5S_SELECT_SET, start, NULL, count, NULL);
   //
-  // DataSet dataset_v = file.createDataSet(DATASET_NAME2,  PredType::NATIVE_FLOAT, dataspace_v);
-  // dataset_v.write(v1D, PredType::NATIVE_FLOAT);
+  // ret = H5Dwrite(dataset, H5T_NATIVE_FLOAT, mem_space, data_space, H5P_DEFAULT, eta1D);
   //
-  // delete[] v1D;
-
-
-  const hsize_t nrows = etaLatLen;
-  const hsize_t ncols = etaLonLen;
-  const hsize_t rank = 3;
-  const char saveFilePath[] = "data.h5";
-  herr_t ret;
-  hsize_t start[3];
-  hsize_t count[3];
-
-  // Create HDF5 file
-  hid_t file = H5Fcreate(saveFilePath, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-
-  hsize_t dims[rank] = {2, nrows, ncols};
-  hsize_t max_dims[rank] = {2, nrows, ncols};
-  hid_t data_space = H5Screate_simple(rank, dims, NULL); // 3D data space
-
-  hid_t dataset = H5Dcreate(file, "test1", H5T_NATIVE_FLOAT, data_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-
-  start[0] = 1;
-  start[1] = 0;
-  start[2] = 0;
-
-  count[0] = 1;
-  count[1] = nrows;
-  count[2] = ncols;
-
-  dims[0] = 1;
-  dims[1] = nrows;
-  dims[2] = ncols;
-
-  hid_t mem_space = H5Screate_simple(rank, dims, NULL);
-
-  ret = H5Sselect_hyperslab(data_space, H5S_SELECT_SET, start, NULL, count, NULL);
-
-  ret = H5Dwrite(dataset, H5T_NATIVE_FLOAT, mem_space, data_space, H5P_DEFAULT, eta1D);
-
-  start[0] = 0;
-
-  H5Sselect_hyperslab(data_space, H5S_SELECT_SET, start, NULL, count, NULL);
-
-  ret = H5Dwrite(dataset, H5T_NATIVE_FLOAT, mem_space, data_space, H5P_DEFAULT, eta1D);
+  // start[0] = 0;
+  //
+  // H5Sselect_hyperslab(data_space, H5S_SELECT_SET, start, NULL, count, NULL);
+  //
+  // ret = H5Dwrite(dataset, H5T_NATIVE_FLOAT, mem_space, data_space, H5P_DEFAULT, eta1D);
 
 
 
