@@ -143,7 +143,7 @@ public:
   hsize_t v_rows;
   hsize_t v_cols;
 
-  hsize_t rank_field = 3;
+  const hsize_t rank_field = 3;
 
   const char dataFilePath[] = "data.h5";
 
