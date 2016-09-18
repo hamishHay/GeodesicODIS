@@ -1285,21 +1285,42 @@ void Solver::DumpFields(int output_num) {
   //
   // hid_t dataset = H5Dcreate(file, "test1", H5T_NATIVE_FLOAT, data_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
-  // Write Displacement Field
-
   start[0] = output_num-1;
   start[1] = 0;
   start[2] = 0;
 
   count[0] = 1;
+
+
+  // ----------------------- Write displacement field --------------------------
+
   count[1] = eta_rows;
   count[2] = eta_cols;
-
-  // H5Dset_extent(data_space_eta, dims_eta)
 
   H5Sselect_hyperslab(data_space_eta, H5S_SELECT_SET, start, NULL, count, NULL);
 
   H5Dwrite(data_set_eta, H5T_NATIVE_FLOAT, mem_space_eta, data_space_eta, H5P_DEFAULT, eta_1D);
+
+
+  // ----------------------- Write north velocity field ------------------------
+
+  count[1] = v_rows;
+  count[2] = v_cols;
+
+  H5Sselect_hyperslab(data_space_v, H5S_SELECT_SET, start, NULL, count, NULL);
+
+  H5Dwrite(data_set_v, H5T_NATIVE_FLOAT, mem_space_v, data_space_v, H5P_DEFAULT, v_1D);
+
+
+  // ----------------------- Write north velocity field ------------------------
+
+  count[1] = u_rows;
+  count[2] = u_cols;
+
+  H5Sselect_hyperslab(data_space_u, H5S_SELECT_SET, start, NULL, count, NULL);
+
+  H5Dwrite(data_set_u, H5T_NATIVE_FLOAT, mem_space_u, data_space_u, H5P_DEFAULT, u_1D);
+
 
 
   //
