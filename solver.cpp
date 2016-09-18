@@ -1117,53 +1117,53 @@ void Solver::DumpSolutions(int out_num, double time) {
     for (int i = 0; i < v->ReturnFieldLatLen(); i++) vLat << v->lat[i] * 1 / radConv << '\t';
   }
   else if (out_num == -2) {
-    FILE * dissFile;
-    if (consts->kinetic.Value())
-    {
-      dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "kinetic_energy.txt")[0], "a+");
-      fprintf(dissFile, "%.30f \n", energy->dtKinEAvg[energy->timePos-1]);
-      fclose(dissFile);
-
-      dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "kinetic_energy_orb_avg.txt")[0], "a+");
-      fprintf(dissFile, "%.30f \n", energy->orbitKinEAvg);
-      fclose(dissFile);
-    }
-    if (consts->diss.Value()) {
-      dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "diss_energy.txt")[0], "a+");
-      fprintf(dissFile, "%.30f \t %.10f \n", energy->dtDissEAvg[energy->timePos-1], time);
-      fclose(dissFile);
-
-      dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "diss_energy_orb_avg.txt")[0], "a+");
-      fprintf(dissFile, "%.30f \n", energy->orbitDissEAvg[0]);
-      fclose(dissFile);
-    }
+    // FILE * dissFile;
+    // if (consts->kinetic.Value())
+    // {
+    //   dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "kinetic_energy.txt")[0], "a+");
+    //   fprintf(dissFile, "%.30f \n", energy->dtKinEAvg[energy->timePos-1]);
+    //   fclose(dissFile);
+    //
+    //   dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "kinetic_energy_orb_avg.txt")[0], "a+");
+    //   fprintf(dissFile, "%.30f \n", energy->orbitKinEAvg);
+    //   fclose(dissFile);
+    // }
+    // if (consts->diss.Value()) {
+    //   dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "diss_energy.txt")[0], "a+");
+    //   fprintf(dissFile, "%.30f \t %.10f \n", energy->dtDissEAvg[energy->timePos-1], time);
+    //   fclose(dissFile);
+    //
+    //   dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "diss_energy_orb_avg.txt")[0], "a+");
+    //   fprintf(dissFile, "%.30f \n", energy->orbitDissEAvg[0]);
+    //   fclose(dissFile);
+    // }
   }
   else {
     //fopen for linux
     //fopen_s for windows
-    FILE * dissFile;
-    if (consts->kinetic.Value())
-    {
-      dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "kinetic_energy.txt")[0], "a+");
-      fprintf(dissFile, "%.30f \n", energy->dtKinEAvg[energy->timePos-1]);
-      fclose(dissFile);
-    }
-    if (consts->diss.Value())
-    {
-      dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "diss_energy.txt")[0], "a+");
-      fprintf(dissFile, "%.30f \t %.10f \n", energy->dtDissEAvg[energy->timePos-1], time);
-      fclose(dissFile);
-    }
-    if (consts->work.Value())
-    {
-      dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "energy.txt")[0], "a+");
-      // fprintf(dissFile, "%.15f \n", energy->orbitDissEAvg[1]);
-      fprintf(dissFile, "%.30f \n", energy->orbitKinEAvg);
-      // fprintf(dissFile, "%.15f \n", energy->dtKinEAvg[energy->timePos-1]);
-      // fprintf(dissFile, "%.15f \n", energy->dtDissEAvg[energy->timePos-1]);
-      // fprintf(dissFile, "%.15f \n", energy->dissipation[energy->dissipation.size()-1]);
-      fclose(dissFile);
-    }
+    // FILE * dissFile;
+    // if (consts->kinetic.Value())
+    // {
+    //   dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "kinetic_energy.txt")[0], "a+");
+    //   fprintf(dissFile, "%.30f \n", energy->dtKinEAvg[energy->timePos-1]);
+    //   fclose(dissFile);
+    // }
+    // if (consts->diss.Value())
+    // {
+    //   dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "diss_energy.txt")[0], "a+");
+    //   fprintf(dissFile, "%.30f \t %.10f \n", energy->dtDissEAvg[energy->timePos-1], time);
+    //   fclose(dissFile);
+    // }
+    // if (consts->work.Value())
+    // {
+    //   dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "energy.txt")[0], "a+");
+    //   // fprintf(dissFile, "%.15f \n", energy->orbitDissEAvg[1]);
+    //   fprintf(dissFile, "%.30f \n", energy->orbitKinEAvg);
+    //   // fprintf(dissFile, "%.15f \n", energy->dtKinEAvg[energy->timePos-1]);
+    //   // fprintf(dissFile, "%.15f \n", energy->dtDissEAvg[energy->timePos-1]);
+    //   // fprintf(dissFile, "%.15f \n", energy->dissipation[energy->dissipation.size()-1]);
+    //   fclose(dissFile);
+    // }
 
     if (energy->converged) DumpFields(out_num);
     // else if (out_num % 5 == 0) DumpFields(out_num); //dump every 5 orbits
@@ -1224,7 +1224,7 @@ void Solver::CopyInitialConditions(std::ifstream & file, Field * inField) {
 void Solver::DumpFields(int output_num) {
   std::string out = std::to_string(output_num);
 
-  std::ofstream dissFile(consts->path + SEP + "Energy" + SEP + "diss_" + out + ".txt", std::ofstream::out);
+  // std::ofstream dissFile(consts->path + SEP + "Energy" + SEP + "diss_" + out + ".txt", std::ofstream::out);
   std::ofstream aFile(consts->path + SEP + "Displacement" + SEP + "a_" + out + ".txt", std::ofstream::out);
   std::ofstream bFile(consts->path + SEP + "Displacement" + SEP + "b_" + out + ".txt", std::ofstream::out);
 
@@ -1335,17 +1335,17 @@ void Solver::DumpFields(int output_num) {
 
 
 
-  for (int i = 0; i < etaNew->ReturnFieldLatLen(); i++) {
-    for (int j = 0; j < etaNew->ReturnFieldLonLen(); j++) {
-      dissFile << energy->solution[i][j]*2.0*factor << '\t';
-      // uFile << uNewArray[i][j] << '\t';
-      // etaFile << etaNewArray[i][j] << '\t';
-                        //etaFile << energy->mass->solution[i][j] << '\t';
-    }
-    dissFile << std::endl;
-    // uFile << std::endl;
-    // etaFile << std::endl;
-  }
+  // for (int i = 0; i < etaNew->ReturnFieldLatLen(); i++) {
+  //   for (int j = 0; j < etaNew->ReturnFieldLonLen(); j++) {
+  //     dissFile << energy->solution[i][j]*2.0*factor << '\t';
+  //     // uFile << uNewArray[i][j] << '\t';
+  //     // etaFile << etaNewArray[i][j] << '\t';
+  //                       //etaFile << energy->mass->solution[i][j] << '\t';
+  //   }
+  //   dissFile << std::endl;
+  //   // uFile << std::endl;
+  //   // etaFile << std::endl;
+  // }
   //
   // for (int i = 0; i < vLatLen; i++) {
   //   for (int j = 0; j < vLonLen; j++) {
