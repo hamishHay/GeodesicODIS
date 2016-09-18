@@ -1287,8 +1287,7 @@ void Solver::DumpFields(int output_num) {
 
   // Write Displacement Field
 
-  std::cout << output_num - 1 << std::endl;
-  start[0] = 0;
+  start[0] = out_num-1;
   start[1] = 0;
   start[2] = 0;
 
@@ -1336,7 +1335,7 @@ void Solver::DumpFields(int output_num) {
 
 
 
-  Out->TerminateODIS();
+  // Out->TerminateODIS();
 
   for (int i = 0; i < etaNew->ReturnFieldLatLen(); i++) {
     for (int j = 0; j < etaNew->ReturnFieldLonLen(); j++) {
