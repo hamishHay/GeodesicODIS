@@ -1302,12 +1302,7 @@ void Solver::DumpFields(int output_num) {
 
   H5Sselect_hyperslab(data_space_eta, H5S_SELECT_SET, start, NULL, count, NULL);
 
-  hsize_t dimm[3] = {1, eta_rows, eta_cols};
-
-  hid_t mid = H5Screate_simple(rank_field, dimm, NULL);
-
-  H5Sselect_hyperslab(mem_space_eta, H5S_SELECT_SET, start, NULL, count, NULL);
-
+  // H5Sselect_hyperslab(mem_space_eta, H5S_SELECT_SET, start, NULL, count, NULL);
 
   H5Dwrite(data_set_eta, H5T_NATIVE_FLOAT, mem_space_eta, data_space_eta, H5P_DEFAULT, eta_1D);
 
