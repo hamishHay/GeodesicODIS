@@ -196,17 +196,17 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   // time_slices = 1;
 
   dims_eta = new hsize_t[3];
-  dims_eta[0] = time_slices;
+  dims_eta[0] = 1;
   dims_eta[1] = eta_rows;
   dims_eta[2] = eta_cols;
 
   dims_u = new hsize_t[3];
-  dims_u[0] = time_slices;
+  dims_u[0] = 1;
   dims_u[1] = u_rows;
   dims_u[2] = u_cols;
 
   dims_v = new hsize_t[3];
-  dims_v[0] = time_slices;
+  dims_v[0] = 1;
   dims_v[1] = v_rows;
   dims_v[2] = v_cols;
 
@@ -225,9 +225,9 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   max_dims_v[1] = v_rows;
   max_dims_v[2] = v_cols;
 
-  data_space_eta = H5Screate_simple(rank_field, dims_eta, NULL); // 3D data space
-  data_space_u = H5Screate_simple(rank_field, dims_u, NULL);
-  data_space_v = H5Screate_simple(rank_field, dims_v, NULL);
+  data_space_eta = H5Screate_simple(rank_field, max_dims_eta, NULL); // 3D data space
+  data_space_u = H5Screate_simple(rank_field, max_dims_u, NULL);
+  data_space_v = H5Screate_simple(rank_field, max_dims_v, NULL);
 
   data_set_eta = H5Dcreate(file, "displacement", H5T_NATIVE_FLOAT, data_space_eta, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   data_set_u = H5Dcreate(file, "east velocity", H5T_NATIVE_FLOAT, data_space_u, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
