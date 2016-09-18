@@ -212,9 +212,9 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   max_dims_v[1] = v_rows;
   max_dims_v[2] = v_cols;
 
-  data_space_eta = H5Screate_simple(rank, dims, NULL); // 3D data space
-  data_space_u = H5Screate_simple(rank, dims, NULL);
-  data_space_v = H5Screate_simple(rank, dims, NULL);
+  data_space_eta = H5Screate_simple(rank, dims_eta, NULL); // 3D data space
+  data_space_u = H5Screate_simple(rank, dims_u, NULL);
+  data_space_v = H5Screate_simple(rank, dims_v, NULL);
 
   data_set_eta = H5Dcreate(file, "displacement", H5T_NATIVE_FLOAT, data_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   data_set_u = H5Dcreate(file, "east velocity", H5T_NATIVE_FLOAT, data_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
@@ -229,8 +229,8 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   start[2] = 0;
 
   count[0] = 1;
-  count[1] = nrows;
-  count[2] = ncols;
+  count[1] = eta_rows;
+  count[2] = eta_cols;
 
 };
 
