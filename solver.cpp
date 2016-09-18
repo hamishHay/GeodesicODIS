@@ -1314,9 +1314,12 @@ void Solver::DumpFields(int output_num) {
   // ----------------------- Write north velocity field ------------------------
 
   if (output_num > 2) {
+    std::cout << output_num << std::endl;
 
     float * diss_avg_1D = new float[1];
     diss_avg_1D[0] = energy->dtDissEAvg[energy->timePos-1];
+
+    std::cout << "created 1D array" << std::endl;
 
     start_1D[0] = output_num - 1;
 
