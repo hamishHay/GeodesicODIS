@@ -1313,11 +1313,14 @@ void Solver::DumpFields(int output_num) {
 
   // ----------------------- Write north velocity field ------------------------
 
+  float * diss_avg_1D = new float[1];
+  diss_avg_1D[0] = energy->dtDissEAvg[energy->timePos-1];
+
   if (output_num > 1) {
 
     H5Sselect_hyperslab(data_space_1D_avg, H5S_SELECT_SET, start, NULL, count_1D, NULL);
 
-    H5Dwrite(data_set_1D_avg, H5T_NATIVE_FLOAT, mem_space_1D_avg, data_space_1D_avg, H5P_DEFAULT, energy->dtDissEAvg[energy->timePos-1]);
+    H5Dwrite(data_set_1D_avg, H5T_NATIVE_FLOAT, mem_space_1D_avg, data_space_1D_avg, H5P_DEFAULT, diss_avg_1D);
 
   }
 
