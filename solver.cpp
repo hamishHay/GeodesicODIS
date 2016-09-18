@@ -180,8 +180,6 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   // Create HDF5 file
   file = H5Fcreate(dataFilePath, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
-
-
   dims_eta = new hsize_t[3];
   dims_eta[0] = time_slices;
   dims_eta[1] = eta_rows;
@@ -1248,10 +1246,19 @@ void Solver::DumpFields(int output_num) {
   }
 
 
-  float * eta1D = new float[etaLatLen*etaLonLen];
   for (int i=0; i<etaLatLen;i++) {
     for (int j=0; j<etaLonLen; j++) {
-      eta1D[i*etaLonLen + j] = (float)etaNewArray[i][j];
+      eta_1D[i*etaLonLen + j] = (float)etaNewArray[i][j];
+    }
+  }
+  for (int i=0; i<uLatLen;i++) {
+    for (int j=0; j<uLonLen; j++) {
+      u_1D[i*uLonLen + j] = (float)uNewArray[i][j];
+    }
+  }
+  for (int i=0; i<vLatLen;i++) {
+    for (int j=0; j<vLonLen; j++) {
+      v_1D[i*vLonLen + j] = (float)vNewArray[i][j];
     }
   }
 
@@ -1272,6 +1279,22 @@ void Solver::DumpFields(int output_num) {
   // hid_t data_space = H5Screate_simple(rank, dims, NULL); // 3D data space
   //
   // hid_t dataset = H5Dcreate(file, "test1", H5T_NATIVE_FLOAT, data_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+  // Write Displacement Field
+
+  start[0] = 0;
+  start[1] = 0;
+  start[2] = 0;
+
+  count[0] = 1;
+  count[1] = eta_rows;
+  count[2] = eta_cols;
+
+  H5Sselect_hyperslab(data_space_eta, H5S_SELECT_SET, start, NULL, count, NULL);
+
+  H5Dwrite(data_set_eta, H5T_NATIVE_FLOAT, mem_space_eta, data_space_eta, H5P_DEFAULT, eta_1D);
+
+
   //
   // start[0] = 1;
   // start[1] = 0;
