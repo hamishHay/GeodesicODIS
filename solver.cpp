@@ -1206,6 +1206,7 @@ void Solver::CopyInitialConditions(std::ifstream & file, Field * inField) {
 void Solver::DumpFields(int output_num) {
   std::string out = std::to_string(output_num);
 
+  std::ofstream dissFile(consts->path + SEP + "Energy" + SEP + "diss_" + out + ".txt", std::ofstream::out);
   std::ofstream aFile(consts->path + SEP + "Displacement" + SEP + "a_" + out + ".txt", std::ofstream::out);
   std::ofstream bFile(consts->path + SEP + "Displacement" + SEP + "b_" + out + ".txt", std::ofstream::out);
 
@@ -1281,21 +1282,21 @@ void Solver::DumpFields(int output_num) {
   for (int i = 0; i < etaNew->ReturnFieldLatLen(); i++) {
     for (int j = 0; j < etaNew->ReturnFieldLonLen(); j++) {
       dissFile << energy->solution[i][j]*2.0*factor << '\t';
-      uFile << uNewArray[i][j] << '\t';
-      etaFile << etaNewArray[i][j] << '\t';
+      // uFile << uNewArray[i][j] << '\t';
+      // etaFile << etaNewArray[i][j] << '\t';
                         //etaFile << energy->mass->solution[i][j] << '\t';
     }
     dissFile << std::endl;
-    uFile << std::endl;
-    etaFile << std::endl;
+    // uFile << std::endl;
+    // etaFile << std::endl;
   }
-
-  for (int i = 0; i < vLatLen; i++) {
-    for (int j = 0; j < vLonLen; j++) {
-      vFile << vOldArray[i][j] << '\t';
-    }
-    vFile << std::endl;
-  }
+  // 
+  // for (int i = 0; i < vLatLen; i++) {
+  //   for (int j = 0; j < vLonLen; j++) {
+  //     vFile << vOldArray[i][j] << '\t';
+  //   }
+  //   vFile << std::endl;
+  // }
 
   for (int i = 0; i < l_max; i++) {
     for (int j = 0; j < l_max; j++) {
