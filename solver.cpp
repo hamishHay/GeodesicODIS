@@ -155,6 +155,26 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
     Out->TerminateODIS();
   }
 
+#if _WIN32
+    // mkdir(&(consts->path +  SEP + "EastVelocity" + SEP)[0], NULL);
+    // mkdir(&(consts->path + SEP + "NorthVelocity" + SEP)[0], NULL);
+    // mkdir(&(consts->path + SEP + "Displacement" + SEP)[0], NULL);
+    mkdir(&(consts->path + SEP + "Grid" + SEP)[0], NULL);
+    mkdir(&(consts->path + SEP + "Energy" + SEP)[0], NULL);
+
+    mkdir(&(consts->path +  SEP + "DATA" + SEP)[0], NULL);
+
+#elif __linux__
+    // mkdir(&(consts->path +  SEP + "EastVelocity" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
+    // mkdir(&(consts->path +  SEP + "NorthVelocity" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
+    // mkdir(&(consts->path +  SEP + "Displacement" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
+    mkdir(&(consts->path +  SEP + "Grid" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
+    mkdir(&(consts->path +  SEP + "Energy" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
+
+    mkdir(&(consts->path +  SEP + "DATA" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
+
+#endif
+
 
   eta_1D = new float[etaLatLen*etaLonLen];
   v_1D = new float[vLatLen*vLonLen];
@@ -171,7 +191,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 
   rank_field = 3;
 
-  char dataFile[] = "data.h5";
+  char dataFile[] = "DATA" + SEP + "data.h5";
 
   start = new hsize_t[3];
   count = new hsize_t[3];
@@ -1071,21 +1091,6 @@ void Solver::DumpSolutions(int out_num, double time) {
 
     //Only for windows
 
-#if _WIN32
-    mkdir(&(consts->path +  SEP + "EastVelocity" + SEP)[0], NULL);
-    mkdir(&(consts->path + SEP + "NorthVelocity" + SEP)[0], NULL);
-    mkdir(&(consts->path + SEP + "Displacement" + SEP)[0], NULL);
-    mkdir(&(consts->path + SEP + "Grid" + SEP)[0], NULL);
-    mkdir(&(consts->path + SEP + "Energy" + SEP)[0], NULL);
-
-#elif __linux__
-    mkdir(&(consts->path +  SEP + "EastVelocity" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
-    mkdir(&(consts->path +  SEP + "NorthVelocity" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
-    mkdir(&(consts->path +  SEP + "Displacement" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
-    mkdir(&(consts->path +  SEP + "Grid" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
-    mkdir(&(consts->path +  SEP + "Energy" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
-
-#endif
     //remove(&(consts->path + SEP + "diss.txt")[0]);
 
     std::ofstream uLat(consts->path + SEP + "Grid" + SEP + "u_lat.txt", std::ofstream::out);
@@ -1219,25 +1224,6 @@ void Solver::DumpFields(int output_num) {
   std::cout<<"Outputing solvable fields "<<output_num<<std::endl;
 
 
-  // for (int i = 0; i < depth->ReturnFieldLatLen(); i++) {
-  //   for (int j = 0; j < depth->ReturnFieldLonLen(); j++) {
-  //     // uFile << uNewArray[i][j] << '\t';
-  //     etaFile << depthArray[i][j] << '\t';
-  //     // etaFile << etaNewArray[i][j] << '\t';
-  //   }
-  //   etaFile << std::endl;
-  // }
-  //
-  // for (int i = 0; i < etaInterp->ReturnFieldLatLen(); i++) {
-  //   for (int j = 0; j < etaInterp->ReturnFieldLonLen(); j++) {
-  //     // uFile << uNewArray[i][j] << '\t';
-  //     etaFile << etaInterpArray[i][j] << '\t';
-  //     // etaFile << etaNewArray[i][j] << '\t';
-  //   }
-  //   etaFile << std::endl;
-  // }
-
-
   double factor = 0;
 
   switch (consts->fric_type) {
@@ -1266,24 +1252,6 @@ void Solver::DumpFields(int output_num) {
       v_1D[i*vLonLen + j] = (float)vNewArray[i][j];
     }
   }
-
-
-  // const hsize_t nrows = etaLatLen;
-  // const hsize_t ncols = etaLonLen;
-  // const hsize_t rank = 3;
-  // const char saveFilePath[] = "data.h5";
-  // herr_t ret;
-  // hsize_t start[3];
-  // hsize_t count[3];
-  //
-  // // Create HDF5 file
-  // hid_t file = H5Fcreate(saveFilePath, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-  //
-  // hsize_t dims[rank] = {2, nrows, ncols};
-  // hsize_t max_dims[rank] = {2, nrows, ncols};
-  // hid_t data_space = H5Screate_simple(rank, dims, NULL); // 3D data space
-  //
-  // hid_t dataset = H5Dcreate(file, "test1", H5T_NATIVE_FLOAT, data_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
   start[0] = output_num-1;
   start[1] = 0;
@@ -1321,36 +1289,6 @@ void Solver::DumpFields(int output_num) {
 
   H5Dwrite(data_set_u, H5T_NATIVE_FLOAT, mem_space_u, data_space_u, H5P_DEFAULT, u_1D);
 
-
-
-  //
-  // start[0] = 1;
-  // start[1] = 0;
-  // start[2] = 0;
-  //
-  // count[0] = 1;
-  // count[1] = nrows;
-  // count[2] = ncols;
-  //
-  // dims[0] = 1;
-  // dims[1] = nrows;
-  // dims[2] = ncols;
-  //
-  // hid_t mem_space = H5Screate_simple(rank, dims, NULL);
-  //
-  // ret = H5Sselect_hyperslab(data_space, H5S_SELECT_SET, start, NULL, count, NULL);
-  //
-  // ret = H5Dwrite(dataset, H5T_NATIVE_FLOAT, mem_space, data_space, H5P_DEFAULT, eta1D);
-  //
-  // start[0] = 0;
-  //
-  // H5Sselect_hyperslab(data_space, H5S_SELECT_SET, start, NULL, count, NULL);
-  //
-  // ret = H5Dwrite(dataset, H5T_NATIVE_FLOAT, mem_space, data_space, H5P_DEFAULT, eta1D);
-
-
-
-  // Out->TerminateODIS();
 
   for (int i = 0; i < etaNew->ReturnFieldLatLen(); i++) {
     for (int j = 0; j < etaNew->ReturnFieldLonLen(); j++) {
