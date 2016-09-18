@@ -39,6 +39,11 @@ public:
 	int output = 0;
 	double outputCount = 0.;
 
+  static hsize_t rank_field = 3;
+
+  const char dataFilePath[] = "data.h5";
+
+
 	double dt;
 
 	std::ostringstream outstring;
@@ -143,9 +148,6 @@ public:
   hsize_t v_rows;
   hsize_t v_cols;
 
-  static hsize_t rank_field = 3;
-
-  const char dataFilePath[] = "data.h5";
 
   hsize_t start[3];
   hsize_t count[3];
