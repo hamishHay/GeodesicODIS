@@ -130,34 +130,7 @@ public:
 
 	int l_max;
 
-  //------------------------Objects for HDF5 Storage----------------------------
 
-  float * eta_1D;
-  float * u_1D;
-  float * v_1D;
-
-  hsize_t eta_rows;
-  hsize_t eta_cols;
-  hsize_t u_rows;
-  hsize_t u_cols;
-  hsize_t v_rows;
-  hsize_t v_cols;
-
-  const hsize_t rank_field;
-
-
-
-  hsize_t start[];
-  hsize_t count[];
-
-  hid_t file;
-
-  hsize_t dims[];
-  hsize_t max_dims[];
-
-  hid_t data_space;
-  hid_t mem_space;
-  hid_t data_set;
 
   //
   // const H5std_string FILE_NAME("data.h5"); // File name for all solvable variables
@@ -200,7 +173,36 @@ public:
 	void DumpSolutions(int output_num, double time);
 	void DumpFields(int output_num);
 
+  //------------------------Objects for HDF5 Storage----------------------------
+
+  float * eta_1D;
+  float * u_1D;
+  float * v_1D;
+
+  hsize_t eta_rows;
+  hsize_t eta_cols;
+  hsize_t u_rows;
+  hsize_t u_cols;
+  hsize_t v_rows;
+  hsize_t v_cols;
+
+  const hsize_t rank_field;
+
+
+  hid_t file;
+
+
+  hid_t data_space;
+  hid_t mem_space;
+  hid_t data_set;
+
   const char dataFilePath[];
+
+  hsize_t dims[];
+  hsize_t max_dims[];
+  
+  hsize_t start[];
+  hsize_t count[];
 };
 
 #endif
