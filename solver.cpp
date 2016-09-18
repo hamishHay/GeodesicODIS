@@ -249,6 +249,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   count[1] = eta_rows;
   count[2] = eta_cols;
 
+  //wot
 };
 
 int Solver::InitialConditions(void) {
