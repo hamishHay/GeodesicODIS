@@ -304,7 +304,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 
   hid_t attr1_space = H5Screate_simple(rank_size, dims_coord, NULL);
 
-  hid_t attr1 = H5Acreate(data_set_eta, "shape", H5T_NATIVE_FLOAT, attr1_space, H5P_DEFAULT);
+  hid_t attr1 = H5Acreate(data_set_eta, "shape", H5T_NATIVE_FLOAT, attr1_space, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
 };
 
