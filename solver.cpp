@@ -1023,7 +1023,7 @@ void Solver::Explicit() {
     UpdateSurfaceHeight();
 
     //Call SHTOOLS to find spherical harmonic expansion of etaNew.
-    // ExtractSHCoeff();
+    ExtractSHCoeff();
 
 
 
