@@ -18,8 +18,8 @@ class ODISPlot:
         plt.rc('font',serif='Palatino')
         # for Palatino and other serif fonts use:
         # rc('font',**{'family':'serif','serif':['Palatino']})
-        #plt.rc('text', usetex=True)
-        #plt.rc('text.latex',preamble='\\usepackage{siunitx}')
+        plt.rc('text', usetex=True)
+        plt.rc('text.latex',preamble='\\usepackage{siunitx}')
 
         # Set matplotlib rc options
         plt.rcParams['axes.linewidth'] = 0.8
@@ -76,7 +76,10 @@ class ODISPlot:
 
         name = ["/EastVelocity/u_vel_"+orbitnum+".txt", "/NorthVelocity/v_vel_"+orbitnum+".txt", "/Displacement/eta_"+orbitnum+".txt", "/Energy/diss_"+orbitnum+".txt"]
 
+        in_file = h5py.File("DATA/data.h5", 'r')
+
         if field=="displacement":
+            self.data = np.array(in_file["displacement"][self.orbit][:][:])
             name = name[2]
             self.caxisLabel = "Dispclacement, $\\eta$ (m)"
         elif field=="north_vel":
@@ -92,19 +95,11 @@ class ODISPlot:
             print("Field " + field + "not recognised. Exiting.")
             sys.exit()
 
-        path = directory + name
-        self.data = []
-        if os.path.exists(path):
-            print("Retrieving data from:", path)
-            # init = open(path,'r')
-            # lines = init.readlines()
-            # init.close()
-            #
-            # for line in lines:
-            #     line = line.split('\t')
-            #     self.data.append([float(j) for j in line[:-1]])
-            # self.data = np.array(self.data)
-            self.data = np.loadtxt(path)
+        self.data_eta = np.array(in_file["displacement"][self.orbit])
+        self.data_u = np.array(in_file["east velocity"][self.orbit])
+        self.data_v = np.array(in_file["north velocity"][self.orbit])
+
+        self.data = self.data_eta
 
         self.x = np.linspace(0,360,len(self.data[0]))
         self.y = np.linspace(90,-90,len(self.data))
@@ -114,10 +109,8 @@ class ODISPlot:
     def ReadDissipationData(self,directory = os.getcwd()):
         in_file = h5py.File("DATA/data.h5", 'r')
 
+        self.diss = np.array(in_file["dissipated energy avg"])
 
-        self.diss = np.loadtxt(directory) # In Watts
-        # self.diss *= 1e3 # Convert to mWatts
-        self.resid = abs(self.diss[1:]-self.diss[:-1])*1e-3
         return self.diss
 
     def PlotField(self,data=[],cformat=2,cticks=[]):
@@ -139,9 +132,12 @@ class ODISPlot:
         self.loadFieldColourOptions(c1,ax,cticks)
 
 
-    def PlotVelocity(self,u,v,cformat=3,scale=1/0.02,cticks=[]):
+    def PlotVelocity(self,cformat=3,scale=1/0.02,cticks=[]):
         self.currentFig += 1
         self.caxisLabel = "Velocity, $\\left|\\mathbf{u}\\right|$ (\\si{\\metre\\per\\second})"
+
+        u = self.data_u
+        v = self.data_v
 
         u=u[:-1][:]
 
@@ -168,8 +164,6 @@ class ODISPlot:
         u = np.flipud(u)
         v = np.flipud(v)
 
-        # scale = 1/(0.001*np.amax(mag))
-
         ax.quiver(x,y,u,v,width=0.002,headwidth=3,scale=scale)
 
         divider = make_axes_locatable(ax)
@@ -184,43 +178,12 @@ class ODISPlot:
 
         norm = 100
 
-        orbits = np.linspace(0,len(self.diss)+1,len(extra_diss))
-        orbitst = np.linspace(0,len(self.diss),len(self.diss))
+        factor = 0.01
+
+        orbits = np.linspace(0,len(self.diss)*factor,len(self.diss))
 
         ax = self.fig.add_subplot(self.figDim[0],self.figDim[1],self.currentFig)
-        p1 = ax.plot(orbitst+0.5,self.diss,'k+',linewidth=0.8)
-        p1 = ax.plot(orbitst+0.5,self.diss,'k--',linewidth=0.8,dashes=(5,5),label='Time Averaged Dissipation')
-
-        if len(extra_diss)!=0:
-            orbits_new = np.linspace(0,len(extra_diss)-1,len(extra_diss))
-
-            plt.hold('on')
-            p3 = ax.plot(orbits,extra_diss,color='r',linewidth=0.6,label='Instantaneous Dissipation')
-
-        p1 = ax.plot(orbitst+0.5,self.diss,'k+',linewidth=0.8)
-        p1 = ax.plot(orbitst+0.5,self.diss,'k--',linewidth=0.8,dashes=(5,5),label='Time Averaged Dissipation')
-
-        # import scipy.fftpack
-        # from scipy.interpolate import UnivariateSpline
-        #
-        # w = scipy.fftpack.rfft(extra_diss)
-        # spectrum = w**2
-        #
-        # cutoff_idx = spectrum < (spectrum.max()/200)
-        # w2 = w.copy()
-        # w2[cutoff_idx] = 0
-        # # w2[0] = 0
-        # extra_diss = scipy.fftpack.irfft(w2)
-
-        # sprange = np.linspace(0,len(self.diss),len(self.diss)*100)
-        # sp = UnivariateSpline(orbits,extra_diss,s=4.5e-4)
-        # sp = UnivariateSpline(orbitst,self.diss,s=8e-8)
-
-        # plt.plot(sprange+0.5,sp(sprange))
-        # plt.show()
-        # plt.close()
-
-        # p4 = ax.plot(sprange+0.5,sp(sprange),color='b',linewidth=0.6,label='Spline Fit')
+        p1 = ax.plot(orbits,self.diss,'-',linewidth=0.8, label="Instantaneous dissipated energy")
 
         ax.set_xlim([min(orbits),max(orbits)])
 
@@ -267,7 +230,7 @@ if __name__=="__main__":
         data_v = ODIS.ReadFieldData("north_vel")
         data_u = ODIS.ReadFieldData("east_vel")
 
-        ODIS.PlotVelocity(data_u,data_v,cformat=2,scale=1/0.1,cticks=[])
+        ODIS.PlotVelocity(cformat=2,scale=1/0.1,cticks=[])
 
         ODIS.SetSuperTitle("Test")
 
@@ -281,16 +244,9 @@ if __name__=="__main__":
 
         ODIS = ODISPlot(orbitnum=0,figdim=(1,1),figsize=(10,5),saveName="Dissipation")
 
-        # n = ODIS.ReadDissipationData("/source/ODIS_dev/ODIS/Energy/kinetic_energy.txt")
-        #
-        # ODIS.ReadDissipationData("/source/ODIS_dev/ODIS/Energy/kinetic_energy_orb_avg.txt")
+        ODIS.ReadDissipationData(os.getcwd() + "/Energy/diss_energy.txt")
 
-        n = ODIS.ReadDissipationData(os.getcwd() + "/Energy/diss_energy.txt")
-
-        ODIS.ReadDissipationData(os.getcwd() + "/Energy/diss_energy_orb_avg.txt")
-
-        #plt.hold('on')
-        ODIS.PlotDissipation(extra_diss=n)
+        ODIS.PlotDissipation()
 
         ODIS.ShowFig()
 
@@ -304,7 +260,7 @@ if __name__=="__main__":
 
         ODIS = ODISPlot(orbitnum=num,figdim=(1,2),figsize=(10,3),saveName="Test")
 
-        data_v = ODIS.ReadFieldData("north_vel")
+        ODIS.ReadFieldData("north_vel")
         ODIS.PlotField(cticks = [])
         data_u = ODIS.ReadFieldData("east_vel")
         ODIS.PlotField(cticks = [])
