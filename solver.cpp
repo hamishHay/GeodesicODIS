@@ -1302,10 +1302,10 @@ void Solver::DumpFields(int output_num) {
       for (int j=0; j<l_max; j++)
       {
         if (k==0) {
-          harm_coeff_1D[i*l_max + j] = (float)SH_cos_coeff[i][j];
+          harm_coeff_1D[i*harm_cols + j] = (float)SH_cos_coeff[i][j];
           count2++;
         }
-        else harm_coeff_1D[count2 + i*l_max + j] = (float)SH_sin_coeff[i][j];
+        else harm_coeff_1D[count2 + i*harm_cols + j] = (float)SH_sin_coeff[i][j];
         // count++;
       }
     }
