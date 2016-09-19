@@ -1078,23 +1078,6 @@ void Solver::Explicit() {
       // DumpFields(orbitNumber);
       DumpFields(output);
 
-      for (int j=0; j<l_max+1; j++) {
-        for (int k=0; k<l_max+1; k++) {
-          std::cout<<"l="<<j<<", m="<<k<<":\t"<<SH_cos_coeff[j][k]<<std::endl;
-          // std::cout<<"l="<<j<<", m="<<k<<":\t"<<SH_sin_coeff[j][k]<<std::endl;
-
-        }
-      }
-
-      for (int j=0; j<l_max+1; j++) {
-        for (int k=0; k<l_max+1; k++) {
-          // std::cout<<"l="<<j<<", m="<<k<<":\t"<<SH_cos_coeff[j][k]<<std::endl;
-          std::cout<<"l="<<j<<", m="<<k<<":\t"<<SH_sin_coeff[j][k]<<std::endl;
-
-        }
-      }
-
-
       // std::cout<<"Total Mass"<<energy->mass->totalMass<<std::endl;
 
     }
