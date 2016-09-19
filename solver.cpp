@@ -1297,14 +1297,20 @@ void Solver::DumpFields(int output_num) {
     }
   }
 
+  int count = 0;
   for (int k=0; k<2; k++)
   {
     for (int i=0; i<l_max; i++)
     {
       for (int j=0; j<l_max; j++)
       {
-        if (k==0) harm_coeff_1D[i*l_max + j] = (float)SH_cos_coeff[i][j];
-        else harm_coeff_1D[l_max*l_max + i*l_max + j] = (float)SH_sin_coeff[i][j];
+        std::cout << k <<'\t' << i << '\t' << j << '\t' << std::endl;
+        if (k==0) {
+          harm_coeff_1D[i*l_max + j] = (float)SH_cos_coeff[i][j];
+          count++;
+        }
+        else harm_coeff_1D[count + i*l_max + j] = (float)SH_sin_coeff[i][j];
+        // count++;
       }
     }
   }
