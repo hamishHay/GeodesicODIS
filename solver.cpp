@@ -40,7 +40,6 @@
 
 extern"C"
 {
-    // void __modtest_MOD_test(double *, int *, double *);
     void extractshcoeff_(double *, int *, int *, double *);
 }
 
@@ -155,161 +154,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
     Out->TerminateODIS();
   }
 
-#if _WIN32
-    mkdir(&(consts->path + SEP + "Grid" + SEP)[0], NULL);
-
-    mkdir(&(consts->path +  SEP + "DATA" + SEP)[0], NULL);
-
-#elif __linux__
-    mkdir(&(consts->path +  SEP + "Grid" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
-
-    mkdir(&(consts->path +  SEP + "DATA" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
-
-#endif
-
-
-  eta_1D = new float[etaLatLen*etaLonLen];
-  v_1D = new float[vLatLen*vLonLen];
-  u_1D = new float[uLatLen*uLonLen];
-  diss_1D = new float[etaLatLen*etaLonLen];
-  diss_avg_1D = new float[1];
-  harm_coeff_1D = new float[2*(l_max+1)*(l_max+1)];
-
-  eta_rows = etaLatLen;
-  eta_cols = etaLonLen;
-  v_rows = vLatLen;
-  v_cols = vLonLen;
-  u_rows = uLatLen;
-  u_cols = uLonLen;
-  harm_rows = l_max+1;
-  harm_cols = l_max+1;
-
-  time_slices = (consts->endTime.Value()/consts->period.Value())/consts->outputTime.Value() + 1;
-
-  rank_field = 3;
-  hsize_t rank_size = 1;
-  rank_1D = 1;
-  rank_harm = 4;
-
-  char dataFile[] = "DATA/data.h5";
-
-  start = new hsize_t[3];
-  count = new hsize_t[3];
-
-  start_1D = new hsize_t[1];
-  count_1D = new hsize_t[1];
-
-  start_harm = new hsize_t[4];
-  count_harm = new hsize_t[4];
-
-  // Create HDF5 file
-  file = H5Fcreate(dataFile, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-
-
-  // time_slices = 1;
-
-  dims_eta = new hsize_t[3];
-  dims_eta[0] = 1;
-  dims_eta[1] = eta_rows;
-  dims_eta[2] = eta_cols;
-
-  dims_u = new hsize_t[3];
-  dims_u[0] = 1;
-  dims_u[1] = u_rows;
-  dims_u[2] = u_cols;
-
-  dims_v = new hsize_t[3];
-  dims_v[0] = 1;
-  dims_v[1] = v_rows;
-  dims_v[2] = v_cols;
-
-  dims_1D_avg = new hsize_t[1];
-  dims_1D_avg[0] = 1;
-
-  dims_harm_coeff = new hsize_t[4];
-  dims_harm_coeff[0] = 1;
-  dims_harm_coeff[1] = 2;
-  dims_harm_coeff[2] = harm_rows;
-  dims_harm_coeff[3] = harm_cols;
-
-  max_dims_eta = new hsize_t[3];
-  max_dims_eta[0] = time_slices;
-  max_dims_eta[1] = eta_rows;
-  max_dims_eta[2] = eta_cols;
-
-  max_dims_u = new hsize_t[3];
-  max_dims_u[0] = time_slices;
-  max_dims_u[1] = u_rows;
-  max_dims_u[2] = u_cols;
-
-  max_dims_v = new hsize_t[3];
-  max_dims_v[0] = time_slices;
-  max_dims_v[1] = v_rows;
-  max_dims_v[2] = v_cols;
-
-  max_dims_1D_avg = new hsize_t[1];
-  max_dims_1D_avg[0] = time_slices;
-
-  max_dims_harm_coeff = new hsize_t[4];
-  max_dims_harm_coeff[0] = time_slices;
-  max_dims_harm_coeff[1] = 2;
-  max_dims_harm_coeff[2] = harm_rows;
-  max_dims_harm_coeff[3] = harm_cols;
-
-  data_space_eta = H5Screate_simple(rank_field, max_dims_eta, NULL); // 3D data space
-  data_space_u = H5Screate_simple(rank_field, max_dims_u, NULL);
-  data_space_v = H5Screate_simple(rank_field, max_dims_v, NULL);
-  data_space_diss = H5Screate_simple(rank_field, max_dims_eta, NULL);
-  data_space_1D_avg = H5Screate_simple(rank_1D, max_dims_1D_avg, NULL);
-  data_space_harm_coeff = H5Screate_simple(rank_harm, max_dims_harm_coeff, NULL);
-
-  data_set_eta = H5Dcreate(file, "displacement", H5T_NATIVE_FLOAT, data_space_eta, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  data_set_u = H5Dcreate(file, "east velocity", H5T_NATIVE_FLOAT, data_space_u, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  data_set_v = H5Dcreate(file, "north velocity", H5T_NATIVE_FLOAT, data_space_v, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  data_set_diss = H5Dcreate(file, "dissipated energy", H5T_NATIVE_FLOAT, data_space_diss, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  data_set_1D_avg = H5Dcreate(file, "dissipated energy avg", H5T_NATIVE_FLOAT, data_space_1D_avg, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-  data_set_harm_coeff = H5Dcreate(file, "SH coefficients", H5T_NATIVE_FLOAT, data_space_harm_coeff, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-
-  mem_space_eta = H5Screate_simple(rank_field, dims_eta, NULL);
-  mem_space_u = H5Screate_simple(rank_field, dims_u, NULL);
-  mem_space_v = H5Screate_simple(rank_field, dims_v, NULL);
-  mem_space_diss = H5Screate_simple(rank_field, dims_eta, NULL);
-  mem_space_1D_avg = H5Screate_simple(rank_1D, dims_1D_avg, NULL);
-  mem_space_harm_coeff = H5Screate_simple(rank_harm, dims_harm_coeff, NULL);
-
-  start[0] = 0;
-  start[1] = 0;
-  start[2] = 0;
-
-  count[0] = 1;
-  count[1] = eta_rows;
-  count[2] = eta_cols;
-
-  start_1D[0] = 0;
-  count_1D[0] = 1;
-
-  start_harm[0] = 0;
-  start_harm[1] = 0;
-  start_harm[2] = 0;
-  start_harm[3] = 0;
-
-  count_harm[0] = 1;
-  count_harm[1] = 2;
-  count_harm[2] = harm_rows;
-  count_harm[3] = harm_cols;
-
-  hsize_t dims_coord[1];
-  dims_coord[0] = 2;
-
-  hid_t attr1_space = H5Screate_simple(rank_size, dims_coord, NULL);
-
-  hid_t attr1 = H5Acreate(data_set_eta, "shape", H5T_NATIVE_INT, attr1_space, H5P_DEFAULT, H5P_DEFAULT);
-
-  int eta_size[2];
-  eta_size[0] = etaLatLen;
-  eta_size[1] = etaLonLen;
-
-  H5Awrite(attr1, H5T_NATIVE_INT, eta_size);
+  CreateHDF5FrameWork();
 
 };
 
@@ -1380,3 +1225,220 @@ void Solver::DumpFields(int output_num) {
 
 
 };
+
+void Solver::CreateHDF5FrameWork(void) {
+  #if _WIN32
+      mkdir(&(consts->path + SEP + "Grid" + SEP)[0], NULL);
+
+      mkdir(&(consts->path +  SEP + "DATA" + SEP)[0], NULL);
+
+  #elif __linux__
+      mkdir(&(consts->path +  SEP + "Grid" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
+
+      mkdir(&(consts->path +  SEP + "DATA" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
+
+  #endif
+
+
+    eta_1D = new float[etaLatLen*etaLonLen];
+    v_1D = new float[vLatLen*vLonLen];
+    u_1D = new float[uLatLen*uLonLen];
+    diss_1D = new float[etaLatLen*etaLonLen];
+    diss_avg_1D = new float[1];
+    harm_coeff_1D = new float[2*(l_max+1)*(l_max+1)];
+
+    eta_rows = etaLatLen;
+    eta_cols = etaLonLen;
+    v_rows = vLatLen;
+    v_cols = vLonLen;
+    u_rows = uLatLen;
+    u_cols = uLonLen;
+    harm_rows = l_max+1;
+    harm_cols = l_max+1;
+
+    time_slices = (consts->endTime.Value()/consts->period.Value())/consts->outputTime.Value() + 2;
+
+    rank_field = 3;
+    hsize_t rank_size = 1;
+    rank_1D = 1;
+    rank_harm = 4;
+
+    char dataFile[] = "DATA/data.h5";
+
+    start = new hsize_t[3];
+    count = new hsize_t[3];
+
+    start_1D = new hsize_t[1];
+    count_1D = new hsize_t[1];
+
+    start_harm = new hsize_t[4];
+    count_harm = new hsize_t[4];
+
+    // Create HDF5 file
+    file = H5Fcreate(dataFile, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+
+    dims_eta = new hsize_t[3];
+    dims_eta[0] = 1;
+    dims_eta[1] = eta_rows;
+    dims_eta[2] = eta_cols;
+
+    dims_u = new hsize_t[3];
+    dims_u[0] = 1;
+    dims_u[1] = u_rows;
+    dims_u[2] = u_cols;
+
+    dims_v = new hsize_t[3];
+    dims_v[0] = 1;
+    dims_v[1] = v_rows;
+    dims_v[2] = v_cols;
+
+    dims_1D_avg = new hsize_t[1];
+    dims_1D_avg[0] = 1;
+
+    dims_harm_coeff = new hsize_t[4];
+    dims_harm_coeff[0] = 1;
+    dims_harm_coeff[1] = 2;
+    dims_harm_coeff[2] = harm_rows;
+    dims_harm_coeff[3] = harm_cols;
+
+    max_dims_eta = new hsize_t[3];
+    max_dims_eta[0] = time_slices;
+    max_dims_eta[1] = eta_rows;
+    max_dims_eta[2] = eta_cols;
+
+    max_dims_u = new hsize_t[3];
+    max_dims_u[0] = time_slices;
+    max_dims_u[1] = u_rows;
+    max_dims_u[2] = u_cols;
+
+    max_dims_v = new hsize_t[3];
+    max_dims_v[0] = time_slices;
+    max_dims_v[1] = v_rows;
+    max_dims_v[2] = v_cols;
+
+    max_dims_1D_avg = new hsize_t[1];
+    max_dims_1D_avg[0] = time_slices;
+
+    max_dims_harm_coeff = new hsize_t[4];
+    max_dims_harm_coeff[0] = time_slices;
+    max_dims_harm_coeff[1] = 2;
+    max_dims_harm_coeff[2] = harm_rows;
+    max_dims_harm_coeff[3] = harm_cols;
+
+    data_space_eta = H5Screate_simple(rank_field, max_dims_eta, NULL); // 3D data space
+    data_space_u = H5Screate_simple(rank_field, max_dims_u, NULL);
+    data_space_v = H5Screate_simple(rank_field, max_dims_v, NULL);
+    data_space_diss = H5Screate_simple(rank_field, max_dims_eta, NULL);
+    data_space_1D_avg = H5Screate_simple(rank_1D, max_dims_1D_avg, NULL);
+    data_space_harm_coeff = H5Screate_simple(rank_harm, max_dims_harm_coeff, NULL);
+
+    data_set_eta = H5Dcreate(file, "displacement", H5T_NATIVE_FLOAT, data_space_eta, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    data_set_u = H5Dcreate(file, "east velocity", H5T_NATIVE_FLOAT, data_space_u, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    data_set_v = H5Dcreate(file, "north velocity", H5T_NATIVE_FLOAT, data_space_v, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    data_set_diss = H5Dcreate(file, "dissipated energy", H5T_NATIVE_FLOAT, data_space_diss, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    data_set_1D_avg = H5Dcreate(file, "dissipated energy avg", H5T_NATIVE_FLOAT, data_space_1D_avg, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    data_set_harm_coeff = H5Dcreate(file, "SH coefficients", H5T_NATIVE_FLOAT, data_space_harm_coeff, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+    mem_space_eta = H5Screate_simple(rank_field, dims_eta, NULL);
+    mem_space_u = H5Screate_simple(rank_field, dims_u, NULL);
+    mem_space_v = H5Screate_simple(rank_field, dims_v, NULL);
+    mem_space_diss = H5Screate_simple(rank_field, dims_eta, NULL);
+    mem_space_1D_avg = H5Screate_simple(rank_1D, dims_1D_avg, NULL);
+    mem_space_harm_coeff = H5Screate_simple(rank_harm, dims_harm_coeff, NULL);
+
+    start[0] = 0;
+    start[1] = 0;
+    start[2] = 0;
+
+    count[0] = 1;
+    count[1] = eta_rows;
+    count[2] = eta_cols;
+
+    start_1D[0] = 0;
+    count_1D[0] = 1;
+
+    start_harm[0] = 0;
+    start_harm[1] = 0;
+    start_harm[2] = 0;
+    start_harm[3] = 0;
+
+    count_harm[0] = 1;
+    count_harm[1] = 2;
+    count_harm[2] = harm_rows;
+    count_harm[3] = harm_cols;
+
+    //-----------------------Write dataset attributes-----------------------------
+
+    hsize_t dims_coord[1];
+    dims_coord[0] = 2;
+
+    hid_t attr_space;
+    hid_t attr;
+
+    int data_set_size[2];
+    float data_set_dx[2];
+
+    attr_space = H5Screate_simple(rank_size, dims_coord, NULL);
+
+    attr = H5Acreate(data_set_eta, "nlat; nlon", H5T_NATIVE_INT, attr_space, H5P_DEFAULT, H5P_DEFAULT);
+
+    data_set_size[0] = etaLatLen;
+    data_set_size[1] = etaLonLen;
+
+    H5Awrite(attr, H5T_NATIVE_INT, data_set_size);
+
+    attr = H5Acreate(data_set_eta, "dlat; dlon", H5T_NATIVE_FLOAT, attr_space, H5P_DEFAULT, H5P_DEFAULT);
+
+    data_set_dx[0] = (float)etadLat*1.0/radConv;
+    data_set_dx[1] = (float)etadLon*1.0/radConv;
+
+    H5Awrite(attr, H5T_NATIVE_FLOAT, data_set_dx);
+
+    //---------------------------North velocity-----------------------------------
+
+    attr = H5Acreate(data_set_v, "nlat; nlon", H5T_NATIVE_INT, attr_space, H5P_DEFAULT, H5P_DEFAULT);
+
+    data_set_size[0] = vLatLen;
+    data_set_size[1] = vLonLen;
+
+    H5Awrite(attr, H5T_NATIVE_INT, data_set_size);
+
+    attr = H5Acreate(data_set_v, "dlat; dlon", H5T_NATIVE_FLOAT, attr_space, H5P_DEFAULT, H5P_DEFAULT);
+
+    data_set_dx[0] = (float)vdLat*1.0/radConv;
+    data_set_dx[1] = (float)vdLon*1.0/radConv;
+
+    H5Awrite(attr, H5T_NATIVE_FLOAT, data_set_dx);
+
+    //---------------------------East velocity------------------------------------
+
+    attr = H5Acreate(data_set_u, "nlat; nlon", H5T_NATIVE_INT, attr_space, H5P_DEFAULT, H5P_DEFAULT);
+
+    data_set_size[0] = uLatLen;
+    data_set_size[1] = uLonLen;
+
+    H5Awrite(attr, H5T_NATIVE_INT, data_set_size);
+
+    attr = H5Acreate(data_set_u, "dlat; dlon", H5T_NATIVE_FLOAT, attr_space, H5P_DEFAULT, H5P_DEFAULT);
+
+    data_set_dx[0] = (float)udLat*1.0/radConv;
+    data_set_dx[1] = (float)udLon*1.0/radConv;
+
+    H5Awrite(attr, H5T_NATIVE_FLOAT, data_set_dx);
+
+    //-------------------------Dissipated energy----------------------------------
+
+    attr = H5Acreate(data_set_diss, "nlat; nlon", H5T_NATIVE_INT, attr_space, H5P_DEFAULT, H5P_DEFAULT);
+
+    data_set_size[0] = etaLatLen;
+    data_set_size[1] = etaLonLen;
+
+    H5Awrite(attr, H5T_NATIVE_INT, data_set_size);
+
+    attr = H5Acreate(data_set_diss, "dlat; dlon", H5T_NATIVE_FLOAT, attr_space, H5P_DEFAULT, H5P_DEFAULT);
+
+    data_set_dx[0] = (float)etadLat*1.0/radConv;
+    data_set_dx[1] = (float)etadLon*1.0/radConv;
+
+    H5Awrite(attr, H5T_NATIVE_FLOAT, data_set_dx);
+}

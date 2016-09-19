@@ -173,6 +173,8 @@ public:
 	void DumpSolutions(int output_num, double time);
 	void DumpFields(int output_num);
 
+  void CreateHDF5FrameWork(void);
+
   //------------------------Objects for HDF5 Storage----------------------------
 
   float * eta_1D;
