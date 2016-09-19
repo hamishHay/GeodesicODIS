@@ -309,7 +309,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   eta_size[0] = etaLatLen;
   eta_size[1] = etaLonLen;
 
-  H5Awrite(attr1, H5T_NATIVE_INT, )
+  H5Awrite(attr1, H5T_NATIVE_INT, eta_size);
 
 };
 
