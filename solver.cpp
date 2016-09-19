@@ -295,9 +295,6 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   count_harm[1] = 2;
   count_harm[2] = harm_rows;
   count_harm[3] = harm_cols;
-
-  std::cout << "HELP" << std::endl;
-
 };
 
 int Solver::InitialConditions(void) {
@@ -1027,8 +1024,6 @@ void Solver::Explicit() {
     //Call SHTOOLS to find spherical harmonic expansion of etaNew.
     ExtractSHCoeff();
 
-    std::cout << "OKA" << std::endl;
-
     for (int i = 0; i < vLatLen; i++) {
       for (int j = 0; j < vLonLen; j++) {
         vOldArray[i][j] = vNewArray[i][j];
@@ -1299,7 +1294,6 @@ void Solver::DumpFields(int output_num) {
     }
   }
 
-  std::cout << "HELP AGAIN" << std::endl;
   int count2 = 0;
   for (int k=0; k<2; k++)
   {
@@ -1307,7 +1301,6 @@ void Solver::DumpFields(int output_num) {
     {
       for (int j=0; j<l_max; j++)
       {
-        std::cout << k <<'\t' << i << '\t' << j << '\t' << std::endl;
         if (k==0) {
           harm_coeff_1D[i*l_max + j] = (float)SH_cos_coeff[i][j];
           count2++;
