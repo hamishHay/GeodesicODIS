@@ -173,7 +173,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   u_1D = new float[uLatLen*uLonLen];
   diss_1D = new float[etaLatLen*etaLonLen];
   diss_avg_1D = new float[1];
-  harm_coeff_1D = new float[2*l_max*l_max];
+  harm_coeff_1D = new float[2*(l_max+1)*(l_max+1)];
 
   eta_rows = etaLatLen;
   eta_cols = etaLonLen;
