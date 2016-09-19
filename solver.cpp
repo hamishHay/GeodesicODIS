@@ -181,8 +181,8 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   v_cols = vLonLen;
   u_rows = uLatLen;
   u_cols = uLonLen;
-  harm_rows = l_max;
-  harm_cols = l_max;
+  harm_rows = l_max+1;
+  harm_cols = l_max+1;
 
   time_slices = (consts->endTime.Value()/consts->period.Value())/consts->outputTime.Value() + 1;
 
@@ -226,7 +226,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 
   dims_harm_coeff = new hsize_t[4];
   dims_harm_coeff[0] = 1;
-  dims_harm_coeff[0] = 2;
+  dims_harm_coeff[1] = 2;
   dims_harm_coeff[2] = harm_rows;
   dims_harm_coeff[3] = harm_cols;
 
@@ -250,9 +250,9 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 
   max_dims_harm_coeff = new hsize_t[4];
   max_dims_harm_coeff[0] = time_slices;
-  max_dims_harm_coeff[0] = 2;
-  max_dims_harm_coeff[1] = harm_rows;
-  max_dims_harm_coeff[2] = harm_cols;
+  max_dims_harm_coeff[1] = 2;
+  max_dims_harm_coeff[2] = harm_rows;
+  max_dims_harm_coeff[3] = harm_cols;
 
   data_space_eta = H5Screate_simple(rank_field, max_dims_eta, NULL); // 3D data space
   data_space_u = H5Screate_simple(rank_field, max_dims_u, NULL);
