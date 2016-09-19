@@ -1299,6 +1299,7 @@ void Solver::DumpFields(int output_num) {
     }
   }
 
+  std::cout << "HELP AGAIN" << std::endl;
   int count2 = 0;
   for (int k=0; k<2; k++)
   {
