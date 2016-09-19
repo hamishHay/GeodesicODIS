@@ -827,10 +827,6 @@ inline void Solver::ExtractSHCoeff(void) {
     }
   }
 
-
-
-  // for (int i=0; i<coeff_num; i++) std::cout<<"Coeff: "<<fort_harm_coeff[i]<<std::endl;
-
   delete fort_array;
   delete fort_harm_coeff;
 
@@ -845,10 +841,7 @@ void Solver::Explicit() {
   outstring << "Time step: \t" << dt << " seconds\n\n";
   Out->Write(OUT_MESSAGE, &outstring);
 
-  // int output = 0;
   int outCount = 0;
-  // int mun = (int) consts->period.Value()/consts->timeStep.Value()*consts->outputTime.Value();
-  // int outPos[5] = {0, mun*0, mun*1, mun*2, mun*3};
 
   double timeStepCount = 0;
   int inc = (int) (consts->period.Value()/dt);
@@ -864,7 +857,6 @@ void Solver::Explicit() {
 
   while (simulationTime <= consts->endTime.Value() && !energy->converged) {
 
-
     timeStepCount+=dt;
     outputCount+=dt;
 
@@ -874,7 +866,6 @@ void Solver::Explicit() {
 
     //Solve for v
     UpdateNorthVel();
-
 
     //solve for u
     UpdateEastVel();
@@ -1094,12 +1085,7 @@ void Solver::CopyInitialConditions(std::ifstream & file, Field * inField) {
 void Solver::DumpFields(int output_num) {
   std::string out = std::to_string(output_num);
 
-  // std::ofstream dissFile(consts->path + SEP + "Energy" + SEP + "diss_" + out + ".txt", std::ofstream::out);
-  std::ofstream aFile(consts->path + SEP + "Displacement" + SEP + "a_" + out + ".txt", std::ofstream::out);
-  std::ofstream bFile(consts->path + SEP + "Displacement" + SEP + "b_" + out + ".txt", std::ofstream::out);
-
-  std::cout<<"Outputing solvable fields "<<output_num<<std::endl;
-
+  printf("Outputing solvable fields: %d\n", output_num);
 
   double factor = 0;
 
@@ -1113,6 +1099,8 @@ void Solver::DumpFields(int output_num) {
       break;
   }
 
+
+  //-----------------Unravel solutions into 1D arrays---------------------------
 
   for (int i=0; i<etaLatLen;i++) {
     for (int j=0; j<etaLonLen; j++) {
@@ -1169,60 +1157,72 @@ void Solver::DumpFields(int output_num) {
 
   // count 1D is already set to 1.
 
+  //----------------------------------------------------------------------------
+  //------------------------WRITE ARRAYS TO DATA FILE---------------------------
+  //----------------------------------------------------------------------------
+
 
   // ----------------------- Write displacement field --------------------------
 
-  count[1] = eta_rows;
-  count[2] = eta_cols;
+  if (consts->field_displacement_output.Value()) {
+    count[1] = eta_rows;
+    count[2] = eta_cols;
 
-  H5Sselect_hyperslab(data_space_eta, H5S_SELECT_SET, start, NULL, count, NULL);
+    H5Sselect_hyperslab(data_space_eta, H5S_SELECT_SET, start, NULL, count, NULL);
 
-  H5Dwrite(data_set_eta, H5T_NATIVE_FLOAT, mem_space_eta, data_space_eta, H5P_DEFAULT, eta_1D);
-
-
-  // ----------------------- Write north velocity field ------------------------
-
-  count[1] = v_rows;
-  count[2] = v_cols;
-
-  H5Sselect_hyperslab(data_space_v, H5S_SELECT_SET, start, NULL, count, NULL);
-
-  H5Dwrite(data_set_v, H5T_NATIVE_FLOAT, mem_space_v, data_space_v, H5P_DEFAULT, v_1D);
+    H5Dwrite(data_set_eta, H5T_NATIVE_FLOAT, mem_space_eta, data_space_eta, H5P_DEFAULT, eta_1D);
+  }
 
 
-  // ----------------------- Write north velocity field ------------------------
+  // ----------------------- Write velocity fields -----------------------------
 
-  count[1] = u_rows;
-  count[2] = u_cols;
+  if (consts->field_velocity_output.Value()) {
 
-  H5Sselect_hyperslab(data_space_u, H5S_SELECT_SET, start, NULL, count, NULL);
+    // ----------------------- Write north velocity field ------------------------
 
-  H5Dwrite(data_set_u, H5T_NATIVE_FLOAT, mem_space_u, data_space_u, H5P_DEFAULT, u_1D);
+    count[1] = v_rows;
+    count[2] = v_cols;
 
+    H5Sselect_hyperslab(data_space_v, H5S_SELECT_SET, start, NULL, count, NULL);
 
-  // ----------------------- Write north velocity field ------------------------
+    H5Dwrite(data_set_v, H5T_NATIVE_FLOAT, mem_space_v, data_space_v, H5P_DEFAULT, v_1D);
 
-  count[1] = eta_rows;
-  count[2] = eta_cols;
+    // ----------------------- Write east velocity field -------------------------
 
-  H5Sselect_hyperslab(data_space_diss, H5S_SELECT_SET, start, NULL, count, NULL);
+    count[1] = u_rows;
+    count[2] = u_cols;
 
-  H5Dwrite(data_set_diss, H5T_NATIVE_FLOAT, mem_space_diss, data_space_diss, H5P_DEFAULT, diss_1D);
+    H5Sselect_hyperslab(data_space_u, H5S_SELECT_SET, start, NULL, count, NULL);
 
+    H5Dwrite(data_set_u, H5T_NATIVE_FLOAT, mem_space_u, data_space_u, H5P_DEFAULT, u_1D);
+  }
 
-  // ----------------------- Write north velocity field ------------------------
+  // ----------------------- Write dissipated energy field ---------------------
+  if (consts->field_diss_output.Value()) {
 
-  H5Sselect_hyperslab(data_space_1D_avg, H5S_SELECT_SET, start_1D, NULL, count_1D, NULL);
+    count[1] = eta_rows;
+    count[2] = eta_cols;
 
-  H5Dwrite(data_set_1D_avg, H5T_NATIVE_FLOAT, mem_space_1D_avg, data_space_1D_avg, H5P_DEFAULT, diss_avg_1D);
+    H5Sselect_hyperslab(data_space_diss, H5S_SELECT_SET, start, NULL, count, NULL);
 
+    H5Dwrite(data_set_diss, H5T_NATIVE_FLOAT, mem_space_diss, data_space_diss, H5P_DEFAULT, diss_1D);
+  }
 
-  // ----------------------- Write north velocity field ------------------------
+  // ------------------- Write global average dissipation ----------------------
+  if (consts->diss.Value()) {
 
-  H5Sselect_hyperslab(data_space_harm_coeff, H5S_SELECT_SET, start_harm, NULL, count_harm, NULL);
+    H5Sselect_hyperslab(data_space_1D_avg, H5S_SELECT_SET, start_1D, NULL, count_1D, NULL);
 
-  H5Dwrite(data_set_harm_coeff, H5T_NATIVE_FLOAT, mem_space_harm_coeff, data_space_harm_coeff, H5P_DEFAULT, harm_coeff_1D);
+    H5Dwrite(data_set_1D_avg, H5T_NATIVE_FLOAT, mem_space_1D_avg, data_space_1D_avg, H5P_DEFAULT, diss_avg_1D);
+  }
 
+  // ----------------------- Write SH coefficients ------------------------
+  if (consts->sh_coeff_output.Value()) {
+
+    H5Sselect_hyperslab(data_space_harm_coeff, H5S_SELECT_SET, start_harm, NULL, count_harm, NULL);
+
+    H5Dwrite(data_set_harm_coeff, H5T_NATIVE_FLOAT, mem_space_harm_coeff, data_space_harm_coeff, H5P_DEFAULT, harm_coeff_1D);
+  }
 
 };
 
@@ -1256,7 +1256,7 @@ void Solver::CreateHDF5FrameWork(void) {
     harm_rows = l_max+1;
     harm_cols = l_max+1;
 
-    time_slices = (consts->endTime.Value()/consts->period.Value())/consts->outputTime.Value() + 2;
+    time_slices = (consts->endTime.Value()/consts->period.Value())/consts->outputTime.Value() + 1;
 
     rank_field = 3;
     hsize_t rank_size = 1;
@@ -1325,26 +1325,39 @@ void Solver::CreateHDF5FrameWork(void) {
     max_dims_harm_coeff[2] = harm_rows;
     max_dims_harm_coeff[3] = harm_cols;
 
-    data_space_eta = H5Screate_simple(rank_field, max_dims_eta, NULL); // 3D data space
-    data_space_u = H5Screate_simple(rank_field, max_dims_u, NULL);
-    data_space_v = H5Screate_simple(rank_field, max_dims_v, NULL);
-    data_space_diss = H5Screate_simple(rank_field, max_dims_eta, NULL);
-    data_space_1D_avg = H5Screate_simple(rank_1D, max_dims_1D_avg, NULL);
-    data_space_harm_coeff = H5Screate_simple(rank_harm, max_dims_harm_coeff, NULL);
+    if (consts->field_displacement_output.Value()) {
+      data_space_eta = H5Screate_simple(rank_field, max_dims_eta, NULL); // 3D data space
+      data_set_eta = H5Dcreate(file, "displacement", H5T_NATIVE_FLOAT, data_space_eta, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+      mem_space_eta = H5Screate_simple(rank_field, dims_eta, NULL);
+    }
 
-    data_set_eta = H5Dcreate(file, "displacement", H5T_NATIVE_FLOAT, data_space_eta, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    data_set_u = H5Dcreate(file, "east velocity", H5T_NATIVE_FLOAT, data_space_u, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    data_set_v = H5Dcreate(file, "north velocity", H5T_NATIVE_FLOAT, data_space_v, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    data_set_diss = H5Dcreate(file, "dissipated energy", H5T_NATIVE_FLOAT, data_space_diss, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    data_set_1D_avg = H5Dcreate(file, "dissipated energy avg", H5T_NATIVE_FLOAT, data_space_1D_avg, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    data_set_harm_coeff = H5Dcreate(file, "SH coefficients", H5T_NATIVE_FLOAT, data_space_harm_coeff, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    if (consts->field_velocity_output.Value()) {
+      data_space_u = H5Screate_simple(rank_field, max_dims_u, NULL);
+      data_space_v = H5Screate_simple(rank_field, max_dims_v, NULL);
+      data_set_u = H5Dcreate(file, "east velocity", H5T_NATIVE_FLOAT, data_space_u, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+      data_set_v = H5Dcreate(file, "north velocity", H5T_NATIVE_FLOAT, data_space_v, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+      mem_space_u = H5Screate_simple(rank_field, dims_u, NULL);
+      mem_space_v = H5Screate_simple(rank_field, dims_v, NULL);
+    }
 
-    mem_space_eta = H5Screate_simple(rank_field, dims_eta, NULL);
-    mem_space_u = H5Screate_simple(rank_field, dims_u, NULL);
-    mem_space_v = H5Screate_simple(rank_field, dims_v, NULL);
-    mem_space_diss = H5Screate_simple(rank_field, dims_eta, NULL);
-    mem_space_1D_avg = H5Screate_simple(rank_1D, dims_1D_avg, NULL);
-    mem_space_harm_coeff = H5Screate_simple(rank_harm, dims_harm_coeff, NULL);
+    if (consts->field_diss_output.Value()) {
+      data_space_diss = H5Screate_simple(rank_field, max_dims_eta, NULL);
+      data_set_diss = H5Dcreate(file, "dissipated energy", H5T_NATIVE_FLOAT, data_space_diss, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+      mem_space_diss = H5Screate_simple(rank_field, dims_eta, NULL);
+    }
+
+    if (consts->diss.Value()) {
+      data_space_1D_avg = H5Screate_simple(rank_1D, max_dims_1D_avg, NULL);
+      data_set_1D_avg = H5Dcreate(file, "dissipated energy avg", H5T_NATIVE_FLOAT, data_space_1D_avg, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+      mem_space_1D_avg = H5Screate_simple(rank_1D, dims_1D_avg, NULL);
+    }
+
+    if (consts->sh_coeff_output.Value()) {
+      data_space_harm_coeff = H5Screate_simple(rank_harm, max_dims_harm_coeff, NULL);
+      data_set_harm_coeff = H5Dcreate(file, "SH coefficients", H5T_NATIVE_FLOAT, data_space_harm_coeff, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+      mem_space_harm_coeff = H5Screate_simple(rank_harm, dims_harm_coeff, NULL);
+    }
+
 
     start[0] = 0;
     start[1] = 0;
@@ -1367,7 +1380,7 @@ void Solver::CreateHDF5FrameWork(void) {
     count_harm[2] = harm_rows;
     count_harm[3] = harm_cols;
 
-    //-----------------------Write dataset attributes-----------------------------
+    //-----------------------Write dataset attributes---------------------------
 
     hsize_t dims_coord[1];
     dims_coord[0] = 2;
@@ -1378,67 +1391,71 @@ void Solver::CreateHDF5FrameWork(void) {
     int data_set_size[2];
     float data_set_dx[2];
 
-    attr_space = H5Screate_simple(rank_size, dims_coord, NULL);
 
-    attr = H5Acreate(data_set_eta, "nlat; nlon", H5T_NATIVE_INT, attr_space, H5P_DEFAULT, H5P_DEFAULT);
+    //---------------------------Displacement-----------------------------------
+    if (consts->field_displacement_output.Value()) {
+      attr_space = H5Screate_simple(rank_size, dims_coord, NULL);
 
-    data_set_size[0] = etaLatLen;
-    data_set_size[1] = etaLonLen;
+      attr = H5Acreate(data_set_eta, "nlat; nlon", H5T_NATIVE_INT, attr_space, H5P_DEFAULT, H5P_DEFAULT);
 
-    H5Awrite(attr, H5T_NATIVE_INT, data_set_size);
+      data_set_size[0] = etaLatLen;
+      data_set_size[1] = etaLonLen;
 
-    attr = H5Acreate(data_set_eta, "dlat; dlon", H5T_NATIVE_FLOAT, attr_space, H5P_DEFAULT, H5P_DEFAULT);
+      H5Awrite(attr, H5T_NATIVE_INT, data_set_size);
 
-    data_set_dx[0] = (float)etadLat*1.0/radConv;
-    data_set_dx[1] = (float)etadLon*1.0/radConv;
+      attr = H5Acreate(data_set_eta, "dlat; dlon", H5T_NATIVE_FLOAT, attr_space, H5P_DEFAULT, H5P_DEFAULT);
 
-    H5Awrite(attr, H5T_NATIVE_FLOAT, data_set_dx);
+      data_set_dx[0] = (float)etadLat*1.0/radConv;
+      data_set_dx[1] = (float)etadLon*1.0/radConv;
 
-    //---------------------------North velocity-----------------------------------
+      H5Awrite(attr, H5T_NATIVE_FLOAT, data_set_dx);
+    }
 
-    attr = H5Acreate(data_set_v, "nlat; nlon", H5T_NATIVE_INT, attr_space, H5P_DEFAULT, H5P_DEFAULT);
+    //---------------------------Velocity---------------------------------------
+    if (consts->field_velocity_output.Value()) {
+      attr = H5Acreate(data_set_v, "nlat; nlon", H5T_NATIVE_INT, attr_space, H5P_DEFAULT, H5P_DEFAULT);
 
-    data_set_size[0] = vLatLen;
-    data_set_size[1] = vLonLen;
+      data_set_size[0] = vLatLen;
+      data_set_size[1] = vLonLen;
 
-    H5Awrite(attr, H5T_NATIVE_INT, data_set_size);
+      H5Awrite(attr, H5T_NATIVE_INT, data_set_size);
 
-    attr = H5Acreate(data_set_v, "dlat; dlon", H5T_NATIVE_FLOAT, attr_space, H5P_DEFAULT, H5P_DEFAULT);
+      attr = H5Acreate(data_set_v, "dlat; dlon", H5T_NATIVE_FLOAT, attr_space, H5P_DEFAULT, H5P_DEFAULT);
 
-    data_set_dx[0] = (float)vdLat*1.0/radConv;
-    data_set_dx[1] = (float)vdLon*1.0/radConv;
+      data_set_dx[0] = (float)vdLat*1.0/radConv;
+      data_set_dx[1] = (float)vdLon*1.0/radConv;
 
-    H5Awrite(attr, H5T_NATIVE_FLOAT, data_set_dx);
+      H5Awrite(attr, H5T_NATIVE_FLOAT, data_set_dx);
 
-    //---------------------------East velocity------------------------------------
+      attr = H5Acreate(data_set_u, "nlat; nlon", H5T_NATIVE_INT, attr_space, H5P_DEFAULT, H5P_DEFAULT);
 
-    attr = H5Acreate(data_set_u, "nlat; nlon", H5T_NATIVE_INT, attr_space, H5P_DEFAULT, H5P_DEFAULT);
+      data_set_size[0] = uLatLen;
+      data_set_size[1] = uLonLen;
 
-    data_set_size[0] = uLatLen;
-    data_set_size[1] = uLonLen;
+      H5Awrite(attr, H5T_NATIVE_INT, data_set_size);
 
-    H5Awrite(attr, H5T_NATIVE_INT, data_set_size);
+      attr = H5Acreate(data_set_u, "dlat; dlon", H5T_NATIVE_FLOAT, attr_space, H5P_DEFAULT, H5P_DEFAULT);
 
-    attr = H5Acreate(data_set_u, "dlat; dlon", H5T_NATIVE_FLOAT, attr_space, H5P_DEFAULT, H5P_DEFAULT);
+      data_set_dx[0] = (float)udLat*1.0/radConv;
+      data_set_dx[1] = (float)udLon*1.0/radConv;
 
-    data_set_dx[0] = (float)udLat*1.0/radConv;
-    data_set_dx[1] = (float)udLon*1.0/radConv;
-
-    H5Awrite(attr, H5T_NATIVE_FLOAT, data_set_dx);
+      H5Awrite(attr, H5T_NATIVE_FLOAT, data_set_dx);
+    }
 
     //-------------------------Dissipated energy----------------------------------
+    if (consts->field_diss_output.Value()) {
+      attr = H5Acreate(data_set_diss, "nlat; nlon", H5T_NATIVE_INT, attr_space, H5P_DEFAULT, H5P_DEFAULT);
 
-    attr = H5Acreate(data_set_diss, "nlat; nlon", H5T_NATIVE_INT, attr_space, H5P_DEFAULT, H5P_DEFAULT);
+      data_set_size[0] = etaLatLen;
+      data_set_size[1] = etaLonLen;
 
-    data_set_size[0] = etaLatLen;
-    data_set_size[1] = etaLonLen;
+      H5Awrite(attr, H5T_NATIVE_INT, data_set_size);
 
-    H5Awrite(attr, H5T_NATIVE_INT, data_set_size);
+      attr = H5Acreate(data_set_diss, "dlat; dlon", H5T_NATIVE_FLOAT, attr_space, H5P_DEFAULT, H5P_DEFAULT);
 
-    attr = H5Acreate(data_set_diss, "dlat; dlon", H5T_NATIVE_FLOAT, attr_space, H5P_DEFAULT, H5P_DEFAULT);
+      data_set_dx[0] = (float)etadLat*1.0/radConv;
+      data_set_dx[1] = (float)etadLon*1.0/radConv;
 
-    data_set_dx[0] = (float)etadLat*1.0/radConv;
-    data_set_dx[1] = (float)etadLon*1.0/radConv;
-
-    H5Awrite(attr, H5T_NATIVE_FLOAT, data_set_dx);
+      H5Awrite(attr, H5T_NATIVE_FLOAT, data_set_dx);
+    }
 }
