@@ -1309,7 +1309,7 @@ void Solver::DumpFields(int output_num) {
     for (int j=0; j<l_max+1; j++)
     {
       std::cout <<"SIN: "<< l_max*l_max + i*harm_cols + j << std::endl;
-      harm_coeff_1D[l_max*l_max + i*harm_cols + j] = (float)SH_sin_coeff[i][j];
+      harm_coeff_1D[(l_max+1)*(l_max+1) + i*harm_cols + j] = (float)SH_sin_coeff[i][j];
     }
   }
 
