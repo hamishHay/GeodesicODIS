@@ -1299,7 +1299,6 @@ void Solver::DumpFields(int output_num) {
   {
     for (int j=0; j<l_max+1; j++)
     {
-      std::cout <<"COS: "<< i*harm_cols + j << std::endl;
       harm_coeff_1D[i*harm_cols + j] = (float)SH_cos_coeff[i][j];
     }
   }
@@ -1308,7 +1307,6 @@ void Solver::DumpFields(int output_num) {
   {
     for (int j=0; j<l_max+1; j++)
     {
-      std::cout <<"SIN: "<< l_max*l_max + i*harm_cols + j << std::endl;
       harm_coeff_1D[(l_max+1)*(l_max+1) + i*harm_cols + j] = (float)SH_sin_coeff[i][j];
     }
   }
@@ -1380,16 +1378,6 @@ void Solver::DumpFields(int output_num) {
   H5Sselect_hyperslab(data_space_harm_coeff, H5S_SELECT_SET, start_harm, NULL, count_harm, NULL);
 
   H5Dwrite(data_set_harm_coeff, H5T_NATIVE_FLOAT, mem_space_harm_coeff, data_space_harm_coeff, H5P_DEFAULT, harm_coeff_1D);
-
-
-  for (int i = 0; i < l_max; i++) {
-    for (int j = 0; j < l_max; j++) {
-      aFile << SH_cos_coeff[i][j] << '\t';
-      bFile << SH_sin_coeff[i][j] << '\t';
-    }
-    aFile << std::endl;
-    bFile << std::endl;
-  }
 
 
 };
