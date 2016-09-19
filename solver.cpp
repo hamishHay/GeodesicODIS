@@ -1321,6 +1321,8 @@ void Solver::DumpFields(int output_num) {
 
   start_1D[0] = output_num - 1;
 
+  start_harm[0] = output_num - 1;
+
   // count 1D is already set to 1.
 
 
@@ -1366,9 +1368,16 @@ void Solver::DumpFields(int output_num) {
 
   // ----------------------- Write north velocity field ------------------------
 
-  H5Sselect_hyperslab(data_space_1D_avg, H5S_SELECT_SET, start, NULL, count_1D, NULL);
+  H5Sselect_hyperslab(data_space_1D_avg, H5S_SELECT_SET, start_1D, NULL, count_1D, NULL);
 
   H5Dwrite(data_set_1D_avg, H5T_NATIVE_FLOAT, mem_space_1D_avg, data_space_1D_avg, H5P_DEFAULT, diss_avg_1D);
+
+
+  // ----------------------- Write north velocity field ------------------------
+
+  H5Sselect_hyperslab(data_space_harm_coeff, H5S_SELECT_SET, start_harm, NULL, count_harm, NULL);
+
+  H5Dwrite(data_set_harm_coeff, H5T_NATIVE_FLOAT, mem_space_harm_coeff, data_space_harm_coeff, H5P_DEFAULT, harm_coeff_1D);
 
 
   for (int i = 0; i < l_max; i++) {
