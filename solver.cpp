@@ -1027,7 +1027,7 @@ void Solver::Explicit() {
     //Call SHTOOLS to find spherical harmonic expansion of etaNew.
     ExtractSHCoeff();
 
-
+    std::cout << "OKA" << std::endl;
 
     for (int i = 0; i < vLatLen; i++) {
       for (int j = 0; j < vLonLen; j++) {
