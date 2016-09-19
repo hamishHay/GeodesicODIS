@@ -1294,20 +1294,20 @@ void Solver::DumpFields(int output_num) {
     }
   }
 
-  int count2 = 0;
-  for (int k=0; k<2; k++)
+
+  for (int i=0; i<l_max+1; i++)
   {
-    for (int i=0; i<l_max+1; i++)
+    for (int j=0; j<l_max+1; j++)
     {
-      for (int j=0; j<l_max+1; j++)
-      {
-        if (k==0) {
-          harm_coeff_1D[i*harm_cols + j] = (float)SH_cos_coeff[i][j];
-          std::cout << "i: "<< i << " j: "<< j << " coeff: "<< SH_cos_coeff[i][j]<< std::endl;
-        }
-        // else harm_coeff_1D[i*harm_cols + j] = (float)SH_sin_coeff[i][j];
-        // count++;
-      }
+      harm_coeff_1D[i*harm_cols + j] = (float)SH_cos_coeff[i][j];
+    }
+  }
+
+  for (int i=0; i<l_max+1; i++)
+  {
+    for (int j=0; j<l_max+1; j++)
+    {
+      harm_coeff_1D[l_max*l_max + i*harm_cols + j] = (float)SH_sin_coeff[i][j];
     }
   }
 
