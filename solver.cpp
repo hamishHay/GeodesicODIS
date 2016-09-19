@@ -187,6 +187,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   time_slices = (consts->endTime.Value()/consts->period.Value())/consts->outputTime.Value() + 1;
 
   rank_field = 3;
+  hsize_t rank_size = 1;
   rank_1D = 1;
   rank_harm = 4;
 
@@ -203,6 +204,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 
   // Create HDF5 file
   file = H5Fcreate(dataFile, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+
 
   // time_slices = 1;
 
@@ -295,6 +297,15 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   count_harm[1] = 2;
   count_harm[2] = harm_rows;
   count_harm[3] = harm_cols;
+
+  hsize_t dims_coord[2];
+  dims_coord[0] = eta_rows;
+  dims_coord[1] = eta_cols;
+
+  hid_t attr1_space = H5Screate_simple(rank_size, dims_coord, NULL);
+
+  hid_t attr1 = H5Acreate(data_set_eta, "shape", H5T_NATIVE_FLOAT, attr1_space, H5P_DEFAULT);
+
 };
 
 int Solver::InitialConditions(void) {
