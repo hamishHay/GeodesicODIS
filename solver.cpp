@@ -557,8 +557,6 @@ inline void Solver::UpdateEastVel(){
       tidalForce = tidalFactor * dUlonArray[i][j];
 
       uNewArray[i][j] = (coriolis - surfHeight + tidalForce - uDissArray[i][j])*dt + uOldArray[i][j];
-
-
     }
   }
 
@@ -897,11 +895,8 @@ void Solver::Explicit() {
     // InterpSurfaceHeight();
 
     // energy->mass->UpdateMass();
-    // std::cout<<"Total Mass"<<energy->mass->totalMass<<std::endl;
-
 
     energy->UpdateKinE(uNewArray,vNewArray);
-    // std::cout<<energy->dtKinEAvg[energy->timePos-1]<<std::endl;
 
     energy->UpdateDtKinEAvg();
 
@@ -927,10 +922,8 @@ void Solver::Explicit() {
       outCount = 1;
 
       energy->timePos = 0; //Reset time position after energy data output
-      // DumpFields(orbitNumber);
-      DumpFields(output);
 
-      // std::cout<<"Total Mass"<<energy->mass->totalMass<<std::endl;
+      DumpFields(output);
 
     }
     else if (timeStepCount >= consts->period.Value()*consts->outputTime.Value()*outCount) {
@@ -978,54 +971,9 @@ void Solver::DumpSolutions(int out_num, double time) {
     for (int i = 0; i < v->ReturnFieldLatLen(); i++) vLat << v->lat[i] * 1 / radConv << '\t';
   }
   else if (out_num == -2) {
-    // FILE * dissFile;
-    // if (consts->kinetic.Value())
-    // {
-    //   dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "kinetic_energy.txt")[0], "a+");
-    //   fprintf(dissFile, "%.30f \n", energy->dtKinEAvg[energy->timePos-1]);
-    //   fclose(dissFile);
-    //
-    //   dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "kinetic_energy_orb_avg.txt")[0], "a+");
-    //   fprintf(dissFile, "%.30f \n", energy->orbitKinEAvg);
-    //   fclose(dissFile);
-    // }
-    // if (consts->diss.Value()) {
-    //   dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "diss_energy.txt")[0], "a+");
-    //   fprintf(dissFile, "%.30f \t %.10f \n", energy->dtDissEAvg[energy->timePos-1], time);
-    //   fclose(dissFile);
-    //
-    //   dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "diss_energy_orb_avg.txt")[0], "a+");
-    //   fprintf(dissFile, "%.30f \n", energy->orbitDissEAvg[0]);
-    //   fclose(dissFile);
-    // }
+
   }
   else {
-    //fopen for linux
-    //fopen_s for windows
-    // FILE * dissFile;
-    // if (consts->kinetic.Value())
-    // {
-    //   dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "kinetic_energy.txt")[0], "a+");
-    //   fprintf(dissFile, "%.30f \n", energy->dtKinEAvg[energy->timePos-1]);
-    //   fclose(dissFile);
-    // }
-    // if (consts->diss.Value())
-    // {
-    //   dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "diss_energy.txt")[0], "a+");
-    //   fprintf(dissFile, "%.30f \t %.10f \n", energy->dtDissEAvg[energy->timePos-1], time);
-    //   fclose(dissFile);
-    // }
-    // if (consts->work.Value())
-    // {
-    //   dissFile = fopen(&(consts->path + SEP + "Energy" + SEP + "energy.txt")[0], "a+");
-    //   // fprintf(dissFile, "%.15f \n", energy->orbitDissEAvg[1]);
-    //   fprintf(dissFile, "%.30f \n", energy->orbitKinEAvg);
-    //   // fprintf(dissFile, "%.15f \n", energy->dtKinEAvg[energy->timePos-1]);
-    //   // fprintf(dissFile, "%.15f \n", energy->dtDissEAvg[energy->timePos-1]);
-    //   // fprintf(dissFile, "%.15f \n", energy->dissipation[energy->dissipation.size()-1]);
-    //   fclose(dissFile);
-    // }
-
     if (energy->converged) DumpFields(out_num);
     // else if (out_num % 5 == 0) DumpFields(out_num); //dump every 5 orbits
 
