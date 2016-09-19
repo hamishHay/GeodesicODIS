@@ -1297,9 +1297,9 @@ void Solver::DumpFields(int output_num) {
   int count2 = 0;
   for (int k=0; k<2; k++)
   {
-    for (int i=0; i<l_max; i++)
+    for (int i=0; i<l_max+1; i++)
     {
-      for (int j=0; j<l_max; j++)
+      for (int j=0; j<l_max+1; j++)
       {
         if (k==0) {
           harm_coeff_1D[i*harm_cols + j] = (float)SH_cos_coeff[i][j];
