@@ -172,6 +172,8 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   v_1D = new float[vLatLen*vLonLen];
   u_1D = new float[uLatLen*uLonLen];
   diss_1D = new float[etaLatLen*etaLonLen];
+  diss_avg_1D = new float[1];
+  harm_coeff_1D = new float[l_max*l_max];
 
   eta_rows = etaLatLen;
   eta_cols = etaLonLen;
@@ -179,21 +181,25 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   v_cols = vLonLen;
   u_rows = uLatLen;
   u_cols = uLonLen;
+  harm_rows = l_max;
+  harm_cols = l_max;
 
   time_slices = (consts->endTime.Value()/consts->period.Value())/consts->outputTime.Value() + 1;
 
   rank_field = 3;
   rank_1D = 1;
+  rank_harm = 4;
 
   char dataFile[] = "DATA/data.h5";
 
   start = new hsize_t[3];
   count = new hsize_t[3];
 
-  std::cout << "Help" << std::endl;
-
   start_1D = new hsize_t[1];
   count_1D = new hsize_t[1];
+
+  start_harm = new hsize_t[4];
+  count_harm = new hsize_t[4];
 
   // Create HDF5 file
   file = H5Fcreate(dataFile, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
@@ -218,6 +224,12 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   dims_1D_avg = new hsize_t[1];
   dims_1D_avg[0] = 1;
 
+  dims_harm_coeff = new hsize_t[4];
+  dims_harm_coeff[0] = 1;
+  dims_harm_coeff[0] = 2;
+  dims_harm_coeff[2] = harm_rows;
+  dims_harm_coeff[3] = harm_cols;
+
   max_dims_eta = new hsize_t[3];
   max_dims_eta[0] = time_slices;
   max_dims_eta[1] = eta_rows;
@@ -236,23 +248,32 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   max_dims_1D_avg = new hsize_t[1];
   max_dims_1D_avg[0] = time_slices;
 
+  max_dims_harm_coeff = new hsize_t[4];
+  max_dims_harm_coeff[0] = time_slices;
+  max_dims_harm_coeff[0] = 2;
+  max_dims_harm_coeff[1] = harm_rows;
+  max_dims_harm_coeff[2] = harm_cols;
+
   data_space_eta = H5Screate_simple(rank_field, max_dims_eta, NULL); // 3D data space
   data_space_u = H5Screate_simple(rank_field, max_dims_u, NULL);
   data_space_v = H5Screate_simple(rank_field, max_dims_v, NULL);
   data_space_diss = H5Screate_simple(rank_field, max_dims_eta, NULL);
   data_space_1D_avg = H5Screate_simple(rank_1D, max_dims_1D_avg, NULL);
+  data_space_harm_coeff = H5Screate_simple(rank_harm, max_dims_harm_coeff, NULL);
 
   data_set_eta = H5Dcreate(file, "displacement", H5T_NATIVE_FLOAT, data_space_eta, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   data_set_u = H5Dcreate(file, "east velocity", H5T_NATIVE_FLOAT, data_space_u, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   data_set_v = H5Dcreate(file, "north velocity", H5T_NATIVE_FLOAT, data_space_v, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   data_set_diss = H5Dcreate(file, "dissipated energy", H5T_NATIVE_FLOAT, data_space_diss, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
   data_set_1D_avg = H5Dcreate(file, "dissipated energy avg", H5T_NATIVE_FLOAT, data_space_1D_avg, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  data_set_harm_coeff = H5Dcreate(file, "dissipated energy avg", H5T_NATIVE_FLOAT, data_space_harm_coeff, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
   mem_space_eta = H5Screate_simple(rank_field, dims_eta, NULL);
   mem_space_u = H5Screate_simple(rank_field, dims_u, NULL);
   mem_space_v = H5Screate_simple(rank_field, dims_v, NULL);
   mem_space_diss = H5Screate_simple(rank_field, dims_eta, NULL);
   mem_space_1D_avg = H5Screate_simple(rank_1D, dims_1D_avg, NULL);
+  mem_space_harm_coeff = H5Screate_simple(rank_harm, dims_harm_coeff, NULL);
 
   start[0] = 0;
   start[1] = 0;
@@ -265,7 +286,15 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   start_1D[0] = 0;
   count_1D[0] = 1;
 
-  std::cout << "Help again" << std::endl;
+  start_harm[0] = 0;
+  start_harm[1] = 0;
+  start_harm[2] = 0;
+  start_harm[3] = 0;
+
+  count_harm[0] = 1;
+  count_harm[1] = 2;
+  count_harm[2] = harm_rows;
+  count_harm[3] = harm_cols;
 
 };
 
@@ -1268,11 +1297,29 @@ void Solver::DumpFields(int output_num) {
     }
   }
 
+  for (int k=0; k<2; k++)
+  {
+    for (int i=0; i<l_max; i++)
+    {
+      for (int j=0; j<l_max; j++)
+      {
+        if (k==0) harm_coeff_1D[i*l_max + j] = (float)SH_cos_coeff[i][j];
+        else harm_coeff_1D[l_max*l_max + i*l_max + j] = (float)SH_sin_coeff[i][j];
+      }
+    }
+  }
+
+  diss_avg_1D[0] = energy->dtDissEAvg[energy->timePos-1];
+
   start[0] = output_num-1;
   start[1] = 0;
   start[2] = 0;
 
   count[0] = 1;
+
+  start_1D[0] = output_num - 1;
+
+  // count 1D is already set to 1.
 
 
   // ----------------------- Write displacement field --------------------------
@@ -1317,42 +1364,10 @@ void Solver::DumpFields(int output_num) {
 
   // ----------------------- Write north velocity field ------------------------
 
-  // if (output_num > 2) {
-    std::cout << output_num << std::endl;
+  H5Sselect_hyperslab(data_space_1D_avg, H5S_SELECT_SET, start, NULL, count_1D, NULL);
 
-    float * diss_avg_1D = new float[1];
-    diss_avg_1D[0] = energy->dtDissEAvg[energy->timePos-1];
+  H5Dwrite(data_set_1D_avg, H5T_NATIVE_FLOAT, mem_space_1D_avg, data_space_1D_avg, H5P_DEFAULT, diss_avg_1D);
 
-    std::cout << "created 1D array" << std::endl;
-
-    start_1D[0] = output_num - 1;
-
-    H5Sselect_hyperslab(data_space_1D_avg, H5S_SELECT_SET, start, NULL, count_1D, NULL);
-
-    H5Dwrite(data_set_1D_avg, H5T_NATIVE_FLOAT, mem_space_1D_avg, data_space_1D_avg, H5P_DEFAULT, diss_avg_1D);
-
-  // }
-
-
-
-  // for (int i = 0; i < etaNew->ReturnFieldLatLen(); i++) {
-  //   for (int j = 0; j < etaNew->ReturnFieldLonLen(); j++) {
-  //     dissFile << energy->solution[i][j]*2.0*factor << '\t';
-  //     // uFile << uNewArray[i][j] << '\t';
-  //     // etaFile << etaNewArray[i][j] << '\t';
-  //                       //etaFile << energy->mass->solution[i][j] << '\t';
-  //   }
-  //   dissFile << std::endl;
-  //   // uFile << std::endl;
-  //   // etaFile << std::endl;
-  // }
-  //
-  // for (int i = 0; i < vLatLen; i++) {
-  //   for (int j = 0; j < vLonLen; j++) {
-  //     vFile << vOldArray[i][j] << '\t';
-  //   }
-  //   vFile << std::endl;
-  // }
 
   for (int i = 0; i < l_max; i++) {
     for (int j = 0; j < l_max; j++) {

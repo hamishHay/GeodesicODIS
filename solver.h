@@ -179,6 +179,8 @@ public:
   float * u_1D;
   float * v_1D;
   float * diss_1D;
+  float * diss_avg_1D;
+  float * harm_coeff_1D;
 
   hsize_t eta_rows;
   hsize_t eta_cols;
@@ -186,8 +188,11 @@ public:
   hsize_t u_cols;
   hsize_t v_rows;
   hsize_t v_cols;
+  hsize_t harm_rows;
+  hsize_t harm_cols;
 
   hsize_t rank_field;
+  hsize_t rank_harm;
   hsize_t rank_1D;
 
   hid_t file;
@@ -197,18 +202,21 @@ public:
   hid_t data_space_v;
   hid_t data_space_diss;
   hid_t data_space_1D_avg;
+  hid_t data_space_harm_coeff;
 
   hid_t mem_space_eta;
   hid_t mem_space_u;
   hid_t mem_space_v;
   hid_t mem_space_diss;
   hid_t mem_space_1D_avg;
+  hid_t mem_space_harm_coeff;
 
   hid_t data_set_eta;
   hid_t data_set_u;
   hid_t data_set_v;
   hid_t data_set_diss;
   hid_t data_set_1D_avg;
+  hid_t data_set_harm_coeff;
 
   char * dataFilePath;
 
@@ -216,17 +224,22 @@ public:
   hsize_t * dims_u;
   hsize_t * dims_v;
   hsize_t * dims_1D_avg;
+  hsize_t * dims_harm_coeff;
 
   hsize_t * max_dims_eta;
   hsize_t * max_dims_u;
   hsize_t * max_dims_v;
   hsize_t * max_dims_1D_avg;
+  hsize_t * max_dims_harm_coeff;
 
   hsize_t * start;
   hsize_t * count;
 
   hsize_t * start_1D;
   hsize_t * count_1D;
+
+  hsize_t * start_harm;
+  hsize_t * count_harm;
 
   hsize_t time_slices;
 };
