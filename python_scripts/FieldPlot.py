@@ -9,6 +9,7 @@ import scipy as sc
 from scipy.interpolate import interp2d
 import os
 import sys
+import h5py
 
 class ODISPlot:
     def __init__(self,orbitnum=0,figdim=(1,2),figsize=(10,3),saveName="ODISPLOT"):
@@ -111,6 +112,9 @@ class ODISPlot:
         return self.data
 
     def ReadDissipationData(self,directory = os.getcwd()):
+        in_file = h5py.File("DATA/data.h5", 'r')
+
+
         self.diss = np.loadtxt(directory) # In Watts
         # self.diss *= 1e3 # Convert to mWatts
         self.resid = abs(self.diss[1:]-self.diss[:-1])*1e-3
@@ -234,106 +238,6 @@ class ODISPlot:
             label.set_linewidth(0.8)
 
 
-    def PlotTimeDissipation(self,potential='ECC'):
-        ### DEFINE PARAMTERS
-
-        omega = 5.31e-5
-        a = 238.04e6
-        r = 252.1e3
-        e = 0.0047
-        theta = 0.00014
-        surf = 4 * np.pi * r**2
-        g = 0.11
-
-        M = 1.08e20
-
-        G = 6.67e-11
-
-        GM = G*M
-
-
-        period = 2*np.pi/omega
-
-        dt = 1000
-
-        t = np.linspace(0,period,period/dt)
-
-        xn = 361
-        yn = 181
-        U = np.zeros((xn,yn))
-        lat = np.linspace(90,-90,xn)
-        lon = np.linspace(0,360,yn)
-
-        xx,yy = np.meshgrid(lon,lat)
-
-        xx = np.deg2rad(xx)
-        yy = np.deg2rad(yy)
-
-        lat = np.deg2rad(lat)
-        lon = np.deg2rad(lon)
-        E0 = np.zeros(period/dt)
-
-        area = U
-
-        print(t)
-        print(period)
-
-        dlon = lon[1]-lon[0]
-
-        area[0][:] = 0
-        area[-1][:] = 0
-        for i in range(len(lon)):
-            for j in range(1,len(lat)-1):
-                area[j][i] = -r**2 * (np.sin(lat[j+1]) - np.sin(lat[j])) * (dlon)
-
-        # print(area)
-
-        if potential=="ECC":
-            for i in range(len(t)):
-                U = omega**2 * r**2 * e * \
-                    (-0.75 * (3*np.sin(yy)**2 - 1)*np.cos(omega*t[i]) \
-                    + 3./8 * np.cos(yy)**2 * (7*np.cos(2*xx-omega*t[i]) - \
-                    np.cos(2*xx+omega*t[i])))
-
-                nEq = U * r**2 / (GM)
-
-                # print(nEq)
-
-                F = 0.5 * 1000 * g * nEq**2
-
-                for x in range(len(lon)):
-                    for y in range(len(lat)):
-                        F[y][x] = F[y][x] * area[y][x]
-                        # print(F[y][x])
-
-                E0[i] = np.mean(F/surf)
-
-        A=2*np.pi * max(E0)*surf*period
-        B=2*np.sum(self.diss)*1e-5*surf*15 #dt =15
-
-        Q = A/B
-        print(Q)
-        # plt.pcolormesh(area[1:-2][:])
-        # plt.colorbar()
-        plt.plot(t/period,E0,label='Equilibrium Tide')
-        plt.hold('on')
-
-        tn = np.linspace(0,1,len(self.diss))
-
-        plt.plot(tn,2*self.diss*1e-5,label='Dissipating Tide')
-        plt.ylim([0,0.16])
-        plt.legend()
-
-        plt.ylabel('Dissipated Energy (W m$^-2$)')
-        plt.xlabel('$t/T$')
-        plt.show()
-
-
-
-        print(E0[1])
-        print(self.diss[1])
-
-
     def SetSuperTitle(self, title):
         self.fig.suptitle(title,fontsize=self.supTitleSize)
 
@@ -431,24 +335,6 @@ if __name__=="__main__":
         ODIS.SetSuperTitle("Test")
 
         ODIS.ShowFig()
-
-
-    elif option == 5:
-
-        print("Option " + str(option) + "selected: Plotting dissipation over time.\n")
-
-        ODIS = ODISPlot(orbitnum=0,figdim=(1,1),figsize=(6,5),saveName="obliq_diss")
-
-        ODIS.ReadDissipationData()
-
-        # ODIS.ReadDissipationData("/data/hamish/OBLIQ_high_res_linear/h1000.0_alpha1e-08/test_highres")
-
-        #plt.hold('on')
-        ODIS.PlotTimeDissipation()
-
-        # ODIS.ShowFig()
-
-        ODIS.SaveFig()
 
 
     else:

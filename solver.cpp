@@ -801,9 +801,9 @@ inline void Solver::ExtractSHCoeff(void) {
   int i_len = etaOld->ReturnFieldLatLen() - 1; //minus 1 required as SHTOOLS requires even samples in latitude
   int j_len = etaOld->ReturnFieldLonLen();
 
-   int n = i_len*j_len;
+  int n = i_len*j_len;
 
-  fort_array = new double[n*n];
+  fort_array = new double[n];
   fort_harm_coeff = new double[coeff_num];
 
   int count = 0;
@@ -825,8 +825,8 @@ inline void Solver::ExtractSHCoeff(void) {
     }
   }
 
-  delete fort_array;
-  delete fort_harm_coeff;
+  delete[] fort_array;
+  delete[] fort_harm_coeff;
 
 }
 
@@ -905,7 +905,7 @@ void Solver::Explicit() {
       orbitNumber++;
       timeStepCount -= consts->period.Value();
 
-      std::cout<<"TIME: "<<timeStepCount<<", "<<consts->period.Value()<<std::endl;
+      printf("TIME: %f\n", timeStepCount);
 
       energy->UpdateOrbitalKinEAvg(inc);
 
@@ -928,13 +928,13 @@ void Solver::Explicit() {
     }
     else if (timeStepCount >= consts->period.Value()*consts->outputTime.Value()*outCount) {
       output++;
-      std::cout<<"TIME: "<<timeStepCount<<", "<<consts->period.Value()<<std::endl;
+      printf("TIME: %f\n", timeStepCount);
       outCount++;
       DumpSolutions(1, timeStepCount);
       DumpFields(output);
 
-      std::cout<<"Total Mass: "<<energy->mass->totalMass<<std::endl;
 
+      // printf("TOTAL MASS: %f\n",energy->mass->totalMass);
     }
     iteration++;
 
@@ -1033,7 +1033,7 @@ void Solver::CopyInitialConditions(std::ifstream & file, Field * inField) {
 void Solver::DumpFields(int output_num) {
   std::string out = std::to_string(output_num);
 
-  printf("Outputing solvable fields: %d\n", output_num);
+  printf("Outputing data number %d\n", output_num);
 
   double factor = 0;
 
@@ -1091,7 +1091,7 @@ void Solver::DumpFields(int output_num) {
     }
   }
 
-  diss_avg_1D[0] = energy->dtDissEAvg[energy->timePos-1];
+  diss_avg_1D[0] = energy->currentDissEAvg;
 
   start[0] = output_num-1;
   start[1] = 0;
@@ -1306,7 +1306,6 @@ void Solver::CreateHDF5FrameWork(void) {
       mem_space_harm_coeff = H5Screate_simple(rank_harm, dims_harm_coeff, NULL);
     }
 
-
     start[0] = 0;
     start[1] = 0;
     start[2] = 0;
@@ -1406,4 +1405,5 @@ void Solver::CreateHDF5FrameWork(void) {
 
       H5Awrite(attr, H5T_NATIVE_FLOAT, data_set_dx);
     }
+
 }
