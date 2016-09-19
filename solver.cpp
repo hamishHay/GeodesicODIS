@@ -298,13 +298,18 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   count_harm[2] = harm_rows;
   count_harm[3] = harm_cols;
 
-  hsize_t dims_coord[2];
-  dims_coord[0] = eta_rows;
-  dims_coord[1] = eta_cols;
+  hsize_t dims_coord[1];
+  dims_coord[0] = 2;
 
   hid_t attr1_space = H5Screate_simple(rank_size, dims_coord, NULL);
 
-  hid_t attr1 = H5Acreate(data_set_eta, "shape", H5T_NATIVE_FLOAT, attr1_space, H5P_DEFAULT, H5P_DEFAULT);
+  hid_t attr1 = H5Acreate(data_set_eta, "shape", H5T_NATIVE_INT, attr1_space, H5P_DEFAULT, H5P_DEFAULT);
+
+  int eta_size[2];
+  eta_size[0] = etaLatLen;
+  eta_size[1] = etaLonLen;
+
+  H5Awrite(attr1, H5T_NATIVE_INT, )
 
 };
 
