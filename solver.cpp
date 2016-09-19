@@ -296,6 +296,8 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   count_harm[2] = harm_rows;
   count_harm[3] = harm_cols;
 
+  std::cout << "HELP" << std::endl;
+
 };
 
 int Solver::InitialConditions(void) {
