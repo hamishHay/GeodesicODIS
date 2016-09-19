@@ -234,7 +234,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   max_dims_v[2] = v_cols;
 
   max_dims_1D_avg = new hsize_t[1];
-  max_dims_1D_avg[0] = time_slices - 1;
+  max_dims_1D_avg[0] = time_slices;
 
   data_space_eta = H5Screate_simple(rank_field, max_dims_eta, NULL); // 3D data space
   data_space_u = H5Screate_simple(rank_field, max_dims_u, NULL);
