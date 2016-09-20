@@ -22,7 +22,7 @@ converge;                         1e-14;                         convergence cri
 output time;                      0.01;                           outputTime;
 kinetic output;                   true;                          kinetic;
 avg dissipation output;           true;                          diss;
-displacement output;              false;                          eta;
-velocity output;                  false;                          u and v;
+displacement output;              true;                          eta;
+velocity output;                  true;                          u and v;
 dissipation output;               false;                          E_dot;
 sh coefficient output;            false;                          sh coefficients;

@@ -28,7 +28,6 @@ private:
 	void UpdateTotalPotential(void);
 
 	void ReadInitialConditions(void);
-	void CopyInitialConditions(std::ifstream & file, Field *);
 
 public:
 	double simulationTime = 0;

@@ -984,10 +984,33 @@ void Solver::ReadInitialConditions(void) {
   std::ifstream displacement(consts->path + SEP + "InitialConditions" + SEP + "eta.txt", std::ifstream::in);
   // std::ifstream ocean_thickness(consts->path + SEP + "InitialConditions" + SEP + "h.txt", std::ifstream::in);
 
-  CopyInitialConditions(eastVel, uOld);
-  CopyInitialConditions(northVel, vOld);
-  CopyInitialConditions(displacement, etaOld);
-  // CopyInitialConditions(ocean_thickness, depth);
+  hid_t init_file = H5Fopen("InitialConditions/init.h5", H5F_ACC_RDONLY, H5P_DEFAULT);
+
+  hid_t displacement_h5 = H5Dopen(init_file, "displacement", H5P_DEFAULT);
+  hid_t northVel_h5 = H5Dopen(init_file, "north velocity", H5P_DEFAULT);
+  hid_t eastVel_h5 = H5Dopen(init_file, "east velocity", H5P_DEFAULT);
+
+  H5Dread(displacement_h5, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, eta_1D);
+  H5Dread(northVel_h5, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, v_1D);
+  H5Dread(eastVel_h5, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, u_1D);
+
+  for (int i=0; i< etaLatLen; i++) {
+    for (int j=0; j<etaLonLen; j++) {
+        etaOldArray[i][j] = eta_1D[i*etaLonLen + j];
+    }
+  }
+
+  for (int i=0; i< vLatLen; i++) {
+    for (int j=0; j<vLonLen; j++) {
+        vOldArray[i][j] = v_1D[i*vLonLen + j];
+    }
+  }
+
+  for (int i=0; i< uLatLen; i++) {
+    for (int j=0; j<uLonLen; j++) {
+        uOldArray[i][j] = u_1D[i*uLonLen + j];
+    }
+  }
 
   double l_thin = -10.0 * radConv;
   double h_thick = consts->h.Value();
@@ -1004,25 +1027,6 @@ void Solver::ReadInitialConditions(void) {
 
     }
   }
-};
-
-void Solver::CopyInitialConditions(std::ifstream & file, Field * inField) {
-  double inputValue = 0;
-  std::string line;
-
-  file.is_open();
-
-  for (int i = 0; i < inField->ReturnFieldLatLen(); i++) {
-    for (int j = 0; j < inField->ReturnFieldLonLen(); j++) {
-      std::getline(file >> std::ws, line, '\t');
-      std::stringstream inputString(line);
-      inputString >> inputValue;
-
-      inField->solution[i][j] = inputValue;
-    }
-  }
-
-  file.close();
 };
 
 void Solver::DumpFields(int output_num) {

@@ -218,7 +218,7 @@ if __name__=="__main__":
 
     if option == 1:
 
-        print("Option " + str(option) + "selected: Plotting displacement and velocity.\n")
+        print("Option " + str(option) + " selected: Plotting displacement and velocity.\n")
 
         num = int(sys.argv[2])
 
@@ -240,7 +240,7 @@ if __name__=="__main__":
 
     elif option == 2:
 
-        print("Option " + str(option) + "selected: Plotting dissipation over time.\n")
+        print("Option " + str(option) + " selected: Plotting dissipation over time.\n")
 
         ODIS = ODISPlot(orbitnum=0,figdim=(1,1),figsize=(10,5),saveName="Dissipation")
 
@@ -254,7 +254,7 @@ if __name__=="__main__":
 
     elif option == 3:
 
-        print("Option " + str(option) + "selected: Plotting velocity.\n")
+        print("Option " + str(option) + " selected: Plotting velocity.\n")
 
         num = int(sys.argv[2])
 
@@ -273,7 +273,7 @@ if __name__=="__main__":
 
     elif option == 4:
 
-        print("Option " + str(option) + "selected: Plotting displacement and dissipated energy.\n")
+        print("Option " + str(option) + " selected: Plotting displacement and dissipated energy.\n")
 
         num = int(sys.argv[2])
 
