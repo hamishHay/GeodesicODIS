@@ -979,11 +979,6 @@ void Solver::DumpSolutions(int out_num, double time) {
 };
 
 void Solver::ReadInitialConditions(void) {
-  std::ifstream eastVel(consts->path + SEP + "InitialConditions" + SEP + "u_vel.txt", std::ifstream::in);
-  std::ifstream northVel(consts->path + SEP + "InitialConditions" + SEP + "v_vel.txt", std::ifstream::in);
-  std::ifstream displacement(consts->path + SEP + "InitialConditions" + SEP + "eta.txt", std::ifstream::in);
-  // std::ifstream ocean_thickness(consts->path + SEP + "InitialConditions" + SEP + "h.txt", std::ifstream::in);
-
   hid_t init_file = H5Fopen("InitialConditions/init.h5", H5F_ACC_RDONLY, H5P_DEFAULT);
 
   hid_t displacement_h5 = H5Dopen(init_file, "displacement", H5P_DEFAULT);
