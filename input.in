@@ -12,7 +12,7 @@ ocean thickness;                  1000.0;                        h;
 friction coefficient;             0.1;                           alpha;
 potential;                        ECC;                           potential;
 sh degree;                        2;                             spherical harmonic expansion;
-simulation end time;              5;                             endTime;
+simulation end time;              1;                             endTime;
 friction type;                    QUADRATIC;                     friction;
 time step;                        10;                            timeStep;
 latitude spacing;                 90;                           lat;

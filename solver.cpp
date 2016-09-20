@@ -932,9 +932,6 @@ void Solver::Explicit() {
       outCount++;
       DumpSolutions(1, timeStepCount);
       DumpFields(output);
-
-
-      // printf("TOTAL MASS: %f\n",energy->mass->totalMass);
     }
     iteration++;
 
@@ -1006,8 +1003,6 @@ void Solver::ReadInitialConditions(void) {
       depthArray[i][j] = h_thick;
 
     }
-  //if (i > depth->ReturnFieldLatLen() - 3) depthArray[i][j] = h_thick;
-  // std::cout<<depthArray[i][0]<<'\t'<<depth->lat[i]/radConv<<std::endl;
   }
 };
 
