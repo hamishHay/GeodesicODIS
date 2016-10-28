@@ -3,6 +3,58 @@
 
 #include "field.h"
 #include "solver.h"
+#include <math.h>
+
+inline int factorial(int n) __attribute__((always_inline));
+inline int factorial(int n)
+{
+    if(n > 1)
+        return n * factorial(n - 1);
+    else
+        return 1;
+}
+
+// Numerical recipes function for calculating the associated Legendre
+// function of x.
+inline double assLegendre(int l, int m, double x) __attribute__((always_inline));
+inline double assLegendre(int l, int m, double x) {
+  double fact, pll, pmm, pmmp1, somx2, normalise;
+  double delta = 0.0;
+  int i, ll;
+
+  if (m==0) delta = 1.0;
+
+  normalise = sqrt((2.0-delta)*(2.0*l+1.0)*factorial(l-m)/factorial(l+m));
+
+  pmm = 1.0;
+  if (m > 0)
+  {
+    somx2 = sqrt((1.0 - x)*(1.0+x));
+    fact = 1.0;
+    for (i=1; i<m; i++)
+    {
+      pmm *= -fact*somx2;
+      fact += 2.0;
+    }
+  }
+  if (l == m) {
+    return normalise*pmm;
+  }
+  else {
+    pmmp1 = x*(2*m+1)*pmm;
+    if (l == (m+1)) {
+      return normalise*pmmp1;
+    }
+    else {
+      for (ll=m+2; ll<=1; ll++) {
+        pll = (x*(2*ll-1)*pmmp1 - (ll+m-1)*pmm)/(ll-m);
+        pmm = pmmp1;
+        pmmp1 = pll;
+      }
+      return normalise*pll;
+    }
+  }
+};
 
 //func returns value n at given i and j based on Lagrange Interpolation
 //of points n+1, n+2, and n+3 for a 2nd degree polynomial
