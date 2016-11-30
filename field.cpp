@@ -74,6 +74,7 @@ Field::Field(Mesh *mesh, int latStagg, int lonStagg)
   sinLat = new double[fieldLatLen];
   cos2Lat = new double[fieldLatLen];
   sin2Lat = new double[fieldLatLen];
+  cosCoLat = new double[fieldLatLen];
   for (int i = 0; i < fieldLatLen; i++)
   {
     lat[i] *= radConv;
@@ -81,6 +82,7 @@ Field::Field(Mesh *mesh, int latStagg, int lonStagg)
     sinLat[i] = sin(lat[i]);
     cos2Lat[i] = cos(2*lat[i]);
     sin2Lat[i] = sin(2*lat[i]);
+    cosCoLat[i] = cos(pi*0.5 - lat[i]);
   }
 
   cosLon = new double[fieldLonLen];
@@ -94,6 +96,18 @@ Field::Field(Mesh *mesh, int latStagg, int lonStagg)
     cosLon[j] = cos(lon[j]);
     sin2Lon[j] = sin(2*lon[j]);
     cos2Lon[j] = cos(2*lon[j]);
+  }
+
+  cosMLon = new double * [mesh->globals->l_max.Value()+1];
+  sinMLon = new double * [mesh->globals->l_max.Value()+1];
+
+  for (int m = 0; m <= mesh->globals->l_max.Value(); m++) {
+    cosMLon[m] = new double[fieldLonLen];
+    sinMLon[m] = new double[fieldLonLen];
+    for (int j = 0; j < fieldLonLen; j++) {
+      cosMLon[m][j] = cos(m*lon[j]);
+      sinMLon[m][j] = sin(m*lon[j]);
+    }
   }
 
   dLat *= radConv;
