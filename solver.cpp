@@ -33,6 +33,7 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include "H5Cpp.h"
+#include <signal.h>
 
 #ifndef H5_NO_NAMESPACE
     using namespace H5;
@@ -41,6 +42,14 @@
 extern"C"
 {
     void extractshcoeff_(double *, int *, int *, double *);
+}
+
+int flag = 0;
+
+void CatchExit(int sig) {
+  printf("%s\n", "Caught Terminate Signal...");
+  flag = 1;
+  // DumpFields(output);
 }
 
 Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradLon, Field * UGradLat, Field * VelU, Field * VelV, Field * Eta, Energy * EnergyField, Depth * Depth_h) {
@@ -57,6 +66,8 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   v = VelV;
   eta = Eta;
   energy = EnergyField;
+
+  loading = false;
 
   // etaOld = new Field(grid,0,0);
   etaOld = eta;
@@ -136,6 +147,56 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 
   dt = consts->timeStep.Value();
 
+  etaLegendreArray = new double**[etaLatLen];
+  for (int i=0; i<etaLatLen; i++) {
+    etaLegendreArray[i] = new double*[l_max+1];
+    for (int l=0; l<l_max+1; l++) {
+      etaLegendreArray[i][l] = new double[l_max+1];
+      for (int m=0; m <= l; m++) {
+        etaLegendreArray[i][l][m] = assLegendre(l, m, etaNew->cosCoLat[i]);
+      }
+    }
+  }
+
+  etaCosMLon = new double*[etaLonLen];
+  etaSinMLon = new double*[etaLonLen];
+  for (int j=0; j<etaLonLen; j++) {
+    etaCosMLon[j] = new double[l_max+1];
+    etaSinMLon[j] = new double[l_max+1];
+    for (int m=0; m<l_max+1; m++){
+      etaCosMLon[j][m] = eta->cosMLon[m][j];
+      etaSinMLon[j][m] = eta->cosMLon[m][j];
+    }
+  }
+
+  loadK = new double[l_max+1];
+  loadH = new double[l_max+1];
+  gammaFactor = new double[l_max+1];
+  shPower = new double*[l_max+1];
+  lm_solve = new int*[l_max+1];
+  l_solve_len = l_max+1;
+
+  for (int l=0; l<l_max+1; l++) {
+    shPower[l] = new double[l_max+1];
+    lm_solve[l] = new int[2];
+  }
+
+
+
+
+  double mu_bar = 0.0;
+
+  for (int l=0; l<l_max+1; l++) {
+    mu_bar = 6.78e9/(1610.0*consts->g.Value()*consts->radius.Value());
+    mu_bar *= (double)(2*l*l + 4*l +3)/l;
+
+    loadK[l] = -1.0 / (1.0 + mu_bar);
+    loadH[l] = -1.0 / (1.0 + mu_bar) * (2*l + 1)/3.0;
+
+
+    gammaFactor[l] = 1.0 - (1 + loadK[l] - loadH[l]) * 3000.0 / ((2*l + 1) * 1610.0);
+
+  }
 
   cosMinusB = new double[dUlat->fieldLonLen];
   cosPlusB = new double[dUlat->fieldLonLen];
@@ -155,6 +216,8 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   }
 
   CreateHDF5FrameWork();
+
+  signal(SIGINT, CatchExit);
 
 };
 
@@ -473,7 +536,7 @@ inline void Solver::InterpPole(Field * field) {
 
 };
 
-inline void Solver::UpdateEastVel(){
+void Solver::UpdateEastVel(){
   double coriolis = 0;
   double tidalForce = 0;
 
@@ -481,6 +544,18 @@ inline void Solver::UpdateEastVel(){
   double surfHeight = 0;
   double eastEta = 0;
   double westEta = 0;
+
+  double oceanLoadingEast = 0.0;
+  double oceanLoadingWest = 0.0;
+  double oceanLoading = 0;
+  double legendre = 0.0;
+  double loadingFactorEast = 0.0;
+  double loadingFactorWest = 0.0;
+  // double gammaFactor = 0.0;
+  // double loadK = 0.0;
+  // double loadH = 0.0;
+  // double mu_bar = 0.0;
+
 
   double alpha = consts->alpha.Value();
   double angVel = consts->angVel.Value();
@@ -532,6 +607,9 @@ inline void Solver::UpdateEastVel(){
   double * uCosLat = uOld->cosLat;
   double * uSinLat = uOld->sinLat;
 
+  double g = consts->g.Value();
+  double r = consts->radius.Value();
+
 
   int i_h = 0;
   int j_h = 0;
@@ -556,7 +634,84 @@ inline void Solver::UpdateEastVel(){
       coriolis = coriolisFactor * vNEAvgArray[i][j];
       tidalForce = tidalFactor * dUlonArray[i][j];
 
-      uNewArray[i][j] = (coriolis - surfHeight + tidalForce - uDissArray[i][j])*dt + uOldArray[i][j];
+      oceanLoadingEast = 0.0;
+      oceanLoadingWest = 0.0;
+      legendre = 0.0;
+      loadingFactorEast = 0.0;
+      loadingFactorWest = 0.0;
+
+      // if (loading) {
+      //   for (int l=2; l < l_max+1; l++)
+      //   {
+      //       for (int m=0; m <= l; m++)
+      //       {
+      //         if (shPower[l][m] > 1e-5) {
+      //           if (j != uLonLen - 1) loadingFactorEast = etaCosMLon[j+1][m]*SH_cos_coeff[l][m] + etaSinMLon[j+1][m]*SH_sin_coeff[l][m];
+      //           else loadingFactorEast = etaCosMLon[j][m]*SH_cos_coeff[l][m] + etaSinMLon[j][m]*SH_sin_coeff[l][m];
+      //
+      //           loadingFactorWest = etaCosMLon[j][m]*SH_cos_coeff[l][m] + etaSinMLon[j][m]*SH_sin_coeff[l][m];
+      //
+      //           legendre = etaLegendreArray[i][l][m]; //assLegendre(l, m, etaNew->cosCoLat[i]);
+      //           oceanLoadingEast = oceanLoadingEast + loadingFactorEast*legendre;
+      //           oceanLoadingWest = oceanLoadingWest + loadingFactorWest*legendre;
+      //         }
+      //       }
+      //       oceanLoadingEast *= gammaFactor[l];
+      //       oceanLoadingWest *= gammaFactor[l];
+      //     }
+      //
+      //   oceanLoading = surfFactor*(oceanLoadingEast - oceanLoadingWest)/etadLon;
+      //
+      // }
+
+      int l=0;
+      int m=0;
+      int degree = 0;
+
+      if (loading) {
+        // std::cout << "HERE" << std::endl;
+        // std::cout << "HERE VEL EAST" << std::endl;
+        // degree_old = lm_solve[0][0];
+        for (int k=0; k<l_solve_len; k++){
+          degree = lm_solve[k][0];
+          // std::cout << "HERE" <<'\t'<<degree<< std::endl;
+          while (lm_solve[k][0] == degree){
+            l = lm_solve[k][0];
+            m = lm_solve[k][1];
+
+            // std::cout <<"l="<<l<<",m="<<m<< std::endl;
+
+
+            if (j != uLonLen - 1) loadingFactorEast = etaCosMLon[j+1][m]*SH_cos_coeff[l][m] + etaSinMLon[j+1][m]*SH_sin_coeff[l][m];
+            else loadingFactorEast = etaCosMLon[j][m]*SH_cos_coeff[l][m] + etaSinMLon[j][m]*SH_sin_coeff[l][m];
+
+            loadingFactorWest = etaCosMLon[j][m]*SH_cos_coeff[l][m] + etaSinMLon[j][m]*SH_sin_coeff[l][m];
+
+            legendre = etaLegendreArray[i][l][m]; //assLegendre(l, m, etaNew->cosCoLat[i]);
+            oceanLoadingEast = oceanLoadingEast + loadingFactorEast*legendre;
+            oceanLoadingWest = oceanLoadingWest + loadingFactorWest*legendre;
+
+            k++;
+            if (k >= l_solve_len) break;
+          }
+
+
+          oceanLoadingEast *= gammaFactor[l];
+          oceanLoadingWest *= gammaFactor[l];
+
+          // if (i >= l_solve_len) break;
+
+          k--;
+        }
+
+      }
+
+      oceanLoading = surfFactor*(oceanLoadingEast - oceanLoadingWest)/etadLon;
+
+
+      // oceanLoading = 0.0;
+
+      uNewArray[i][j] = (coriolis - surfHeight - oceanLoading + tidalForce - uDissArray[i][j])*dt + uOldArray[i][j];
     }
   }
 
@@ -585,7 +740,7 @@ inline void Solver::UpdateEastVel(){
 
 }
 
-inline void Solver::UpdateNorthVel(){
+int Solver::UpdateNorthVel(){
   double coriolis = 0;
   double tidalForce = 0;
   double dSurfLat = 0;
@@ -593,6 +748,20 @@ inline void Solver::UpdateNorthVel(){
 
   double northEta = 0;
   double southEta = 0;
+
+  double oceanLoadingNorth = 0.0;
+  double oceanLoadingSouth = 0.0;
+  double oceanLoading = 0;
+  double loadingFactor = 0.0;
+  double legendreNorth = 0.0;
+  double legendreSouth = 0.0;
+  // double gammaFactor = 0.0;
+  // double loadK = 0.0;
+  // double loadH = 0.0;
+  // double mu_bar = 6.78e9/(1610.0*consts->g.Value()*consts->radius.Value());
+
+  double g = consts->g.Value();
+  double r = consts->radius.Value();
 
   double alpha = consts->alpha.Value();
   double angVel = consts->angVel.Value();
@@ -644,6 +813,7 @@ inline void Solver::UpdateNorthVel(){
   for (int i = 0; i < vLatLen; i++) {
     coriolisFactor = 2. * angVel * v->sinLat[i];
     i_h = i*2;
+
     for (int j = 0; j < vLonLen; j++) {
       j_h = j*2;
 
@@ -658,14 +828,53 @@ inline void Solver::UpdateNorthVel(){
 
       tidalForce = loveRadius * dUlatArray[i][j];
 
-      vNewArray[i][j] = (-coriolis - surfHeight + tidalForce - vDissArray[i][j])*dt + vOldArray[i][j];
+      int l=0;
+      int m=0;
+      int degree = 0;
+
+      if (loading) {
+        for (int k=0; k<l_solve_len; k++){
+          degree = lm_solve[k][0];
+
+          while (lm_solve[k][0] == degree){
+            // std::cout << "HERE" << std::endl;
+            l = lm_solve[k][0];
+            m = lm_solve[k][1];
+
+            loadingFactor = etaCosMLon[j][m]*SH_cos_coeff[l][m] + etaSinMLon[j][m]*SH_sin_coeff[l][m];
+
+            oceanLoadingNorth = oceanLoadingNorth + loadingFactor*etaLegendreArray[i][l][m];
+            oceanLoadingSouth = oceanLoadingSouth + loadingFactor*etaLegendreArray[i+1][l][m];
+
+            k++;
+
+            if (k >= l_solve_len) break;
+
+          }
+
+          oceanLoadingNorth *= gammaFactor[l];
+          oceanLoadingSouth *= gammaFactor[l];
+
+
+          k--;
+        }
+        // std::cout << "HERE" << std::endl;
+      }
+
+
+      oceanLoading = gRadius*(oceanLoadingNorth - oceanLoadingSouth)/etadLat;
+
+      // oceanLoading = 0.0;
+
+      vNewArray[i][j] = (-coriolis - surfHeight - oceanLoading + tidalForce - vDissArray[i][j])*dt + vOldArray[i][j];
+
 
     }
   }
 
 }
 
-inline void Solver::UpdateSurfaceHeight(){
+void Solver::UpdateSurfaceHeight(){
   double vGrad = 0;
   double uGrad = 0;
   double northv = 0;
@@ -792,7 +1001,7 @@ inline void Solver::InterpSurfaceHeight() {
   }
 }
 
-inline void Solver::ExtractSHCoeff(void) {
+int Solver::ExtractSHCoeff(void) {
   double * fort_array;
   double * fort_harm_coeff;
 
@@ -810,11 +1019,18 @@ inline void Solver::ExtractSHCoeff(void) {
   for (int j = 0; j<j_len; j++) {
     for (int i = 0; i<i_len; i++) {
       fort_array[count] = etaNewArray[i][j];
+      if (etaNewArray[i][j] != etaNewArray[i][j]) {
+        std::cout << "NAN" << std::endl;
+        flag = true;
+        return 0;
+      }
       count++;
     }
   }
 
   extractshcoeff_(fort_array, &i_len, &l_max, fort_harm_coeff);
+
+  int count_l = 0;
 
   count = 0;
   for (int j=0; j<l_max+1; j++) {
@@ -825,12 +1041,50 @@ inline void Solver::ExtractSHCoeff(void) {
     }
   }
 
+  count = 0;
+  for (int l=2; l<l_max+1; l++) {
+    // shPower[l] = 0;
+    for (int m=0; m<=l; m++) {
+      shPower[l][m] = SH_cos_coeff[l][m]*SH_cos_coeff[l][m] + SH_sin_coeff[l][m]*SH_sin_coeff[l][m];
+      // std::cout << shPower[l][m] << '\t';
+      if (shPower[l][m] > 1e-5) {
+        // std::cout << l << std::endl;
+        count++;
+      }
+      // if (shPower[l][m] != shPower[l][m]) std::cout << "NAN AT FORT ARRAY" << std::endl;
+    }
+    // std::cout << std::endl;
+  }
+
+
+  for (int i=0; i<l_solve_len; i++) {
+    delete[] lm_solve[i];
+  }
+  delete[] lm_solve;
+
+  l_solve_len = count;
+  lm_solve = new int*[l_solve_len];
+  for (int i=0; i<l_solve_len; i++) {
+    lm_solve[i] = new int[2];
+  }
+
+  count = 0;
+  for (int l=2; l<l_max+1; l++) {
+    for (int m=0; m<=l; m++) {
+      if (shPower[l][m] > 1e-5) {
+        lm_solve[count][0] = l;
+        lm_solve[count][1] = m;
+        count++;
+      }
+    }
+  }
+
   delete[] fort_array;
   delete[] fort_harm_coeff;
 
 }
 
-void Solver::Explicit() {
+int Solver::Explicit() {
   InitialConditions();
 
   //Check for stability
@@ -844,7 +1098,7 @@ void Solver::Explicit() {
   double timeStepCount = 0;
   int inc = (int) (consts->period.Value()/dt);
 
-  DumpSolutions(-1,timeStepCount);
+  // DumpSolutions(-1,timeStepCount);
 
   energy->mass->UpdateMass();
 
@@ -853,7 +1107,13 @@ void Solver::Explicit() {
 
   // energy->UpdateDtKinEAvg();
 
+  // loading = true;
+
   while (simulationTime <= consts->endTime.Value() && !energy->converged) {
+
+    if (flag) {
+      return -1;
+    }
 
     timeStepCount+=dt;
     outputCount+=dt;
@@ -871,8 +1131,17 @@ void Solver::Explicit() {
     //Solve for eta based on new u and v
     UpdateSurfaceHeight();
 
+
+    if (!loading) {
+      if (simulationTime > 0.2*consts->endTime.Value()) {
+        printf("Kicking in ocean loading\n");
+        loading = true;
+      }
+    }
+
     //Call SHTOOLS to find spherical harmonic expansion of etaNew.
-    ExtractSHCoeff();
+    if (loading) ExtractSHCoeff();
+    // ExtractSHCoeff();
 
     for (int i = 0; i < vLatLen; i++) {
       for (int j = 0; j < vLonLen; j++) {
@@ -918,26 +1187,31 @@ void Solver::Explicit() {
 
       output++;
       outCount++;
-      DumpSolutions(-2, timeStepCount);
+
+      // DumpSolutions(-2, timeStepCount);
       outCount = 1;
 
       energy->timePos = 0; //Reset time position after energy data output
 
-      DumpFields(output);
+      // printf("%.5f\n",simulationTime);
+      // std::cout << energy->converged << std::endl;
 
+      DumpFields(output);
     }
     else if (timeStepCount >= consts->period.Value()*consts->outputTime.Value()*outCount) {
       output++;
       printf("TIME: %f\n", timeStepCount);
       outCount++;
-      DumpSolutions(1, timeStepCount);
+
+      // DumpSolutions(1, timeStepCount);
       DumpFields(output);
+
     }
     iteration++;
 
   }
 
-  //deallocate memory assigned to temporary fields
+  // deallocate memory assigned to temporary fields
   delete etaNew;
   delete uNew;
   delete vNew;
@@ -946,7 +1220,13 @@ void Solver::Explicit() {
   outstring << "Total iterations: \t" << iteration;
   Out->Write(OUT_MESSAGE, &outstring);
 
+  return 1;
+
 };
+//
+// void Solver::CatchExit(int sig, int output) {
+//
+// };
 
 void Solver::DumpSolutions(int out_num, double time) {
 
@@ -979,31 +1259,31 @@ void Solver::DumpSolutions(int out_num, double time) {
 };
 
 void Solver::ReadInitialConditions(void) {
-  hid_t init_file = H5Fopen("InitialConditions/init.h5", H5F_ACC_RDONLY, H5P_DEFAULT);
-
-  hid_t displacement_h5 = H5Dopen(init_file, "displacement", H5P_DEFAULT);
-  hid_t northVel_h5 = H5Dopen(init_file, "north velocity", H5P_DEFAULT);
-  hid_t eastVel_h5 = H5Dopen(init_file, "east velocity", H5P_DEFAULT);
-
-  H5Dread(displacement_h5, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, eta_1D);
-  H5Dread(northVel_h5, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, v_1D);
-  H5Dread(eastVel_h5, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, u_1D);
+  // hid_t init_file = H5Fopen("InitialConditions/init.h5", H5F_ACC_RDONLY, H5P_DEFAULT);
+  //
+  // hid_t displacement_h5 = H5Dopen(init_file, "displacement", H5P_DEFAULT);
+  // hid_t northVel_h5 = H5Dopen(init_file, "north velocity", H5P_DEFAULT);
+  // hid_t eastVel_h5 = H5Dopen(init_file, "east velocity", H5P_DEFAULT);
+  //
+  // H5Dread(displacement_h5, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, eta_1D);
+  // H5Dread(northVel_h5, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, v_1D);
+  // H5Dread(eastVel_h5, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, u_1D);
 
   for (int i=0; i< etaLatLen; i++) {
     for (int j=0; j<etaLonLen; j++) {
-        etaOldArray[i][j] = eta_1D[i*etaLonLen + j];
+        etaOldArray[i][j] = 0.0;//eta_1D[i*etaLonLen + j];
     }
   }
 
   for (int i=0; i< vLatLen; i++) {
     for (int j=0; j<vLonLen; j++) {
-        vOldArray[i][j] = v_1D[i*vLonLen + j];
+        vOldArray[i][j] = 0.0;//v_1D[i*vLonLen + j];
     }
   }
 
   for (int i=0; i< uLatLen; i++) {
     for (int j=0; j<uLonLen; j++) {
-        uOldArray[i][j] = u_1D[i*uLonLen + j];
+        uOldArray[i][j] = 0.0;//u_1D[i*uLonLen + j];
     }
   }
 
@@ -1160,12 +1440,10 @@ void Solver::DumpFields(int output_num) {
 
   // ----------------------- Write SH coefficients ------------------------
   if (consts->sh_coeff_output.Value()) {
-
     H5Sselect_hyperslab(data_space_harm_coeff, H5S_SELECT_SET, start_harm, NULL, count_harm, NULL);
 
     H5Dwrite(data_set_harm_coeff, H5T_NATIVE_FLOAT, mem_space_harm_coeff, data_space_harm_coeff, H5P_DEFAULT, harm_coeff_1D);
   }
-
 };
 
 void Solver::CreateHDF5FrameWork(void) {
@@ -1296,7 +1574,7 @@ void Solver::CreateHDF5FrameWork(void) {
 
     if (consts->sh_coeff_output.Value()) {
       data_space_harm_coeff = H5Screate_simple(rank_harm, max_dims_harm_coeff, NULL);
-      data_set_harm_coeff = H5Dcreate(file, "SH coefficients", H5T_NATIVE_FLOAT, data_space_harm_coeff, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+      data_set_harm_coeff = H5Dcreate(file, "sh coefficients", H5T_NATIVE_FLOAT, data_space_harm_coeff, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
       mem_space_harm_coeff = H5Screate_simple(rank_harm, dims_harm_coeff, NULL);
     }
 
@@ -1399,5 +1677,12 @@ void Solver::CreateHDF5FrameWork(void) {
 
       H5Awrite(attr, H5T_NATIVE_FLOAT, data_set_dx);
     }
+
+    // delete start;
+    // delete count;
+    // delete start_1D;
+    // delete count_1D;
+    // delete start_harm;
+    // delete count_harm;
 
 }

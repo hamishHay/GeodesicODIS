@@ -10,6 +10,8 @@
 
 #include "H5Cpp.h"
 
+#include <signal.h>
+
 #ifndef H5_NO_NAMESPACE
     using namespace H5;
 #endif
@@ -37,6 +39,7 @@ public:
 	int convergeMax = 5;
 	int output = 0;
 	double outputCount = 0.;
+  bool loading;
 
 	double dt;
 
@@ -80,6 +83,9 @@ public:
 	double ** etaVAvgArray;
 	double ** etaUAvgArray;
 	double ** etaInterpArray;
+  double *** etaLegendreArray;
+  double ** etaCosMLon;
+  double ** etaSinMLon;
 
 	double ** depthArray;
 
@@ -127,6 +133,14 @@ public:
 	double ** SH_cos_coeff;
 	double ** SH_sin_coeff;
 
+  double * loadK;
+  double * loadH;
+  double * gammaFactor;
+  double ** shPower;
+  int ** lm_solve;
+  int l_solve_len;
+  int * m_solve_len;
+
 	int l_max;
 
 	Solver(int type, int dump, Globals *, Mesh *, Field *, Field*, Field *, Field *, Field *, Energy *, Depth *);
@@ -135,17 +149,17 @@ public:
 
 	int InitialConditions(void);
 
-	void Explicit();
+	int Explicit();
 	void Implicit();
 	void CrankNicolson();
 
 	inline void UpdatePotential() __attribute__((always_inline));
-	inline void UpdateEastVel() __attribute__((always_inline));
-	inline void UpdateNorthVel() __attribute__((always_inline));
-	inline void UpdateSurfaceHeight() __attribute__((always_inline));
+	void UpdateEastVel();
+	int UpdateNorthVel();
+	void UpdateSurfaceHeight();
 	inline void InterpSurfaceHeight() __attribute__((always_inline));
 
-	inline void ExtractSHCoeff() __attribute__((always_inline));
+	int ExtractSHCoeff();
 
 	void InterpPole(Field * Field);
 
@@ -153,6 +167,8 @@ public:
 	void DumpFields(int output_num);
 
   void CreateHDF5FrameWork(void);
+
+  // void CatchExit(int sig, int output);
 
   //------------------------Objects for HDF5 Storage----------------------------
 
