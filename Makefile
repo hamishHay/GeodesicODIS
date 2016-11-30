@@ -6,11 +6,11 @@ HOME=/usr/local
 
 #-I/usr/local/hdf5/include -lhdf5 -L/usr/local/hdf5/lib
 
-CFLAGS= -Ofast -c -Wall  -std=c++11 -L/usr/local/hdf5/lib -I/usr/local/hdf5/include -lhdf5 -lhdf5_cpp
+CFLAGS= -O2 -c -Wall  -std=c++11 -L/usr/local/hdf5/lib -I/usr/local/hdf5/include -lhdf5 -lhdf5_cpp
 
 CLINK = -L/usr/local/hdf5/lib -I/usr/local/hdf5/include -lhdf5 -lhdf5_cpp
 
-FFLAGS= -c -I/source/SHTOOLS/modules  -m64 -fPIC -O3 -ffast-math -L/source/SHTOOLS/lib -lSHTOOLS -L/usr/local/lib -lfftw3 -lm -llapack -lblas
+FFLAGS= -c -I/source/SHTOOLS/modules  -m64 -fPIC -O2 -ffast-math -L/source/SHTOOLS/lib -lSHTOOLS -L/usr/local/lib -lfftw3 -lm -llapack -lblas
 
 FLINK = -lgfortran -L/source/SHTOOLS/lib -lSHTOOLS -L/usr/local/lib -lfftw3
 

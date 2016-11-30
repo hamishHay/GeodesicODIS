@@ -51,6 +51,7 @@ private:
 
 public:
   // Class containing functions to output errors and messages, or terminate ODIS.
+
   OutFiles Output;
 
   // Vector to store a 'list' of all global constants.
