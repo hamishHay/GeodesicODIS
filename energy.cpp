@@ -28,6 +28,8 @@ Energy::Energy(Mesh * mesh, int lat, int lon, Globals * Consts, Field * UVel, Fi
 	dtKinEAvg = new double[totalSize+1];
 	dtDissEAvg = new double[totalSize+1];
 
+  currentDissEAvg = 0;
+
 	orbitDissEAvg[1] = 0;
 	orbitDissEAvg[0] = 0;
 
@@ -81,6 +83,8 @@ void Energy::UpdateDtDissEAvg(void) {
 	default:
 		consts->Output.TerminateODIS();
 	}
+
+  currentDissEAvg = dtDissEAvg[timePos];
 
 	timePos ++;
 };

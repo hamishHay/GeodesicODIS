@@ -3,6 +3,122 @@
 
 #include "field.h"
 #include "solver.h"
+#include <math.h>
+
+inline double gamm1n(double xx);
+inline double gamm1n(double xx) {
+  double x,y,tmp,ser;
+  static double cof[6]={76.18009172947146,
+                        -86.50532032941677,
+                        24.01409824083091,
+                        -1.231739572450155,
+                        0.1208650973866179e-2,
+                        -0.5395239384953e-5};
+  int j;
+
+  y=x=xx;
+  tmp=x+5.5;
+  tmp -= (x+0.5)*log(tmp);
+  ser=1.000000000190015;
+  for (j=0;j<=5;j++) ser += cof[j]/++y;
+  return -tmp+log(2.5066282746310005*ser/x);
+}
+
+inline double factrl(int n)
+{
+  double gammln(float xx);
+
+  static int ntop=4;
+  static float a[33]={1.0,
+                      1.0,
+                      2.0,
+                      6.0,
+                      24.0,
+                      120.0,
+                      720.0,
+                      5040.0,
+                      40320.0,
+                      362880.0,
+                      3628800.0,
+                      39916800.0,
+                      479001600.0,
+                      6227020800.0,
+                      87178291200.0,
+                      1307674368000.0,
+                      20922789888000.0,
+                      355687428096000.0,
+                      6402373705728000.0,
+                      1.21645100408832e+17,
+                      2.43290200817664e+18,
+                      5.109094217170944e+19,
+                      1.1240007277776077e+21,
+                      2.585201673888498e+22,
+                      6.204484017332394e+23,
+                      1.5511210043330984e+25,
+                      4.032914611266057e+26,
+                      1.0888869450418352e+28,
+                      3.048883446117138e+29,
+                      8.841761993739701e+30,
+                      2.652528598121911e+32,
+                      8.222838654177924e+33,
+                      2.6313083693369355e+35};
+
+  int j;
+
+  if (n > 32) return exp(gamm1n(n+1.0));
+  // while (ntop<n) {
+  //   j=ntop++;
+  //   a[ntop]=a[j]*ntop;
+  // }
+  return a[n];
+}
+
+// Numerical recipes function for calculating the associated Legendre
+// function of x.
+inline double assLegendre(int l, int m, double x) __attribute__((always_inline));
+inline double assLegendre(int l, int m, double x) {
+  double fact, pll, pmm, pmmp1, somx2, normalise;
+  double delta = 0.0;
+  int i, ll;
+
+  if (m==0) delta = 1.0;
+
+
+  normalise = sqrt((2.0-delta)*(2.0*l+1.0)*factrl(l-m)/factrl(l+m));
+
+  // if (m%2 != 0) normalise = -normalise;
+
+  // std::cout<<"l="<<l<<" m="<<m<<" norm="<<factrl(l-m)/factrl(l+m)<<std::endl;
+
+  pmm = 1.0;
+  if (m > 0)
+  {
+    somx2 = sqrt((1.0 - x)*(1.0+x));
+    fact = 1.0;
+    for (i=1; i<=m; i++)
+    {
+      pmm *= -fact*somx2;
+      fact += 2.0;
+    }
+  }
+  if (l == m) {
+    return normalise*pmm;
+  }
+  else {
+    pmmp1 = x*(2*m+1)*pmm;
+    if (l == (m+1)) {
+      return normalise*pmmp1;
+    }
+    else {
+      for (ll=m+2; ll<=1; ll++) {
+        pll = (x*(2*ll-1)*pmmp1 - (ll+m-1)*pmm)/(ll-m);
+        pmm = pmmp1;
+        pmmp1 = pll;
+      }
+      return normalise*pll;
+    }
+  }
+};
 
 //func returns value n at given i and j based on Lagrange Interpolation
 //of points n+1, n+2, and n+3 for a 2nd degree polynomial

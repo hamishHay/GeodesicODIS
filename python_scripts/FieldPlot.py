@@ -9,6 +9,7 @@ import scipy as sc
 from scipy.interpolate import interp2d
 import os
 import sys
+import h5py
 
 class ODISPlot:
     def __init__(self,orbitnum=0,figdim=(1,2),figsize=(10,3),saveName="ODISPLOT"):
@@ -17,8 +18,8 @@ class ODISPlot:
         plt.rc('font',serif='Palatino')
         # for Palatino and other serif fonts use:
         # rc('font',**{'family':'serif','serif':['Palatino']})
-        #plt.rc('text', usetex=True)
-        #plt.rc('text.latex',preamble='\\usepackage{siunitx}')
+        plt.rc('text', usetex=True)
+        plt.rc('text.latex',preamble='\\usepackage{siunitx}')
 
         # Set matplotlib rc options
         plt.rcParams['axes.linewidth'] = 0.8
@@ -75,7 +76,10 @@ class ODISPlot:
 
         name = ["/EastVelocity/u_vel_"+orbitnum+".txt", "/NorthVelocity/v_vel_"+orbitnum+".txt", "/Displacement/eta_"+orbitnum+".txt", "/Energy/diss_"+orbitnum+".txt"]
 
+        in_file = h5py.File("DATA/data.h5", 'r')
+
         if field=="displacement":
+            self.data = np.array(in_file["displacement"][self.orbit][:][:])
             name = name[2]
             self.caxisLabel = "Dispclacement, $\\eta$ (m)"
         elif field=="north_vel":
@@ -91,19 +95,11 @@ class ODISPlot:
             print("Field " + field + "not recognised. Exiting.")
             sys.exit()
 
-        path = directory + name
-        self.data = []
-        if os.path.exists(path):
-            print("Retrieving data from:", path)
-            # init = open(path,'r')
-            # lines = init.readlines()
-            # init.close()
-            #
-            # for line in lines:
-            #     line = line.split('\t')
-            #     self.data.append([float(j) for j in line[:-1]])
-            # self.data = np.array(self.data)
-            self.data = np.loadtxt(path)
+        self.data_eta = np.array(in_file["displacement"][self.orbit])
+        self.data_u = np.array(in_file["east velocity"][self.orbit])
+        self.data_v = np.array(in_file["north velocity"][self.orbit])
+
+        self.data = self.data_eta
 
         self.x = np.linspace(0,360,len(self.data[0]))
         self.y = np.linspace(90,-90,len(self.data))
@@ -111,9 +107,10 @@ class ODISPlot:
         return self.data
 
     def ReadDissipationData(self,directory = os.getcwd()):
-        self.diss = np.loadtxt(directory) # In Watts
-        # self.diss *= 1e3 # Convert to mWatts
-        self.resid = abs(self.diss[1:]-self.diss[:-1])*1e-3
+        in_file = h5py.File("DATA/data.h5", 'r')
+
+        self.diss = np.array(in_file["dissipated energy avg"])
+
         return self.diss
 
     def PlotField(self,data=[],cformat=2,cticks=[]):
@@ -135,9 +132,12 @@ class ODISPlot:
         self.loadFieldColourOptions(c1,ax,cticks)
 
 
-    def PlotVelocity(self,u,v,cformat=3,scale=1/0.02,cticks=[]):
+    def PlotVelocity(self,cformat=3,scale=1/0.02,cticks=[]):
         self.currentFig += 1
         self.caxisLabel = "Velocity, $\\left|\\mathbf{u}\\right|$ (\\si{\\metre\\per\\second})"
+
+        u = self.data_u
+        v = self.data_v
 
         u=u[:-1][:]
 
@@ -164,8 +164,6 @@ class ODISPlot:
         u = np.flipud(u)
         v = np.flipud(v)
 
-        # scale = 1/(0.001*np.amax(mag))
-
         ax.quiver(x,y,u,v,width=0.002,headwidth=3,scale=scale)
 
         divider = make_axes_locatable(ax)
@@ -180,43 +178,12 @@ class ODISPlot:
 
         norm = 100
 
-        orbits = np.linspace(0,len(self.diss)+1,len(extra_diss))
-        orbitst = np.linspace(0,len(self.diss),len(self.diss))
+        factor = 0.01
+
+        orbits = np.linspace(0,len(self.diss)*factor,len(self.diss))
 
         ax = self.fig.add_subplot(self.figDim[0],self.figDim[1],self.currentFig)
-        p1 = ax.plot(orbitst+0.5,self.diss,'k+',linewidth=0.8)
-        p1 = ax.plot(orbitst+0.5,self.diss,'k--',linewidth=0.8,dashes=(5,5),label='Time Averaged Dissipation')
-
-        if len(extra_diss)!=0:
-            orbits_new = np.linspace(0,len(extra_diss)-1,len(extra_diss))
-
-            plt.hold('on')
-            p3 = ax.plot(orbits,extra_diss,color='r',linewidth=0.6,label='Instantaneous Dissipation')
-
-        p1 = ax.plot(orbitst+0.5,self.diss,'k+',linewidth=0.8)
-        p1 = ax.plot(orbitst+0.5,self.diss,'k--',linewidth=0.8,dashes=(5,5),label='Time Averaged Dissipation')
-
-        # import scipy.fftpack
-        # from scipy.interpolate import UnivariateSpline
-        #
-        # w = scipy.fftpack.rfft(extra_diss)
-        # spectrum = w**2
-        #
-        # cutoff_idx = spectrum < (spectrum.max()/200)
-        # w2 = w.copy()
-        # w2[cutoff_idx] = 0
-        # # w2[0] = 0
-        # extra_diss = scipy.fftpack.irfft(w2)
-
-        # sprange = np.linspace(0,len(self.diss),len(self.diss)*100)
-        # sp = UnivariateSpline(orbits,extra_diss,s=4.5e-4)
-        # sp = UnivariateSpline(orbitst,self.diss,s=8e-8)
-
-        # plt.plot(sprange+0.5,sp(sprange))
-        # plt.show()
-        # plt.close()
-
-        # p4 = ax.plot(sprange+0.5,sp(sprange),color='b',linewidth=0.6,label='Spline Fit')
+        p1 = ax.plot(orbits,self.diss,'-',linewidth=0.8, label="Instantaneous dissipated energy")
 
         ax.set_xlim([min(orbits),max(orbits)])
 
@@ -232,106 +199,6 @@ class ODISPlot:
             label.set_fontsize(10)
         for label in legend.get_lines():
             label.set_linewidth(0.8)
-
-
-    def PlotTimeDissipation(self,potential='ECC'):
-        ### DEFINE PARAMTERS
-
-        omega = 5.31e-5
-        a = 238.04e6
-        r = 252.1e3
-        e = 0.0047
-        theta = 0.00014
-        surf = 4 * np.pi * r**2
-        g = 0.11
-
-        M = 1.08e20
-
-        G = 6.67e-11
-
-        GM = G*M
-
-
-        period = 2*np.pi/omega
-
-        dt = 1000
-
-        t = np.linspace(0,period,period/dt)
-
-        xn = 361
-        yn = 181
-        U = np.zeros((xn,yn))
-        lat = np.linspace(90,-90,xn)
-        lon = np.linspace(0,360,yn)
-
-        xx,yy = np.meshgrid(lon,lat)
-
-        xx = np.deg2rad(xx)
-        yy = np.deg2rad(yy)
-
-        lat = np.deg2rad(lat)
-        lon = np.deg2rad(lon)
-        E0 = np.zeros(period/dt)
-
-        area = U
-
-        print(t)
-        print(period)
-
-        dlon = lon[1]-lon[0]
-
-        area[0][:] = 0
-        area[-1][:] = 0
-        for i in range(len(lon)):
-            for j in range(1,len(lat)-1):
-                area[j][i] = -r**2 * (np.sin(lat[j+1]) - np.sin(lat[j])) * (dlon)
-
-        # print(area)
-
-        if potential=="ECC":
-            for i in range(len(t)):
-                U = omega**2 * r**2 * e * \
-                    (-0.75 * (3*np.sin(yy)**2 - 1)*np.cos(omega*t[i]) \
-                    + 3./8 * np.cos(yy)**2 * (7*np.cos(2*xx-omega*t[i]) - \
-                    np.cos(2*xx+omega*t[i])))
-
-                nEq = U * r**2 / (GM)
-
-                # print(nEq)
-
-                F = 0.5 * 1000 * g * nEq**2
-
-                for x in range(len(lon)):
-                    for y in range(len(lat)):
-                        F[y][x] = F[y][x] * area[y][x]
-                        # print(F[y][x])
-
-                E0[i] = np.mean(F/surf)
-
-        A=2*np.pi * max(E0)*surf*period
-        B=2*np.sum(self.diss)*1e-5*surf*15 #dt =15
-
-        Q = A/B
-        print(Q)
-        # plt.pcolormesh(area[1:-2][:])
-        # plt.colorbar()
-        plt.plot(t/period,E0,label='Equilibrium Tide')
-        plt.hold('on')
-
-        tn = np.linspace(0,1,len(self.diss))
-
-        plt.plot(tn,2*self.diss*1e-5,label='Dissipating Tide')
-        plt.ylim([0,0.16])
-        plt.legend()
-
-        plt.ylabel('Dissipated Energy (W m$^-2$)')
-        plt.xlabel('$t/T$')
-        plt.show()
-
-
-
-        print(E0[1])
-        print(self.diss[1])
 
 
     def SetSuperTitle(self, title):
@@ -351,7 +218,7 @@ if __name__=="__main__":
 
     if option == 1:
 
-        print("Option " + str(option) + "selected: Plotting displacement and velocity.\n")
+        print("Option " + str(option) + " selected: Plotting displacement and velocity.\n")
 
         num = int(sys.argv[2])
 
@@ -363,7 +230,7 @@ if __name__=="__main__":
         data_v = ODIS.ReadFieldData("north_vel")
         data_u = ODIS.ReadFieldData("east_vel")
 
-        ODIS.PlotVelocity(data_u,data_v,cformat=2,scale=1/0.1,cticks=[])
+        ODIS.PlotVelocity(cformat=2,scale=1/0.1,cticks=[])
 
         ODIS.SetSuperTitle("Test")
 
@@ -373,20 +240,13 @@ if __name__=="__main__":
 
     elif option == 2:
 
-        print("Option " + str(option) + "selected: Plotting dissipation over time.\n")
+        print("Option " + str(option) + " selected: Plotting dissipation over time.\n")
 
         ODIS = ODISPlot(orbitnum=0,figdim=(1,1),figsize=(10,5),saveName="Dissipation")
 
-        # n = ODIS.ReadDissipationData("/source/ODIS_dev/ODIS/Energy/kinetic_energy.txt")
-        #
-        # ODIS.ReadDissipationData("/source/ODIS_dev/ODIS/Energy/kinetic_energy_orb_avg.txt")
+        ODIS.ReadDissipationData(os.getcwd() + "/Energy/diss_energy.txt")
 
-        n = ODIS.ReadDissipationData(os.getcwd() + "/Energy/diss_energy.txt")
-
-        ODIS.ReadDissipationData(os.getcwd() + "/Energy/diss_energy_orb_avg.txt")
-
-        #plt.hold('on')
-        ODIS.PlotDissipation(extra_diss=n)
+        ODIS.PlotDissipation()
 
         ODIS.ShowFig()
 
@@ -394,13 +254,13 @@ if __name__=="__main__":
 
     elif option == 3:
 
-        print("Option " + str(option) + "selected: Plotting velocity.\n")
+        print("Option " + str(option) + " selected: Plotting velocity.\n")
 
         num = int(sys.argv[2])
 
         ODIS = ODISPlot(orbitnum=num,figdim=(1,2),figsize=(10,3),saveName="Test")
 
-        data_v = ODIS.ReadFieldData("north_vel")
+        ODIS.ReadFieldData("north_vel")
         ODIS.PlotField(cticks = [])
         data_u = ODIS.ReadFieldData("east_vel")
         ODIS.PlotField(cticks = [])
@@ -413,7 +273,7 @@ if __name__=="__main__":
 
     elif option == 4:
 
-        print("Option " + str(option) + "selected: Plotting displacement and dissipated energy.\n")
+        print("Option " + str(option) + " selected: Plotting displacement and dissipated energy.\n")
 
         num = int(sys.argv[2])
 
@@ -431,24 +291,6 @@ if __name__=="__main__":
         ODIS.SetSuperTitle("Test")
 
         ODIS.ShowFig()
-
-
-    elif option == 5:
-
-        print("Option " + str(option) + "selected: Plotting dissipation over time.\n")
-
-        ODIS = ODISPlot(orbitnum=0,figdim=(1,1),figsize=(6,5),saveName="obliq_diss")
-
-        ODIS.ReadDissipationData()
-
-        # ODIS.ReadDissipationData("/data/hamish/OBLIQ_high_res_linear/h1000.0_alpha1e-08/test_highres")
-
-        #plt.hold('on')
-        ODIS.PlotTimeDissipation()
-
-        # ODIS.ShowFig()
-
-        ODIS.SaveFig()
 
 
     else:

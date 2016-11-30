@@ -38,6 +38,9 @@ public:
   double * sinLon;
   double * cos2Lon;
   double * sin2Lon;
+  double * cosCoLat;
+  double ** cosMLon;
+  double ** sinMLon;
 
   // node spacing
   double dLat;

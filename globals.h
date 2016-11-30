@@ -51,6 +51,7 @@ private:
 
 public:
   // Class containing functions to output errors and messages, or terminate ODIS.
+
   OutFiles Output;
 
   // Vector to store a 'list' of all global constants.
@@ -96,6 +97,11 @@ public:
   GlobalVar<bool> diss; // dissipated energy
   GlobalVar<bool> kinetic; // kinetic energy
   GlobalVar<bool> work; // work flux - currently not implemented.
+
+  GlobalVar<bool> field_displacement_output;
+  GlobalVar<bool> field_velocity_output;
+  GlobalVar<bool> field_diss_output;
+  GlobalVar<bool> sh_coeff_output;
 
   // Time in fraction of orbital period for output of all parameters
   GlobalVar<double> outputTime;

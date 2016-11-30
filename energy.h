@@ -49,6 +49,8 @@ public:
 	double orbitKinEAvg;
 	double orbitDissEAvg[2];
 
+  double currentDissEAvg;
+
 
 	std::vector<double> derivative;
 	std::vector<double> minima;

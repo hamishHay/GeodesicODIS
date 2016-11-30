@@ -4,11 +4,13 @@ F = gfortran-6
 
 HOME=/usr/local
 
-#-I/usr/local/hdf5/include -lhdf5
+#-I/usr/local/hdf5/include -lhdf5 -L/usr/local/hdf5/lib
 
-CFLAGS= -Ofast -c -Wall  -std=c++11
+CFLAGS= -O2 -c -Wall  -std=c++11 -L/usr/local/hdf5/lib -I/usr/local/hdf5/include -lhdf5 -lhdf5_cpp
 
-FFLAGS= -c -I/source/SHTOOLS/modules -m64 -fPIC -O3 -ffast-math -L/source/SHTOOLS/lib -lSHTOOLS -L/usr/local/lib -lfftw3 -lm -llapack -lblas
+CLINK = -L/usr/local/hdf5/lib -I/usr/local/hdf5/include -lhdf5 -lhdf5_cpp
+
+FFLAGS= -c -I/source/SHTOOLS/modules  -m64 -fPIC -O2 -ffast-math -L/source/SHTOOLS/lib -lSHTOOLS -L/usr/local/lib -lfftw3 -lm -llapack -lblas
 
 FLINK = -lgfortran -L/source/SHTOOLS/lib -lSHTOOLS -L/usr/local/lib -lfftw3
 
@@ -18,7 +20,7 @@ BUILDDIR = /source/build/
 all: ODIS
 
 ODIS: extractSHCoeff.o main.o mathRoutines.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o solver.o
-	$(CC) extractSHCoeff.o $(FLINK)  main.o mathRoutines.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o solver.o -o ODIS -lgfortran
+	$(CC) extractSHCoeff.o $(FLINK) main.o mathRoutines.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o solver.o -o ODIS -lgfortran $(CLINK)
 
 extractSHCoeff.o: extractSHCoeff.f95
 	$(F) $(FFLAGS) extractSHCoeff.f95
@@ -51,7 +53,7 @@ energy.o: energy.cpp
 	$(CC) $(CFLAGS) energy.cpp
 
 solver.o: solver.cpp
-	$(CC) $(CFLAGS) solver.cpp
+	$(CC)  $(CFLAGS) $(CLINK) solver.cpp
 
 clean:
 	rm -r *o ODIS NorthVelocity EastVelocity Displacement Grid Energy

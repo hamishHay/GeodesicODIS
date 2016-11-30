@@ -125,7 +125,7 @@ Globals::Globals(int action) {
     init.SetStringID("initial conditions");
     allGlobals.push_back(&init);
 
-    diss.SetStringID("dissipation output");
+    diss.SetStringID("avg dissipation output");
     allGlobals.push_back(&diss);
 
     kinetic.SetStringID("kinetic output");
@@ -133,6 +133,18 @@ Globals::Globals(int action) {
 
     work.SetStringID("work flux output");
     allGlobals.push_back(&work);
+
+    field_displacement_output.SetStringID("displacement output");
+    allGlobals.push_back(&field_displacement_output);
+
+    field_velocity_output.SetStringID("velocity output");
+    allGlobals.push_back(&field_velocity_output);
+
+    field_diss_output.SetStringID("dissipation output");
+    allGlobals.push_back(&field_diss_output);
+
+    sh_coeff_output.SetStringID("sh coefficient output");
+    allGlobals.push_back(&sh_coeff_output);
 
     outputTime.SetStringID("output time");
     allGlobals.push_back(&outputTime);

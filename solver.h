@@ -8,6 +8,14 @@
 #include "energy.h"
 #include "outFiles.h"
 
+#include "H5Cpp.h"
+
+#include <signal.h>
+
+#ifndef H5_NO_NAMESPACE
+    using namespace H5;
+#endif
+
 class Solver {
 private:
 	int solverType;
@@ -22,7 +30,6 @@ private:
 	void UpdateTotalPotential(void);
 
 	void ReadInitialConditions(void);
-	void CopyInitialConditions(std::ifstream & file, Field *);
 
 public:
 	double simulationTime = 0;
@@ -32,6 +39,7 @@ public:
 	int convergeMax = 5;
 	int output = 0;
 	double outputCount = 0.;
+  bool loading;
 
 	double dt;
 
@@ -75,6 +83,9 @@ public:
 	double ** etaVAvgArray;
 	double ** etaUAvgArray;
 	double ** etaInterpArray;
+  double *** etaLegendreArray;
+  double ** etaCosMLon;
+  double ** etaSinMLon;
 
 	double ** depthArray;
 
@@ -122,6 +133,14 @@ public:
 	double ** SH_cos_coeff;
 	double ** SH_sin_coeff;
 
+  double * loadK;
+  double * loadH;
+  double * gammaFactor;
+  double ** shPower;
+  int ** lm_solve;
+  int l_solve_len;
+  int * m_solve_len;
+
 	int l_max;
 
 	Solver(int type, int dump, Globals *, Mesh *, Field *, Field*, Field *, Field *, Field *, Energy *, Depth *);
@@ -130,22 +149,96 @@ public:
 
 	int InitialConditions(void);
 
-	void Explicit();
+	int Explicit();
 	void Implicit();
 	void CrankNicolson();
 
 	inline void UpdatePotential() __attribute__((always_inline));
-	inline void UpdateEastVel() __attribute__((always_inline));
-	inline void UpdateNorthVel() __attribute__((always_inline));
-	inline void UpdateSurfaceHeight() __attribute__((always_inline));
+	void UpdateEastVel();
+	int UpdateNorthVel();
+	void UpdateSurfaceHeight();
 	inline void InterpSurfaceHeight() __attribute__((always_inline));
 
-	inline void ExtractSHCoeff() __attribute__((always_inline));
+	int ExtractSHCoeff();
 
 	void InterpPole(Field * Field);
 
 	void DumpSolutions(int output_num, double time);
 	void DumpFields(int output_num);
+
+  void CreateHDF5FrameWork(void);
+
+  // void CatchExit(int sig, int output);
+
+  //------------------------Objects for HDF5 Storage----------------------------
+
+  float * eta_1D;
+  float * u_1D;
+  float * v_1D;
+  float * diss_1D;
+  float * diss_avg_1D;
+  float * harm_coeff_1D;
+
+  hsize_t eta_rows;
+  hsize_t eta_cols;
+  hsize_t u_rows;
+  hsize_t u_cols;
+  hsize_t v_rows;
+  hsize_t v_cols;
+  hsize_t harm_rows;
+  hsize_t harm_cols;
+
+  hsize_t rank_field;
+  hsize_t rank_harm;
+  hsize_t rank_1D;
+
+  hid_t file;
+
+  hid_t data_space_eta;
+  hid_t data_space_u;
+  hid_t data_space_v;
+  hid_t data_space_diss;
+  hid_t data_space_1D_avg;
+  hid_t data_space_harm_coeff;
+
+  hid_t mem_space_eta;
+  hid_t mem_space_u;
+  hid_t mem_space_v;
+  hid_t mem_space_diss;
+  hid_t mem_space_1D_avg;
+  hid_t mem_space_harm_coeff;
+
+  hid_t data_set_eta;
+  hid_t data_set_u;
+  hid_t data_set_v;
+  hid_t data_set_diss;
+  hid_t data_set_1D_avg;
+  hid_t data_set_harm_coeff;
+
+  char * dataFilePath;
+
+  hsize_t * dims_eta;
+  hsize_t * dims_u;
+  hsize_t * dims_v;
+  hsize_t * dims_1D_avg;
+  hsize_t * dims_harm_coeff;
+
+  hsize_t * max_dims_eta;
+  hsize_t * max_dims_u;
+  hsize_t * max_dims_v;
+  hsize_t * max_dims_1D_avg;
+  hsize_t * max_dims_harm_coeff;
+
+  hsize_t * start;
+  hsize_t * count;
+
+  hsize_t * start_1D;
+  hsize_t * count_1D;
+
+  hsize_t * start_harm;
+  hsize_t * count_harm;
+
+  hsize_t time_slices;
 };
 
 #endif
