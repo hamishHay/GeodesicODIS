@@ -1012,12 +1012,14 @@ int Solver::ExtractSHCoeff(void) {
 
   int n = i_len*j_len;
 
+  int i,j,k,l,m;
+
   fort_array = new double[n];
   fort_harm_coeff = new double[coeff_num];
 
   int count = 0;
-  for (int j = 0; j<j_len; j++) {
-    for (int i = 0; i<i_len; i++) {
+  for (j = 0; j<j_len; j++) {
+    for (i = 0; i<i_len; i++) {
       fort_array[count] = etaNewArray[i][j];
       if (etaNewArray[i][j] != etaNewArray[i][j]) {
         std::cout << "NAN" << std::endl;
@@ -1030,11 +1032,9 @@ int Solver::ExtractSHCoeff(void) {
 
   extractshcoeff_(fort_array, &i_len, &l_max, fort_harm_coeff);
 
-  int count_l = 0;
-
   count = 0;
-  for (int j=0; j<l_max+1; j++) {
-    for (int k=0; k<l_max+1; k++) {
+  for (j=0; j<l_max+1; j++) {
+    for (k=0; k<l_max+1; k++) {
       SH_cos_coeff[k][j] = fort_harm_coeff[count];
       SH_sin_coeff[k][j] = fort_harm_coeff[count+1];
       count+=2;
@@ -1042,36 +1042,29 @@ int Solver::ExtractSHCoeff(void) {
   }
 
   count = 0;
-  for (int l=2; l<l_max+1; l++) {
-    // shPower[l] = 0;
-    for (int m=0; m<=l; m++) {
+  for (l=2; l<l_max+1; l++) {
+    for (m=0; m<=l; m++) {
       shPower[l][m] = SH_cos_coeff[l][m]*SH_cos_coeff[l][m] + SH_sin_coeff[l][m]*SH_sin_coeff[l][m];
-      // std::cout << shPower[l][m] << '\t';
-      if (shPower[l][m] > 1e-5) {
-        // std::cout << l << std::endl;
-        count++;
-      }
-      // if (shPower[l][m] != shPower[l][m]) std::cout << "NAN AT FORT ARRAY" << std::endl;
+      if (shPower[l][m] > 1e-16) count++;
     }
-    // std::cout << std::endl;
   }
 
 
-  for (int i=0; i<l_solve_len; i++) {
+  for (i=0; i<l_solve_len; i++) {
     delete[] lm_solve[i];
   }
   delete[] lm_solve;
 
   l_solve_len = count;
   lm_solve = new int*[l_solve_len];
-  for (int i=0; i<l_solve_len; i++) {
+  for (i=0; i<l_solve_len; i++) {
     lm_solve[i] = new int[2];
   }
 
   count = 0;
-  for (int l=2; l<l_max+1; l++) {
-    for (int m=0; m<=l; m++) {
-      if (shPower[l][m] > 1e-5) {
+  for (l=2; l<l_max+1; l++) {
+    for (m=0; m<=l; m++) {
+      if (shPower[l][m] > 1e-16) {
         lm_solve[count][0] = l;
         lm_solve[count][1] = m;
         count++;
@@ -1085,29 +1078,24 @@ int Solver::ExtractSHCoeff(void) {
 }
 
 int Solver::Explicit() {
+
+  int outCount = 0;
+  double timeStepCount = 0;
+  int inc = (int) (consts->period.Value()/dt);
+
   InitialConditions();
 
   //Check for stability
   outstring << "Entering time loop:\n\n";
-  outstring << "End time: \t" << consts->endTime.Value() / 86400.0 << " days\n";
-  outstring << "Time step: \t" << dt << " seconds\n\n";
+  outstring << "\t\t End time: \t" << consts->endTime.Value() / 86400.0 << " days\n";
+  outstring << "\t\t Time step: \t" << dt << " seconds\n\n";
   Out->Write(OUT_MESSAGE, &outstring);
 
-  int outCount = 0;
-
-  double timeStepCount = 0;
-  int inc = (int) (consts->period.Value()/dt);
-
-  // DumpSolutions(-1,timeStepCount);
 
   energy->mass->UpdateMass();
 
   //Update cell energies and globally averaged energy
   energy->UpdateKinE(uNewArray,vNewArray);
-
-  // energy->UpdateDtKinEAvg();
-
-  // loading = true;
 
   while (simulationTime <= consts->endTime.Value() && !energy->converged) {
 
@@ -1677,12 +1665,5 @@ void Solver::CreateHDF5FrameWork(void) {
 
       H5Awrite(attr, H5T_NATIVE_FLOAT, data_set_dx);
     }
-
-    // delete start;
-    // delete count;
-    // delete start_1D;
-    // delete count_1D;
-    // delete start_harm;
-    // delete count_harm;
 
 }

@@ -34,6 +34,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include <iomanip>
 #include <algorithm>
 #include <cstring>
 #include <math.h>
@@ -385,11 +386,13 @@ void Globals::SetDefault(void)
 
 void Globals::OutputConsts(void)
 {
+  const int varWidth = 30;
+  const char separator = ' ';
   // Print all constants to output file.
   outstring << "Model parameters: " << std::endl;
   for (unsigned int i = 0; i < allGlobals.size(); i++){
 
-    outstring << allGlobals[i]->StringID() << ":\t\t\t\t ";
+    outstring <<"\t\t "<<std::left<< std::setw(varWidth) << std::setfill(separator)<<allGlobals[i]->StringID();
     if (allGlobals[i]->IsType("double")) {
       outstring << ((GlobalVar<double > *) allGlobals[i])->Value();
     }

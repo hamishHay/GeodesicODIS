@@ -22,10 +22,11 @@ private:
 
 public:
 	std::string path;
-	
+
 	OutFiles();
 
 	void Write(mess_type message, std::ostringstream * sstream);
+	void WelcomeMessage(void);
 
 	void TerminateODIS(void);
 

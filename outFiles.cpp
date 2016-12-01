@@ -41,8 +41,9 @@ OutFiles::OutFiles() {
 		TerminateODIS();
 	}
 
-	output << "Welcome to Ocean Dissipation in Icy Satellites (ODIS)." << std::endl;
 	output.close();
+
+	WelcomeMessage();
 
 	remove(&errName[0]); //Converts std::string to char array
 	error.open(&errName[0], std::ofstream::out | std::ofstream::app);
@@ -81,6 +82,31 @@ void OutFiles::Write(mess_type message, std::ostringstream * sstream) {
     }
 
 	ClearSStream(sstream);
+};
+
+void OutFiles::WelcomeMessage(void) {
+	std::ostringstream sstream;
+
+	sstream <<std::endl<<std::endl<< "        | Welcome to Ocean Dissipation in Icy Satellites (ODIS)! |" << std::endl;
+	sstream << "        |--------------------------------------------------------|" << std::endl;
+	sstream << "        |               ___________ _____ _____                  |" << std::endl;
+	sstream << "        |              |  _  |  _  \\_   _/  ___|                 |" << std::endl;
+	sstream << "        |              | | | | | | | | | \\ `--.                  |" << std::endl;
+	sstream << "        |              | | | | | | | | |  `--. \\                 |" << std::endl;
+	sstream << "        |              \\ \\_/ / |/ / _| |_/\\__/ /                 |" << std::endl;
+	sstream << "        |               \\___/|___/  \\___/\\____/                  |" << std::endl;
+	sstream << "        |                                                        |" << std::endl;
+	sstream << "        |--------------------------------------------------------|" << std::endl;
+	sstream << "        | ODIS is a numerical finite difference ocean dynamics   |" << std::endl;
+	sstream << "        | code for simulating ocean tides on icy satellites and  |" << std::endl;
+	sstream << "        | other bodies.                                          |" << std::endl;
+	sstream << "        |                                                        |" << std::endl;
+	sstream << "        |       For additional info, contact Hamish Hay at       |" << std::endl;
+	sstream << "        |       hhay@lpl.arizona.edu.                            |" <<std::endl<<std::endl<<std::endl;
+
+	printf((sstream.str()).c_str());
+
+	Write(OUT_MESSAGE, &sstream);
 };
 
 void OutFiles::TerminateODIS(void) {
