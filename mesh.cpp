@@ -14,25 +14,11 @@ Mesh::Mesh(Globals * Globals) //non-default constructor
 	dLat = globals->dLat.Value();
 	dLon = globals->dLon.Value();
 
-	//Check dlat and dlon give an integer divison into 360
-	//if (fmod(180., dLat) == 0)
-	//{
-	//	latLength = (180 / dLat)+1;
-	//}
-	//else dLat = NULL; //Raise exception
-
 	latLength = dLat*2. + 1.;
 	dLat = 0.5*180. / dLat;
 
 	std::cout<<"dlat: "<<dLat<<std::endl;
 
-	//dLat = 180. / dLat;
-
-	// if (fmod(360., dLon) == 0)
-	// {
-	// 	lonLength = (int)(360. / dLon);
-	// }
-	// else dLon = NULL; //Raise exception
 
 	lonLength = dLon*2.;
 	dLon = 0.5*360. / dLon;
@@ -53,7 +39,7 @@ Mesh::Mesh(Globals * Globals) //non-default constructor
 
 	for (int j = 0; j < lonLength; j++) lon.push_back(j*dLon);
 
-	//CalculateDt();
+	CalculateDt();
 };
 
 int Mesh::ReturnLatLen(void) const
@@ -108,19 +94,44 @@ std::vector<double> Mesh::WestP(int i, int j)
 	return point;
 };
 
-void Mesh::CalculateDt(void){
-	outstring << std::endl << "Calculating time step: " << std::endl;
+int Mesh::CalculateDt(void){
+	double waveSpeed;
+	double dt;
+	double minDistance;
 
-	double waveSpeed = sqrt(globals->g.Value()*globals->h.Value());
+	outstring << std::endl << "Calculating maximum time step: " << std::endl;
 
-	outstring << std::endl << "\t Average gravitational wave speed = sqrt(gh): " << waveSpeed <<std::endl;
+	waveSpeed = sqrt(globals->g.Value()*globals->h.Value());
 
-	double dt = 0.5*globals->radius.Value()/(2*waveSpeed)*cos((90 - dLat)*radConv)*dLon*radConv;
+	outstring << std::endl << "\t\t Average gravitational wave speed = sqrt(gh): " << waveSpeed << " m/s."<<std::endl;
 
-	outstring << "\t Time step calculated: " << dt << std::endl;
+	minDistance = globals->radius.Value() * sin(dLat*radConv) * dLon*radConv;
 
-	globals->timeStep.SetValue(dt);
+	dt = minDistance/waveSpeed;
 
-	globals->Output.Write(OUT_MESSAGE,&outstring);
+	outstring << "\t\t Time step calculated: " << dt <<" s."<< std::endl;
 
+	if (dt<globals->timeStep.Value()) {
+		outstring << std::endl << "\t\t WARNING: Calculated timestep is less than user selected dt = " << globals->timeStep.Value() <<" s." <<std::endl;
+		outstring << "\t\t Setting dt to calculated value of " << dt <<" s." <<std::endl;
+
+		globals->timeStep.SetValue(dt);
+
+		globals->Output.Write(OUT_MESSAGE,&outstring);
+
+		outstring << std::endl << "WARNING: Using maximum calculated timestep as user defined dt is too large." << std::endl;
+		globals->Output.Write(ERR_MESSAGE,&outstring);
+	}
+	else {
+		outstring << std::endl << "\t\t Calculated timestep is greater than user selected dt = " << globals->timeStep.Value() <<" s." <<std::endl;
+		outstring << "\t\t ODIS will keep user defined timestep. You could save time if you chose a larger timestep."<<std::endl;
+
+		globals->Output.Write(OUT_MESSAGE,&outstring);
+	}
+
+
+
+
+
+	return 1;
 }

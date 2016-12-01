@@ -10,7 +10,7 @@ private:
 	int latLength;
 	int lonLength;
 
-	void CalculateDt(void);
+	int CalculateDt(void);
 
 public:
 //	Mesh(); //constructor
