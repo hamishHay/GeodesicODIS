@@ -75,14 +75,16 @@ Field::Field(Mesh *mesh, int latStagg, int lonStagg)
   cos2Lat = new double[fieldLatLen];
   sin2Lat = new double[fieldLatLen];
   cosCoLat = new double[fieldLatLen];
+  double colat = 0.0;
   for (int i = 0; i < fieldLatLen; i++)
   {
+    colat = 90.0 - lat[i];
     lat[i] *= radConv;
     cosLat[i] = cos(lat[i]);
     sinLat[i] = sin(lat[i]);
     cos2Lat[i] = cos(2*lat[i]);
     sin2Lat[i] = sin(2*lat[i]);
-    cosCoLat[i] = cos(pi*0.5 - lat[i]);
+    cosCoLat[i] = cos(colat*radConv);
   }
 
   cosLon = new double[fieldLonLen];
