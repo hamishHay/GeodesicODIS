@@ -1198,7 +1198,7 @@ int Solver::Explicit() {
 
 
     if (!loading) {
-      if (simulationTime > 0.000*consts->endTime.Value()) {
+      if (simulationTime > 0.1*consts->endTime.Value()) {
         printf("Kicking in ocean loading\n");
         loading = true;
       }
