@@ -712,7 +712,7 @@ void Solver::UpdateEastVel(){
 
       oceanLoadingWest = oceanLoadingArray[i][j];
 
-      if (oceanLoadingEast != 0.0) std::cout << i<<'\t'<<j << std::endl;
+      // if (oceanLoadingEast != 0.0) std::cout << i<<'\t'<<j << std::endl;
 
       oceanLoadingTerm = surfFactor*(oceanLoadingEast - oceanLoadingWest)/etadLon;
 
@@ -888,7 +888,7 @@ int Solver::UpdateNorthVel(){
       // oceanLoadingNorth =
       // oceanLoadingSouth = oceanLoadingArray[i+1];
 
-      oceanLoadingTerm = gRadius*(oceanLoadingArray[i] - oceanLoadingArray[i+1])/etadLat;
+      oceanLoadingTerm = gRadius*(oceanLoadingArray[i][j] - oceanLoadingArray[i+1][j])/etadLat;
 
       // oceanLoadingTerm = 0.0;
 
