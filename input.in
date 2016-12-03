@@ -11,7 +11,7 @@ orbital period;                   118327.40691486979;            h;
 ocean thickness;                  572.0;                        h;
 friction coefficient;             1e-6;                           alpha;
 potential;                        ECC;                           potential;
-sh degree;                        4;                             spherical harmonic expansion;
+sh degree;                        6;                             spherical harmonic expansion;
 simulation end time;              300;                             endTime;
 friction type;                    LINEAR;                     friction;
 time step;                        300;                            timeStep;

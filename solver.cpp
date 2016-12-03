@@ -1024,15 +1024,9 @@ int Solver::UpdateLoading(void) {
           l = lm_solve[k][0];
           m = lm_solve[k][1];
 
-          // if (i==0) std::cout << l << std::endl;
-
           loadingFactor = etaCosMLon[j][m]*SH_cos_coeff[l][m] + etaSinMLon[j][m]*SH_sin_coeff[l][m];
 
           loading += loadingFactor*etaLegendreArray[i][l][m];
-
-          // if (i==0) std::cout << 'l='<<l<<", m="<<m<<'\t'<< etaLegendreArray[i][l][m] << std::endl;
-
-          // if (i==0) std::cout << l << std::endl;
 
           k++;
 
@@ -1046,8 +1040,6 @@ int Solver::UpdateLoading(void) {
 
         k--;
       }
-
-      // std::cout << i<<'\t'<<j<<'\t'<<loadingTotal << std::endl;
 
       oceanLoadingArray[i][j] = loadingTotal;
 
@@ -1093,7 +1085,7 @@ int Solver::Explicit() {
 
 
     if (!loading) {
-      if (simulationTime > 0.1*consts->endTime.Value()) {
+      if (simulationTime > 0.01*consts->endTime.Value()) {
         printf("Kicking in ocean loading\n");
         loading = true;
         // }
