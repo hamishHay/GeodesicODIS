@@ -1137,7 +1137,7 @@ int Solver::Explicit() {
 
     }
 
-    loading = false;
+    // loading = false;
 
     simulationTime += dt;
 
