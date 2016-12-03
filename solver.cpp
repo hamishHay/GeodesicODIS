@@ -782,9 +782,9 @@ int Solver::UpdateNorthVel(){
       }
       else {
         oceanLoadingTerm = gRadius*(oceanLoadingArray[i][j] - oceanLoadingArray[i+1][j])/etadLat;
-        surfHeight = gRadius*dSurfLat;
-
-        std::cout << surfHeight <<'\t'<<oceanLoadingTerm << std::endl;
+        // surfHeight = gRadius*dSurfLat;
+        //
+        // std::cout << surfHeight <<'\t'<<oceanLoadingTerm << std::endl;
         surfHeight = 0.0;
       }
 
