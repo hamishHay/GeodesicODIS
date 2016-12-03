@@ -1122,7 +1122,7 @@ int Solver::Explicit() {
 
     for (int i = 0; i < etaLatLen; i++) {
       for (int j = 0; j < etaLonLen; j++) {
-        etaOldArray[i][j] = oceanLoadingArray;
+        etaOldArray[i][j] = oceanLoadingArray[i][j];
       }
     }
 
