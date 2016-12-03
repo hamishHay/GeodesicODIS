@@ -1036,7 +1036,7 @@ int Solver::UpdateLoading(void) {
         // loading = 0.0;
         for (m=0; m<=l; m++) {
           // normalise =  sqrt((2.0-delta)*(2.0*(double)l+1.0)*factrl(l-m)/factrl(l+m));
-          std::cout << l <<'\t'<<m<< std::endl;
+          // std::cout << l <<'\t'<<m<< std::endl;
 
           loadingTotal += etaLegendreArray[i][l][m]*(etaCosMLon[j][m]*SH_cos_coeff[l][m] + etaSinMLon[j][m]*SH_sin_coeff[l][m]);
           // loading += loadingFactor*etaLegendreArray[i][l][m];
