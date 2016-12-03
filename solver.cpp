@@ -1110,7 +1110,7 @@ int Solver::UpdateLoading(void) {
     }
   }
 
-  for (i = 0; i < etaLatLen; i++) {
+  for (i = 1; i < etaLatLen-1; i++) {
     for (j = 0; j < etaLonLen; j++) {
 
       loadingTotal = 0.0;
