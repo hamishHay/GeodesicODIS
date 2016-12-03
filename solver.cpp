@@ -1326,7 +1326,7 @@ void Solver::DumpFields(int output_num) {
   for (int i=0; i<etaLatLen;i++) {
     for (int j=0; j<etaLonLen; j++) {
       eta_1D[i*etaLonLen + j] = (float)etaNewArray[i][j];
-      if (loading) eta_1D[i*etaLonLen + j] = (float)oceanLoadingArray[i][j];
+      // if (loading) eta_1D[i*etaLonLen + j] = (float)oceanLoadingArray[i][j];
     }
   }
 
