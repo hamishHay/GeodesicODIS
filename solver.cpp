@@ -1144,7 +1144,7 @@ int Solver::Explicit() {
     //Call SHTOOLS to find spherical harmonic expansion of etaNew.
     // if (loading) ExtractSHCoeff();
     // ExtractSHCoeff();
-    if (!loading) {
+    if (loading) {
     //Solve for v
     UpdateNorthVel();
 
