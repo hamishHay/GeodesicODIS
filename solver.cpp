@@ -1118,7 +1118,7 @@ int Solver::Explicit() {
 
     // loading = true;
     if (!loading) {
-      if (simulationTime > 0.1*consts->endTime.Value()) {
+      if (simulationTime > 0.01*consts->endTime.Value()) {
         // printf("Kicking in ocean loading\n");
         loading = true;
         // }
@@ -1130,7 +1130,7 @@ int Solver::Explicit() {
 
       for (int i = 0; i < etaLatLen; i++) {
         for (int j = 0; j < etaLonLen; j++) {
-          etaNewArray[i][j] = oceanLoadingArray[i][j];
+          etaOldArray[i][j] = oceanLoadingArray[i][j];
         }
       }
 
@@ -1143,17 +1143,17 @@ int Solver::Explicit() {
     //Call SHTOOLS to find spherical harmonic expansion of etaNew.
     // if (loading) ExtractSHCoeff();
     // ExtractSHCoeff();
-    if (!loading) {
-      //Solve for v
-      UpdateNorthVel();
 
-      //solve for u
-      UpdateEastVel();
+    //Solve for v
+    UpdateNorthVel();
 
-      //Solve for eta based on new u and v
-      UpdateSurfaceHeight();
+    //solve for u
+    UpdateEastVel();
 
-    }
+    //Solve for eta based on new u and v
+    UpdateSurfaceHeight();
+
+
     // loading = true;
 
     for (int i = 0; i < vLatLen; i++) {
