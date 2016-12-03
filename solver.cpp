@@ -153,7 +153,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 
   for (int i=0; i<etaLatLen; i++) {
     for (int j=0; j<etaLonLen; j++) {
-      oceanLoadingArray = 0.0;
+      oceanLoadingArray[i][j] = 0.0;
     }
   }
   etaLegendreArray = new double**[etaLatLen];
