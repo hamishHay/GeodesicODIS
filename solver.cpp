@@ -1097,6 +1097,7 @@ int Solver::UpdateLoading(void) {
   double loadingFactor = 0.0;
   double omega = consts->angVel.Value();
   double omegaTime = omega*simulationTime;
+  double lon;
   int i,j,l,m,k, degree;
 
   ExtractSHCoeff();
