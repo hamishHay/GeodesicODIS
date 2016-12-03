@@ -708,7 +708,7 @@ void Solver::UpdateEastVel(){
 
       oceanLoadingTerm = surfFactor*(oceanLoadingEast - oceanLoadingWest)/etadLon;
 
-      oceanLoadingTerm = 0.0;
+      // oceanLoadingTerm = 0.0;
 
 
       // oceanLoading = 0.0;
@@ -882,7 +882,7 @@ int Solver::UpdateNorthVel(){
 
       oceanLoadingTerm = gRadius*(oceanLoadingArray[i] - oceanLoadingArray[i+1])/etadLat;
 
-      oceanLoadingTerm = 0.0;
+      // oceanLoadingTerm = 0.0;
 
       // oceanLoading = 0.0;
 
@@ -1155,7 +1155,7 @@ int Solver::UpdateLoading(void) {
 
       // std::cout << i<<'\t'<<j<<'\t'<<loadingTotal << std::endl;
 
-      oceanLoadingArray[i][j] = 0;//loadingTotal;
+      oceanLoadingArray[i][j] = loadingTotal;
 
     }
   }
@@ -1359,6 +1359,7 @@ void Solver::ReadInitialConditions(void) {
   for (int i=0; i< etaLatLen; i++) {
     for (int j=0; j<etaLonLen; j++) {
         etaOldArray[i][j] = 0.0;//eta_1D[i*etaLonLen + j];
+        oceanLoadingArray[i][j] = 0.0;
     }
   }
 
