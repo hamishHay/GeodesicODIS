@@ -157,7 +157,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
       etaLegendreArray[i][l] = new double[l_max+1];
       for (int m=0; m <= l; m++) {
         etaLegendreArray[i][l][m] = assLegendre(l, m, etaNew->cosCoLat[i]);
-        std::cout <<"i="<<i<<", l="<<l<<", m="<<m<<'\t'<< etaLegendreArray[i][l][m] << std::endl;
+        std::cout <<"i="<<i<<", l="<<l<<", m="<<m<<'\t'<< etaLegendreArray[i][l][m]<<'\t'<<etaNew->cosCoLat[i] << std::endl;
       }
     }
   }
