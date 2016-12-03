@@ -5,6 +5,7 @@
 #include "solver.h"
 #include <math.h>
 
+
 inline double gamm1n(double xx);
 inline double gamm1n(double xx) {
   double x,y,tmp,ser;
@@ -84,7 +85,7 @@ inline double assLegendre(int l, int m, double x) {
   if (m==0) delta = 1.0;
 
 
-  normalise = sqrt((2.0-delta)*(2.0*l+1.0)*factrl(l-m)/factrl(l+m));
+  normalise =  sqrt((2.0-delta)*(2.0*(double)l+1.0)*factrl(l-m)/factrl(l+m));
 
   // if (m%2 != 0) normalise = -normalise;
 
@@ -119,6 +120,17 @@ inline double assLegendre(int l, int m, double x) {
     }
   }
 };
+
+inline double fastSin(double x);
+inline double fastSin(double x) {
+  double ans;
+  double xxx = x*x*x;
+  double xxxxx = xxx*x*x;
+
+  ans = x;
+  ans -= (xxx)/factrl(3);
+  ans += (xxxxx)/factrl(5);
+}
 
 //func returns value n at given i and j based on Lagrange Interpolation
 //of points n+1, n+2, and n+3 for a 2nd degree polynomial

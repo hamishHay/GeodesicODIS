@@ -165,7 +165,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
     etaSinMLon[j] = new double[l_max+1];
     for (int m=0; m<l_max+1; m++){
       etaCosMLon[j][m] = eta->cosMLon[m][j];
-      etaSinMLon[j][m] = eta->cosMLon[m][j];
+      etaSinMLon[j][m] = eta->sinMLon[m][j];
     }
   }
 
@@ -188,10 +188,10 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 
   for (int l=0; l<l_max+1; l++) {
     mu_bar = 6.78e9/(1610.0*consts->g.Value()*consts->radius.Value());
-    mu_bar *= (double)(2*l*l + 4*l +3)/l;
+    mu_bar *= (double)(2*l*l + 4*l +3)/((double)l);
 
     loadK[l] = -1.0 / (1.0 + mu_bar);
-    loadH[l] = -1.0 / (1.0 + mu_bar) * (2*l + 1)/3.0;
+    loadH[l] = -1.0 / (1.0 + mu_bar) * (2.0*(double)l + 1.0)/3.0;
 
 
     gammaFactor[l] = 1.0 - (1 + loadK[l] - loadH[l]) * 3000.0 / ((2*l + 1) * 1610.0);
@@ -610,6 +610,9 @@ void Solver::UpdateEastVel(){
   double g = consts->g.Value();
   double r = consts->radius.Value();
 
+  double oceanLoadingEastTotal = 0.0;
+  double oceanLoadingWestTotal = 0.0;
+
 
   int i_h = 0;
   int j_h = 0;
@@ -640,54 +643,41 @@ void Solver::UpdateEastVel(){
       loadingFactorEast = 0.0;
       loadingFactorWest = 0.0;
 
-      // if (loading) {
-      //   for (int l=2; l < l_max+1; l++)
-      //   {
-      //       for (int m=0; m <= l; m++)
-      //       {
-      //         if (shPower[l][m] > 1e-5) {
-      //           if (j != uLonLen - 1) loadingFactorEast = etaCosMLon[j+1][m]*SH_cos_coeff[l][m] + etaSinMLon[j+1][m]*SH_sin_coeff[l][m];
-      //           else loadingFactorEast = etaCosMLon[j][m]*SH_cos_coeff[l][m] + etaSinMLon[j][m]*SH_sin_coeff[l][m];
-      //
-      //           loadingFactorWest = etaCosMLon[j][m]*SH_cos_coeff[l][m] + etaSinMLon[j][m]*SH_sin_coeff[l][m];
-      //
-      //           legendre = etaLegendreArray[i][l][m]; //assLegendre(l, m, etaNew->cosCoLat[i]);
-      //           oceanLoadingEast = oceanLoadingEast + loadingFactorEast*legendre;
-      //           oceanLoadingWest = oceanLoadingWest + loadingFactorWest*legendre;
-      //         }
-      //       }
-      //       oceanLoadingEast *= gammaFactor[l];
-      //       oceanLoadingWest *= gammaFactor[l];
-      //     }
-      //
-      //   oceanLoading = surfFactor*(oceanLoadingEast - oceanLoadingWest)/etadLon;
-      //
-      // }
-
       int l=0;
       int m=0;
       int degree = 0;
 
+      oceanLoadingEastTotal = 0.0;
+      oceanLoadingWestTotal = 0.0;
+
       if (loading) {
-        // std::cout << "HERE" << std::endl;
-        // std::cout << "HERE VEL EAST" << std::endl;
-        // degree_old = lm_solve[0][0];
+
         for (int k=0; k<l_solve_len; k++){
           degree = lm_solve[k][0];
-          // std::cout << "HERE" <<'\t'<<degree<< std::endl;
+
+          oceanLoadingEast = 0.0;
+          oceanLoadingWest = 0.0;
+
           while (lm_solve[k][0] == degree){
             l = lm_solve[k][0];
             m = lm_solve[k][1];
 
-            // std::cout <<"l="<<l<<",m="<<m<< std::endl;
-
-
             if (j != uLonLen - 1) loadingFactorEast = etaCosMLon[j+1][m]*SH_cos_coeff[l][m] + etaSinMLon[j+1][m]*SH_sin_coeff[l][m];
-            else loadingFactorEast = etaCosMLon[j][m]*SH_cos_coeff[l][m] + etaSinMLon[j][m]*SH_sin_coeff[l][m];
+            else loadingFactorEast = etaCosMLon[0][m]*SH_cos_coeff[l][m] + etaSinMLon[0][m]*SH_sin_coeff[l][m];
+
+            // if (j != uLonLen - 1) loadingFactorEast = cos(m*lonEast - omega*simulationTime)*SH_cos_coeff[l][m] + sin(m*lonEast - omega*simulationTime)*SH_sin_coeff[l][m];
+            // else loadingFactorEast = cos(m*lonZero - omega*simulationTime)*SH_cos_coeff[l][m] + sin(m*lonZero - omega*simulationTime)*SH_sin_coeff[l][m];
+
+            // loadingFactorEast = cos(m*lonEast - omega*simulationTime) * SH_cos_coeff[l][m] + sin(m*lonEast - omega*simulationTime)*SH_sin_coeff[l][m];
+
 
             loadingFactorWest = etaCosMLon[j][m]*SH_cos_coeff[l][m] + etaSinMLon[j][m]*SH_sin_coeff[l][m];
 
+            // loadingFactorWest = cos(m*lonWest - omega*simulationTime)*SH_cos_coeff[l][m] + sin(m*lonWest - omega*simulationTime)*SH_sin_coeff[l][m];
+
+
             legendre = etaLegendreArray[i][l][m]; //assLegendre(l, m, etaNew->cosCoLat[i]);
+
             oceanLoadingEast = oceanLoadingEast + loadingFactorEast*legendre;
             oceanLoadingWest = oceanLoadingWest + loadingFactorWest*legendre;
 
@@ -699,14 +689,15 @@ void Solver::UpdateEastVel(){
           oceanLoadingEast *= gammaFactor[l];
           oceanLoadingWest *= gammaFactor[l];
 
-          // if (i >= l_solve_len) break;
+          oceanLoadingEastTotal += oceanLoadingEast;
+          oceanLoadingWestTotal += oceanLoadingWest;
 
           k--;
         }
 
       }
 
-      oceanLoading = surfFactor*(oceanLoadingEast - oceanLoadingWest)/etadLon;
+      oceanLoading = surfFactor*(oceanLoadingEastTotal - oceanLoadingWestTotal)/etadLon;
 
 
       // oceanLoading = 0.0;
@@ -751,6 +742,8 @@ int Solver::UpdateNorthVel(){
 
   double oceanLoadingNorth = 0.0;
   double oceanLoadingSouth = 0.0;
+  double oceanLoadingNorthTotal = 0.0;
+  double oceanLoadingSouthTotal = 0.0;
   double oceanLoading = 0;
   double loadingFactor = 0.0;
   double legendreNorth = 0.0;
@@ -832,19 +825,28 @@ int Solver::UpdateNorthVel(){
       int m=0;
       int degree = 0;
 
+      oceanLoadingNorthTotal = 0.0;
+      oceanLoadingSouthTotal = 0.0;
+
       if (loading) {
         for (int k=0; k<l_solve_len; k++){
           degree = lm_solve[k][0];
+
+          oceanLoadingNorth = 0.0;
+          oceanLoadingSouth = 0.0;
 
           while (lm_solve[k][0] == degree){
             // std::cout << "HERE" << std::endl;
             l = lm_solve[k][0];
             m = lm_solve[k][1];
 
-            loadingFactor = etaCosMLon[j][m]*SH_cos_coeff[l][m] + etaSinMLon[j][m]*SH_sin_coeff[l][m];
+            // std::cout << l<<'\t'<<m << std::endl;
 
-            oceanLoadingNorth = oceanLoadingNorth + loadingFactor*etaLegendreArray[i][l][m];
-            oceanLoadingSouth = oceanLoadingSouth + loadingFactor*etaLegendreArray[i+1][l][m];
+            loadingFactor = etaCosMLon[j][m]*SH_cos_coeff[l][m] + etaSinMLon[j][m]*SH_sin_coeff[l][m];
+            // loadingFactor = cos(m*lon - omega*simulationTime) * SH_cos_coeff[l][m] + sin(m*lon - omega*simulationTime)*SH_sin_coeff[l][m];
+
+            oceanLoadingNorth += loadingFactor*etaLegendreArray[i][l][m];
+            oceanLoadingSouth += loadingFactor*etaLegendreArray[i+1][l][m];
 
             k++;
 
@@ -855,6 +857,8 @@ int Solver::UpdateNorthVel(){
           oceanLoadingNorth *= gammaFactor[l];
           oceanLoadingSouth *= gammaFactor[l];
 
+          oceanLoadingNorthTotal += oceanLoadingNorth;
+          oceanLoadingSouthTotal += oceanLoadingSouth;
 
           k--;
         }
@@ -862,7 +866,7 @@ int Solver::UpdateNorthVel(){
       }
 
 
-      oceanLoading = gRadius*(oceanLoadingNorth - oceanLoadingSouth)/etadLat;
+      oceanLoading = gRadius*(oceanLoadingNorthTotal - oceanLoadingSouthTotal)/etadLat;
 
       // oceanLoading = 0.0;
 
@@ -1045,7 +1049,7 @@ int Solver::ExtractSHCoeff(void) {
   for (l=2; l<l_max+1; l++) {
     for (m=0; m<=l; m++) {
       shPower[l][m] = SH_cos_coeff[l][m]*SH_cos_coeff[l][m] + SH_sin_coeff[l][m]*SH_sin_coeff[l][m];
-      if (shPower[l][m] > 1e-16) count++;
+      if (shPower[l][m] > 0) count++;
     }
   }
 
@@ -1064,7 +1068,7 @@ int Solver::ExtractSHCoeff(void) {
   count = 0;
   for (l=2; l<l_max+1; l++) {
     for (m=0; m<=l; m++) {
-      if (shPower[l][m] > 1e-16) {
+      if (shPower[l][m] > 0) {
         lm_solve[count][0] = l;
         lm_solve[count][1] = m;
         count++;
@@ -1083,6 +1087,10 @@ int Solver::Explicit() {
   double timeStepCount = 0;
   int inc = (int) (consts->period.Value()/dt);
 
+  double omegaTime;
+  double omega = consts->angVel.Value();
+  double lon = 0.0;
+
   InitialConditions();
 
   //Check for stability
@@ -1099,6 +1107,8 @@ int Solver::Explicit() {
 
   while (simulationTime <= consts->endTime.Value() && !energy->converged) {
 
+    omegaTime = omega*simulationTime;
+
     if (flag) {
       return -1;
     }
@@ -1110,6 +1120,27 @@ int Solver::Explicit() {
 
     simulationTime += dt;
 
+
+    if (!loading) {
+      if (simulationTime > 0.000*consts->endTime.Value()) {
+        printf("Kicking in ocean loading\n");
+        loading = true;
+      }
+    }
+
+    if (loading) {
+      for (int j=0; j<etaLonLen; j++) {
+        lon = eta->lon[j];
+        for (int m=0; m<l_max+1; m++){
+          etaCosMLon[j][m] = cos(m*lon - omegaTime);
+          etaSinMLon[j][m] = sin(m*lon - omegaTime);
+        }
+      }
+    }
+    //Call SHTOOLS to find spherical harmonic expansion of etaNew.
+    if (loading) ExtractSHCoeff();
+    // ExtractSHCoeff();
+
     //Solve for v
     UpdateNorthVel();
 
@@ -1120,16 +1151,6 @@ int Solver::Explicit() {
     UpdateSurfaceHeight();
 
 
-    if (!loading) {
-      if (simulationTime > 0.2*consts->endTime.Value()) {
-        printf("Kicking in ocean loading\n");
-        loading = true;
-      }
-    }
-
-    //Call SHTOOLS to find spherical harmonic expansion of etaNew.
-    if (loading) ExtractSHCoeff();
-    // ExtractSHCoeff();
 
     for (int i = 0; i < vLatLen; i++) {
       for (int j = 0; j < vLonLen; j++) {
@@ -1162,7 +1183,7 @@ int Solver::Explicit() {
       orbitNumber++;
       timeStepCount -= consts->period.Value();
 
-      printf("TIME: %f\n", timeStepCount);
+      printf("TIME: %.2f, number: %d\n", simulationTime/consts->period.Value(), output);
 
       energy->UpdateOrbitalKinEAvg(inc);
 
@@ -1188,7 +1209,7 @@ int Solver::Explicit() {
     }
     else if (timeStepCount >= consts->period.Value()*consts->outputTime.Value()*outCount) {
       output++;
-      printf("TIME: %f\n", timeStepCount);
+      // printf("TIME: %f\n", simulationTime/consts->period.Value());
       outCount++;
 
       // DumpSolutions(1, timeStepCount);
@@ -1295,7 +1316,7 @@ void Solver::ReadInitialConditions(void) {
 void Solver::DumpFields(int output_num) {
   std::string out = std::to_string(output_num);
 
-  printf("Outputing data number %d\n", output_num);
+  // printf("Outputing data number %d\n", output_num);
 
   double factor = 0;
 
