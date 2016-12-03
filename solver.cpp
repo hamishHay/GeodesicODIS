@@ -1143,16 +1143,17 @@ int Solver::Explicit() {
     //Call SHTOOLS to find spherical harmonic expansion of etaNew.
     // if (loading) ExtractSHCoeff();
     // ExtractSHCoeff();
+    if (!loading) {
+      //Solve for v
+      UpdateNorthVel();
 
-    //Solve for v
-    UpdateNorthVel();
+      //solve for u
+      UpdateEastVel();
 
-    //solve for u
-    UpdateEastVel();
+      //Solve for eta based on new u and v
+      UpdateSurfaceHeight();
 
-    //Solve for eta based on new u and v
-    UpdateSurfaceHeight();
-
+    }
     // loading = true;
 
     for (int i = 0; i < vLatLen; i++) {
