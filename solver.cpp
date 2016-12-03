@@ -970,7 +970,7 @@ int Solver::ExtractSHCoeff(void) {
     }
   }
 
-  count = 0;
+  // count = 0;
   // for (l=2; l<l_max+1; l++) {
   //   for (m=0; m<=l; m++) {
   //     shPower[l][m] = SH_cos_coeff[l][m]*SH_cos_coeff[l][m] + SH_sin_coeff[l][m]*SH_sin_coeff[l][m];
@@ -1036,7 +1036,7 @@ int Solver::UpdateLoading(void) {
         // loading = 0.0;
         for (m=0; m<=l; m++) {
           // normalise =  sqrt((2.0-delta)*(2.0*(double)l+1.0)*factrl(l-m)/factrl(l+m));
-
+          std::cout << l <<'\t'<<m<< std::endl;
 
           loadingTotal += etaLegendreArray[i][l][m]*(etaCosMLon[j][m]*SH_cos_coeff[l][m] + etaSinMLon[j][m]*SH_sin_coeff[l][m]);
           // loading += loadingFactor*etaLegendreArray[i][l][m];
@@ -1118,7 +1118,7 @@ int Solver::Explicit() {
 
     // loading = true;
     if (!loading) {
-      if (simulationTime > 0.1*consts->endTime.Value()) {
+      if (simulationTime > 0.01*consts->endTime.Value()) {
         // printf("Kicking in ocean loading\n");
         loading = true;
         // }
