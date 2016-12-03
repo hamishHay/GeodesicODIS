@@ -969,26 +969,7 @@ int Solver::ExtractSHCoeff(void) {
       count+=2;
     }
   }
-  std::cout << "COSINE:" << std::endl;
 
-  for (j=0; j<l_max+1; j++) {
-    for (k=0; k<l_max+1; k++) {
-      std::cout << "l " << k << " m "<< j <<'\t'<< SH_cos_coeff[k][j]<<std::endl;
-
-    }
-
-  }
-  std::cout << "SINE:" << std::endl;
-
-  for (j=0; j<l_max+1; j++) {
-    for (k=0; k<l_max+1; k++) {
-      std::cout << "l " << k << " m "<< j <<'\t'<< SH_sin_coeff[k][j]<<std::endl;
-
-    }
-
-  }
-
-  Out->TerminateODIS();
 
   // count = 0;
   // for (l=2; l<l_max+1; l++) {
@@ -1378,6 +1359,27 @@ void Solver::DumpFields(int output_num) {
     }
   }
 
+  std::cout << "COSINE:" << std::endl;
+
+  for (j=0; j<l_max+1; j++) {
+    for (k=0; k<l_max+1; k++) {
+      std::cout << "l " << k << " m "<< j <<'\t'<< SH_cos_coeff[k][j]<<std::endl;
+
+    }
+
+  }
+  std::cout << "SINE:" << std::endl;
+
+  for (j=0; j<l_max+1; j++) {
+    for (k=0; k<l_max+1; k++) {
+      std::cout << "l " << k << " m "<< j <<'\t'<< SH_sin_coeff[k][j]<<std::endl;
+
+    }
+
+  }
+
+  // Out->TerminateODIS();
+
   diss_avg_1D[0] = energy->currentDissEAvg;
 
   start[0] = output_num-1;
@@ -1457,6 +1459,8 @@ void Solver::DumpFields(int output_num) {
 
     H5Dwrite(data_set_harm_coeff, H5T_NATIVE_FLOAT, mem_space_harm_coeff, data_space_harm_coeff, H5P_DEFAULT, harm_coeff_1D);
   }
+
+  if (loading) Out->TerminateODIS();
 };
 
 void Solver::CreateHDF5FrameWork(void) {
