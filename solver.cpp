@@ -157,6 +157,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
       etaLegendreArray[i][l] = new double[l_max+1];
       for (int m=0; m <= l; m++) {
         etaLegendreArray[i][l][m] = assLegendre(l, m, etaNew->cosCoLat[i]);
+        std::cout << 'l='<<l<<", m="<<m<<'\t'<< etaLegendreArray[i][l][m] << std::endl;
       }
     }
   }
@@ -1125,13 +1126,15 @@ int Solver::UpdateLoading(void) {
           l = lm_solve[k][0];
           m = lm_solve[k][1];
 
-          if (i==0) std::cout << l << std::endl;
+          // if (i==0) std::cout << l << std::endl;
 
           loadingFactor = etaCosMLon[j][m]*SH_cos_coeff[l][m] + etaSinMLon[j][m]*SH_sin_coeff[l][m];
 
           loading += loadingFactor*etaLegendreArray[i][l][m];
 
-          if (i==0) std::cout << 'l='<<l<<", m="<<m<<'\t'<< etaLegendreArray[i][l][m] << std::endl;
+          // if (i==0) std::cout << 'l='<<l<<", m="<<m<<'\t'<< etaLegendreArray[i][l][m] << std::endl;
+
+          // if (i==0) std::cout << l << std::endl;
 
           k++;
 
