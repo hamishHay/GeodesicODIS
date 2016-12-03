@@ -1251,7 +1251,7 @@ void Solver::ReadInitialConditions(void) {
   for (int i=0; i< etaLatLen; i++) {
     for (int j=0; j<etaLonLen; j++) {
         etaOldArray[i][j] = 0.0;//eta_1D[i*etaLonLen + j];
-        oceanLoadingArray[i][j] = 0.0;
+        // oceanLoadingArray[i][j] = 0.0;
     }
   }
 
@@ -1309,6 +1309,7 @@ void Solver::DumpFields(int output_num) {
   for (int i=0; i<etaLatLen;i++) {
     for (int j=0; j<etaLonLen; j++) {
       eta_1D[i*etaLonLen + j] = (float)etaNewArray[i][j];
+      eta_1D[i*etaLonLen + j] = (float)oceanLoadingArray[i][j];
     }
   }
 
