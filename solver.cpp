@@ -949,8 +949,8 @@ int Solver::ExtractSHCoeff(void) {
   int count = 0;
   for (j = 0; j<j_len; j++) {
     for (i = 0; i<i_len; i++) {
-      fort_array[count] = etaNewArray[i][j];
-      if (etaNewArray[i][j] != etaNewArray[i][j]) {
+      fort_array[count] = etaOldArray[i][j];
+      if (etaOldArray[i][j] != etaOldArray[i][j]) {
         std::cout << "NAN" << std::endl;
         flag = true;
         return 0;
