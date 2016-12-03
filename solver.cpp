@@ -1045,32 +1045,6 @@ int Solver::UpdateLoading(void) {
         // loadingTotal += loading;
       }
 
-      // for (int k=0; k<l_solve_len; k++){
-      //   degree = lm_solve[k][0];
-      //
-      //   loading = 0.0;
-      //
-      //   while (lm_solve[k][0] == degree){
-      //     l = lm_solve[k][0];
-      //     m = lm_solve[k][1];
-      //
-      //     loadingFactor = etaCosMLon[j][m]*SH_cos_coeff[l][m] + etaSinMLon[j][m]*SH_sin_coeff[l][m];
-      //
-      //     loading += loadingFactor*etaLegendreArray[i][l][m];
-      //
-      //     k++;
-      //
-      //     if (k >= l_solve_len) break;
-      //
-      //   }
-      //
-      //   // loading *= gammaFactor[l];
-      //
-      //   loadingTotal += loading;
-      //
-      //   k--;
-      // }
-
       oceanLoadingArray[i][j] = loadingTotal;
 
     }
@@ -1345,7 +1319,7 @@ void Solver::DumpFields(int output_num) {
   for (int i=0; i<etaLatLen;i++) {
     for (int j=0; j<etaLonLen; j++) {
       eta_1D[i*etaLonLen + j] = (float)etaNewArray[i][j];
-      // if (loading) eta_1D[i*etaLonLen + j] = (float)oceanLoadingArray[i][j];
+      if (loading) eta_1D[i*etaLonLen + j] = (float)oceanLoadingArray[i][j];
     }
   }
 
