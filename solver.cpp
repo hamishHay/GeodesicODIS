@@ -1131,6 +1131,7 @@ int Solver::Explicit() {
       for (int i = 0; i < etaLatLen; i++) {
         for (int j = 0; j < etaLonLen; j++) {
           etaOldArray[i][j] = oceanLoadingArray[i][j];
+          etaNewArray[i][j] = etaOldArray[i][j]
         }
       }
 
@@ -1143,7 +1144,7 @@ int Solver::Explicit() {
     //Call SHTOOLS to find spherical harmonic expansion of etaNew.
     // if (loading) ExtractSHCoeff();
     // ExtractSHCoeff();
-
+    if (!loading) {
     //Solve for v
     UpdateNorthVel();
 
@@ -1173,6 +1174,7 @@ int Solver::Explicit() {
         etaOldArray[i][j] = etaNewArray[i][j];
       }
     }
+  }
 
     // InterpSurfaceHeight();
 
