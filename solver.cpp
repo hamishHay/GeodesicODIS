@@ -642,18 +642,20 @@ void Solver::UpdateEastVel(){
 
       dSurfLon = (eastEta - westEta) / (etadLon);
 
-      surfHeight = surfFactor*dSurfLon;
-
       coriolis = coriolisFactor * vNEAvgArray[i][j];
       tidalForce = tidalFactor * dUlonArray[i][j];
 
 
-      if (j != uLonLen - 1) oceanLoadingEast = oceanLoadingArray[i][j+1];
-      else oceanLoadingEast = oceanLoadingArray[i][0];
+      if (!loading) surfHeight = surfFactor*dSurfLon;
+      else {
+        if (j != uLonLen - 1) oceanLoadingEast = oceanLoadingArray[i][j+1];
+        else oceanLoadingEast = oceanLoadingArray[i][0];
 
-      oceanLoadingWest = oceanLoadingArray[i][j];
+        oceanLoadingWest = oceanLoadingArray[i][j];
 
-      oceanLoadingTerm = surfFactor*(oceanLoadingEast - oceanLoadingWest)/etadLon;
+        oceanLoadingTerm = surfFactor*(oceanLoadingEast - oceanLoadingWest)/etadLon;
+      }
+
 
       uNewArray[i][j] = (coriolis - surfHeight - oceanLoadingTerm + tidalForce - uDissArray[i][j])*dt + uOldArray[i][j];
     }
@@ -768,13 +770,15 @@ int Solver::UpdateNorthVel(){
 
       dSurfLat = (northEta - southEta) / etadLat;
 
-      surfHeight = gRadius*dSurfLat;
+      if (!loading) surfHeight = gRadius*dSurfLat;
+      else oceanLoadingTerm = gRadius*(oceanLoadingArray[i][j] - oceanLoadingArray[i+1][j])/etadLat;
 
       coriolis =  coriolisFactor*uSWAvgArray[i][j];
 
       tidalForce = loveRadius * dUlatArray[i][j];
 
-      oceanLoadingTerm = gRadius*(oceanLoadingArray[i][j] - oceanLoadingArray[i+1][j])/etadLat;
+
+      // std::cout << oceanLoadingTerm<<'\t'<<tidalForce<< << std::endl;
 
       vNewArray[i][j] = (-coriolis - surfHeight - oceanLoadingTerm + tidalForce - vDissArray[i][j])*dt + vOldArray[i][j];
 
@@ -1043,7 +1047,7 @@ int Solver::UpdateLoading(void) {
         k--;
       }
 
-      std::cout << i<<'\t'<<j<<'\t'<<loadingTotal << std::endl;
+      // std::cout << i<<'\t'<<j<<'\t'<<loadingTotal << std::endl;
 
       oceanLoadingArray[i][j] = loadingTotal;
 
@@ -1093,7 +1097,7 @@ int Solver::Explicit() {
       if (simulationTime > 0.1*consts->endTime.Value()) {
         printf("Kicking in ocean loading\n");
         loading = true;
-      }
+      // }
     }
     else UpdateLoading();
 
