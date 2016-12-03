@@ -1131,7 +1131,7 @@ int Solver::UpdateLoading(void) {
 
           loading += loadingFactor*etaLegendreArray[i][l][m];
 
-          if (i==0) std::cout << etaLegendreArray[i][l][m] << std::endl;
+          if (i==0) std::cout << 'l='<<l<<", m="<<m<<'\t'<< etaLegendreArray[i][l][m] << std::endl;
 
           k++;
 
@@ -1146,7 +1146,7 @@ int Solver::UpdateLoading(void) {
         k--;
       }
 
-      std::cout << i<<'\t'<<j<<'\t'<<loadingTotal << std::endl;
+      // std::cout << i<<'\t'<<j<<'\t'<<loadingTotal << std::endl;
 
       oceanLoadingArray[i][j] = loadingTotal;
 
