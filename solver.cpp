@@ -1092,7 +1092,7 @@ int Solver::Explicit() {
   outstring << "\t\t Time step: \t" << dt << " seconds\n\n";
   Out->Write(OUT_MESSAGE, &outstring);
 
-  DumpSolutions(-1);
+  DumpSolutions(-1,timeStepCount);
 
 
   energy->mass->UpdateMass();
