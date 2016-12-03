@@ -205,7 +205,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 
 
     gammaFactor[l] = 1.0 - (1 + loadK[l] - loadH[l]) * 3000.0 / ((2*l + 1) * 1610.0);
-    gammaFactor[l] = 1.0;
+    // gammaFactor[l] = 1.0;
 
   }
 
