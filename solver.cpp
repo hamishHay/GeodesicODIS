@@ -646,7 +646,10 @@ void Solver::UpdateEastVel(){
       tidalForce = tidalFactor * dUlonArray[i][j];
 
 
-      if (!loading) surfHeight = surfFactor*dSurfLon;
+      if (!loading) {
+        surfHeight = surfFactor*dSurfLon;
+        oceanLoadingTerm = 0.0;
+      }
       else {
         if (j != uLonLen - 1) oceanLoadingEast = oceanLoadingArray[i][j+1];
         else oceanLoadingEast = oceanLoadingArray[i][0];
@@ -772,7 +775,10 @@ int Solver::UpdateNorthVel(){
 
       dSurfLat = (northEta - southEta) / etadLat;
 
-      if (!loading) surfHeight = gRadius*dSurfLat;
+      if (!loading) {
+        surfHeight = gRadius*dSurfLat;
+        oceanLoadingTerm = 0.0;
+      }
       else {
         oceanLoadingTerm = gRadius*(oceanLoadingArray[i][j] - oceanLoadingArray[i+1][j])/etadLat;
         surfHeight = 0.0;
@@ -1090,7 +1096,7 @@ int Solver::Explicit() {
 
 
     if (!loading) {
-      if (simulationTime > 0.01*consts->endTime.Value()) {
+      if (simulationTime > 0.1*consts->endTime.Value()) {
         printf("Kicking in ocean loading\n");
         loading = true;
         // }
