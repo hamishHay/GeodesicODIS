@@ -964,11 +964,29 @@ int Solver::ExtractSHCoeff(void) {
   count = 0;
   for (j=0; j<l_max+1; j++) {
     for (k=0; k<l_max+1; k++) {
-      SH_cos_coeff[k][j] = fort_harm_coeff[count];
-      SH_sin_coeff[k][j] = fort_harm_coeff[count+1];
+      SH_cos_coeff[j][k] = fort_harm_coeff[count];
+      SH_sin_coeff[j][k] = fort_harm_coeff[count+1];
       count+=2;
     }
   }
+
+  // for (j=0; j<l_max+1; j++) {
+  //   for (k=0; k<l_max+1; k++) {
+  //     std::cout << "COSINE:" << std::endl;
+  //     std::cout << "l " << l << " m "<< m <<'\t'<< SH_cos_coeff[k][j]<<std::endl;
+  //
+  //   }
+  //
+  // }
+  //
+  // for (j=0; j<l_max+1; j++) {
+  //   for (k=0; k<l_max+1; k++) {
+  //     std::cout << "SINE:" << std::endl;
+  //     std::cout << "l " << l << " m "<< m <<'\t'<< SH_sin_coeff[k][j]<<std::endl;
+  //
+  //   }
+  //
+  // }
 
   // count = 0;
   // for (l=2; l<l_max+1; l++) {
