@@ -1199,17 +1199,17 @@ int Solver::Explicit() {
 
     UpdatePotential();
 
-    simulationTime += dt;
 
 
     if (!loading) {
-      if (simulationTime > 0.1*consts->endTime.Value()) {
+      if (simulationTime > 0.05*consts->endTime.Value()) {
         printf("Kicking in ocean loading\n");
         loading = true;
       }
     }
     else UpdateLoading();
 
+    simulationTime += dt;
 
     //Call SHTOOLS to find spherical harmonic expansion of etaNew.
     // if (loading) ExtractSHCoeff();
