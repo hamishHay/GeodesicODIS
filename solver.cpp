@@ -968,7 +968,7 @@ int Solver::ExtractSHCoeff(void) {
   }
 
   count = 0;
-  for (l=2; l<l_max+1; l++) {
+  for (l=0; l<l_max+1; l++) {
     for (m=0; m<=l; m++) {
       shPower[l][m] = SH_cos_coeff[l][m]*SH_cos_coeff[l][m] + SH_sin_coeff[l][m]*SH_sin_coeff[l][m];
       if (shPower[l][m] > 0) count++;
@@ -988,7 +988,7 @@ int Solver::ExtractSHCoeff(void) {
   }
 
   count = 0;
-  for (l=2; l<l_max+1; l++) {
+  for (l=0; l<l_max+1; l++) {
     for (m=0; m<=l; m++) {
       if (shPower[l][m] > 0) {
         lm_solve[count][0] = l;
