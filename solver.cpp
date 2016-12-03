@@ -971,34 +971,34 @@ int Solver::ExtractSHCoeff(void) {
   }
 
   count = 0;
-  for (l=2; l<l_max+1; l++) {
-    for (m=0; m<=l; m++) {
-      shPower[l][m] = SH_cos_coeff[l][m]*SH_cos_coeff[l][m] + SH_sin_coeff[l][m]*SH_sin_coeff[l][m];
-      if (shPower[l][m] > 0) count++;
-    }
-  }
+  // for (l=2; l<l_max+1; l++) {
+  //   for (m=0; m<=l; m++) {
+  //     shPower[l][m] = SH_cos_coeff[l][m]*SH_cos_coeff[l][m] + SH_sin_coeff[l][m]*SH_sin_coeff[l][m];
+  //     if (shPower[l][m] > 0) count++;
+  //   }
+  // }
 
 
-  for (i=0; i<l_solve_len; i++) {
-    delete[] lm_solve[i];
-  }
-  delete[] lm_solve;
-
-  l_solve_len = count;
-  lm_solve = new int*[l_solve_len];
-  for (i=0; i<l_solve_len; i++) {
-    lm_solve[i] = new int[2];
-  }
-
-  count = 0;
-  for (l=2; l<l_max+1; l++) {
-    for (m=0; m<=l; m++) {
-      if (shPower[l][m] > 0) {
-        lm_solve[count][0] = l;
-        lm_solve[count][1] = m;
-        count++;
-      }
-    }
+  // for (i=0; i<l_solve_len; i++) {
+  //   delete[] lm_solve[i];
+  // }
+  // delete[] lm_solve;
+  //
+  // l_solve_len = count;
+  // lm_solve = new int*[l_solve_len];
+  // for (i=0; i<l_solve_len; i++) {
+  //   lm_solve[i] = new int[2];
+  // }
+  //
+  // count = 0;
+  // for (l=2; l<l_max+1; l++) {
+  //   for (m=0; m<=l; m++) {
+  //     if (shPower[l][m] > 0) {
+  //       lm_solve[count][0] = l;
+  //       lm_solve[count][1] = m;
+  //       count++;
+  //     }
+  //   }
   }
 
   delete[] fort_array;
@@ -1110,6 +1110,7 @@ int Solver::Explicit() {
     UpdatePotential();
 
 
+    loading = true;
     if (!loading) {
       if (simulationTime > 0.01*consts->endTime.Value()) {
         // printf("Kicking in ocean loading\n");
@@ -1121,11 +1122,11 @@ int Solver::Explicit() {
     if (loading) {
       UpdateLoading();
 
-      for (int i = 0; i < etaLatLen; i++) {
-        for (int j = 0; j < etaLonLen; j++) {
-          etaOldArray[i][j] = oceanLoadingArray[i][j];
-        }
-      }
+      // for (int i = 0; i < etaLatLen; i++) {
+      //   for (int j = 0; j < etaLonLen; j++) {
+      //     etaOldArray[i][j] = oceanLoadingArray[i][j];
+      //   }
+      // }
 
     }
 
@@ -1146,7 +1147,7 @@ int Solver::Explicit() {
     //Solve for eta based on new u and v
     UpdateSurfaceHeight();
 
-
+    // loading = true;
 
     for (int i = 0; i < vLatLen; i++) {
       for (int j = 0; j < vLonLen; j++) {
