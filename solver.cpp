@@ -1150,7 +1150,7 @@ int Solver::Explicit() {
       orbitNumber++;
       timeStepCount -= consts->period.Value();
 
-      printf("TIME: %.2f, number: %d\n", simulationTime/consts->period.Value(), output);
+      printf("TIME: %.2f, number: %d, dissipation: %.3f\n", simulationTime/consts->period.Value(), output, energy->currentDissEAvg);
 
       energy->UpdateOrbitalKinEAvg(inc);
 
