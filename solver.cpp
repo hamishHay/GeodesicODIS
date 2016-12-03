@@ -782,6 +782,9 @@ int Solver::UpdateNorthVel(){
       }
       else {
         oceanLoadingTerm = gRadius*(oceanLoadingArray[i][j] - oceanLoadingArray[i+1][j])/etadLat;
+        surfHeight = gRadius*dSurfLat;
+
+        std::cout << surfHeight <<'\t'<<oceanLoadingTerm << std::endl;
         surfHeight = 0.0;
       }
 
@@ -1098,7 +1101,7 @@ int Solver::Explicit() {
 
     if (!loading) {
       if (simulationTime > 0.1*consts->endTime.Value()) {
-        printf("Kicking in ocean loading\n");
+        // printf("Kicking in ocean loading\n");
         loading = true;
         // }
       }
@@ -1312,7 +1315,7 @@ void Solver::DumpFields(int output_num) {
   for (int i=0; i<etaLatLen;i++) {
     for (int j=0; j<etaLonLen; j++) {
       eta_1D[i*etaLonLen + j] = (float)etaNewArray[i][j];
-      // if (loading) eta_1D[i*etaLonLen + j] = (float)oceanLoadingArray[i][j];
+      if (loading) eta_1D[i*etaLonLen + j] = (float)oceanLoadingArray[i][j];
     }
   }
 
