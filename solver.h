@@ -89,6 +89,8 @@ public:
 
 	double ** depthArray;
 
+  double ** oceanLoadingArray;
+
 	int uLatLen;
 	int uLonLen;
 	double udLon;
@@ -125,6 +127,9 @@ public:
 	Field * etaUAvg;
 	Field * etaInterp;
 
+  Field * oceanLoading;
+
+
 	double * cosMinusB;
 	double * cosPlusB;
 	double * sinMinusB;
@@ -157,6 +162,7 @@ public:
 	void UpdateEastVel();
 	int UpdateNorthVel();
 	void UpdateSurfaceHeight();
+  int UpdateLoading();
 	inline void InterpSurfaceHeight() __attribute__((always_inline));
 
 	int ExtractSHCoeff();
