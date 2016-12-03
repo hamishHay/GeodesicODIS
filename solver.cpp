@@ -1383,8 +1383,10 @@ void Solver::ReadInitialConditions(void) {
 
       depthArray[i][j] = h_thick;
 
+      depthArray[i][j] = 0.0;
     }
   }
+
 };
 
 void Solver::DumpFields(int output_num) {
