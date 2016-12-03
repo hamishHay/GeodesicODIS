@@ -647,79 +647,13 @@ void Solver::UpdateEastVel(){
       coriolis = coriolisFactor * vNEAvgArray[i][j];
       tidalForce = tidalFactor * dUlonArray[i][j];
 
-      // oceanLoadingEast = 0.0;
-      // oceanLoadingWest = 0.0;
-      // legendre = 0.0;
-      // loadingFactorEast = 0.0;
-      // loadingFactorWest = 0.0;
-      //
-      // int l=0;
-      // int m=0;
-      // int degree = 0;
-      //
-      // oceanLoadingEastTotal = 0.0;
-      // oceanLoadingWestTotal = 0.0;
-      //
-      // if (loading) {
-      //
-      //   for (int k=0; k<l_solve_len; k++){
-      //     degree = lm_solve[k][0];
-      //
-      //     oceanLoadingEast = 0.0;
-      //     oceanLoadingWest = 0.0;
-      //
-      //     while (lm_solve[k][0] == degree){
-      //       l = lm_solve[k][0];
-      //       m = lm_solve[k][1];
-      //
-      //       if (j != uLonLen - 1) loadingFactorEast = etaCosMLon[j+1][m]*SH_cos_coeff[l][m] + etaSinMLon[j+1][m]*SH_sin_coeff[l][m];
-      //       else loadingFactorEast = etaCosMLon[0][m]*SH_cos_coeff[l][m] + etaSinMLon[0][m]*SH_sin_coeff[l][m];
-      //
-      //       // if (j != uLonLen - 1) loadingFactorEast = cos(m*lonEast - omega*simulationTime)*SH_cos_coeff[l][m] + sin(m*lonEast - omega*simulationTime)*SH_sin_coeff[l][m];
-      //       // else loadingFactorEast = cos(m*lonZero - omega*simulationTime)*SH_cos_coeff[l][m] + sin(m*lonZero - omega*simulationTime)*SH_sin_coeff[l][m];
-      //
-      //       // loadingFactorEast = cos(m*lonEast - omega*simulationTime) * SH_cos_coeff[l][m] + sin(m*lonEast - omega*simulationTime)*SH_sin_coeff[l][m];
-      //
-      //
-      //       loadingFactorWest = etaCosMLon[j][m]*SH_cos_coeff[l][m] + etaSinMLon[j][m]*SH_sin_coeff[l][m];
-      //
-      //       // loadingFactorWest = cos(m*lonWest - omega*simulationTime)*SH_cos_coeff[l][m] + sin(m*lonWest - omega*simulationTime)*SH_sin_coeff[l][m];
-      //
-      //
-      //       legendre = etaLegendreArray[i][l][m]; //assLegendre(l, m, etaNew->cosCoLat[i]);
-      //
-      //       oceanLoadingEast = oceanLoadingEast + loadingFactorEast*legendre;
-      //       oceanLoadingWest = oceanLoadingWest + loadingFactorWest*legendre;
-      //
-      //       k++;
-      //       if (k >= l_solve_len) break;
-      //     }
-      //
-      //
-      //     oceanLoadingEast *= gammaFactor[l];
-      //     oceanLoadingWest *= gammaFactor[l];
-      //
-      //     oceanLoadingEastTotal += oceanLoadingEast;
-      //     oceanLoadingWestTotal += oceanLoadingWest;
-      //
-      //     k--;
-      //   }
-      //
-      // }
 
       if (j != uLonLen - 1) oceanLoadingEast = oceanLoadingArray[i][j+1];
       else oceanLoadingEast = oceanLoadingArray[i][0];
 
       oceanLoadingWest = oceanLoadingArray[i][j];
 
-      // if (oceanLoadingEast != 0.0) std::cout << i<<'\t'<<j << std::endl;
-
       oceanLoadingTerm = surfFactor*(oceanLoadingEast - oceanLoadingWest)/etadLon;
-
-      // oceanLoadingTerm = 0.0;
-
-
-      // oceanLoading = 0.0;
 
       uNewArray[i][j] = (coriolis - surfHeight - oceanLoadingTerm + tidalForce - uDissArray[i][j])*dt + uOldArray[i][j];
     }
@@ -840,59 +774,7 @@ int Solver::UpdateNorthVel(){
 
       tidalForce = loveRadius * dUlatArray[i][j];
 
-      // int l=0;
-      // int m=0;
-      // int degree = 0;
-      //
-      // oceanLoadingNorthTotal = 0.0;
-      // oceanLoadingSouthTotal = 0.0;
-      //
-      // if (loading) {
-      //   for (int k=0; k<l_solve_len; k++){
-      //     degree = lm_solve[k][0];
-      //
-      //     oceanLoadingNorth = 0.0;
-      //     oceanLoadingSouth = 0.0;
-      //
-      //     while (lm_solve[k][0] == degree){
-      //       // std::cout << "HERE" << std::endl;
-      //       l = lm_solve[k][0];
-      //       m = lm_solve[k][1];
-      //
-      //       // std::cout << l<<'\t'<<m << std::endl;
-      //
-      //       loadingFactor = etaCosMLon[j][m]*SH_cos_coeff[l][m] + etaSinMLon[j][m]*SH_sin_coeff[l][m];
-      //       // loadingFactor = cos(m*lon - omega*simulationTime) * SH_cos_coeff[l][m] + sin(m*lon - omega*simulationTime)*SH_sin_coeff[l][m];
-      //
-      //       oceanLoadingNorth += loadingFactor*etaLegendreArray[i][l][m];
-      //       oceanLoadingSouth += loadingFactor*etaLegendreArray[i+1][l][m];
-      //
-      //       k++;
-      //
-      //       if (k >= l_solve_len) break;
-      //
-      //     }
-      //
-      //     oceanLoadingNorth *= gammaFactor[l];
-      //     oceanLoadingSouth *= gammaFactor[l];
-      //
-      //     oceanLoadingNorthTotal += oceanLoadingNorth;
-      //     oceanLoadingSouthTotal += oceanLoadingSouth;
-      //
-      //     k--;
-      //   }
-      //   // std::cout << "HERE" << std::endl;
-      // }
-      //
-      // if (oceanLoadingNorth != oceanLoadingArray[i][j]) std::cout << "ERROR" << std::endl;
-      // oceanLoadingNorth =
-      // oceanLoadingSouth = oceanLoadingArray[i+1];
-
       oceanLoadingTerm = gRadius*(oceanLoadingArray[i][j] - oceanLoadingArray[i+1][j])/etadLat;
-
-      // oceanLoadingTerm = 0.0;
-
-      // oceanLoading = 0.0;
 
       vNewArray[i][j] = (-coriolis - surfHeight - oceanLoadingTerm + tidalForce - vDissArray[i][j])*dt + vOldArray[i][j];
 
@@ -1161,7 +1043,7 @@ int Solver::UpdateLoading(void) {
         k--;
       }
 
-      // std::cout << i<<'\t'<<j<<'\t'<<loadingTotal << std::endl;
+      std::cout << i<<'\t'<<j<<'\t'<<loadingTotal << std::endl;
 
       oceanLoadingArray[i][j] = loadingTotal;
 
@@ -1180,10 +1062,6 @@ int Solver::Explicit() {
   double timeStepCount = 0;
   int inc = (int) (consts->period.Value()/dt);
 
-  double omegaTime;
-  double omega = consts->angVel.Value();
-  double lon = 0.0;
-
   InitialConditions();
 
   //Check for stability
@@ -1199,8 +1077,6 @@ int Solver::Explicit() {
   energy->UpdateKinE(uNewArray,vNewArray);
 
   while (simulationTime <= consts->endTime.Value() && !energy->converged) {
-
-    omegaTime = omega*simulationTime;
 
     if (flag) {
       return -1;
