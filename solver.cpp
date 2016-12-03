@@ -1031,31 +1031,41 @@ int Solver::UpdateLoading(void) {
 
       loadingTotal = 0.0;
 
-      for (int k=0; k<l_solve_len; k++){
-        degree = lm_solve[k][0];
-
+      for (l=0; l<l_max+1; l++) {
         loading = 0.0;
-
-        while (lm_solve[k][0] == degree){
-          l = lm_solve[k][0];
-          m = lm_solve[k][1];
-
-          loadingFactor = etaCosMLon[j][m]*SH_cos_coeff[l][m] + etaSinMLon[j][m]*SH_sin_coeff[l][m];
-
-          loading += loadingFactor*etaLegendreArray[i][l][m];
-
-          k++;
-
-          if (k >= l_solve_len) break;
-
+        for (m=0; m<=l; m++) {
+          loading += etaLegendreArray[i][l][m]*(etaCosMLon[j][m]*SH_cos_coeff[l][m] + etaSinMLon[j][m]*SH_sin_coeff[l][m]);
+          // loading += loadingFactor*etaLegendreArray[i][l][m];
         }
-
-        loading *= gammaFactor[l];
-
+        // loading *= gammaFactor[l];
         loadingTotal += loading;
-
-        k--;
       }
+
+      // for (int k=0; k<l_solve_len; k++){
+      //   degree = lm_solve[k][0];
+      //
+      //   loading = 0.0;
+      //
+      //   while (lm_solve[k][0] == degree){
+      //     l = lm_solve[k][0];
+      //     m = lm_solve[k][1];
+      //
+      //     loadingFactor = etaCosMLon[j][m]*SH_cos_coeff[l][m] + etaSinMLon[j][m]*SH_sin_coeff[l][m];
+      //
+      //     loading += loadingFactor*etaLegendreArray[i][l][m];
+      //
+      //     k++;
+      //
+      //     if (k >= l_solve_len) break;
+      //
+      //   }
+      //
+      //   // loading *= gammaFactor[l];
+      //
+      //   loadingTotal += loading;
+      //
+      //   k--;
+      // }
 
       oceanLoadingArray[i][j] = loadingTotal;
 
@@ -1101,7 +1111,7 @@ int Solver::Explicit() {
 
 
     if (!loading) {
-      if (simulationTime > 0.1*consts->endTime.Value()) {
+      if (simulationTime > 0.0*consts->endTime.Value()) {
         // printf("Kicking in ocean loading\n");
         loading = true;
         // }
@@ -1110,7 +1120,7 @@ int Solver::Explicit() {
 
     if (loading) UpdateLoading();
 
-    // loading = false;
+    loading = false;
 
     simulationTime += dt;
 
