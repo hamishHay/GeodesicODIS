@@ -999,7 +999,7 @@ int Solver::ExtractSHCoeff(void) {
   //       count++;
   //     }
   //   }
-  }
+  // }
 
   delete[] fort_array;
   delete[] fort_harm_coeff;
