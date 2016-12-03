@@ -969,19 +969,19 @@ int Solver::ExtractSHCoeff(void) {
       count+=2;
     }
   }
+  std::cout << "COSINE:" << std::endl;
 
   for (j=0; j<l_max+1; j++) {
     for (k=0; k<l_max+1; k++) {
-      std::cout << "COSINE:" << std::endl;
       std::cout << "l " << k << " m "<< j <<'\t'<< SH_cos_coeff[k][j]<<std::endl;
 
     }
 
   }
+  std::cout << "SINE:" << std::endl;
 
   for (j=0; j<l_max+1; j++) {
     for (k=0; k<l_max+1; k++) {
-      std::cout << "SINE:" << std::endl;
       std::cout << "l " << k << " m "<< j <<'\t'<< SH_sin_coeff[k][j]<<std::endl;
 
     }
