@@ -121,6 +121,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   oceanLoading = new Field(grid, 0, 0);
   oceanLoadingArray = oceanLoading->solution;
 
+
   //newRadius = new Depth(grid);
   //newRadiusArray = newRadius->solution;
 
@@ -150,6 +151,11 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 
   dt = consts->timeStep.Value();
 
+  for (int i=0; i<etaLatLen; i++) {
+    for (int j=0; j<etaLonLen; j++) {
+      oceanLoadingArray = 0.0;
+    }
+  }
   etaLegendreArray = new double**[etaLatLen];
   for (int i=0; i<etaLatLen; i++) {
     etaLegendreArray[i] = new double*[l_max+1];
@@ -157,7 +163,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
       etaLegendreArray[i][l] = new double[l_max+1];
       for (int m=0; m <= l; m++) {
         etaLegendreArray[i][l][m] = assLegendre(l, m, etaNew->cosCoLat[i]);
-        std::cout <<"i="<<i<<", l="<<l<<", m="<<m<<'\t'<< etaLegendreArray[i][l][m]<<'\t'<<etaNew->cosCoLat[i] << std::endl;
+        // std::cout <<"i="<<i<<", l="<<l<<", m="<<m<<'\t'<< etaLegendreArray[i][l][m]<<'\t'<<etaNew->cosCoLat[i] << std::endl;
       }
     }
   }
