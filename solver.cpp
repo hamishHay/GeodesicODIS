@@ -1383,7 +1383,7 @@ void Solver::ReadInitialConditions(void) {
 
       depthArray[i][j] = h_thick;
 
-      depthArray[i][j] = 0.0;
+      // depthArray[i][j] = 0.0;
     }
   }
 
