@@ -1131,6 +1131,8 @@ int Solver::UpdateLoading(void) {
 
           loading += loadingFactor*etaLegendreArray[i][l][m];
 
+          if (i==0) std::cout << etaLegendreArray[i][l][m] << std::endl;
+
           k++;
 
           if (k >= l_solve_len) break;
