@@ -1151,7 +1151,7 @@ int Solver::UpdateLoading(void) {
 
       // std::cout << i<<'\t'<<j<<'\t'<<loadingTotal << std::endl;
 
-      oceanLoadingArray[i][j] = loadingTotal;
+      oceanLoadingArray[i][j] = 0;//loadingTotal;
 
     }
   }
