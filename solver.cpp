@@ -1098,6 +1098,7 @@ int Solver::Explicit() {
         loading = true;
         // }
       }
+    }
 
     if (loading) UpdateLoading();
 
