@@ -1020,7 +1020,7 @@ int Solver::UpdateLoading(void) {
   for (j=0; j<etaLonLen; j++) {
     lon = eta->lon[j];
     for (m=0; m<l_max+1; m++){
-      omegaTime = 0.0;
+      // omegaTime = 0.0;
       etaCosMLon[j][m] = cos(m*lon - omegaTime);
       etaSinMLon[j][m] = sin(m*lon - omegaTime);
     }
