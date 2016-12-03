@@ -968,7 +968,7 @@ int Solver::ExtractSHCoeff(void) {
   }
 
   count = 0;
-  for (l=0; l<l_max+1; l++) {
+  for (l=2; l<l_max+1; l++) {
     for (m=0; m<=l; m++) {
       shPower[l][m] = SH_cos_coeff[l][m]*SH_cos_coeff[l][m] + SH_sin_coeff[l][m]*SH_sin_coeff[l][m];
       if (shPower[l][m] > 0) count++;
@@ -988,7 +988,7 @@ int Solver::ExtractSHCoeff(void) {
   }
 
   count = 0;
-  for (l=0; l<l_max+1; l++) {
+  for (l=2; l<l_max+1; l++) {
     for (m=0; m<=l; m++) {
       if (shPower[l][m] > 0) {
         lm_solve[count][0] = l;
@@ -1097,7 +1097,7 @@ int Solver::Explicit() {
 
 
     if (!loading) {
-      if (simulationTime > 0.1*consts->endTime.Value()) {
+      if (simulationTime > 10*consts->endTime.Value()) {
         printf("Kicking in ocean loading\n");
         loading = true;
         // }
