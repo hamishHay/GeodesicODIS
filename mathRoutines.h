@@ -85,7 +85,7 @@ inline double assLegendre(int l, int m, double x) {
   if (m==0) delta = 1.0;
 
 
-  normalise =  sqrt((2.0-delta)*(2.0*(double)l+1.0)*factrl(l-m)/factrl(l+m));
+  normalise =  1.0;//sqrt((2.0-delta)*(2.0*(double)l+1.0)*factrl(l-m)/factrl(l+m));
 
   // if (m%2 != 0) normalise = -normalise;
 
