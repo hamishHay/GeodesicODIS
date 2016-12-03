@@ -118,6 +118,9 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   depth = Depth_h;
   depthArray = Depth_h->solution;
 
+  oceanLoading = new Field(grid, 0, 0);
+  oceanLoadingArray = oceanLoading->solution;
+
   //newRadius = new Depth(grid);
   //newRadiusArray = newRadius->solution;
 
@@ -1092,6 +1095,8 @@ int Solver::UpdateLoading(void) {
   double loading = 0.0;
   double loadingTotal = 0.0;
   double loadingFactor = 0.0;
+  double omega = consts->angVel.Value();
+  double omegaTime = omega*simulationTime;
   int i,j,l,m,k, degree;
 
   ExtractSHCoeff();
