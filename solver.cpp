@@ -654,6 +654,8 @@ void Solver::UpdateEastVel(){
         oceanLoadingWest = oceanLoadingArray[i][j];
 
         oceanLoadingTerm = surfFactor*(oceanLoadingEast - oceanLoadingWest)/etadLon;
+
+        surfHeight = 0.0;
       }
 
 
@@ -707,6 +709,9 @@ int Solver::UpdateNorthVel(){
   // double loadK = 0.0;
   // double loadH = 0.0;
   // double mu_bar = 6.78e9/(1610.0*consts->g.Value()*consts->radius.Value());
+  double loveRadius = consts->loveReduct.Value() / consts->radius.Value();
+  double gRadius = consts->g.Value() / consts->radius.Value();
+  double coriolisFactor = 0;
 
   double g = consts->g.Value();
   double r = consts->radius.Value();
@@ -751,9 +756,6 @@ int Solver::UpdateNorthVel(){
     break;
   }
 
-  double loveRadius = consts->loveReduct.Value() / consts->radius.Value();
-  double gRadius = consts->g.Value() / consts->radius.Value();
-  double coriolisFactor = 0;
 
   int i_h = 0;
   int j_h = 0;
@@ -771,7 +773,10 @@ int Solver::UpdateNorthVel(){
       dSurfLat = (northEta - southEta) / etadLat;
 
       if (!loading) surfHeight = gRadius*dSurfLat;
-      else oceanLoadingTerm = gRadius*(oceanLoadingArray[i][j] - oceanLoadingArray[i+1][j])/etadLat;
+      else {
+        oceanLoadingTerm = gRadius*(oceanLoadingArray[i][j] - oceanLoadingArray[i+1][j])/etadLat;
+        surfHeight = 0.0;
+      }
 
       coriolis =  coriolisFactor*uSWAvgArray[i][j];
 
