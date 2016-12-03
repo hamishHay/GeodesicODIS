@@ -1110,7 +1110,7 @@ int Solver::Explicit() {
     UpdatePotential();
 
 
-    loading = true;
+    // loading = true;
     if (!loading) {
       if (simulationTime > 0.1*consts->endTime.Value()) {
         // printf("Kicking in ocean loading\n");
