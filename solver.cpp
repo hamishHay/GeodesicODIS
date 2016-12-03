@@ -1125,7 +1125,7 @@ int Solver::UpdateLoading(void) {
           l = lm_solve[k][0];
           m = lm_solve[k][1];
 
-
+          std::cout << l << std::endl;
 
           loadingFactor = etaCosMLon[j][m]*SH_cos_coeff[l][m] + etaSinMLon[j][m]*SH_sin_coeff[l][m];
 
