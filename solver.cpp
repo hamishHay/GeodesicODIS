@@ -1013,6 +1013,7 @@ int Solver::UpdateLoading(void) {
   double omega = consts->angVel.Value();
   double omegaTime = omega*simulationTime;
   double lon;
+  double normalise;
   int i,j,l,m,k, degree;
 
   ExtractSHCoeff();
@@ -1032,13 +1033,16 @@ int Solver::UpdateLoading(void) {
       loadingTotal = 0.0;
 
       for (l=0; l<l_max+1; l++) {
-        loading = 0.0;
+        // loading = 0.0;
         for (m=0; m<=l; m++) {
-          loading += etaLegendreArray[i][l][m]*(etaCosMLon[j][m]*SH_cos_coeff[l][m] + etaSinMLon[j][m]*SH_sin_coeff[l][m]);
+          // normalise =  sqrt((2.0-delta)*(2.0*(double)l+1.0)*factrl(l-m)/factrl(l+m));
+
+
+          loadingTotal += etaLegendreArray[i][l][m]*(etaCosMLon[j][m]*SH_cos_coeff[l][m] + etaSinMLon[j][m]*SH_sin_coeff[l][m]);
           // loading += loadingFactor*etaLegendreArray[i][l][m];
         }
         // loading *= gammaFactor[l];
-        loadingTotal += loading;
+        // loadingTotal += loading;
       }
 
       // for (int k=0; k<l_solve_len; k++){
