@@ -98,7 +98,7 @@ inline double assLegendre(int l, int m, double x) {
 
   // if (m==0) delta = 1.0;
 
-  normalise = legendreNorm[l][m];
+  normalise = legendreNorm(l,m);
   // normalise =  sqrt((2.0-delta)*(2.0*(double)l+1.0)*factrl(l-m)/factrl(l+m));
 
   // if (m%2 != 0) normalise = -normalise;
