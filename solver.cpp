@@ -1036,18 +1036,18 @@ int Solver::UpdateLoading(void) {
       loadingTotal = 0.0;
 
       for (l=0; l<l_max+1; l++) {
-        // loading = 0.0;
+        loading = 0.0;
         for (m=0; m<=l; m++) {
           // normalise =  sqrt((2.0-delta)*(2.0*(double)l+1.0)*factrl(l-m)/factrl(l+m));
           // std::cout << l <<'\t'<<m<< std::endl;
 
           // if (i==10) std::cout << "l = "<<l<<", m = "<<m<<", legendre = "<<etaLegendreArray[i][l][m] << std::endl;
 
-          loadingTotal += etaLegendreArray[i][l][m]*(etaCosMLon[j][m]*SH_cos_coeff[l][m] + etaSinMLon[j][m]*SH_sin_coeff[l][m]);
+          loading += etaLegendreArray[i][l][m]*(etaCosMLon[j][m]*SH_cos_coeff[l][m] + etaSinMLon[j][m]*SH_sin_coeff[l][m]);
           // loading += loadingFactor*etaLegendreArray[i][l][m];
         }
-        // loading *= gammaFactor[l];
-        // loadingTotal += loading;
+        loading *= gammaFactor[l];
+        loadingTotal += loading;
       }
 
       oceanLoadingArray[i][j] = loadingTotal;
@@ -1098,7 +1098,7 @@ int Solver::Explicit() {
     // loading = true;
     if (!loading) {
       if (simulationTime > 0.01*consts->endTime.Value()) {
-        // printf("Kicking in ocean loading\n");
+        printf("Kicking in ocean loading\n");
         loading = true;
         // }
       }
@@ -1123,7 +1123,7 @@ int Solver::Explicit() {
     //Call SHTOOLS to find spherical harmonic expansion of etaNew.
     // if (loading) ExtractSHCoeff();
     // ExtractSHCoeff();
-    if (!loading) {
+    // if (!loading) {
     //Solve for v
     UpdateNorthVel();
 
@@ -1153,7 +1153,7 @@ int Solver::Explicit() {
         etaOldArray[i][j] = etaNewArray[i][j];
       }
     }
-  }
+  // }
 
     // InterpSurfaceHeight();
 
@@ -1324,7 +1324,7 @@ void Solver::DumpFields(int output_num) {
   for (int i=0; i<etaLatLen;i++) {
     for (int j=0; j<etaLonLen; j++) {
       eta_1D[i*etaLonLen + j] = (float)etaNewArray[i][j];
-      if (loading) eta_1D[i*etaLonLen + j] = (float)oceanLoadingArray[i][j];
+      // if (loading) eta_1D[i*etaLonLen + j] = (float)oceanLoadingArray[i][j];
     }
   }
 
