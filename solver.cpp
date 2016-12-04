@@ -1022,7 +1022,7 @@ int Solver::UpdateLoading(void) {
   for (j=0; j<etaLonLen; j++) {
     lon = eta->lon[j];
     for (m=0; m<l_max+1; m++){
-      omegaTime = 0.0;
+      // omegaTime = 0.0;
       etaCosMLon[j][m] = cos(m*lon - omegaTime);
       etaSinMLon[j][m] = sin(m*lon - omegaTime);
     }
@@ -1038,6 +1038,8 @@ int Solver::UpdateLoading(void) {
         for (m=0; m<=l; m++) {
           // normalise =  sqrt((2.0-delta)*(2.0*(double)l+1.0)*factrl(l-m)/factrl(l+m));
           // std::cout << l <<'\t'<<m<< std::endl;
+
+          std::cout << "l = "<<l<<", m = "<<m<<", legendre = "<<etaLegendreArray[i][j] << std::endl;
 
           loadingTotal += etaLegendreArray[i][l][m]*(etaCosMLon[j][m]*SH_cos_coeff[l][m] + etaSinMLon[j][m]*SH_sin_coeff[l][m]);
           // loading += loadingFactor*etaLegendreArray[i][l][m];
@@ -1103,12 +1105,12 @@ int Solver::Explicit() {
     if (loading) {
       UpdateLoading();
 
-      for (int i = 0; i < etaLatLen; i++) {
-        for (int j = 0; j < etaLonLen; j++) {
-          // etaOldArray[i][j] = oceanLoadingArray[i][j];
-          etaNewArray[i][j] = etaOldArray[i][j];
-        }
-      }
+      // for (int i = 0; i < etaLatLen; i++) {
+      //   for (int j = 0; j < etaLonLen; j++) {
+      //     // etaOldArray[i][j] = oceanLoadingArray[i][j];
+      //     etaNewArray[i][j] = etaOldArray[i][j];
+      //   }
+      // }
 
     }
 
