@@ -126,7 +126,7 @@ inline double assLegendre(int l, int m, double x) {
       return normalise*pmmp1;
     }
     else {
-      for (ll=m+2; ll<=1; ll++) {
+      for (ll=m+2; ll<=l; ll++) {
         pll = (x*(2*ll-1)*pmmp1 - (ll+m-1)*pmm)/(ll-m);
         pmm = pmmp1;
         pmmp1 = pll;
