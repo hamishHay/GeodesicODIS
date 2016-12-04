@@ -103,7 +103,7 @@ inline double assLegendre(int l, int m, double x) {
 
   // if (m%2 != 0) normalise = -normalise;
 
-  std::cout<<"l="<<l<<" m="<<m<<" norm="<<factrl(l-m)/factrl(l+m)<<std::endl;
+  std::cout<<"l="<<l<<" m="<<m<<" norm="<<normalise<<std::endl;
 
   pmm = 1.0;
   if (m > 0)
