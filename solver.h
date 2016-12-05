@@ -141,10 +141,6 @@ public:
   double * loadK;
   double * loadH;
   double * gammaFactor;
-  double ** shPower;
-  int ** lm_solve;
-  int l_solve_len;
-  int * m_solve_len;
 
 	int l_max;
 
