@@ -33,6 +33,7 @@ OutFiles::OutFiles() {
 
 	outName = path + SEP + "OUTPUT.txt";
 	errName = path + SEP + "ERROR.txt";
+	dataPath = path + SEP + "DATA" + SEP + "data.h5";
 
 	remove(&outName[0]); //Converts std::string to char array
 	output.open(&outName[0], std::ofstream::out | std::ofstream::app);

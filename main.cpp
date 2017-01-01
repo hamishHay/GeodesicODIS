@@ -23,7 +23,7 @@
 //
 //   Version              Date                 Programmer
 //      0.1     |       29/07/2016       |        H. Hay        |
-// ---- Initial version of ODIS, described in Hay and Matsuyama (2016)
+// ---- Initial version of ODIS, described in Hay and Matsuyama (2017)
 
 
 #include "mesh.h"

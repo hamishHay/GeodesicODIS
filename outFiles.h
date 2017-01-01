@@ -22,6 +22,7 @@ private:
 
 public:
 	std::string path;
+	std::string dataPath;
 
 	OutFiles();
 

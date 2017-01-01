@@ -26,6 +26,7 @@
 #include <iostream>
 #include <iomanip>
 #include <string>
+#include <cstring>
 #include <sstream>
 #include <fstream>
 #include <algorithm>
@@ -149,6 +150,8 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   etadLon = eta->dLon;
   etadLat = eta->dLat;
 
+  cellArea = grid->cellArea;
+
   dt = consts->timeStep.Value();
 
   for (int i=0; i<etaLatLen; i++) {
@@ -233,7 +236,7 @@ int Solver::InitialConditions(void) {
     ReadInitialConditions();
     return 1;
   }
-
+  ReadInitialConditions();
   outstring << "No." << std::endl;
   Out->Write(OUT_MESSAGE, &outstring);
   return 0;
@@ -553,13 +556,40 @@ void Solver::UpdateEastVel(){
   double alpha = consts->alpha.Value();
   double angVel = consts->angVel.Value();
 
+  double a,b,c,d,sum;
+
+  double old;
+
   for (int i = 1; i < uLatLen - 1; i++) {
+    int i_a = 0;
+    int j_a = 0;
     for (int j = 0; j < uLonLen; j++) {
+      i_a = i*2;
+      j_a = j*2;
+
+      a = cellArea[i_a][j_a];
+      b = cellArea[i_a][j_a+1];
+      c = cellArea[i_a-1][j_a+1];
+      d = cellArea[i_a-1][j_a];
+      sum = a+b+c+d;
+
       if (j < vLonLen - 1) {
-        vNEAvgArray[i][j] = 0.25*(vOldArray[i][j] + vOldArray[i - 1][j] + vOldArray[i][j + 1] + vOldArray[i - 1][j + 1]);
+        //a = cellArea[i_a][j_a];
+        //b = cellArea[i_a][j_a+1];
+        //c = cellArea[i_a-1][j_a+1];
+        //d = cellArea[i_a-1][j_a];
+        //sum = a+b+c+d;
+
+        //vNEAvgArray[i][j] = 0.25*(vOldArray[i][j] + vOldArray[i - 1][j] + vOldArray[i][j + 1] + vOldArray[i - 1][j + 1]);
+        //old = vNEAvgArray[i][j];
+        vNEAvgArray[i][j] = (vOldArray[i][j]*c + vOldArray[i - 1][j]*b + vOldArray[i][j + 1]*d + vOldArray[i - 1][j + 1]*a);
+        vNEAvgArray[i][j] /= sum;
+        //std::cout<<fabs(old-vNEAvgArray[i][j])<<std::endl;
       }
       else {
-        vNEAvgArray[i][j] = 0.25*(vOldArray[i][j] + vOldArray[i - 1][j] + vOldArray[i][0] + vOldArray[i - 1][0]);
+        //vNEAvgArray[i][j] = 0.25*(vOldArray[i][j] + vOldArray[i - 1][j] + vOldArray[i][0] + vOldArray[i - 1][0]);
+        vNEAvgArray[i][j] = (vOldArray[i][j]*c + vOldArray[i - 1][j]*b + vOldArray[i][0]*d + vOldArray[i - 1][0]*a);
+        vNEAvgArray[i][j] /= sum;
       }
     }
   }
@@ -584,7 +614,7 @@ void Solver::UpdateEastVel(){
       for (int j = 0; j < uLonLen; j++) {
         j_h = j*2;
         alphah = alpha / (depthArray[i_h][j_h+1]+ etaUAvgArray[i][j]);
-        // alphah = alpha / (depthArray[i_h][j_h+1]);
+        //alphah = alpha / (depthArray[i_h][j_h+1]);
         uDissArray[i][j] = alphah * uOldArray[i][j] * sqrt(uOldArray[i][j]*uOldArray[i][j] + vNEAvgArray[i][j]*vNEAvgArray[i][j]);
       }
     }
@@ -642,6 +672,8 @@ void Solver::UpdateEastVel(){
 
 
       uNewArray[i][j] = (coriolis - surfHeight - oceanLoadingTerm + tidalForce - uDissArray[i][j])*dt + uOldArray[i][j];
+
+      //if (loading) uNewArray[i][j] = vNEAvgArray[i][j];
     }
   }
 
@@ -650,12 +682,12 @@ void Solver::UpdateEastVel(){
   for (int j = 0; j < uLonLen; j++) {
     uNewArray[0][j] = linearInterp1Array(u,uNewArray, 0, j);
     uNewArray[uLatLen - 1][j] = linearInterp1Array(u,uNewArray, uLatLen - 1, j);
-    // uNewArray[0][j] = lagrangeInterp3ArrayCenter(u,uNewArray, 0, j);
-    // uNewArray[uLatLen - 1][j] = lagrangeInterp3ArrayCenter(u,uNewArray, uLatLen - 1, j);
+    //uNewArray[0][j] = lagrangeInterp4ArrayCenter(u,uNewArray, 0, j);
+    //uNewArray[uLatLen - 1][j] = lagrangeInterp4ArrayCenter(u,uNewArray, uLatLen - 1, j);
     //uNewArray[0][j] = 0.0;//uNewArray[1][j];
           //uNewArray[uLatLen - 1][j] = 0.0;//uNewArray[uLatLen - 2][j];
   }
-
+  //
   double npoleSum = 0;
   double spoleSum = 0;
   for (int j = 0; j < uLonLen; j++) {
@@ -692,14 +724,32 @@ int Solver::UpdateNorthVel(){
   double alpha = consts->alpha.Value();
   double angVel = consts->angVel.Value();
 
+  double a,b,c,d,sum;
+  int i_a;
+  int j_a;
+
+
   for (int i = 0; i < vLatLen; i++) {
+    i_a = i*2;
     for (int j = 0; j < vLonLen; j++) {
+      j_a = j*2;
+      a = cellArea[i_a+1][j_a];
+      b = a;
+      c = cellArea[i_a][j_a];
+      d = c;
+      sum = a+b+c+d;
+
       if (j > 0) {
-        uSWAvgArray[i][j] = 0.25*(uOldArray[i][j] + uOldArray[i + 1][j] + uOldArray[i][j - 1] + uOldArray[i + 1][j - 1]);
+        //uSWAvgArray[i][j] = 0.25*(uOldArray[i][j] + uOldArray[i + 1][j] + uOldArray[i][j - 1] + uOldArray[i + 1][j - 1]);
+        uSWAvgArray[i][j] = (uOldArray[i][j]*a + uOldArray[i + 1][j]*d + uOldArray[i][j - 1]*b + uOldArray[i + 1][j - 1]*c);
+        uSWAvgArray[i][j] /= sum;
       }
       else {
-        uSWAvgArray[i][j] = 0.25*(uOldArray[i][j] + uOldArray[i + 1][j] + uOldArray[i][uLonLen - 1] + uOldArray[i + 1][uLonLen - 1]);
+        //uSWAvgArray[i][j] = 0.25*(uOldArray[i][j] + uOldArray[i + 1][j] + uOldArray[i][uLonLen - 1] + uOldArray[i + 1][uLonLen - 1]);
+        uSWAvgArray[i][j] = (uOldArray[i][j]*a + uOldArray[i + 1][j]*d + uOldArray[i][uLonLen - 1]*b + uOldArray[i + 1][uLonLen - 1]*c);
+        uSWAvgArray[i][j] /= sum;
       }
+      // if (loading && j == 5) std::cout << uSWAvgArray[i][j] << "\t\t i = "<<v->lat[i]<< '\n';
     }
 
   }
@@ -722,7 +772,7 @@ int Solver::UpdateNorthVel(){
       for (int j = 0; j < vLonLen; j++) {
         j_h = j*2;
         alphah = alpha / (depthArray[i_h+1][j_h] + etaVAvgArray[i][j]);
-        // alphah = alpha / (depthArray[i_h+1][j_h]);
+        //alphah = alpha / (depthArray[i_h+1][j_h]);
         vDissArray[i][j] = alphah * vOldArray[i][j] * sqrt(vOldArray[i][j] * vOldArray[i][j] + uSWAvgArray[i][j]*uSWAvgArray[i][j]);
       }
     }
@@ -752,6 +802,7 @@ int Solver::UpdateNorthVel(){
       else {
         oceanLoadingTerm = gRadius*(oceanLoadingArray[i][j] - oceanLoadingArray[i+1][j])/etadLat;
         surfHeight = 0.0;
+        //std::cout<<"i="<<i<<",\t"<<oceanLoadingTerm<<std::endl;
       }
 
       coriolis =  coriolisFactor*uSWAvgArray[i][j];
@@ -780,20 +831,19 @@ void Solver::UpdateSurfaceHeight(){
   // double interpLonLen = etaInterp->fieldLonLen;
 
   //
-  // for (int i = 0; i < vLatLen; i++) {
-  //   for (int j = 0; j < vLonLen; j++) {
-  //     if (j > 0) {
-  //       etaVAvgArray[i][j] = 0.25*(etaOldArray[i][j] + etaOldArray[i + 1][j] + etaInterpArray[i][j] + etaInterpArray[i][j - 1]);
-  //     }
-  //     else {
-  //       etaVAvgArray[i][j] = 0.25*(etaOldArray[i][j] + etaOldArray[i + 1][j] + etaInterpArray[i][j] + etaInterpArray[i][vLonLen - 1]);
-  //     }
-  //   }
-  // }
-  //
-  // for (int i = 1; i < uLatLen - 1; i++) {
-  //   for (int j = 0; j < uLonLen; j++) {
-  //     if (j < uLonLen - 1) {
+  //for (int i = 0; i < vLatLen; i++) {
+    //for (int j = 0; j < vLonLen; j++) {
+     // if (j > 0) {
+     //  etaVAvgArray[i][j] = 0.25*(etaOldArray[i][j] + etaOldArray[i + 1][j] + etaInterpArray[i][j] + etaInterpArray[i][j - 1]);
+     // }
+     // else {
+      //  etaVAvgArray[i][j] = 0.25*(etaOldArray[i][j] + etaOldArray[i + 1][j] + etaInterpArray[i][j] + etaInterpArray[i][vLonLen - 1]);
+    //   }
+  //  }
+  //}
+  //for (int i = 1; i < uLatLen - 1; i++) {
+  //  for (int j = 0; j < uLonLen; j++) {
+  ///     if (j < uLonLen - 1) {
   //       etaUAvgArray[i][j] = 0.25*(etaOldArray[i][j] + etaOldArray[i][j + 1] + etaInterpArray[i - 1][j] + etaInterpArray[i][j]);
   //     }
   //     else {
@@ -852,29 +902,35 @@ void Solver::UpdateSurfaceHeight(){
     }
   }
 
+  //if (!loading) {
   for (int j = 0; j < etaLonLen; j++) {
-     //etaNewArray[0][j] = linearInterp1Array(eta,etaNewArray, 0, j);
-     //etaNewArray[etaLatLen - 1][j] = linearInterp1Array(eta,etaNewArray, etaLatLen - 1, j);
-    etaNewArray[0][j] = lagrangeInterp3ArrayCenter(eta,etaNewArray, 0, j);
-    etaNewArray[etaLatLen - 1][j] = lagrangeInterp3ArrayCenter(eta,etaNewArray, etaLatLen - 1, j);
+    //etaNewArray[0][j] = linearInterp1Array(eta,etaNewArray, 0, j);
+    //etaNewArray[etaLatLen - 1][j] = linearInterp1Array(eta,etaNewArray, etaLatLen - 1, j);
+    //  etaNewArray[0][j] =  etaNewArray[1][j];
+    //  etaNewArray[etaLatLen - 1][j] = etaNewArray[etaLatLen - 2][j];
+    // etaNewArray[0][j] = lagrangeInterp2Array(eta,etaNewArray, 0, j);
+    // etaNewArray[etaLatLen - 1][j] = lagrangeInterp2Array(eta,etaNewArray, etaLatLen - 1, j);
+
+    etaNewArray[0][j] = lagrangeInterp4ArrayCenter(eta,etaNewArray, 0, j);
+    etaNewArray[etaLatLen - 1][j] = lagrangeInterp4ArrayCenter(eta,etaNewArray, etaLatLen - 1, j);
   }
 
   // if (!loading) {
-    //Average eta out at poles
-    double npoleSum = 0;
-    double spoleSum = 0;
-    for (int j = 0; j < etaLonLen; j++) {
-      npoleSum += etaNewArray[0][j];
-      spoleSum += etaNewArray[etaLatLen - 1][j];
-    }
-    npoleSum = npoleSum / etaLonLen;
-    spoleSum = spoleSum / etaLonLen;
+    // Average eta out at poles
+  double npoleSum = 0;
+  double spoleSum = 0;
+  for (int j = 0; j < etaLonLen; j++) {
+    npoleSum += etaNewArray[0][j];
+    spoleSum += etaNewArray[etaLatLen - 1][j];
+  }
+  npoleSum = npoleSum / etaLonLen;
+  spoleSum = spoleSum / etaLonLen;
 
-    for (int j = 0; j < etaLonLen; j++) {
-      etaNewArray[0][j] = npoleSum;
-      etaNewArray[etaLatLen - 1][j] = spoleSum;
-    }
-  // }
+  for (int j = 0; j < etaLonLen; j++) {
+    etaNewArray[0][j] = npoleSum;
+    etaNewArray[etaLatLen - 1][j] = spoleSum;
+  }
+//  }
 };
 
 
@@ -931,8 +987,11 @@ int Solver::ExtractSHCoeff(void) {
   count = 0;
   for (j=0; j<l_max+1; j++) {
     for (k=0; k<l_max+1; k++) {
-      SH_cos_coeff[k][j] = fort_harm_coeff[count];
-      SH_sin_coeff[k][j] = fort_harm_coeff[count+1];
+      if (fabs(fort_harm_coeff[count]) < 1e-6) SH_cos_coeff[k][j] = 0.0;
+      else SH_cos_coeff[k][j] = fort_harm_coeff[count];
+
+      if (fabs(fort_harm_coeff[count+1]) < 1e-6) SH_sin_coeff[k][j] = 0.0;
+      else SH_sin_coeff[k][j] = fort_harm_coeff[count+1];
       count+=2;
     }
   }
@@ -956,14 +1015,14 @@ int Solver::UpdateLoading(void) {
 
   ExtractSHCoeff();
   //
-  for (j=0; j<etaLonLen; j++) {
-    lon = eta->lon[j];
-    for (m=0; m<l_max+1; m++){
-      // omegaTime = 0.0;
-      etaCosMLon[j][m] = cos(m*lon);
-      etaSinMLon[j][m] = sin(m*lon);
-    }
-  }
+  // for (j=0; j<etaLonLen; j++) {
+  //   lon = eta->lon[j];
+  //   for (m=0; m<l_max+1; m++){
+  //     omegaTime = 0.0;
+  //     etaCosMLon[j][m] = cos(m*lon - omegaTime);
+  //     etaSinMLon[j][m] = sin(m*lon - omegaTime);
+  //   }
+  // }
 
   for (i = 0; i < etaLatLen; i++) {
     for (j = 0; j < etaLonLen; j++) {
@@ -971,19 +1030,14 @@ int Solver::UpdateLoading(void) {
       loadingTotal = 0.0;
       loadingEtaTotal = 0.0;
 
-      for (l=0; l<l_max+1; l++) {
+      for (l=1; l<l_max+1; l++) {
         loading = 0.0;
         loadingEta = 0.0;
         for (m=0; m<=l; m++) {
-          // normalise =  sqrt((2.0-delta)*(2.0*(double)l+1.0)*factrl(l-m)/factrl(l+m));
-          // std::cout << l <<'\t'<<m<< std::endl;
-
-          // if (i==10) std::cout << "l = "<<l<<", m = "<<m<<", legendre = "<<etaLegendreArray[i][l][m] << std::endl;
 
           loading += etaLegendreArray[i][l][m]*(etaCosMLon[j][m]*SH_cos_coeff[l][m] + etaSinMLon[j][m]*SH_sin_coeff[l][m]);
           loadingEta += etaLegendreArray[i][l][m]*(etaCosMLon[j][m]*SH_cos_coeff[l][m] + etaSinMLon[j][m]*SH_sin_coeff[l][m]);
 
-          // loading += loadingFactor*etaLegendreArray[i][l][m];
         }
         // loadingEta = loading
         loading *= gammaFactor[l];
@@ -993,7 +1047,7 @@ int Solver::UpdateLoading(void) {
       }
 
       oceanLoadingArray[i][j] = loadingTotal;
-      etaOldArray[i][j] = loadingEtaTotal;
+      //if (i==0 || i==etaLatLen-1) etaOldArray[i][j] = loadingEtaTotal;
 
     }
   }
@@ -1041,7 +1095,7 @@ int Solver::Explicit() {
 
     // loading = true;
     if (!loading) {
-      if (simulationTime > 0.01*consts->endTime.Value()) {
+      if (simulationTime > 1.01*consts->endTime.Value()) {
         printf("Kicking in ocean loading\n");
         loading = true;
         // }
@@ -1093,7 +1147,7 @@ int Solver::Explicit() {
       orbitNumber++;
       timeStepCount -= consts->period.Value();
 
-      printf("TIME: %.2f, number: %d, dissipation: %.3f\n", simulationTime/consts->period.Value(), output, energy->currentDissEAvg);
+      printf("TIME: %.2f, number: %d, dissipation: %.3f, h_0: %.3f\n", simulationTime/consts->period.Value(), output, energy->currentDissEAvg, consts->h.Value());
 
       energy->UpdateOrbitalKinEAvg(inc);
 
@@ -1219,6 +1273,8 @@ void Solver::ReadInitialConditions(void) {
       else depthArray[i][j] = h_thin;
 
       depthArray[i][j] = h_thick;
+
+      // if (i>20 && i <50*2 && j > 20 && j < 67*2) depthArray[i][j] = h_thick*0.96;
 
       // depthArray[i][j] = 0.0;
     }
@@ -1408,7 +1464,11 @@ void Solver::CreateHDF5FrameWork(void) {
     rank_1D = 1;
     rank_harm = 4;
 
-    char dataFile[] = "DATA/data.h5";
+    // char dataFile[] = "DATA/data.h5";
+    char dataFile[1024];
+    std::strcpy(dataFile, (Out->dataPath).c_str());
+    // std::cout << "HERE" << '\n';
+
 
     start = new hsize_t[3];
     count = new hsize_t[3];
@@ -1421,6 +1481,9 @@ void Solver::CreateHDF5FrameWork(void) {
 
     // Create HDF5 file
     file = H5Fcreate(dataFile, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+
+    // std::cout << "HERE" << '\n';
+
 
     dims_eta = new hsize_t[3];
     dims_eta[0] = 1;
@@ -1602,5 +1665,7 @@ void Solver::CreateHDF5FrameWork(void) {
 
       H5Awrite(attr, H5T_NATIVE_FLOAT, data_set_dx);
     }
+
+    // delete[] dataFile;
 
 }

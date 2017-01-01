@@ -53,6 +53,12 @@ Field::Field(Mesh *mesh, int latStagg, int lonStagg)
     solution[i] = &solution[0][i*fieldLonLen];
   }
 
+ for (int i=0; i < fieldLatLen; i++) {
+   for (int j=0; j < fieldLonLen; j++) {
+     solution[i][j] = 0.0;
+   }
+ }
+
   // allocate and assign position values for lat and lon.
   lat = new double[fieldLatLen];
   for (int i = 0; i < fieldLatLen; i++) {

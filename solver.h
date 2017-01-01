@@ -60,6 +60,8 @@ public:
 	Depth * newRadius;
 	Energy * energy;
 
+        double ** cellArea;
+
 	double ** newRadiusArray;
 
 	double ** etaOldArray;
