@@ -37,8 +37,8 @@ public:
   double * cos2Lat; //cos(2*latitude)
   double * sin2Lat;
   double * cosLon;
-  double cosSqLon;
-  double cosCubLon;
+  double * cosSqLon;
+  double * cosCubLon;
   double * sinLon;
   double * cos2Lon;
   double * sin2Lon;

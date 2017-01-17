@@ -104,8 +104,8 @@ Field::Field(Mesh *mesh, int latStagg, int lonStagg)
     sin2Lon[j] = sin(2*lon[j]);
     cos2Lon[j] = cos(2*lon[j]);
     cos3Lon[j] = cos(3.*lon[j]);
-    cosSqLon[j] = pow(cos(lon[i]),2.0);
-    cosCubLon[i] = pow(cos(lon[i]),3.0);
+    cosSqLon[j] = pow(cos(lon[j]),2.0);
+    cosCubLon[j] = pow(cos(lon[j]),3.0);
   }
 
   cosMLon = new double * [mesh->globals->l_max.Value()+1];

@@ -318,7 +318,65 @@ inline void Solver::UpdateEccLibPotential(void) {
 }
 
 void Solver::UpdateEccDeg3Potential(void) {
-  
+  double factor;
+  double A, B, C, D, cosM, sinM, M;
+  double * cosLat, * cosSqLat, * cosCubLat, * sinLat;
+  double * cosLon, * cosSqLon, * cosCubLon, * cos3Lon, * sinLon;
+
+  factor = consts->e.Value() * pow(consts->radius.Value(),3.0) * pow(consts->angVel.Value(), 2.0) / consts->a.Value();
+
+  M = consts->angVel.Value()*simulationTime;
+  cosM = cos(M);
+  sinM = sin(M);
+
+  // Compute dUlat
+
+  cosLat = dUlat->cosLat;
+  cosSqLat = dUlat->cosSqLat;
+  cosCubLat = dUlat->cosCubLat;
+  sinLat = dUlat->sinLat;
+
+  cosLon = dUlat->cosLon;
+  cos3Lon = dUlat->cos3Lon;
+  cosSqLon = dUlat->cosSqLon;
+  cosCubLon = dUlat->cosCubLon;
+  sinLon = dUlat->sinLon;
+
+  for (int i = 0; i < dUlat->fieldLatLen; i++) {
+    for (int j = 0; j < dUlat->fieldLonLen; j++) {
+      A = sinM * cosSqLon[j] * sinLon[j] * cosSqLat[i] * sinLat[i];
+      B = sinM * sinLon[j] * sinLat[i];
+      C = cosM * cosCubLon[j] * cosSqLat[i] * sinLat[i];
+      D = cosM * cosLon[j] * sinLat[i];
+
+      dUlatArray[i][j] = factor * (45.*A - 3.*B + 30.*C - 6.*D);
+    }
+  }
+
+  // Compute dUlon
+
+  cosLat = dUlon->cosLat;
+  cosSqLat = dUlon->cosSqLat;
+  cosCubLat = dUlon->cosCubLat;
+  sinLat = dUlon->sinLat;
+
+  cosLon = dUlon->cosLon;
+  cos3Lon = dUlon->cos3Lon;
+  cosSqLon = dUlon->cosSqLon;
+  cosCubLon = dUlon->cosCubLon;
+  sinLon = dUlon->sinLon;
+
+  for (int i = 0; i < dUlat->fieldLatLen; i++) {
+    for (int j = 0; j < dUlat->fieldLonLen; j++) {
+      A = sinM * cosCubLat[i] * (cosLon[j] + 3.*cos3Lon[j]);
+      B = sinM * cosLon[j] * cosLat[i];
+      C = cosM * cosCubLat[i] * sinLon[j] * cosSqLon[j];
+      D = cosM * cosLat[i] * sinLon[j];
+
+      dUlatArray[i][j] = factor * (3.75*A - 3.*B - 30.*C + 6.*D);
+    }
+  }
+
 };
 
 inline void Solver::UpdateEccPotential(void) {
@@ -732,19 +790,19 @@ void Solver::UpdateEastVel(){
           //uNewArray[uLatLen - 1][j] = 0.0;//uNewArray[uLatLen - 2][j];
   }
   //if (tide!=OBLIQ) {
-  double npoleSum = 0;
-  double spoleSum = 0;
-  for (int j = 0; j < uLonLen; j++) {
-    npoleSum += uNewArray[0][j];
-    spoleSum += uNewArray[uLatLen - 1][j];
-  }
-  npoleSum = npoleSum / uLonLen;
-  spoleSum = spoleSum / uLonLen;
-
-  for (int j = 0; j < uLonLen; j++) {
-    uNewArray[0][j] = npoleSum;
-    uNewArray[uLatLen - 1][j] = spoleSum;
-  }
+  // double npoleSum = 0;
+  // double spoleSum = 0;
+  // for (int j = 0; j < uLonLen; j++) {
+  //   npoleSum += uNewArray[0][j];
+  //   spoleSum += uNewArray[uLatLen - 1][j];
+  // }
+  // npoleSum = npoleSum / uLonLen;
+  // spoleSum = spoleSum / uLonLen;
+  //
+  // for (int j = 0; j < uLonLen; j++) {
+  //   uNewArray[0][j] = npoleSum;
+  //   uNewArray[uLatLen - 1][j] = spoleSum;
+  // }
 
 }
 
@@ -1129,7 +1187,7 @@ int Solver::Explicit() {
 
 
     if (!loading) {
-      if (simulationTime > 0.2*consts->endTime.Value()) {
+      if (simulationTime > 1.2*consts->endTime.Value()) {
         printf("Kicking in ocean loading\n");
         loading = true;
       }
