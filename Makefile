@@ -17,10 +17,10 @@ FLINK = -lgfortran -L/source/SHTOOLS/lib -lSHTOOLS -L/usr/local/lib -lfftw3
 SRCDIR = /source/ODIS/
 BUILDDIR = /source/build/
 
-all: ODIS
+all: ODIS_TEST
 
-ODIS: extractSHCoeff.o main.o mathRoutines.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o solver.o
-	$(CC) extractSHCoeff.o $(FLINK) main.o mathRoutines.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o solver.o -o ODIS -lgfortran $(CLINK)
+ODIS_TEST: extractSHCoeff.o main.o mathRoutines.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o solver.o
+	$(CC) extractSHCoeff.o $(FLINK) main.o mathRoutines.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o solver.o -o ODIS_TEST -lgfortran $(CLINK)
 
 extractSHCoeff.o: extractSHCoeff.f95
 	$(F) $(FFLAGS) extractSHCoeff.f95

@@ -61,6 +61,8 @@ public:
 	Depth * newRadius;
 	Energy * energy;
 
+        double ** cellArea;
+
 	double ** newRadiusArray;
 
 	double ** etaOldArray;
@@ -89,6 +91,8 @@ public:
   double ** etaSinMLon;
 
 	double ** depthArray;
+
+  double ** oceanLoadingArray;
 
 	int uLatLen;
 	int uLonLen;
@@ -126,6 +130,9 @@ public:
 	Field * etaUAvg;
 	Field * etaInterp;
 
+  Field * oceanLoading;
+
+
 	double * cosMinusB;
 	double * cosPlusB;
 	double * sinMinusB;
@@ -137,10 +144,6 @@ public:
   double * loadK;
   double * loadH;
   double * gammaFactor;
-  double ** shPower;
-  int ** lm_solve;
-  int l_solve_len;
-  int * m_solve_len;
 
 	int l_max;
 
@@ -158,6 +161,7 @@ public:
 	void UpdateEastVel();
 	int UpdateNorthVel();
 	void UpdateSurfaceHeight();
+  int UpdateLoading();
 	inline void InterpSurfaceHeight() __attribute__((always_inline));
 
 	int ExtractSHCoeff();

@@ -11,6 +11,7 @@ private:
 	int lonLength;
 
 	int CalculateDt(void);
+        int CalculateCellArea(void);
 
 public:
 //	Mesh(); //constructor
@@ -26,6 +27,8 @@ public:
 
 	int ReturnLatLen(void) const;
 	int ReturnLonLen(void) const;
+
+        double ** cellArea;
 
 	std::vector<double> lat;
 	std::vector<double> lon;

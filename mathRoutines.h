@@ -5,6 +5,7 @@
 #include "solver.h"
 #include <math.h>
 
+
 inline double gamm1n(double xx);
 inline double gamm1n(double xx) {
   double x,y,tmp,ser;
@@ -73,6 +74,21 @@ inline double factrl(int n)
   return a[n];
 }
 
+inline double legendreNorm(int l, int m);
+inline double legendreNorm(int l, int m) {
+  double norm[9][9] = {{1.0, 0, 0, 0, 0, 0, 0, 0, 0},
+                       {1.73205080757, 1.73205080757, 0, 0, 0, 0, 0, 0, 0},
+                       {2.2360679775, 1.29099444874, 0.645497224368, 0, 0, 0, 0, 0, 0},
+                       {2.64575131106, 1.08012344973, 0.341565025532, 0.139443337756, 0, 0, 0, 0, 0},
+                       {3.0, 0.948683298051, 0.22360679775, 0.0597614304667, 0.0211288563682, 0, 0, 0, 0},
+                       {3.31662479036, 0.856348838578, 0.161834718743, 0.0330343736322, 0.00778627653585, 0.00246223683452, 0, 0, 0},
+                       {3.60555127546, 0.786795792469, 0.124403337882, 0.020733889647, 0.0037854730215, 0.000807065559928, 0.000232979759139, 0, 0},
+                       {3.87298334621, 0.731925054711, 0.0996023841112, 0.0140859042455, 0.00212352996432, 0.000353921660721, 6.94097482422e-05, 1.8550535516e-05, 0},
+                       {4.12310562562, 0.687184270936, 0.0821342300508, 0.0101100248374, 0.00130519859416, 0.000180998479074, 2.79286716592e-05, 5.09905448963e-06, 1.27476362241e-06}};
+
+  return norm[l][m];
+}
+
 // Numerical recipes function for calculating the associated Legendre
 // function of x.
 inline double assLegendre(int l, int m, double x) __attribute__((always_inline));
@@ -83,12 +99,12 @@ inline double assLegendre(int l, int m, double x) {
 
   if (m==0) delta = 1.0;
 
-
-  normalise = sqrt((2.0-delta)*(2.0*l+1.0)*factrl(l-m)/factrl(l+m));
+  // normalise = legendreNorm(l,m);
+  normalise =  sqrt((2.0-delta)*(2.0*(double)l+1.0)*factrl(l-m)/factrl(l+m));
 
   // if (m%2 != 0) normalise = -normalise;
 
-  // std::cout<<"l="<<l<<" m="<<m<<" norm="<<factrl(l-m)/factrl(l+m)<<std::endl;
+  // std::cout<<"l="<<l<<" m="<<m<<" norm="<<normalise<<std::endl;
 
   pmm = 1.0;
   if (m > 0)
@@ -110,7 +126,7 @@ inline double assLegendre(int l, int m, double x) {
       return normalise*pmmp1;
     }
     else {
-      for (ll=m+2; ll<=1; ll++) {
+      for (ll=m+2; ll<=l; ll++) {
         pll = (x*(2*ll-1)*pmmp1 - (ll+m-1)*pmm)/(ll-m);
         pmm = pmmp1;
         pmmp1 = pll;
@@ -119,6 +135,17 @@ inline double assLegendre(int l, int m, double x) {
     }
   }
 };
+
+inline double fastSin(double x);
+inline double fastSin(double x) {
+  double ans;
+  double xxx = x*x*x;
+  double xxxxx = xxx*x*x;
+
+  ans = x;
+  ans -= (xxx)/factrl(3);
+  ans += (xxxxx)/factrl(5);
+}
 
 //func returns value n at given i and j based on Lagrange Interpolation
 //of points n+1, n+2, and n+3 for a 2nd degree polynomial
@@ -232,5 +259,48 @@ inline double lagrangeInterp3ArrayCenter(Field * fieldDat, double ** field, int 
 
 	return L[0] + L[1] + L[2] + L[3];
 };
+
+inline double lagrangeInterp4ArrayCenter(Field * fieldDat, double ** field, int i, int j) __attribute__((always_inline));
+inline double lagrangeInterp4ArrayCenter(Field * fieldDat, double ** field, int i, int j) {
+
+  double x, x1, x2, x3, x4;
+  double val, val1, val2, val3, val4;
+
+  double dx = fieldDat->dLat;
+
+  int inc;
+
+  if (j<(fieldDat->fieldLonLen/2)) inc = (fieldDat->fieldLonLen)/2;
+  else inc = -(fieldDat->fieldLonLen)/2;
+
+  inc = 0;
+
+  x = 0.0;
+  x1 = x - 2.0*dx;
+  x2 = x - dx;
+  x3 = x + dx;
+  x4 = x + 2.0*dx;
+
+  if (i==0) {
+    val1 = field[i+2][j];
+    val2 = field[i+1][j];
+    val3 = field[i+1][j+inc];
+    val4 = field[i+2][j+inc];
+  }
+  else {
+    val1 = field[i-2][j];
+    val2 = field[i-1][j];
+    val3 = field[i-1][j+inc];
+    val4 = field[i-2][j+inc];
+  }
+
+  val = (x-x2) * (x-x3) * (x-x4) / ((x1-x2) * (x1-x3) * (x1-x4)) * val1;
+  val += (x-x1) * (x-x3) * (x-x4) / ((x2-x1) * (x2-x3) * (x2-x4)) * val2;
+  val += (x-x1) * (x-x2) * (x-x4) / ((x3-x1) * (x3-x2) * (x3-x4)) * val3;
+  val += (x-x1) * (x-x2) * (x-x3) / ((x4-x1) * (x4-x2) * (x4-x3)) * val4;
+
+  return val;
+
+}
 
 #endif

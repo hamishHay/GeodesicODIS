@@ -53,6 +53,12 @@ Field::Field(Mesh *mesh, int latStagg, int lonStagg)
     solution[i] = &solution[0][i*fieldLonLen];
   }
 
+ for (int i=0; i < fieldLatLen; i++) {
+   for (int j=0; j < fieldLonLen; j++) {
+     solution[i][j] = 0.0;
+   }
+ }
+
   // allocate and assign position values for lat and lon.
   lat = new double[fieldLatLen];
   for (int i = 0; i < fieldLatLen; i++) {
@@ -77,16 +83,22 @@ Field::Field(Mesh *mesh, int latStagg, int lonStagg)
   cosCoLat = new double[fieldLatLen];
   cosSqLat = new double[fieldLatLen];
   cosCubLat = new double[fieldLatLen];
+
+  double colat = 0.0;
   for (int i = 0; i < fieldLatLen; i++)
   {
+    colat = 90.0 - lat[i];
     lat[i] *= radConv;
     cosLat[i] = cos(lat[i]);
     sinLat[i] = sin(lat[i]);
     cos2Lat[i] = cos(2*lat[i]);
     sin2Lat[i] = sin(2*lat[i]);
+
     cosCoLat[i] = cos(pi*0.5 - lat[i]);
     cosSqLat[i] = pow(cos(lat[i]),2.0);
     cosCubLat[i] = pow(cos(lat[i]),3.0);
+
+    cosCoLat[i] = cos(colat*radConv);
   }
 
   cosLon = new double[fieldLonLen];

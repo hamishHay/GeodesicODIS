@@ -39,7 +39,23 @@ Mesh::Mesh(Globals * Globals) //non-default constructor
 
 	for (int j = 0; j < lonLength; j++) lon.push_back(j*dLon);
 
+        CalculateCellArea();
+
 	CalculateDt();
+};
+
+int Mesh::CalculateCellArea(void)
+{
+        cellArea = new double*[ReturnLatLen()];
+        for (int i=0; i<ReturnLatLen()-1; i++) {
+           cellArea[i] = new double[ReturnLonLen()];
+           for (int j=0; j<ReturnLonLen(); j++) {
+              cellArea[i][j] = globals->radius.Value()*globals->radius.Value();
+              cellArea[i][j] *= sin(radConv*lat[i]) - sin(radConv*lat[i+1]);
+              cellArea[i][j] *= radConv*dLon;
+              //if (j==0) std::cout<<cellArea[i][j]<<std::endl;
+           }
+        }
 };
 
 int Mesh::ReturnLatLen(void) const
