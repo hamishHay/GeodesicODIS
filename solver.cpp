@@ -209,6 +209,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   else if (consts->potential.Value() == "OBLIQ") tide = OBLIQ;
   else if (consts->potential.Value() == "FULL") tide = FULL;
   else if (consts->potential.Value() == "TOTAL") tide = TOTAL;
+  else if (consts->potential.Value() == "ECC_W3") tide = ECC_W3;
   else {
     outstring << "No potential forcing found." << std::endl;
     Out->Write(ERR_MESSAGE, &outstring);
@@ -275,6 +276,9 @@ void Solver::UpdatePotential() {
   case TOTAL:
     UpdateTotalPotential();
     break;
+
+  case ECC_W3:
+    UpdateEccDeg3Potential();
   }
 }
 
@@ -312,6 +316,10 @@ inline void Solver::UpdateEccLibPotential(void) {
     }
   }
 }
+
+void Solver::UpdateEccDeg3Potential(void) {
+  
+};
 
 inline void Solver::UpdateEccPotential(void) {
   double cosLat = 0;

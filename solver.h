@@ -20,7 +20,7 @@ class Solver {
 private:
 	int solverType;
 	int dumpTime;
-	enum Potential {OBLIQ, ECC_RAD, ECC_LIB, ECC, FULL, TOTAL};
+	enum Potential {OBLIQ, ECC_RAD, ECC_LIB, ECC, FULL, TOTAL, ECC_W3};
 
 	void UpdateEccRadPotential(void);
 	void UpdateEccLibPotential(void);
@@ -28,6 +28,7 @@ private:
 	inline void UpdateObliqPotential(void) __attribute__((always_inline));
 	void UpdateFullPotential(void);
 	void UpdateTotalPotential(void);
+  void UpdateEccDeg3Potential(void);
 
 	void ReadInitialConditions(void);
 

@@ -31,13 +31,18 @@ public:
   // 1D arrays trigonometric quantities that only need to be calculated once.
   // These are essentially lookup tables calculated upon the field initialisation.
   double * cosLat; //cos(latitude)
+  double * cosSqLat; //cos^2(lat)
+  double * cosCubLat; //cos^3(lat)
   double * sinLat;
   double * cos2Lat; //cos(2*latitude)
   double * sin2Lat;
   double * cosLon;
+  double cosSqLon;
+  double cosCubLon;
   double * sinLon;
   double * cos2Lon;
   double * sin2Lon;
+  double * cos3Lon;
   double * cosCoLat;
   double ** cosMLon;
   double ** sinMLon;
