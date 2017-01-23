@@ -323,9 +323,9 @@ inline void Solver::UpdateEccLibPotential(void) {
 
 void Solver::UpdateEccDeg3Potential(void) {
   double factor;
-  double A, B, C, D, cosM, sinM, M;
+  double A, B, C, D, E, cosM, sinM, M;
   double * cosLat, * cosSqLat, * cosCubLat, * sinLat;
-  double * cosLon, * cosSqLon, * cosCubLon, * cos3Lon, * sinLon;
+  double * cosLon, * cosSqLon, * cosCubLon, * cos3Lon, * sinLon, * sinSqLon;
 
   factor = consts->e.Value() * pow(consts->radius.Value(),3.0) * pow(consts->angVel.Value(), 2.0) / consts->a.Value();
 
@@ -345,6 +345,7 @@ void Solver::UpdateEccDeg3Potential(void) {
   cosSqLon = dUlat->cosSqLon;
   cosCubLon = dUlat->cosCubLon;
   sinLon = dUlat->sinLon;
+  sinSqLon = dUlat->sinSqLon;
 
   for (int i = 0; i < dUlat->fieldLatLen; i++) {
     for (int j = 0; j < dUlat->fieldLonLen; j++) {
@@ -353,7 +354,7 @@ void Solver::UpdateEccDeg3Potential(void) {
       C = cosM * cosCubLon[j] * cosSqLat[i] * sinLat[i];
       D = cosM * cosLon[j] * sinLat[i];
 
-      dUlatArray[i][j] = factor * (45.*A - 3.*B + 30.*C - 6.*D);
+      dUlatArray[i][j] = factor * (-45.*A + 3.*B - 30.*C + 6.*D);
     }
   }
 
@@ -369,15 +370,17 @@ void Solver::UpdateEccDeg3Potential(void) {
   cosSqLon = dUlon->cosSqLon;
   cosCubLon = dUlon->cosCubLon;
   sinLon = dUlon->sinLon;
+  sinSqLon = dUlon->sinSqLon;
 
   for (int i = 0; i < dUlat->fieldLatLen; i++) {
     for (int j = 0; j < dUlat->fieldLonLen; j++) {
-      A = sinM * cosCubLat[i] * (cosLon[j] + 3.*cos3Lon[j]);
+      A = sinM * cosCubLat[i] * sinSqLon[j] * cosLon[j];
       B = sinM * cosLon[j] * cosLat[i];
       C = cosM * cosCubLat[i] * sinLon[j] * cosSqLon[j];
-      D = cosM * cosLat[i] * sinLon[j];
+      D = sinM * cosCubLat[i] * cosCubLon[j];
+      E = cosM * cosLat[i] * sinLon[j];
 
-      dUlatArray[i][j] = factor * (3.75*A - 3.*B - 30.*C + 6.*D);
+      dUlatArray[i][j] = factor * (-30.*A - 3.*B -30.*C + 15.*D + 6.*E);
     }
   }
 
@@ -633,11 +636,11 @@ void Solver::UpdateEastVel(){
       i_a = i*2;
       j_a = j*2;
 
-      a = cellArea[i_a][j_a];
-      b = cellArea[i_a][j_a+1];
-      c = cellArea[i_a-1][j_a+1];
-      d = cellArea[i_a-1][j_a];
-      sum = a+b+c+d;
+      // a = cellArea[i_a][j_a];
+      // b = cellArea[i_a][j_a+1];
+      // c = cellArea[i_a-1][j_a+1];
+      // d = cellArea[i_a-1][j_a];
+      // sum = a+b+c+d;
 
       if (j < vLonLen - 1) {
         //a = cellArea[i_a][j_a];
@@ -646,16 +649,16 @@ void Solver::UpdateEastVel(){
         //d = cellArea[i_a-1][j_a];
         //sum = a+b+c+d;
 
-        //vNEAvgArray[i][j] = 0.25*(vOldArray[i][j] + vOldArray[i - 1][j] + vOldArray[i][j + 1] + vOldArray[i - 1][j + 1]);
+        vNEAvgArray[i][j] = 0.25*(vOldArray[i][j] + vOldArray[i - 1][j] + vOldArray[i][j + 1] + vOldArray[i - 1][j + 1]);
         //old = vNEAvgArray[i][j];
-        vNEAvgArray[i][j] = (vOldArray[i][j]*c + vOldArray[i - 1][j]*b + vOldArray[i][j + 1]*d + vOldArray[i - 1][j + 1]*a);
-        vNEAvgArray[i][j] /= sum;
+        // vNEAvgArray[i][j] = (vOldArray[i][j]*c + vOldArray[i - 1][j]*b + vOldArray[i][j + 1]*d + vOldArray[i - 1][j + 1]*a);
+        // vNEAvgArray[i][j] /= sum;
         //std::cout<<fabs(old-vNEAvgArray[i][j])<<std::endl;
       }
       else {
-        //vNEAvgArray[i][j] = 0.25*(vOldArray[i][j] + vOldArray[i - 1][j] + vOldArray[i][0] + vOldArray[i - 1][0]);
-        vNEAvgArray[i][j] = (vOldArray[i][j]*c + vOldArray[i - 1][j]*b + vOldArray[i][0]*d + vOldArray[i - 1][0]*a);
-        vNEAvgArray[i][j] /= sum;
+        vNEAvgArray[i][j] = 0.25*(vOldArray[i][j] + vOldArray[i - 1][j] + vOldArray[i][0] + vOldArray[i - 1][0]);
+        // vNEAvgArray[i][j] = (vOldArray[i][j]*c + vOldArray[i - 1][j]*b + vOldArray[i][0]*d + vOldArray[i - 1][0]*a);
+        // vNEAvgArray[i][j] /= sum;
       }
     }
   }
@@ -748,8 +751,8 @@ void Solver::UpdateEastVel(){
   for (int j = 0; j < uLonLen; j++) {
     uNewArray[0][j] = linearInterp1Array(u,uNewArray, 0, j);
     uNewArray[uLatLen - 1][j] = linearInterp1Array(u,uNewArray, uLatLen - 1, j);
-    //uNewArray[0][j] = lagrangeInterp4ArrayCenter(u,uNewArray, 0, j);
-    //uNewArray[uLatLen - 1][j] = lagrangeInterp4ArrayCenter(u,uNewArray, uLatLen - 1, j);
+    // uNewArray[0][j] = lagrangeInterp4ArrayCenter(u,uNewArray, 0, j);
+    // uNewArray[uLatLen - 1][j] = lagrangeInterp4ArrayCenter(u,uNewArray, uLatLen - 1, j);
     //uNewArray[0][j] = 0.0;//uNewArray[1][j];
           //uNewArray[uLatLen - 1][j] = 0.0;//uNewArray[uLatLen - 2][j];
   }
@@ -800,23 +803,22 @@ int Solver::UpdateNorthVel(){
     i_a = i*2;
     for (int j = 0; j < vLonLen; j++) {
       j_a = j*2;
-      a = cellArea[i_a+1][j_a];
-      b = a;
-      c = cellArea[i_a][j_a];
-      d = c;
-      sum = a+b+c+d;
+      // a = cellArea[i_a+1][j_a];
+      // b = a;
+      // c = cellArea[i_a][j_a];
+      // d = c;
+      // sum = a+b+c+d;
 
       if (j > 0) {
-        //uSWAvgArray[i][j] = 0.25*(uOldArray[i][j] + uOldArray[i + 1][j] + uOldArray[i][j - 1] + uOldArray[i + 1][j - 1]);
-        uSWAvgArray[i][j] = (uOldArray[i][j]*a + uOldArray[i + 1][j]*d + uOldArray[i][j - 1]*b + uOldArray[i + 1][j - 1]*c);
-        uSWAvgArray[i][j] /= sum;
+        uSWAvgArray[i][j] = 0.25*(uOldArray[i][j] + uOldArray[i + 1][j] + uOldArray[i][j - 1] + uOldArray[i + 1][j - 1]);
+        // uSWAvgArray[i][j] = (uOldArray[i][j]*a + uOldArray[i + 1][j]*d + uOldArray[i][j - 1]*b + uOldArray[i + 1][j - 1]*c);
+        // uSWAvgArray[i][j] /= sum;
       }
       else {
-        //uSWAvgArray[i][j] = 0.25*(uOldArray[i][j] + uOldArray[i + 1][j] + uOldArray[i][uLonLen - 1] + uOldArray[i + 1][uLonLen - 1]);
-        uSWAvgArray[i][j] = (uOldArray[i][j]*a + uOldArray[i + 1][j]*d + uOldArray[i][uLonLen - 1]*b + uOldArray[i + 1][uLonLen - 1]*c);
-        uSWAvgArray[i][j] /= sum;
+        uSWAvgArray[i][j] = 0.25*(uOldArray[i][j] + uOldArray[i + 1][j] + uOldArray[i][uLonLen - 1] + uOldArray[i + 1][uLonLen - 1]);
+        // uSWAvgArray[i][j] = (uOldArray[i][j]*a + uOldArray[i + 1][j]*d + uOldArray[i][uLonLen - 1]*b + uOldArray[i + 1][uLonLen - 1]*c);
+        // uSWAvgArray[i][j] /= sum;
       }
-      // if (loading && j == 5) std::cout << uSWAvgArray[i][j] << "\t\t i = "<<v->lat[i]<< '\n';
     }
 
   }
@@ -962,8 +964,6 @@ void Solver::UpdateSurfaceHeight(){
       uGrad = (eastu - westu) / vdLon;
 
       hRadius = 1.0 / r;
-
-      // etaNewArray[i][j] = hRadius/cosLat*(-vGrad - uGrad)*dt + etaOldArray[i][j];
 
       etaNewArray[i][j] = hRadius/cosLat*(-vGrad - uGrad)*dt + etaOldArray[i][j];
     }
@@ -1180,7 +1180,7 @@ int Solver::Explicit() {
     UpdateSurfaceHeight();
 
     if (!loading) {
-      if (simulationTime > 1.2*consts->endTime.Value()) {
+      if (simulationTime > 1.1*consts->endTime.Value()) {
         printf("Kicking in ocean loading\n");
         loading = true;
       }

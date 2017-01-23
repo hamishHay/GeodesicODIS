@@ -42,6 +42,7 @@ public:
   double * sinLon;
   double * cos2Lon;
   double * sin2Lon;
+  double * sinSqLon;
   double * cos3Lon;
   double * cosCoLat;
   double ** cosMLon;
