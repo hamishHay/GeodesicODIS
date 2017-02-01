@@ -20,7 +20,7 @@ class Solver {
 private:
 	int solverType;
 	int dumpTime;
-	enum Potential {OBLIQ, ECC_RAD, ECC_LIB, ECC, FULL, TOTAL, ECC_W3};
+	enum Potential {OBLIQ, ECC_RAD, ECC_LIB, ECC, FULL, TOTAL, ECC_W3, OBLIQ_W3};
 
 	void UpdateEccRadPotential(void);
 	void UpdateEccLibPotential(void);
@@ -28,7 +28,8 @@ private:
 	inline void UpdateObliqPotential(void) __attribute__((always_inline));
 	void UpdateFullPotential(void);
 	void UpdateTotalPotential(void);
-  void UpdateEccDeg3Potential(void);
+    void UpdateEccDeg3Potential(void);
+    void UpdateObliqDeg3Potential(void);
 
 	void ReadInitialConditions(void);
 
@@ -40,7 +41,7 @@ public:
 	int convergeMax = 5;
 	int output = 0;
 	double outputCount = 0.;
-  bool loading;
+    bool loading;
 
 	double dt;
 
@@ -61,7 +62,7 @@ public:
 	Depth * newRadius;
 	Energy * energy;
 
-        double ** cellArea;
+    double ** cellArea;
 
 	double ** newRadiusArray;
 

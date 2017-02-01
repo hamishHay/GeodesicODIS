@@ -214,6 +214,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
   else if (consts->potential.Value() == "FULL") tide = FULL;
   else if (consts->potential.Value() == "TOTAL") tide = TOTAL;
   else if (consts->potential.Value() == "ECC_W3") tide = ECC_W3;
+  else if (consts->potential.Value() == "OBLIQ_W3") tide = OBLIQ_W3;
   else {
     outstring << "No potential forcing found." << std::endl;
     Out->Write(ERR_MESSAGE, &outstring);
@@ -283,6 +284,11 @@ void Solver::UpdatePotential() {
 
   case ECC_W3:
     UpdateEccDeg3Potential();
+    break;
+
+  case OBLIQ_W3:
+    UpdateObliqDeg3Potential();
+    break;
   }
 }
 
@@ -319,6 +325,49 @@ inline void Solver::UpdateEccLibPotential(void) {
       dUlonArray[i][j] = Alon * cosLat*cosLat*(-7 * sinMinusB[j] + sinPlusB[j]); //P22
     }
   }
+}
+
+void Solver::UpdateObliqDeg3Potential(void) {
+  double factor;
+  double A, B, M, cosM;
+  double * cosLat, * cosSqLat, * sinLat, * sinSqLat;
+  double * cosLon, * sinLon, * cosSqLon; 
+  int i, j;
+
+  M = consts->angVel.Value()*simulationTime;
+  cosM = cos(M);
+ 
+  factor = consts->theta.Value() * pow(consts->radius.Value(),3.0) * pow(consts->angVel.Value(), 2.0) / consts->a.Value();
+  
+  cosLat = dUlat->cosLat;
+  sinSqLat = dUlat->sinSqLat;
+  cosSqLat = dUlat->cosSqLat;
+
+  cosSqLon = dUlat->cosSqLon;
+  
+
+  for (i=0; i<dUlat->fieldLatLen; i++) {
+    for (j=0; j<dUlat->fieldLonLen; j++) {
+        A = sinSqLat[i]*cosSqLon[j];
+        B = cosSqLat[i]*cosSqLon[j];
+
+        dUlatArray[i][j] = factor * -1.5 * cosLat[i]*(-10.*A + 5*B + 1) * cosM;
+    }
+  }
+
+  cosSqLat = dUlon->cosSqLat;
+  sinLat = dUlon->sinLat;
+  sinLon = dUlon->sinLon;
+  cosLon = dUlon->cosLon;
+
+  for (i=0; i<dUlat->fieldLatLen; i++) {
+    for (j=0; j<dUlat->fieldLonLen; j++) {
+        A = cosSqLat[i]*sinLat[i]*cosLon[j]*sinLon[j];
+
+        dUlonArray[i][j] = factor*-15.*A * cosM;
+    }
+  }
+
 }
 
 void Solver::UpdateEccDeg3Potential(void) {

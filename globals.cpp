@@ -266,6 +266,11 @@ int Globals::ReadGlobals(void)
     // reading of input file is complete.
     inputFile.close();
 
+    // Set obliquity to radians
+
+    theta.SetValue(theta.Value()*pi/180.);
+
+
     // Check for any unassigned global variables
     for (unsigned int i = 0; i < allGlobals.size(); i++){
       if (!allGlobals[i]->IsAdded()) {

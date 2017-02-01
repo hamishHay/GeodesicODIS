@@ -34,6 +34,7 @@ public:
   double * cosSqLat; //cos^2(lat)
   double * cosCubLat; //cos^3(lat)
   double * sinLat;
+  double * sinSqLat;
   double * cos2Lat; //cos(2*latitude)
   double * sin2Lat;
   double * cosLon;
