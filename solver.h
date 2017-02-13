@@ -31,7 +31,7 @@ private:
     void UpdateEccDeg3Potential(void);
     void UpdateObliqDeg3Potential(void);
 
-	void ReadInitialConditions(void);
+	void ReadInitialConditions(bool);
 
 public:
 	double simulationTime = 0;

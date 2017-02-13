@@ -1,6 +1,8 @@
+#!/home/hamish/anaconda3/bin/python
+
 import numpy as np
 import matplotlib as mpl
-#mpl.use('Agg')
+# mpl.use('Agg')
 
 import matplotlib.pyplot as plt
 from matplotlib import cm
@@ -78,14 +80,22 @@ class ODISPlot:
 
         in_file = h5py.File("DATA/data.h5", 'r')
 
+        # in_file = h5py.File("data_old.h5", 'r')
+
+        self.data_eta = np.array(in_file["displacement"][self.orbit])
+        self.data_u = np.array(in_file["east velocity"][self.orbit])
+        self.data_v = np.array(in_file["north velocity"][self.orbit])
+
         if field=="displacement":
-            self.data = np.array(in_file["displacement"][self.orbit][:][:])
+            self.data = self.data_eta
             name = name[2]
             self.caxisLabel = "Dispclacement, $\\eta$ (m)"
         elif field=="north_vel":
+            self.data = self.data_v
             name = name[1]
             self.caxisLabel = "North Velocity, $v$ (\\si{\\metre\\per\\second})"
         elif field=="east_vel":
+            self.data = self.data_u
             name = name[0]
             self.caxisLabel = "East Velocity, $v$ (\\si{\\metre\\per\\second})"
         elif field=="dissipation":
@@ -95,11 +105,7 @@ class ODISPlot:
             print("Field " + field + "not recognised. Exiting.")
             sys.exit()
 
-        self.data_eta = np.array(in_file["displacement"][self.orbit])
-        self.data_u = np.array(in_file["east velocity"][self.orbit])
-        self.data_v = np.array(in_file["north velocity"][self.orbit])
 
-        self.data = self.data_eta
 
         self.x = np.linspace(0,360,len(self.data[0]))
         self.y = np.linspace(90,-90,len(self.data))
@@ -109,11 +115,17 @@ class ODISPlot:
     def ReadDissipationData(self,directory = os.getcwd()):
         in_file = h5py.File("DATA/data.h5", 'r')
 
-        self.diss = np.array(in_file["dissipated energy avg"])
+        # in_file = h5py.File("data_old.h5", 'r')
+
+        self.diss = np.array(in_file["dissipated energy avg"])[1:]
+
+        #zeros = (self.diss == 0.0)
+
+        #self.diss = self.diss[:zeros[1]]
 
         return self.diss
 
-    def PlotField(self,data=[],cformat=2,cticks=[]):
+    def PlotField(self,data=[],cformat=5,cticks=[]):
         self.currentFig += 1
 
         if len(data) == 0:
@@ -132,7 +144,7 @@ class ODISPlot:
         self.loadFieldColourOptions(c1,ax,cticks)
 
 
-    def PlotVelocity(self,cformat=3,scale=1/0.02,cticks=[]):
+    def PlotVelocity(self,cformat=5,scale=1/0.02,cticks=[]):
         self.currentFig += 1
         self.caxisLabel = "Velocity, $\\left|\\mathbf{u}\\right|$ (\\si{\\metre\\per\\second})"
 
@@ -178,22 +190,27 @@ class ODISPlot:
 
         norm = 100
 
-        factor = 0.01
+        factor = 0.25
 
         orbits = np.linspace(0,len(self.diss)*factor,len(self.diss))
 
         ax = self.fig.add_subplot(self.figDim[0],self.figDim[1],self.currentFig)
-        p1 = ax.plot(orbits,self.diss,'-',linewidth=0.8, label="Instantaneous dissipated energy")
+        p1 = ax.semilogy(orbits,self.diss,'-',linewidth=0.8, label="Instantaneous dissipated energy")
 
         ax.set_xlim([min(orbits),max(orbits)])
+        # ax.set_ylim([0,max(self.diss)+0.2])
+        # ax.set_ylim([1e-3,1e2])
+
+        print(np.mean(self.diss[200:401]))
+        print(np.mean(self.diss[800:]))
 
         ax.set_xlabel('Orbit',fontsize=self.labelSize+1)
         ax.set_ylabel('Dissipation (\si{\watt\per\metre\squared})',fontsize=self.labelSize+1)
 
         ax.tick_params(axis='both', which='major', labelsize=self.slabelSize)
-        ax.set_title('Enceladus Obliquity Tide Dissipation',fontsize=self.titleSize)
+        ax.set_title('Enceladus Eccentricity Tide Dissipation w/ Ocean Loading',fontsize=self.titleSize)
 
-        legend = plt.legend()
+        legend = plt.legend(loc=2)
         legend.get_frame().set_linewidth(0.5)
         for label in legend.get_texts():
             label.set_fontsize(10)
@@ -209,7 +226,7 @@ class ODISPlot:
         plt.close()
 
     def SaveFig(self):
-        self.fig.savefig(self.saveName +  '.pdf',bbox_inches='tight',pad_inches=1)
+        #self.fig.savefig(self.saveName +  '.pdf',bbox_inches='tight',pad_inches=1)
         self.fig.savefig(self.saveName +  '.png', format='PNG',bbox_inches='tight',dpi=300)
 
 if __name__=="__main__":
@@ -218,7 +235,7 @@ if __name__=="__main__":
 
     if option == 1:
 
-        print("Option " + str(option) + " selected: Plotting displacement and velocity.\n")
+        print("Option " + str(option) + "selected: Plotting displacement and velocity.\n")
 
         num = int(sys.argv[2])
 
@@ -240,7 +257,7 @@ if __name__=="__main__":
 
     elif option == 2:
 
-        print("Option " + str(option) + " selected: Plotting dissipation over time.\n")
+        print("Option " + str(option) + "selected: Plotting dissipation over time.\n")
 
         ODIS = ODISPlot(orbitnum=0,figdim=(1,1),figsize=(10,5),saveName="Dissipation")
 
@@ -250,11 +267,11 @@ if __name__=="__main__":
 
         ODIS.ShowFig()
 
-        ODIS.SaveFig()
+        # ODIS.SaveFig()
 
     elif option == 3:
 
-        print("Option " + str(option) + " selected: Plotting velocity.\n")
+        print("Option " + str(option) + "selected: Plotting velocity.\n")
 
         num = int(sys.argv[2])
 
@@ -273,7 +290,7 @@ if __name__=="__main__":
 
     elif option == 4:
 
-        print("Option " + str(option) + " selected: Plotting displacement and dissipated energy.\n")
+        print("Option " + str(option) + "selected: Plotting displacement and dissipated energy.\n")
 
         num = int(sys.argv[2])
 

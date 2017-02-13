@@ -235,12 +235,14 @@ int Solver::InitialConditions(void) {
   if (action) {
     outstring << "Yes." << std::endl;
     Out->Write(OUT_MESSAGE, &outstring);
-    ReadInitialConditions();
+    ReadInitialConditions(action);
     return 1;
   }
-  ReadInitialConditions();
-  outstring << "No." << std::endl;
-  Out->Write(OUT_MESSAGE, &outstring);
+  else {
+      ReadInitialConditions(action);
+      outstring << "No." << std::endl;
+      Out->Write(OUT_MESSAGE, &outstring);
+  }
   return 0;
 };
 
@@ -351,7 +353,7 @@ void Solver::UpdateObliqDeg3Potential(void) {
         A = sinSqLat[i]*cosSqLon[j];
         B = cosSqLat[i]*cosSqLon[j];
 
-        dUlatArray[i][j] = factor * -1.5 * cosLat[i]*(-10.*A + 5*B + 1) * cosM;
+        dUlatArray[i][j] = factor * 1.5 * cosLat[i]*(10.*A -5.*B + 1.0) * cosM;
     }
   }
 
@@ -360,8 +362,8 @@ void Solver::UpdateObliqDeg3Potential(void) {
   sinLon = dUlon->sinLon;
   cosLon = dUlon->cosLon;
 
-  for (i=0; i<dUlat->fieldLatLen; i++) {
-    for (j=0; j<dUlat->fieldLonLen; j++) {
+  for (i=0; i<dUlon->fieldLatLen; i++) {
+    for (j=0; j<dUlon->fieldLonLen; j++) {
         A = cosSqLat[i]*sinLat[i]*cosLon[j]*sinLon[j];
 
         dUlonArray[i][j] = factor*-15.*A * cosM;
@@ -488,7 +490,7 @@ inline void Solver::UpdateEccRadPotential(void) {
 }
 
 inline void Solver::UpdateObliqPotential(void) {
-  double cos2Lat = 0;
+  /*double cos2Lat = 0;
   double sin2Lat = 0;
   double value = 0;
   double B = consts->angVel.Value()*simulationTime;
@@ -522,7 +524,39 @@ inline void Solver::UpdateObliqPotential(void) {
       //lon = dUlon->lon[j];
       dUlonArray[i][j] = value*(sinMinusB[j] + sinPlusB[j]); //P21
     }
+  }*/
+
+
+  double M, cosM, * cosLat, * cos2Lat, * sinLat, * cosLon, * sinLon, factor;
+  int i,j;
+
+  factor = -3. * pow(consts->angVel.Value(),2.0)*pow(consts->radius.Value(),2.0)*consts->theta.Value();
+
+  M = consts->angVel.Value()*simulationTime;
+  cosM = cos(M);
+
+
+  cos2Lat = dUlat->cos2Lat;
+  cosLon = dUlat->cosLon;
+
+
+  for (i=0; i<dUlat->fieldLatLen; i++) {
+    for (j=0; j<dUlat->fieldLonLen; j++) {
+        dUlatArray[i][j] = factor*cos2Lat[i]*cosLon[j]*cosM;
+    }  
   }
+
+  cosLat = dUlon->cosLat;
+  sinLat = dUlon->sinLat;
+  sinLon = dUlon->sinLon;
+
+
+  for (i=0; i < dUlon->fieldLatLen; i++) {
+    for (j=0; j < dUlon->fieldLonLen; j++) {
+        dUlonArray[i][j] = -factor*cosLat[i]*sinLat[i]*sinLon[j]*cosM;
+    }  
+  }
+
 }
 
 inline void Solver::UpdateFullPotential(void) {
@@ -678,10 +712,13 @@ void Solver::UpdateEastVel(){
 
   double old;
 
-  for (int i = 1; i < uLatLen - 1; i++) {
-    int i_a = 0;
-    int j_a = 0;
-    for (int j = 0; j < uLonLen; j++) {
+  int i, j, i_a, j_a;
+
+  //#pragma omp parallel for collapse(2)
+  for (i = 1; i < uLatLen - 1; i++) {
+    for (j = 0; j < uLonLen; j++) {
+      //i_a = 0;
+      //j_a = 0;
       i_a = i*2;
       j_a = j*2;
 
@@ -731,8 +768,8 @@ void Solver::UpdateEastVel(){
       i_h = i*2;
       for (int j = 0; j < uLonLen; j++) {
         j_h = j*2;
-        alphah = alpha / (depthArray[i_h][j_h+1]+ etaUAvgArray[i][j]);
-        //alphah = alpha / (depthArray[i_h][j_h+1]);
+        //alphah = alpha / (depthArray[i_h][j_h+1]+ etaUAvgArray[i][j]);
+        alphah = alpha / (depthArray[i_h][j_h+1]);
         uDissArray[i][j] = alphah * uOldArray[i][j] * sqrt(uOldArray[i][j]*uOldArray[i][j] + vNEAvgArray[i][j]*vNEAvgArray[i][j]);
       }
     }
@@ -868,6 +905,8 @@ int Solver::UpdateNorthVel(){
         // uSWAvgArray[i][j] = (uOldArray[i][j]*a + uOldArray[i + 1][j]*d + uOldArray[i][uLonLen - 1]*b + uOldArray[i + 1][uLonLen - 1]*c);
         // uSWAvgArray[i][j] /= sum;
       }
+
+
     }
 
   }
@@ -889,8 +928,8 @@ int Solver::UpdateNorthVel(){
       i_h = i*2;
       for (int j = 0; j < vLonLen; j++) {
         j_h = j*2;
-        alphah = alpha / (depthArray[i_h+1][j_h] + etaVAvgArray[i][j]);
-        //alphah = alpha / (depthArray[i_h+1][j_h]);
+        //alphah = alpha / (depthArray[i_h+1][j_h] + etaVAvgArray[i][j]);
+        alphah = alpha / (depthArray[i_h+1][j_h]);
         vDissArray[i][j] = alphah * vOldArray[i][j] * sqrt(vOldArray[i][j] * vOldArray[i][j] + uSWAvgArray[i][j]*uSWAvgArray[i][j]);
       }
     }
@@ -978,10 +1017,15 @@ void Solver::UpdateSurfaceHeight(){
   int i_h = 0;
   int j_h = 0;
 
+  #pragma omp for collapse(1)
   for (int i = 1; i < etaLatLen-1; i++) {
-    cosLat = eta->cosLat[i];
-    i_h = i*2;
+    //cosLat = eta->cosLat[i];
+    //i_h = i*2;
+    //#pragma omp for
     for (int j = 0; j < etaLonLen; j++) {
+      cosLat = eta->cosLat[i];
+      i_h = i*2;
+
       j_h = j*2;
       // northv = (etaVAvgArray[i - 1][j] + depthArray[i_h - 1][j_h]) * vNewArray[i - 1][j] * v->cosLat[i - 1];
       // southv = (etaVAvgArray[i][j] + depthArray[i_h + 1][j_h]) * vNewArray[i][j] * v->cosLat[i];
@@ -1219,15 +1263,21 @@ int Solver::Explicit() {
     }
     else UpdateLoading();
 
+    #pragma omp sections 
+    {
     //Solve for v
-    UpdateNorthVel();
+        { UpdateNorthVel(); }
 
     //solve for u
-    UpdateEastVel();
+        #pragma omp section
+        { UpdateEastVel(); }
 
+    }    
     //Solve for eta based on new u and v
+    //#pragma omp sections 
+    //{
     UpdateSurfaceHeight();
-
+    //} 
     if (!loading) {
       if (simulationTime > 1.1*consts->endTime.Value()) {
         printf("Kicking in ocean loading\n");
@@ -1238,6 +1288,7 @@ int Solver::Explicit() {
     //Call SHTOOLS to find spherical harmonic expansion of etaNew.
     if (loading) ExtractSHCoeff();
     // ExtractSHCoeff();
+
 
     for (int i = 0; i < vLatLen; i++) {
       for (int j = 0; j < vLonLen; j++) {
@@ -1355,35 +1406,42 @@ void Solver::DumpSolutions(int out_num, double time) {
   }
 };
 
-void Solver::ReadInitialConditions(void) {
-  // hid_t init_file = H5Fopen("InitialConditions/init.h5", H5F_ACC_RDONLY, H5P_DEFAULT);
-  //
-  // hid_t displacement_h5 = H5Dopen(init_file, "displacement", H5P_DEFAULT);
-  // hid_t northVel_h5 = H5Dopen(init_file, "north velocity", H5P_DEFAULT);
-  // hid_t eastVel_h5 = H5Dopen(init_file, "east velocity", H5P_DEFAULT);
-  //
-  // H5Dread(displacement_h5, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, eta_1D);
-  // H5Dread(northVel_h5, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, v_1D);
-  // H5Dread(eastVel_h5, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, u_1D);
+void Solver::ReadInitialConditions(bool yes) {
+  
+  if (yes) {
+  hid_t init_file = H5Fopen("InitialConditions/initial_conditions.h5", H5F_ACC_RDONLY, H5P_DEFAULT);
+  
+  hid_t displacement_h5 = H5Dopen(init_file, "displacement", H5P_DEFAULT);
+  hid_t northVel_h5 = H5Dopen(init_file, "north velocity", H5P_DEFAULT);
+  hid_t eastVel_h5 = H5Dopen(init_file, "east velocity", H5P_DEFAULT);
+  
+  H5Dread(displacement_h5, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, eta_1D);
+  H5Dread(northVel_h5, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, v_1D);
+  H5Dread(eastVel_h5, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT, u_1D);
+  }
 
   for (int i=0; i< etaLatLen; i++) {
     for (int j=0; j<etaLonLen; j++) {
-        etaOldArray[i][j] = 0.0;//eta_1D[i*etaLonLen + j];
-        // oceanLoadingArray[i][j] = 0.0;
+        if (yes) etaOldArray[i][j] = eta_1D[i*etaLonLen + j];
+        else etaOldArray[i][j] = 0.0;
     }
   }
 
   for (int i=0; i< vLatLen; i++) {
     for (int j=0; j<vLonLen; j++) {
-        vOldArray[i][j] = 0.0;//v_1D[i*vLonLen + j];
+        if (yes) vOldArray[i][j] = v_1D[i*vLonLen + j];
+        else vOldArray[i][j] = 0.0;
     }
   }
 
   for (int i=0; i< uLatLen; i++) {
     for (int j=0; j<uLonLen; j++) {
-        uOldArray[i][j] = 0.0;//u_1D[i*uLonLen + j];
+        if (yes) uOldArray[i][j] = u_1D[i*uLonLen + j];
+        else uOldArray[i][j] = 0.0;
     }
   }
+
+  
 
   double l_thin = -10.0 * radConv;
   double h_thick = consts->h.Value();
@@ -1392,9 +1450,9 @@ void Solver::ReadInitialConditions(void) {
 
   for (int i = 0; i < depth->ReturnFieldLatLen(); i++) {
     for (int j = 0; j < depth->ReturnFieldLonLen(); j++) {
-      l_thin = 0.0;
-      if (depth->lat[i] <= l_thin) depthArray[i][j] = -(h_thick-h_thin)*0.5*(sin(2*depth->lat[i] + pi*0.5) - 1) + h_thin;
-      else depthArray[i][j] = h_thin;
+ //     l_thin = 0.0;
+ //     if (depth->lat[i] <= l_thin) depthArray[i][j] = -(h_thick-h_thin)*0.5*(sin(2*depth->lat[i] + pi*0.5) - 1) + h_thin;
+  //    else depthArray[i][j] = h_thin;
 
       depthArray[i][j] = h_thick;
 
@@ -1403,6 +1461,8 @@ void Solver::ReadInitialConditions(void) {
       // depthArray[i][j] = 0.0;
     }
   }
+
+  
 
 };
 

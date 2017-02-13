@@ -6,7 +6,7 @@ HOME=/usr/local
 
 #-I/usr/local/hdf5/include -lhdf5 -L/usr/local/hdf5/lib
 
-CFLAGS= -O2 -c -Wall  -std=c++11 -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp
+CFLAGS= -O2 -c -Wall  -std=c++11 -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp -fopenmp
 
 CLINK = -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp
 
@@ -20,7 +20,7 @@ BUILDDIR = /source/build/
 all: ODIS
 
 ODIS: extractSHCoeff.o main.o mathRoutines.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o solver.o
-	$(CC) extractSHCoeff.o $(FLINK) main.o mathRoutines.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o solver.o -o ODIS -lgfortran $(CLINK)
+	$(CC) extractSHCoeff.o $(FLINK) main.o mathRoutines.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o solver.o -o ODIS -lgfortran -fopenmp $(CLINK)
 
 extractSHCoeff.o: extractSHCoeff.f95
 	$(F) $(FFLAGS) extractSHCoeff.f95
