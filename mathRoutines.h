@@ -136,18 +136,6 @@ inline double assLegendre(int l, int m, double x) {
     }
 };
 
-/**
- *  Derivative of the associated Legendre poynomial at latidude lat
- *
- *  inputs: int l:          degree of the polynomial
- *          int m:          order of the polynomial
- *          double lat:     latitude position (in radians)
- *
- *  returns: double val:    dP_lm @ lat
- *
- */
-double assLegendreDLat(int l, int m, double lat);
-
 inline double fastSin(double x);
 inline double fastSin(double x) {
     double ans;
