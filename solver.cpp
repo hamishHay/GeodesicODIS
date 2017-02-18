@@ -97,15 +97,6 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
     uDissTerm = new Field(grid, 0, 1);
     uDissArray = uDissTerm->solution;
 
-    etaVAvg = new Field(grid, 1, 0);
-    etaVAvgArray = etaVAvg->solution;
-
-    etaUAvg = new Field(grid, 0, 1);
-    etaUAvgArray = etaUAvg->solution;
-
-    etaInterp = new Field(grid, 1, 1);
-    etaInterpArray = etaInterp->solution;
-
     vNorthEastAvg = new Field(grid, 1, 0);
     vNEAvgArray = vNorthEastAvg->solution;
 
@@ -129,10 +120,6 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 
     oceanLoadingV = new Field(grid, 1, 0);
     oceanLoadingArrayV = oceanLoadingV->solution;
-
-
-    //newRadius = new Depth(grid);
-    //newRadiusArray = newRadius->solution;
 
     l_max = consts->l_max.Value();
 
@@ -162,12 +149,6 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 
     dt = consts->timeStep.Value();
 
-    for (int i=0; i<etaLatLen; i++) {
-        for (int j=0; j<etaLonLen; j++) {
-            oceanLoadingArray[i][j] = 0.0;
-        }
-    }
-
     for (int i=0; i<vLatLen; i++) {
         for (int j=0; j<vLonLen; j++) {
             oceanLoadingArrayV[i][j] = 0.0;
@@ -177,18 +158,6 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
     for (int i=0; i<uLatLen; i++) {
         for (int j=0; j<uLonLen; j++) {
             oceanLoadingArrayU[i][j] = 0.0;
-        }
-    }
-
-    etaLegendreArray = new double**[etaLatLen];
-    for (int i=0; i<etaLatLen; i++) {
-        etaLegendreArray[i] = new double*[l_max+1];
-        for (int l=0; l<l_max+1; l++) {
-            etaLegendreArray[i][l] = new double[l_max+1];
-            for (int m=0; m <= l; m++) {
-                etaLegendreArray[i][l][m] = assLegendre(l, m, etaNew->cosCoLat[i]);
-
-            }
         }
     }
 
@@ -229,17 +198,6 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
     LegendreDeriv();
 
     // Out->TerminateODIS();
-
-    etaCosMLon = new double*[etaLonLen];
-    etaSinMLon = new double*[etaLonLen];
-    for (int j=0; j<etaLonLen; j++) {
-        etaCosMLon[j] = new double[l_max+1];
-        etaSinMLon[j] = new double[l_max+1];
-        for (int m=0; m<l_max+1; m++) {
-            etaCosMLon[j][m] = eta->cosMLon[m][j];
-            etaSinMLon[j][m] = eta->sinMLon[m][j];
-        }
-    }
 
     vCosMLon = new double*[vLonLen];
     vSinMLon = new double*[vLonLen];
@@ -1061,30 +1019,6 @@ void Solver::UpdateSurfaceHeight(){
     double cosLat;
     double vdLat = v->dLat;
     double vdLon = v->dLon;
-    // double interpLonLen = etaInterp->fieldLonLen;
-
-    //
-    //for (int i = 0; i < vLatLen; i++) {
-    //for (int j = 0; j < vLonLen; j++) {
-    // if (j > 0) {
-    //  etaVAvgArray[i][j] = 0.25*(etaOldArray[i][j] + etaOldArray[i + 1][j] + etaInterpArray[i][j] + etaInterpArray[i][j - 1]);
-    // }
-    // else {
-    //  etaVAvgArray[i][j] = 0.25*(etaOldArray[i][j] + etaOldArray[i + 1][j] + etaInterpArray[i][j] + etaInterpArray[i][vLonLen - 1]);
-    //   }
-    //  }
-    //}
-    //for (int i = 1; i < uLatLen - 1; i++) {
-    //  for (int j = 0; j < uLonLen; j++) {
-    ///     if (j < uLonLen - 1) {
-    //       etaUAvgArray[i][j] = 0.25*(etaOldArray[i][j] + etaOldArray[i][j + 1] + etaInterpArray[i - 1][j] + etaInterpArray[i][j]);
-    //     }
-    //     else {
-    //       etaUAvgArray[i][j] = 0.25*(etaOldArray[i][j] + etaOldArray[i][0] + etaInterpArray[i - 1][j] + etaInterpArray[i][j]);
-    //     }
-    //   }
-    // }
-
     double r = consts->radius.Value();
     double hRadius = 0.0;
 
@@ -1157,26 +1091,6 @@ void Solver::UpdateSurfaceHeight(){
     }
 
 };
-
-
-inline void Solver::InterpSurfaceHeight() {
-    int interpLatLen = etaInterp->ReturnFieldLatLen();
-    int interpLonLen = etaInterp->ReturnFieldLonLen();
-
-    for (int i = 0; i < interpLatLen; i++) {
-        for (int j = 0; j < interpLonLen; j++) {
-            if (j < interpLonLen - 1) {
-                etaInterpArray[i][j] = 0.25*(etaOldArray[i][j] + etaOldArray[i][j + 1] + etaOldArray[i + 1][j] + etaOldArray[i + 1][j + 1]);
-            }
-            else {
-                etaInterpArray[i][j] = 0.25*(etaOldArray[i][j] + etaOldArray[i][0] + etaOldArray[i + 1][j] + etaOldArray[i + 1][0]);
-            }
-        }
-
-    }
-}
-
-
 
 int Solver::ExtractSHCoeff(void) {
     double * fort_array;
