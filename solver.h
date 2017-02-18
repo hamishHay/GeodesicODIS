@@ -13,238 +13,250 @@
 #include <signal.h>
 
 #ifndef H5_NO_NAMESPACE
-    using namespace H5;
+using namespace H5;
 #endif
 
 class Solver {
 private:
-	int solverType;
-	int dumpTime;
-	enum Potential {OBLIQ, ECC_RAD, ECC_LIB, ECC, FULL, TOTAL, ECC_W3, OBLIQ_W3};
+int solverType;
+int dumpTime;
+enum Potential {OBLIQ, ECC_RAD, ECC_LIB, ECC, FULL, TOTAL, ECC_W3, OBLIQ_W3};
 
-	void UpdateEccRadPotential(void);
-	void UpdateEccLibPotential(void);
-	void UpdateEccPotential(void);
-	inline void UpdateObliqPotential(void) __attribute__((always_inline));
-	void UpdateFullPotential(void);
-	void UpdateTotalPotential(void);
-    void UpdateEccDeg3Potential(void);
-    void UpdateObliqDeg3Potential(void);
+void UpdateEccRadPotential(void);
+void UpdateEccLibPotential(void);
+void UpdateEccPotential(void);
+inline void UpdateObliqPotential(void) __attribute__((always_inline));
+void UpdateFullPotential(void);
+void UpdateTotalPotential(void);
+void UpdateEccDeg3Potential(void);
+void UpdateObliqDeg3Potential(void);
 
-	void ReadInitialConditions(bool);
+void ReadInitialConditions(bool);
 
 public:
-	double simulationTime = 0;
-	int orbitNumber = 0;
-	int iteration = 0;
-	int convergeCount = 0;
-	int convergeMax = 5;
-	int output = 0;
-	double outputCount = 0.;
-    bool loading;
+double simulationTime = 0;
+int orbitNumber = 0;
+int iteration = 0;
+int convergeCount = 0;
+int convergeMax = 5;
+int output = 0;
+double outputCount = 0.;
+bool loading;
 
-	double dt;
+double dt;
 
-	std::ostringstream outstring;
+std::ostringstream outstring;
 
-	OutFiles * Out;
+OutFiles * Out;
 
-	Potential tide;
+Potential tide;
 
-	Globals * consts;
-	Mesh * grid;
-	Field * dUlon;
-	Field * dUlat;
-	Field * eta;
-	Field * v;
-	Field * u;
-	Depth * depth;
-	Depth * newRadius;
-	Energy * energy;
+Globals * consts;
+Mesh * grid;
+Field * dUlon;
+Field * dUlat;
+Field * eta;
+Field * v;
+Field * u;
+Depth * depth;
+Depth * newRadius;
+Energy * energy;
 
-    double ** cellArea;
+double ** cellArea;
 
-	double ** newRadiusArray;
+double ** newRadiusArray;
 
-	double ** etaOldArray;
-	double ** etaNewArray;
+double ** etaOldArray;
+double ** etaNewArray;
 
-	double ** vOldArray;
-	double ** vNewArray;
+double ** vOldArray;
+double ** vNewArray;
 
-	double ** uOldArray;
-	double ** uNewArray;
+double ** uOldArray;
+double ** uNewArray;
 
-	double ** dUlonArray;
-	double ** dUlatArray;
+double ** dUlonArray;
+double ** dUlatArray;
 
-	double ** vDissArray;
-	double ** uDissArray;
+double ** vDissArray;
+double ** uDissArray;
 
-	double ** vNEAvgArray;
-	double ** uSWAvgArray;
+double ** vNEAvgArray;
+double ** uSWAvgArray;
 
-	double ** etaVAvgArray;
-	double ** etaUAvgArray;
-	double ** etaInterpArray;
-  double *** etaLegendreArray;
-  double ** etaCosMLon;
-  double ** etaSinMLon;
+double ** etaVAvgArray;
+double ** etaUAvgArray;
+double ** etaInterpArray;
+double *** etaLegendreArray;
+double *** vdLegendreArray;
+double *** udLegendreArray;
+double *** uLegendreArray;
+double *** vLegendreArray;
+double ** etaCosMLon;
+double ** etaSinMLon;
+double ** vCosMLon;
+double ** vSinMLon;
+double ** uCosMLon;
+double ** uSinMLon;
 
-	double ** depthArray;
+double ** depthArray;
 
-  double ** oceanLoadingArray;
-
-	int uLatLen;
-	int uLonLen;
-	double udLon;
-	double udLat;
-
-	int vLatLen;
-	int vLonLen;
-	double vdLon;
-	double vdLat;
-
-	int etaLatLen;
-	int etaLonLen;
-	double etadLon;
-	double etadLat;
-
-	Field * etaOld;
-	Field * etaNew;
-	Field * vOld;
-	Field * vNew;
-	Field * uOld;
-	Field * uNew;
-
-	Field * etaNewHalf;
-	Field * vNewHalf;
-	Field * uNewHalf;
-
-	Field * vDissTerm;
-	Field * uDissTerm;
-
-	Field * vNorthEastAvg;
-	Field * uSouthWestAvg;
-
-	Field * etaVAvg;
-	Field * etaUAvg;
-	Field * etaInterp;
-
-  Field * oceanLoading;
+double ** oceanLoadingArray;
+double ** oceanLoadingArrayU;
+double ** oceanLoadingArrayV;
 
 
-	double * cosMinusB;
-	double * cosPlusB;
-	double * sinMinusB;
-	double * sinPlusB;
+int uLatLen;
+int uLonLen;
+double udLon;
+double udLat;
 
-	double ** SH_cos_coeff;
-	double ** SH_sin_coeff;
+int vLatLen;
+int vLonLen;
+double vdLon;
+double vdLat;
 
-  double * loadK;
-  double * loadH;
-  double * gammaFactor;
+int etaLatLen;
+int etaLonLen;
+double etadLon;
+double etadLat;
 
-	int l_max;
+Field * etaOld;
+Field * etaNew;
+Field * vOld;
+Field * vNew;
+Field * uOld;
+Field * uNew;
 
-	Solver(int type, int dump, Globals *, Mesh *, Field *, Field*, Field *, Field *, Field *, Energy *, Depth *);
+Field * etaNewHalf;
+Field * vNewHalf;
+Field * uNewHalf;
 
-	void Solve();
+Field * vDissTerm;
+Field * uDissTerm;
 
-	int InitialConditions(void);
+Field * vNorthEastAvg;
+Field * uSouthWestAvg;
 
-	int Explicit();
-	void Implicit();
-	void CrankNicolson();
+Field * etaVAvg;
+Field * etaUAvg;
+Field * etaInterp;
 
-	inline void UpdatePotential() __attribute__((always_inline));
-	void UpdateEastVel();
-	int UpdateNorthVel();
-	void UpdateSurfaceHeight();
-  int UpdateLoading();
-	inline void InterpSurfaceHeight() __attribute__((always_inline));
+Field * oceanLoading;
+Field * oceanLoadingU;
+Field * oceanLoadingV;
 
-	int ExtractSHCoeff();
 
-	void InterpPole(Field * Field);
+double * cosMinusB;
+double * cosPlusB;
+double * sinMinusB;
+double * sinPlusB;
 
-	void DumpSolutions(int output_num, double time);
-	void DumpFields(int output_num);
+double ** SH_cos_coeff;
+double ** SH_sin_coeff;
 
-  void CreateHDF5FrameWork(void);
+double * loadK;
+double * loadH;
+double * gammaFactor;
 
-  // void CatchExit(int sig, int output);
+int l_max;
 
-  //------------------------Objects for HDF5 Storage----------------------------
+Solver(int type, int dump, Globals *, Mesh *, Field *, Field*, Field *, Field *, Field *, Energy *, Depth *);
 
-  float * eta_1D;
-  float * u_1D;
-  float * v_1D;
-  float * diss_1D;
-  float * diss_avg_1D;
-  float * harm_coeff_1D;
+void Solve();
 
-  hsize_t eta_rows;
-  hsize_t eta_cols;
-  hsize_t u_rows;
-  hsize_t u_cols;
-  hsize_t v_rows;
-  hsize_t v_cols;
-  hsize_t harm_rows;
-  hsize_t harm_cols;
+int InitialConditions(void);
 
-  hsize_t rank_field;
-  hsize_t rank_harm;
-  hsize_t rank_1D;
+int Explicit();
+void Implicit();
+void CrankNicolson();
 
-  hid_t file;
+inline void UpdatePotential() __attribute__((always_inline));
+void UpdateEastVel();
+int UpdateNorthVel();
+void UpdateSurfaceHeight();
+int UpdateLoading();
+inline void InterpSurfaceHeight() __attribute__((always_inline));
 
-  hid_t data_space_eta;
-  hid_t data_space_u;
-  hid_t data_space_v;
-  hid_t data_space_diss;
-  hid_t data_space_1D_avg;
-  hid_t data_space_harm_coeff;
+int ExtractSHCoeff();
+int LegendreDeriv();
 
-  hid_t mem_space_eta;
-  hid_t mem_space_u;
-  hid_t mem_space_v;
-  hid_t mem_space_diss;
-  hid_t mem_space_1D_avg;
-  hid_t mem_space_harm_coeff;
+void DumpSolutions(int output_num, double time);
+void DumpFields(int output_num);
 
-  hid_t data_set_eta;
-  hid_t data_set_u;
-  hid_t data_set_v;
-  hid_t data_set_diss;
-  hid_t data_set_1D_avg;
-  hid_t data_set_harm_coeff;
+void CreateHDF5FrameWork(void);
 
-  char * dataFilePath;
+// void CatchExit(int sig, int output);
 
-  hsize_t * dims_eta;
-  hsize_t * dims_u;
-  hsize_t * dims_v;
-  hsize_t * dims_1D_avg;
-  hsize_t * dims_harm_coeff;
+//------------------------Objects for HDF5 Storage----------------------------
 
-  hsize_t * max_dims_eta;
-  hsize_t * max_dims_u;
-  hsize_t * max_dims_v;
-  hsize_t * max_dims_1D_avg;
-  hsize_t * max_dims_harm_coeff;
+float * eta_1D;
+float * u_1D;
+float * v_1D;
+float * diss_1D;
+float * diss_avg_1D;
+float * harm_coeff_1D;
 
-  hsize_t * start;
-  hsize_t * count;
+hsize_t eta_rows;
+hsize_t eta_cols;
+hsize_t u_rows;
+hsize_t u_cols;
+hsize_t v_rows;
+hsize_t v_cols;
+hsize_t harm_rows;
+hsize_t harm_cols;
 
-  hsize_t * start_1D;
-  hsize_t * count_1D;
+hsize_t rank_field;
+hsize_t rank_harm;
+hsize_t rank_1D;
 
-  hsize_t * start_harm;
-  hsize_t * count_harm;
+hid_t file;
 
-  hsize_t time_slices;
+hid_t data_space_eta;
+hid_t data_space_u;
+hid_t data_space_v;
+hid_t data_space_diss;
+hid_t data_space_1D_avg;
+hid_t data_space_harm_coeff;
+
+hid_t mem_space_eta;
+hid_t mem_space_u;
+hid_t mem_space_v;
+hid_t mem_space_diss;
+hid_t mem_space_1D_avg;
+hid_t mem_space_harm_coeff;
+
+hid_t data_set_eta;
+hid_t data_set_u;
+hid_t data_set_v;
+hid_t data_set_diss;
+hid_t data_set_1D_avg;
+hid_t data_set_harm_coeff;
+
+char * dataFilePath;
+
+hsize_t * dims_eta;
+hsize_t * dims_u;
+hsize_t * dims_v;
+hsize_t * dims_1D_avg;
+hsize_t * dims_harm_coeff;
+
+hsize_t * max_dims_eta;
+hsize_t * max_dims_u;
+hsize_t * max_dims_v;
+hsize_t * max_dims_1D_avg;
+hsize_t * max_dims_harm_coeff;
+
+hsize_t * start;
+hsize_t * count;
+
+hsize_t * start_1D;
+hsize_t * count_1D;
+
+hsize_t * start_harm;
+hsize_t * count_harm;
+
+hsize_t time_slices;
 };
 
 #endif
