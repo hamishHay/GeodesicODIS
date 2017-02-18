@@ -20,22 +20,7 @@ subroutine LegendreDeriv(LegendreP, LegendreDPDX, LMAX, CosColat)
   integer :: returnVAL
   integer :: m,l,l2,m2
 
-  ! write(*,*) LMAX
-  ! write(*,*) CosColat
-
-
   call PlmBar_d1 (p=LegendreP, dp=LegendreDPDX, lmax=LMAX, z=CosColat, csphase=-1)
-
-  ! write(*,*) 'COS:'
-
-  ! do l=1,LMAX+1
-  !  do m=1,l
-  !   l2 = l-1
-  !   m2 = m-1
-  !   write(*,*) l-1,m-1,LegendreDPDX(l2*(l2+1)/2 + m2 + 1)
-  !  end do
-  ! end do
-
 
   return
 end subroutine LegendreDeriv
