@@ -509,43 +509,6 @@ inline void Solver::UpdateEccRadPotential(void) {
 }
 
 inline void Solver::UpdateObliqPotential(void) {
-    /*double cos2Lat = 0;
-       double sin2Lat = 0;
-       double value = 0;
-       double B = consts->angVel.Value()*simulationTime;
-       double A = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->theta.Value();
-
-       for (int j = 0; j < dUlat->fieldLonLen; j++) {
-       cosMinusB[j] = cos(dUlat->lon[j] - B);
-       cosPlusB[j] = cos(dUlat->lon[j] + B);
-       }
-
-       for (int i = 0; i < dUlat->fieldLatLen; i++) {
-       //lat = dUlat->lat[i];
-       cos2Lat = dUlat->cos2Lat[i];
-       value = -6 * A*cos2Lat;
-       for (int j = 0; j < dUlat->fieldLonLen; j++) {
-        //lon = dUlat->lon[j];
-        dUlatArray[i][j] = value*(cosMinusB[j] + cosPlusB[j]); //P21
-       }
-       }
-
-       for (int j = 0; j < dUlon->fieldLonLen; j++) {
-       sinMinusB[j] = sin(dUlon->lon[j] - B);
-       sinPlusB[j] = sin(dUlon->lon[j] + B);
-       }
-
-       for (int i = 0; i < dUlon->fieldLatLen; i++) {
-       //lat = dUlon->lat[i]  ;
-       sin2Lat = dUlon->sin2Lat[i];
-       value = 3 * A * sin2Lat;
-       for (int j = 0; j < dUlon->fieldLonLen; j++) {
-        //lon = dUlon->lon[j];
-        dUlonArray[i][j] = value*(sinMinusB[j] + sinPlusB[j]); //P21
-       }
-       }*/
-
-
     double M, cosM, * cosLat, * cos2Lat, * sinLat, * cosLon, * sinLon, factor;
     int i,j;
 
@@ -723,7 +686,6 @@ void Solver::UpdateEastVel(){
 
     int i, j, i_a, j_a;
 
-    //#pragma omp parallel for collapse(2)
     for (i = 1; i < uLatLen - 1; i++) {
         for (j = 0; j < uLonLen; j++) {
             i_a = i*2;
@@ -969,11 +931,8 @@ void Solver::UpdateSurfaceHeight(){
     int i_h = 0;
     int j_h = 0;
 
-  #pragma omp for collapse(1)
+  
     for (int i = 1; i < etaLatLen-1; i++) {
-        //cosLat = eta->cosLat[i];
-        //i_h = i*2;
-        //#pragma omp for
         for (int j = 0; j < etaLonLen; j++) {
             cosLat = eta->cosLat[i];
             i_h = i*2;
@@ -1018,8 +977,6 @@ void Solver::UpdateSurfaceHeight(){
         // }
     }
 
-    // if (!loading) {
-    // Average eta out at poles
     double npoleSum = 0;
     double spoleSum = 0;
     for (int j = 0; j < etaLonLen; j++) {
@@ -1207,11 +1164,6 @@ int Solver::Explicit() {
                 etaOldArray[i][j] = etaNewArray[i][j];
             }
         }
-        // }
-
-        // InterpSurfaceHeight();
-
-        // energy->mass->UpdateMass();
 
         energy->UpdateKinE(uNewArray,vNewArray);
 
@@ -1227,7 +1179,7 @@ int Solver::Explicit() {
             energy->UpdateOrbitalKinEAvg(inc);
 
             // Check for convergence
-            // energy->IsConverged();
+
             if (energy->converged) convergeCount++;
 
             outstring << std::fixed << std::setprecision(2) << simulationTime / 86400.0 << " days: \t" << 100 * (simulationTime / consts->endTime.Value()) << "%\t" << output;
@@ -1236,22 +1188,22 @@ int Solver::Explicit() {
             output++;
             outCount++;
 
-            // DumpSolutions(-2, timeStepCount);
+
             outCount = 1;
 
             energy->timePos = 0; //Reset time position after energy data output
 
-            // printf("%.5f\n",simulationTime);
-            // std::cout << energy->converged << std::endl;
+
+
 
             DumpFields(output);
         }
         else if (timeStepCount >= consts->period.Value()*consts->outputTime.Value()*outCount) {
             output++;
-            // printf("TIME: %f\n", simulationTime/consts->period.Value());
+
             outCount++;
 
-            // DumpSolutions(1, timeStepCount);
+
             DumpFields(output);
 
         }
@@ -1266,10 +1218,6 @@ int Solver::Explicit() {
     return 1;
 
 };
-//
-// void Solver::CatchExit(int sig, int output) {
-//
-// };
 
 void Solver::DumpSolutions(int out_num, double time) {
 
@@ -1291,7 +1239,7 @@ void Solver::DumpSolutions(int out_num, double time) {
         for (int i = 0; i < v->ReturnFieldLatLen(); i++) vLat << v->lat[i] * 1 / radConv << '\t';
     }
     else if (out_num == -2) {
-
+        //WHAT IS THIS FOR!?
     }
     else {
         if (energy->converged) DumpFields(out_num);
@@ -1343,15 +1291,12 @@ void Solver::ReadInitialConditions(bool yes) {
             depthArray[i][j] = h_thick;
         }
     }
-
-
-
 };
 
 void Solver::DumpFields(int output_num) {
     std::string out = std::to_string(output_num);
 
-    // printf("Outputing data number %d\n", output_num);
+
 
     double factor = 0;
 
