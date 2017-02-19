@@ -18,6 +18,7 @@
 #include "depth.h"
 #include "mesh.h"
 #include "mathRoutines.h"
+#include "tidalPotentials.h"
 #include "energy.h"
 #include "outFiles.h"
 #include "vector"
@@ -70,6 +71,9 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 
     loading = false;
 
+    radius = consts->radius.Value();
+    angVel = consts->angVel.Value();
+    theta = consts->theta.Value();
 
     etaOldArray = eta->solution;
     etaNewArray = eta->MakeSolutionArrayCopy();
@@ -292,7 +296,8 @@ void Solver::UpdatePotential() {
         break;
 
     case OBLIQ:
-        UpdateObliqPotential();
+        //UpdateObliqPotential();
+        deg2Obliquity(dUlat, dUlon, simulationTime, radius, angVel, theta);
         break;
 
     case FULL:
@@ -1139,7 +1144,7 @@ int Solver::Explicit() {
         UpdateSurfaceHeight();
 
         if (!loading) {
-            if (simulationTime > 0.1*consts->endTime.Value()) {
+            if (simulationTime > 1.1*consts->endTime.Value()) {
                 printf("Kicking in ocean loading\n");
                 loading = true;
             }
