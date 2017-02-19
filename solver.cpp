@@ -672,9 +672,6 @@ void Solver::UpdateEastVel(){
     double surfHeight = 0;
     double eastEta = 0;
     double westEta = 0;
-
-    double oceanLoadingEast = 0.0;
-    double oceanLoadingWest = 0.0;
     double oceanLoadingTerm = 0;
 
     double alpha = consts->alpha.Value();
