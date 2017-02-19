@@ -70,19 +70,17 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 
     loading = false;
 
-    etaOld = eta;
-    etaOldArray = etaOld->solution;
+
+    etaOldArray = eta->solution;
     etaNewArray = eta->MakeSolutionArrayCopy();
 
-    uOld = u; 
-    uOldArray = uOld->solution;
+    uOldArray = u->solution;
     uNewArray = u->MakeSolutionArrayCopy();
     uDissArray = u->MakeSolutionArrayCopy();
     uSWAvgArray = u->MakeSolutionArrayCopy();
     oceanLoadingArrayU = u->MakeSolutionArrayCopy();
 
-    vOld = v; 
-    vOldArray = vOld->solution;
+    vOldArray = v->solution;
     vNewArray = v->MakeSolutionArrayCopy();
     vDissArray = v->MakeSolutionArrayCopy();
     vNEAvgArray = v->MakeSolutionArrayCopy();
@@ -774,8 +772,8 @@ void Solver::UpdateEastVel(){
     double tidalFactor = 0;
     double surfFactor = 0;
 
-    double * uCosLat = uOld->cosLat;
-    double * uSinLat = uOld->sinLat;
+    double * uCosLat = u->cosLat;
+    double * uSinLat = u->sinLat;
 
     double g = consts->g.Value();
     double r = consts->radius.Value();
@@ -1044,8 +1042,8 @@ int Solver::ExtractSHCoeff(void) {
 
     int coeff_num = 2*(l_max + 1)*(l_max + 1);
 
-    int i_len = etaOld->ReturnFieldLatLen()-1;
-    int j_len = etaOld->ReturnFieldLonLen();
+    int i_len = eta->ReturnFieldLatLen()-1;
+    int j_len = eta->ReturnFieldLonLen();
 
     // if (i_len%2 != 0) i_len -= 1; //minus 1 required as SHTOOLS requires even samples in latitude
 
@@ -1260,11 +1258,6 @@ int Solver::Explicit() {
         iteration++;
 
     }
-
-    // deallocate memory assigned to temporary fields
-    delete etaNew;
-    delete uNew;
-    delete vNew;
 
     outstring << "\nSimulation complete.\n\nEnd time: \t\t" << simulationTime / 86400.0 << "\n";
     outstring << "Total iterations: \t" << iteration;
