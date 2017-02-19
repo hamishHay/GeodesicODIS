@@ -157,27 +157,6 @@ public:
   double etadLon;
   double etadLat;
 
-  Field * etaOld;
-  Field * etaNew;
-  Field * vOld;
-  Field * vNew;
-  Field * uOld;
-  Field * uNew;
-
-  Field * vDissTerm;
-  Field * uDissTerm;
-
-  Field * vNorthEastAvg;
-  Field * uSouthWestAvg;
-
-  Field * etaVAvg;
-  Field * etaUAvg;
-  Field * etaInterp;
-
-  Field * oceanLoading;
-  Field * oceanLoadingU;
-  Field * oceanLoadingV;
-
   // THESE ARRAYS ARE INEFFICIENT AND SO SHOULD BE REMOVED TODO: DELETE
   double * cosMinusB;
   double * cosPlusB;
