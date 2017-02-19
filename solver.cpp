@@ -52,7 +52,6 @@ int flag = 0;
 void CatchExit(int sig) {
     printf("%s\n", "Caught Terminate Signal...");
     flag = 1;
-    // DumpFields(output);
 }
 
 Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradLon, Field * UGradLat, Field * VelU, Field * VelV, Field * Eta, Energy * EnergyField, Depth * Depth_h) {
@@ -63,8 +62,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
     //Assign member pointers to passed in pointers from main.cpp
     consts = Consts;
     grid = Grid;
-    // dUlon = UGradLon;
-    // dUlat = UGradLat;
+
     u = VelU;
     v = VelV;
     eta = Eta;
@@ -72,54 +70,32 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 
     loading = false;
 
-    // etaOld = new Field(grid,0,0);
     etaOld = eta;
     etaOldArray = etaOld->solution;
+    etaNewArray = eta->MakeSolutionArrayCopy();
 
-    etaNew = new Field(grid,0,0);
-    etaNewArray = etaNew->solution;
-
-    uOld = u; //new Field(grid,0,1);
+    uOld = u; 
     uOldArray = uOld->solution;
+    uNewArray = u->MakeSolutionArrayCopy();
+    uDissArray = u->MakeSolutionArrayCopy();
+    uSWAvgArray = u->MakeSolutionArrayCopy();
+    oceanLoadingArrayU = u->MakeSolutionArrayCopy();
 
-    uNew = new Field(grid,0,1);
-    uNewArray = uNew->solution;
-
-    vOld = v; //new Field(grid,1,0);
+    vOld = v; 
     vOldArray = vOld->solution;
+    vNewArray = v->MakeSolutionArrayCopy();
+    vDissArray = v->MakeSolutionArrayCopy();
+    vNEAvgArray = v->MakeSolutionArrayCopy();
+    oceanLoadingArrayV = v->MakeSolutionArrayCopy();
 
-    vNew = new Field(grid,1,0);
-    vNewArray = vNew->solution;
-
-    vDissTerm = new Field(grid, 1, 0);
-    vDissArray = vDissTerm->solution;
-
-    uDissTerm = new Field(grid, 0, 1);
-    uDissArray = uDissTerm->solution;
-
-    vNorthEastAvg = new Field(grid, 1, 0);
-    vNEAvgArray = vNorthEastAvg->solution;
-
-    uSouthWestAvg = new Field(grid, 0, 1);
-    uSWAvgArray = uSouthWestAvg->solution;
-
-    dUlat = UGradLat; // new Field(grid,1,0);
+    dUlat = UGradLat; 
     dUlatArray = dUlat->solution;
 
-    dUlon = UGradLon; // new Field(grid,0,1);
+    dUlon = UGradLon; 
     dUlonArray = dUlon->solution;
 
     depth = Depth_h;
     depthArray = Depth_h->solution;
-
-    oceanLoading = new Field(grid, 0, 0);
-    oceanLoadingArray = oceanLoading->solution;
-
-    oceanLoadingU = new Field(grid, 0, 1);
-    oceanLoadingArrayU = oceanLoadingU->solution;
-
-    oceanLoadingV = new Field(grid, 1, 0);
-    oceanLoadingArrayV = oceanLoadingV->solution;
 
     l_max = consts->l_max.Value();
 
@@ -149,55 +125,29 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 
     dt = consts->timeStep.Value();
 
-    for (int i=0; i<vLatLen; i++) {
-        for (int j=0; j<vLonLen; j++) {
-            oceanLoadingArrayV[i][j] = 0.0;
-        }
-    }
-
-    for (int i=0; i<uLatLen; i++) {
-        for (int j=0; j<uLonLen; j++) {
-            oceanLoadingArrayU[i][j] = 0.0;
-        }
-    }
-
-    udLegendreArray = new double**[uLatLen];
     uLegendreArray = new double**[uLatLen];
     for (int i=0; i<uLatLen; i++) {
-        udLegendreArray[i] = new double*[l_max+1];
         uLegendreArray[i] = new double*[l_max+1];
         for (int l=0; l<l_max+1; l++) {
-            udLegendreArray[i][l] = new double[l_max+1];
             uLegendreArray[i][l] = new double[l_max+1];
-            for (int m=0; m <= l; m++) {
-                udLegendreArray[i][l][m] = 0.0;//assLegendreDLat(l, m, uNew->lat[i]);
-                uLegendreArray[i][l][m] = assLegendre(l, m, uNew->cosCoLat[i]);
+            for (int m=0; m <= l; m++) {                
+                uLegendreArray[i][l][m] = assLegendre(l, m, u->cosCoLat[i]);
             }
         }
     }
 
     vdLegendreArray = new double**[vLatLen];
-    vLegendreArray = new double**[vLatLen];
     for (int i=0; i<vLatLen; i++) {
         vdLegendreArray[i] = new double*[l_max+1];
-        vLegendreArray[i] = new double*[l_max+1];
         for (int l=0; l<l_max+1; l++) {
             vdLegendreArray[i][l] = new double[l_max+1];
-            vLegendreArray[i][l] = new double[l_max+1];
             for (int m=0; m <= l; m++) {
-
-                vdLegendreArray[i][l][m] = 0.0;//assLegendreDLat(l, m, vNew->lat[i]);
-                // std::cout<<vdLegendreArray[i][l][m]<<'\t';
-                // std::cout<<(uLegendreArray[i+1][l][m]-uLegendreArray[i][l][m])/udLat<<std::endl;
-                vLegendreArray[i][l][m] = assLegendre(l, m, vNew->cosCoLat[i]);
-
+                vdLegendreArray[i][l][m] = 0.0;      
             }
         }
     }
 
     LegendreDeriv();
-
-    // Out->TerminateODIS();
 
     vCosMLon = new double*[vLonLen];
     vSinMLon = new double*[vLonLen];
@@ -235,7 +185,6 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
         loadK[l] = -1.0 / (1.0 + mu_bar);
         loadH[l] = -1.0 / (1.0 + mu_bar) * (2.0*(double)l + 1.0)/3.0;
 
-
         gammaFactor[l] = 1.0 - (1.0 + loadK[l] - loadH[l]) * 3000.0 / ((2*l + 1) * 1610.0);
     }
 
@@ -244,14 +193,14 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
     sinMinusB = new double[dUlon->fieldLonLen];
     sinPlusB = new double[dUlon->fieldLonLen];
 
-    if (consts->potential.Value() == "ECC_RAD") tide = ECC_RAD;
-    else if (consts->potential.Value() == "ECC_LIB") tide = ECC_LIB;
-    else if (consts->potential.Value() == "ECC") tide = ECC;
-    else if (consts->potential.Value() == "OBLIQ") tide = OBLIQ;
-    else if (consts->potential.Value() == "FULL") tide = FULL;
-    else if (consts->potential.Value() == "TOTAL") tide = TOTAL;
-    else if (consts->potential.Value() == "ECC_W3") tide = ECC_W3;
-    else if (consts->potential.Value() == "OBLIQ_W3") tide = OBLIQ_W3;
+    if (consts->potential.Value() == "ECC_RAD")         tide = ECC_RAD;
+    else if (consts->potential.Value() == "ECC_LIB")    tide = ECC_LIB;
+    else if (consts->potential.Value() == "ECC")        tide = ECC;
+    else if (consts->potential.Value() == "OBLIQ")      tide = OBLIQ;
+    else if (consts->potential.Value() == "FULL")       tide = FULL;
+    else if (consts->potential.Value() == "TOTAL")      tide = TOTAL;
+    else if (consts->potential.Value() == "ECC_W3")     tide = ECC_W3;
+    else if (consts->potential.Value() == "OBLIQ_W3")   tide = OBLIQ_W3;
     else {
         outstring << "No potential forcing found." << std::endl;
         Out->Write(ERR_MESSAGE, &outstring);
@@ -276,12 +225,9 @@ int Solver::LegendreDeriv(void) {
     fort_plm = new double[n];
     fort_dplm_dtheta = new double[n];
 
-    std::cout<<l_max<<std::endl;
-    std::cout<<n<<std::endl;
-    //loop through every point, assigning dplm_dtheta
+
     for (i=0; i<vLatLen; i++) {
-        val = vNew->cosCoLat[i];
-        // std::cout<<val<<std::endl;
+        val = v->cosCoLat[i];
         legendrederiv_(fort_plm, fort_dplm_dtheta, &l_max, &val);
 
         for (l=0; l<l_max+1; l++) {
@@ -289,7 +235,7 @@ int Solver::LegendreDeriv(void) {
                 index = l*(l+1)/2 + m;
                 val2 = fort_dplm_dtheta[index];
 
-                vdLegendreArray[i][l][m] = val2*sin(pi*0.5 - vNew->lat[i]); //FOR SOME REASON ARRAY MUST BE SET WITH VAL2??????
+                vdLegendreArray[i][l][m] = val2*sin(pi*0.5 - v->lat[i]); //FOR SOME REASON ARRAY MUST BE SET WITH VAL2??????
 
                 // std::cout<<i<<'\t'<<l<<'\t'<<m<<'\t'<<vdLegendreArray[i][l][m]<<'\t'<<val<<std::endl;
             }
