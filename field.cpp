@@ -141,6 +141,30 @@ Field::Field(Mesh *mesh, int latStagg, int lonStagg)
   dLon *= radConv;
 };
 
+
+double ** Field::MakeSolutionArrayCopy(void){
+  int i,j;
+  double ** solutionCopy;
+
+  solutionCopy = new double*[fieldLatLen];
+  solutionCopy[0] = new double[fieldLatLen * fieldLonLen];
+  for (i=1; i < fieldLatLen; i++) {
+    solutionCopy[i] = &solutionCopy[0][i*fieldLonLen];
+  }
+
+  for (i=0; i < fieldLatLen; i++) {
+    for (j=0; j < fieldLonLen; j++) {
+      solutionCopy[i][j] = 0.0;
+    }
+  }
+
+
+
+  return solutionCopy;
+  //solutionReturn = solutionCopy;
+ 
+};
+
 int Field::ReturnFieldLatLen(){
   return fieldLatLen;
 };

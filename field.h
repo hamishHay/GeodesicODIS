@@ -66,6 +66,8 @@ public:
   int ReturnFieldLatLen();
   int ReturnFieldLonLen();
 
+  double ** MakeSolutionArrayCopy(void);    // Sets up double ** to be a copy of solution 
+
   double SouthWestAvg(int, int);
   double NorthEastAvg(int, int);
 };
