@@ -45,14 +45,9 @@ private:
                   ECC_W3,        // Time-dependent degree-3 eccentricity tide // TODO - Add expressions to documentation
                   OBLIQ_W3};     // Time-dependent degree-3 obliquity tide
 
-  void UpdateEccRadPotential(void);
-  void UpdateEccLibPotential(void);
-  void UpdateEccPotential(void);
-  void UpdateObliqPotential(void);
   void UpdateFullPotential(void);
   void UpdateTotalPotential(void);
   void UpdateEccDeg3Potential(void);
-  void UpdateObliqDeg3Potential(void);
 
   void ReadInitialConditions(bool); // Reads hdf5 init condition file for u,v and eta.
 
@@ -156,6 +151,13 @@ public:
   int etaLonLen;
   double etadLon;
   double etadLat;
+
+  double radius;
+  double angVel;
+  double theta;
+  double ecc;
+  double smAxis;
+
 
   // THESE ARRAYS ARE INEFFICIENT AND SO SHOULD BE REMOVED TODO: DELETE
   double * cosMinusB;

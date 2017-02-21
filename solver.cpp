@@ -74,6 +74,8 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
     radius = consts->radius.Value();
     angVel = consts->angVel.Value();
     theta = consts->theta.Value();
+    ecc = consts->e.Value();
+    smAxis = consts->a.Value();
 
     etaOldArray = eta->solution;
     etaNewArray = eta->MakeSolutionArrayCopy();
@@ -90,10 +92,10 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
     vNEAvgArray = v->MakeSolutionArrayCopy();
     oceanLoadingArrayV = v->MakeSolutionArrayCopy();
 
-    dUlat = UGradLat; 
+    dUlat = UGradLat;
     dUlatArray = dUlat->solution;
 
-    dUlon = UGradLon; 
+    dUlon = UGradLon;
     dUlonArray = dUlon->solution;
 
     depth = Depth_h;
@@ -132,7 +134,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
         uLegendreArray[i] = new double*[l_max+1];
         for (int l=0; l<l_max+1; l++) {
             uLegendreArray[i][l] = new double[l_max+1];
-            for (int m=0; m <= l; m++) {                
+            for (int m=0; m <= l; m++) {
                 uLegendreArray[i][l][m] = assLegendre(l, m, u->cosCoLat[i]);
             }
         }
@@ -144,7 +146,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
         for (int l=0; l<l_max+1; l++) {
             vdLegendreArray[i][l] = new double[l_max+1];
             for (int m=0; m <= l; m++) {
-                vdLegendreArray[i][l][m] = 0.0;      
+                vdLegendreArray[i][l][m] = 0.0;
             }
         }
     }
@@ -284,20 +286,19 @@ void Solver::Solve() {
 void Solver::UpdatePotential() {
     switch (tide) {
     case ECC_RAD:
-        UpdateEccRadPotential();
+        deg2EccRad(dUlat, dUlon, simulationTime, radius, angVel, ecc);
         break;
 
     case ECC_LIB:
-        UpdateEccLibPotential();
+        deg2EccLib(dUlat, dUlon, simulationTime, radius, angVel, ecc);
         break;
 
     case ECC:
-        UpdateEccPotential();
+        deg2Ecc(dUlat, dUlon, simulationTime, radius, angVel, ecc);
         break;
 
     case OBLIQ:
-        //UpdateObliqPotential();
-        deg2Obliquity(dUlat, dUlon, simulationTime, radius, angVel, theta);
+        deg2Obliq(dUlat, dUlon, simulationTime, radius, angVel, theta);
         break;
 
     case FULL:
@@ -313,87 +314,9 @@ void Solver::UpdatePotential() {
         break;
 
     case OBLIQ_W3:
-        UpdateObliqDeg3Potential();
+        deg3Obliq(dUlat, dUlon, simulationTime, radius, smAxis, angVel, theta);
         break;
     }
-}
-
-inline void Solver::UpdateEccLibPotential(void) {
-    double sin2Lat = 0;
-    double cosLat = 0;
-    double B = consts->angVel.Value()*simulationTime;
-    double A = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->e.Value();
-    double Alat, Alon = 0;
-
-    for (int j = 0; j < dUlat->fieldLonLen; j++) {
-        cosMinusB[j] = cos(2 * dUlat->lon[j] - B);
-        cosPlusB[j] = cos(2 * dUlat->lon[j] + B);
-    }
-
-    for (int j = 0; j < dUlon->fieldLonLen; j++) {
-        sinMinusB[j] = sin(2 * dUlon->lon[j] - B);
-        sinPlusB[j] = sin(2 * dUlon->lon[j] + B);
-    }
-
-    Alat = A * -1.5;
-    for (int i = 0; i < dUlat->fieldLatLen; i++) {
-        //lat = 2*dUlat->lat[i];
-        sin2Lat = dUlat->sin2Lat[i];
-        for (int j = 0; j < dUlat->fieldLonLen; j++) {
-            dUlatArray[i][j] = Alat*(sin2Lat * (7 * cosMinusB[j] - cosPlusB[j])); //P22
-        }
-    }
-
-    Alon = A * 3;
-    for (int i = 0; i < dUlon->fieldLatLen; i++) {
-        cosLat = dUlon->cosLat[i];
-        for (int j = 0; j < dUlon->fieldLonLen; j++) {
-            dUlonArray[i][j] = Alon * cosLat*cosLat*(-7 * sinMinusB[j] + sinPlusB[j]); //P22
-        }
-    }
-}
-
-void Solver::UpdateObliqDeg3Potential(void) {
-    double factor;
-    double A, B, M, cosM;
-    double * cosLat, * cosSqLat, * sinLat, * sinSqLat;
-    double * cosLon, * sinLon, * cosSqLon;
-    int i, j;
-
-    M = consts->angVel.Value()*simulationTime;
-    cosM = cos(M);
-
-    factor = consts->theta.Value() * pow(consts->radius.Value(),3.0) * pow(consts->angVel.Value(), 2.0) / consts->a.Value();
-
-    cosLat = dUlat->cosLat;
-    sinSqLat = dUlat->sinSqLat;
-    cosSqLat = dUlat->cosSqLat;
-
-    cosSqLon = dUlat->cosSqLon;
-
-
-    for (i=0; i<dUlat->fieldLatLen; i++) {
-        for (j=0; j<dUlat->fieldLonLen; j++) {
-            A = sinSqLat[i]*cosSqLon[j];
-            B = cosSqLat[i]*cosSqLon[j];
-
-            dUlatArray[i][j] = factor * 1.5 * cosLat[i]*(10.*A -5.*B + 1.0) * cosM;
-        }
-    }
-
-    cosSqLat = dUlon->cosSqLat;
-    sinLat = dUlon->sinLat;
-    sinLon = dUlon->sinLon;
-    cosLon = dUlon->cosLon;
-
-    for (i=0; i<dUlon->fieldLatLen; i++) {
-        for (j=0; j<dUlon->fieldLonLen; j++) {
-            A = cosSqLat[i]*sinLat[i]*cosLon[j]*sinLon[j];
-
-            dUlonArray[i][j] = factor* -15.*A * cosM;
-        }
-    }
-
 }
 
 void Solver::UpdateEccDeg3Potential(void) {
@@ -460,91 +383,6 @@ void Solver::UpdateEccDeg3Potential(void) {
     }
 
 };
-
-inline void Solver::UpdateEccPotential(void) {
-    double cosLat = 0;
-    double sin2Lat = 0;
-    double cosB = 0;
-    double B = consts->angVel.Value()*simulationTime;
-    double A = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->e.Value();
-
-    for (int j = 0; j < dUlat->fieldLonLen; j++) {
-        cosMinusB[j] = cos(2 * dUlat->lon[j] - B);
-        cosPlusB[j] = cos(2 * dUlat->lon[j] + B);
-    }
-
-    cosB = cos(B);
-    for (int i = 0; i < dUlat->fieldLatLen; i++) {
-        sin2Lat = dUlat->sin2Lat[i];
-        for (int j = 0; j < dUlat->fieldLonLen; j++) {
-            //lon = dUlat->lon[j];
-            dUlatArray[i][j] = A*((-1.5*sin2Lat * (7 * cosMinusB[j] - cosPlusB[j])) + (-9.*sin2Lat*cosB)); //P22 + P20
-        }
-    }
-
-    for (int j = 0; j < dUlon->fieldLonLen; j++) {
-        sinMinusB[j] = sin(2 * dUlon->lon[j] - B);
-        sinPlusB[j] = sin(2 * dUlon->lon[j] + B);
-    }
-
-    for (int i = 0; i < dUlon->fieldLatLen; i++) {
-        cosLat = dUlon->cosLat[i];
-        for (int j = 0; j < dUlon->fieldLonLen; j++) {
-            //lon = dUlon->lon[j];
-            dUlonArray[i][j] = A * 3 * cosLat*cosLat*(-7 * sinMinusB[j] + sinPlusB[j]); //P22
-        }
-    }
-}
-
-inline void Solver::UpdateEccRadPotential(void) {
-    double cosB = 0;
-    double sin2Lat = 0;
-    double B = consts->angVel.Value()*simulationTime;
-    double A = 0.25*pow(consts->angVel.Value(), 2)*pow(consts->radius.Value(), 2)*consts->e.Value();
-    double value = 0;
-
-    cosB = cos(B);
-    for (int i = 0; i < dUlat->fieldLatLen; i++) {
-        sin2Lat = dUlat->sin2Lat[i]; //sin(2*lat)
-        value = A*(-9.*sin2Lat*cosB);
-        for (int j = 0; j < dUlat->fieldLonLen; j++) {
-            dUlatArray[i][j] = value; // P20
-        }
-    }
-}
-
-inline void Solver::UpdateObliqPotential(void) {
-    double M, cosM, * cosLat, * cos2Lat, * sinLat, * cosLon, * sinLon, factor;
-    int i,j;
-
-    factor = -3. * pow(consts->angVel.Value(),2.0)*pow(consts->radius.Value(),2.0)*consts->theta.Value();
-
-    M = consts->angVel.Value()*simulationTime;
-    cosM = cos(M);
-
-
-    cos2Lat = dUlat->cos2Lat;
-    cosLon = dUlat->cosLon;
-
-
-    for (i=0; i<dUlat->fieldLatLen; i++) {
-        for (j=0; j<dUlat->fieldLonLen; j++) {
-            dUlatArray[i][j] = factor*cos2Lat[i]*cosLon[j]*cosM;
-        }
-    }
-
-    cosLat = dUlon->cosLat;
-    sinLat = dUlon->sinLat;
-    sinLon = dUlon->sinLon;
-
-
-    for (i=0; i < dUlon->fieldLatLen; i++) {
-        for (j=0; j < dUlon->fieldLonLen; j++) {
-            dUlonArray[i][j] = -factor*cosLat[i]*sinLat[i]*sinLon[j]*cosM;
-        }
-    }
-
-}
 
 inline void Solver::UpdateFullPotential(void) {
     double lon = 0;
@@ -936,7 +774,7 @@ void Solver::UpdateSurfaceHeight(){
     int i_h = 0;
     int j_h = 0;
 
-  
+
     for (int i = 1; i < etaLatLen-1; i++) {
         for (int j = 0; j < etaLonLen; j++) {
             cosLat = eta->cosLat[i];
@@ -1073,7 +911,7 @@ int Solver::UpdateLoading(void) {
                 for (m=0; m<=l; m++) {
                     loadingDLat += vdLegendreArray[i][l][m] * (SH_cos_coeff[l][m]*vCosMLon[j][m] + SH_sin_coeff[l][m]*vSinMLon[j][m]);
                 }
-                loadingDLat *= 1.0; //gammaFactor[l];
+                loadingDLat *= gammaFactor[l];
                 loadingDLatTotal += loadingDLat;
             }
             oceanLoadingArrayV[i][j] = loadingDLatTotal;
@@ -1090,7 +928,7 @@ int Solver::UpdateLoading(void) {
                 for (m=0; m<=l; m++) {
                     loadingDLon += uLegendreArray[i][l][m] * (-SH_cos_coeff[l][m]*(double)m*uSinMLon[j][m] + SH_sin_coeff[l][m]*(double)m*uCosMLon[j][m]);
                 }
-                loadingDLon *= 1.0; //gammaFactor[l];
+                loadingDLon *= gammaFactor[l];
                 loadingDLonTotal += loadingDLon;
 
             }
