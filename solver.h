@@ -154,13 +154,6 @@ public:
   double ecc;
   double smAxis;
 
-
-  // THESE ARRAYS ARE INEFFICIENT AND SO SHOULD BE REMOVED TODO: DELETE
-  double * cosMinusB;
-  double * cosPlusB;
-  double * sinMinusB;
-  double * sinPlusB;
-
   double ** SH_cos_coeff;
   double ** SH_sin_coeff;
 
