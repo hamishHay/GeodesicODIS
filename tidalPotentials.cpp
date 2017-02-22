@@ -310,3 +310,65 @@ void deg3Obliq(Field * DUlat, Field * DUlon, double simulationTime, double radiu
         }
     }
 };
+
+/* Degree 3 component of the eccentricity tide (see docs)
+ *
+ * Finds the gradient components of the degree-3 eccentricity tide for Fields
+ * DUlat and DUlon. Only current simulation required is absolute simulation
+ * time. The function directly writes the solution arrays in both Field
+ * classes.
+ *
+ *      inputs: Field * DUlat           Field for latitude gradient of potential
+ *              Field * DUlon           Field for longitude gradient of potential
+ *              double simulationTime   Current time in the simulation
+ *              double radius           Satellite radius
+ *              double smAxis           Satellite semimajor axis
+ *              double omega            Satellite rotational angular speed
+ *              double theta            Satellite obliquity in radians
+ *
+*/
+void deg3Ecc(Field * DUlat, Field * DUlon, double simulationTime, double radius, double smAxis, double omega, double theta) {
+    double cosM, factor;                                // cos(Mean anomaly), sin(Mean anomaly)
+    double * sinLat, * cosLat, * cosSqLat, * sinSqLat;  // Pointer to 1D arrays for trig functions of latitude
+    double * sinLon, * cosLon, * cosSqLon, * cosCubLon; // Pointer to 1D arrays for trig functions of longitude
+    double ** latGrad, ** lonGrad;                      // Pointer to 2D array solutions
+    int i,j;
+    int latLen, lonLen;
+
+    factor = pow(omega,2.0)*pow(radius,3.0)*theta/smAxis;
+    cosM = cos(omega*simulationTime);
+
+    // Get pointer to arrays
+    latGrad = DUlat->solution;
+    lonGrad = DUlon->solution;
+
+    // Set variables for dUlat solution
+    latLen = DUlat->fieldLatLen;
+    lonLen = DUlat->fieldLonLen;
+
+    cosLat = DUlat->cosLat;
+    sinSqLat = DUlat->sinSqLat;
+    cosSqLon = DUlat->cosSqLon;
+
+    // Solve for dUdlat
+    for (i=0; i<latLen; i++) {
+        for (j=0; j<lonLen; j++) {
+            latGrad[i][j] = factor
+        }
+    }
+
+    // Set variable for dUlon solution
+    latLen = DUlon->fieldLatLen;
+    lonLen = DUlon->fieldLonLen;
+
+    cosSqLat = DUlon->cosSqLat;
+    sinLat = DUlon->sinLat;
+    sin2Lon = DUlon->sin2Lon;
+
+    // Solve for dUdlon
+    for (i=0; i<latLen; i++) {
+        for (j=0; j<lonLen; j++) {
+            lonGrad[i][j] = -factor
+        }
+    }
+};
