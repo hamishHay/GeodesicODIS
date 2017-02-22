@@ -324,19 +324,20 @@ void deg3Obliq(Field * DUlat, Field * DUlon, double simulationTime, double radiu
  *              double radius           Satellite radius
  *              double smAxis           Satellite semimajor axis
  *              double omega            Satellite rotational angular speed
- *              double theta            Satellite obliquity in radians
+ *              double ecc              Satellite eccentricity
  *
 */
-void deg3Ecc(Field * DUlat, Field * DUlon, double simulationTime, double radius, double smAxis, double omega, double theta) {
-    double cosM, factor;                                // cos(Mean anomaly), sin(Mean anomaly)
+void deg3Ecc(Field * DUlat, Field * DUlon, double simulationTime, double radius, double smAxis, double omega, double ecc) {
+    double cosM, sinM, factor;                          // cos(Mean anomaly), sin(Mean anomaly)
     double * sinLat, * cosLat, * cosSqLat, * sinSqLat;  // Pointer to 1D arrays for trig functions of latitude
     double * sinLon, * cosLon, * cosSqLon, * cosCubLon; // Pointer to 1D arrays for trig functions of longitude
     double ** latGrad, ** lonGrad;                      // Pointer to 2D array solutions
     int i,j;
     int latLen, lonLen;
 
-    factor = pow(omega,2.0)*pow(radius,3.0)*theta/smAxis;
+    factor = pow(omega,2.0)*pow(radius,3.0)*ecc/smAxis;
     cosM = cos(omega*simulationTime);
+    sinM = sin(omega*simulationTime);
 
     // Get pointer to arrays
     latGrad = DUlat->solution;
@@ -346,14 +347,21 @@ void deg3Ecc(Field * DUlat, Field * DUlon, double simulationTime, double radius,
     latLen = DUlat->fieldLatLen;
     lonLen = DUlat->fieldLonLen;
 
-    cosLat = DUlat->cosLat;
-    sinSqLat = DUlat->sinSqLat;
+    sinLat = DUlat->sinLat;
+    sinLon = DUlat->sinLon;
+    cosLon = DUlat->cosLon;
+    cosSqLat = DUlat->cosSqLat;
     cosSqLon = DUlat->cosSqLon;
+    cosCubLon = DUlat->cosCubLon;
 
     // Solve for dUdlat
     for (i=0; i<latLen; i++) {
         for (j=0; j<lonLen; j++) {
-            latGrad[i][j] = factor
+            latGrad[i][j] = -factor * sinLat[i]
+                            * (3.*sinM*sinLon[j]
+                            * (15.*cosSqLat[i]*cosSqLon[j] - 1.0)
+                            + 6. * cosM
+                            * (5.*cosSqLat[i]*cosCubLon[j] - cosLon[j]));
         }
     }
 
@@ -361,14 +369,144 @@ void deg3Ecc(Field * DUlat, Field * DUlon, double simulationTime, double radius,
     latLen = DUlon->fieldLatLen;
     lonLen = DUlon->fieldLonLen;
 
+    cosLat = DUlon->cosLat;
+    cosLon = DUlon->cosLon;
     cosSqLat = DUlon->cosSqLat;
-    sinLat = DUlon->sinLat;
-    sin2Lon = DUlon->sin2Lon;
+    sinSqLat = DUlon->sinSqLat;
+    sinLon = DUlon->sinLon;
+    cosSqLon = DUlon->cosSqLon;
 
     // Solve for dUdlon
     for (i=0; i<latLen; i++) {
         for (j=0; j<lonLen; j++) {
-            lonGrad[i][j] = -factor
+            lonGrad[i][j] = -factor * cosLat[i]
+                            * (3.*sinM*cosLon[j]
+                            * (5.*cosSqLat[i]*(1. - 3.*sinSqLat[i]) - 1.0)
+                            + 6. * cosM * sinLon[j]
+                            * (1. - 5. * cosSqLat[i] * cosSqLon[j]));
         }
     }
 };
+
+// inline void Solver::UpdateFullPotential(void) {
+//     double lon = 0;
+//     double B = consts->angVel.Value()*simulationTime;
+//     double A = 0.25 * pow(consts->angVel.Value(),2)*pow(consts->radius.Value(),2);
+//     double sin2Lat = 0;
+//     double cos2Lat = 0;
+//     double cosLat = 0;
+//
+//     for (int i = 0; i < dUlat->fieldLatLen; i++) {
+//         sin2Lat = dUlat->sin2Lat[i];
+//         cos2Lat = dUlat->cos2Lat[i];
+//         for (int j = 0; j < dUlat->fieldLonLen; j++) {
+//             lon = dUlat->lon[j];
+//             dUlatArray[i][j] = consts->theta.Value()* -6 * cos2Lat*(cos(lon - B) + cos(lon + B));
+//             dUlatArray[i][j] += consts->e.Value()*(-9.*sin2Lat*cos(B));
+//             dUlatArray[i][j] += consts->e.Value()*(-1.5*sin2Lat * (7 * cos(2 * lon - B) - cos(2 * lon + B)));
+//             dUlatArray[i][j] *= A;
+//         }
+//     }
+//
+//     for (int i = 0; i < dUlon->fieldLatLen; i++) {
+//         sin2Lat = dUlon->sin2Lat[i];
+//         cosLat = dUlon->cosLat[i];
+//         for (int j = 0; j < dUlon->fieldLonLen; j++) {
+//             lon = dUlon->lon[j];
+//             dUlonArray[i][j] = consts->theta.Value() * 3 * sin2Lat*(sin(lon - B) + sin(lon + B));
+//             dUlonArray[i][j] += consts->e.Value() * 3 * cosLat*cosLat*(-7 * sin(2 * lon - B) + sin(2 * lon + B));
+//             dUlonArray[i][j] *= A;
+//         }
+//     }
+// }
+//
+// inline void Solver::UpdateTotalPotential(void) {
+//     // Total time-dependent and static parts of the tidal potential, accurate to second order
+//     // in both eccentricity and obliquity
+//     double factor;
+//     // double factor2;
+//     double cosLat = 0;
+//     double cos2Lat = 0;
+//     double sin2Lat = 0;
+//     double sinLon = 0;
+//     double cosLon = 0;
+//     double sin2Lon = 0;
+//     double cos2Lon = 0;
+//     double lon = 0;
+//     double t_omega = consts->angVel.Value()*simulationTime;
+//     double e = consts->e.Value();
+//     double theta = consts->theta.Value();
+//
+//     double cos_t_omega = cos(t_omega);
+//     double sin_t_omega = sin(t_omega);
+//     double cos_2t_omega = cos(2*t_omega);
+//     double cos_3t_omega = cos(3*t_omega);
+//     double cos_4t_omega = cos(4*t_omega);
+//
+//     double A = 0;
+//     double B = 0;
+//     double C = 0;
+//     double D = 0;
+//     double E = 0;
+//     double F = 0;
+//     double G = 0;
+//
+//     factor = 0.03125 * (consts->angVel.Value() * consts->angVel.Value() * consts->radius.Value() * consts->radius.Value());
+//     // factor2 = -0.5 * (consts->angVel.Value() * consts->angVel.Value() * consts->radius.Value() * consts->radius.Value());
+//
+//     A = -(4 + 15 * e*e + 20. * e * cos_t_omega + 43 * e*e * cos_2t_omega);
+//     B = 2 * e * (4 + 25 * e * cos_t_omega) * sin_t_omega;
+//     C = -2 * theta*theta * (2 + 3*e*e + 6*e*cos_t_omega + 9 * e * e *cos_2t_omega);
+//     D = -2 * (2 - 5*e*e + 6*e*cos_t_omega + 17 * e*e*cos_2t_omega);
+//     E = 4 * e * (4 + 17*e*cos_t_omega)*sin_t_omega;
+//     F = -(-2+theta*theta);
+//
+//
+//     for (int i = 0; i < dUlon->fieldLatLen; i++) {
+//         cosLat = dUlon->cosLat[i];
+//         sin2Lat = dUlon->sin2Lat[i];
+//         for (int j = 0; j < dUlon->fieldLonLen; j++) {
+//             sinLon = dUlon->sinLon[j];
+//             cosLon = dUlon->cosLon[j];
+//             sin2Lon = dUlon->sin2Lon[j];
+//             cos2Lon = dUlon->cos2Lon[j];
+//             lon = dUlon->lon[j];
+//             dUlonArray[i][j] = 12 * theta * sin2Lat * sin_t_omega * (A * sinLon + B * cosLon);
+//             dUlonArray[i][j] += 6*cosLat*cosLat * (C * sin(2 * (t_omega + lon)) + F * (D * sin2Lon + E *cos2Lon));
+//             dUlonArray[i][j] *= factor;
+//
+//             //Static part
+//             // dUlonArray[i][j] -= factor2 * (3*cosLat*cosLat*sin2Lon);
+//         }
+//     }
+//
+//     G = -(2 + 3 * e*e)*(-2 + 3*theta*theta) + 3*e*(4-7*theta*theta)*cos_t_omega;
+//     G += 6*(theta*theta + e*e*(3 - 7*theta*theta))*cos_2t_omega;
+//     G += 3*e*theta*theta * (7*cos_3t_omega + 17*e*cos_4t_omega);
+//     G *= -6.0;
+//
+//     C *= -0.5;
+//     D *= -0.5;
+//     E *= 0.5;
+//     // F *= 0.5;
+//
+//
+//     for (int i = 0; i < dUlat->fieldLatLen; i++) {
+//         cosLat = dUlat->cosLat[i];
+//         sin2Lat = dUlat->sin2Lat[i];
+//         for (int j = 0; j < dUlat->fieldLonLen; j++) {
+//             sinLon = dUlat->sinLon[j];
+//             cosLon = dUlat->cosLon[j];
+//             sin2Lon = dUlat->sin2Lon[j];
+//             cos2Lon = dUlat->cos2Lon[j];
+//             lon = dUlat->lon[j];
+//             dUlatArray[i][j] = G * sin2Lat;
+//             dUlatArray[i][j] += 24 * theta * cos2Lat * sin_t_omega * (-A * cosLon + B * sinLon);
+//             dUlatArray[i][j] += -6*sin2Lat * (C * cos(2 * (t_omega + lon)) + F * (D * cos2Lon + E *sin2Lon));
+//             dUlatArray[i][j] *= factor;
+//
+//             //Static part
+//             // dUlatArray[i][j] -= factor2 * (3*sin2Lat*cosLon*cosLon);
+//         }
+//     }
+// }
