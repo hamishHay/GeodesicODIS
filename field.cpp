@@ -32,20 +32,12 @@ Field::Field(Mesh *mesh, int latStagg, int lonStagg)
   dLat = grid->dLat*2; // staggered grid is half resolution of original grid.
   dLon = grid->dLon*2;
 
+
   // define staggered grid dimensions
   fieldLonLen = grid->ReturnLonLen() / 2;
 
   if (latStagg) fieldLatLen = (grid->ReturnLatLen() - 1 )/ 2;
-  else fieldLatLen = 1 + (grid->ReturnLatLen() - 1)/ 2;
-
-  // allocate memory for the solution
-  // solution = new double*[fieldLatLen];
-  // for (int i = 0; i < fieldLatLen; i++) {
-  //   solution[i] = new double[fieldLonLen];
-  //   for (int j = 0; j < fieldLonLen; j++) {
-  //     solution[i][j] = 0; //Initial Guess
-  //   }
-  // }
+  else fieldLatLen = (1 + grid->ReturnLatLen())/ 2;
 
   solution = new double*[fieldLatLen];
   solution[0] = new double[fieldLatLen * fieldLonLen];
@@ -65,9 +57,6 @@ Field::Field(Mesh *mesh, int latStagg, int lonStagg)
     if (latStagg) lat[i] = grid->lat[i * 2 + 1];
     else lat[i] = grid->lat[i * 2];
   }
-
-  // Make sure last value is -90 latitude exactly for safety
-  if (!latStagg) lat[fieldLatLen-1] = -90.0;
 
   lon = new double[fieldLonLen];
   for (int j = 0; j < fieldLonLen; j++) {
@@ -117,8 +106,8 @@ Field::Field(Mesh *mesh, int latStagg, int lonStagg)
     lon[j] *= radConv;
     sinLon[j] = sin(lon[j]);
     cosLon[j] = cos(lon[j]);
-    sin2Lon[j] = sin(2*lon[j]);
-    cos2Lon[j] = cos(2*lon[j]);
+    sin2Lon[j] = sin(2.*lon[j]);
+    cos2Lon[j] = cos(2.*lon[j]);
     cos3Lon[j] = cos(3.*lon[j]);
     cosSqLon[j] = pow(cos(lon[j]),2.0);
     cosCubLon[j] = pow(cos(lon[j]),3.0);
@@ -158,11 +147,111 @@ double ** Field::MakeSolutionArrayCopy(void){
     }
   }
 
-
-
   return solutionCopy;
   //solutionReturn = solutionCopy;
- 
+
+};
+
+void Field::CalcWeights(int latStagg, int lonStagg, Field * neighbour) {
+    int i,j,k,l;
+    double lat1,lat2,lon1,lon2;
+    double totalLength, length;
+
+    weights = new double **[fieldLatLen];
+    for (i=0; i<fieldLatLen; i++) {
+        weights[i] = new double *[fieldLonLen];
+        for (k=0; k<2; k++) {
+            weights[i][k] = new double [2];
+        }
+    }
+
+
+    for (i=0; i<fieldLatLen; i++) {
+        totalLength = 0.0;
+        j = 2;
+        lat1 = lat[i];
+        lon1 = lon[j];
+
+        if (latStagg) {
+            for (k=0; k<2; k++) {
+                for (l=0; l<2; l++) {
+                    lat2 = neighbour->lat[i + k];
+                    lon2 = neighbour->lon[j + (l-1)];
+                    totalLength += 1./arcLength(lat1, lat2, lon1, lon2);
+                }
+            }
+
+            for (k=0; k<2; k++) {
+                for (l=0; l<2; l++) {
+                    lat2 = neighbour->lat[i+k];
+                    // std::cout<<lat2/radConv<<std::endl;
+                    lon2 = neighbour->lon[j+(l-1)];
+                    length = 1./arcLength(lat1, lat2, lon1, lon2);
+                    weights[i][k][l] = length/totalLength;
+                }
+            }
+
+        }
+        else {
+            if (i > 0 && i < fieldLatLen-1) {
+                for (k=0; k<2; k++) {
+                    for (l=0; l<2; l++) {
+                        lat2 = neighbour->lat[i + k];
+                        lon2 = neighbour->lon[j + (l-1)];
+                        totalLength += 1./arcLength(lat1, lat2, lon1, lon2);
+                    }
+                }
+
+                for (k=0; k<2; k++) {
+                    for (l=0; l<2; l++) {
+                        lat2 = neighbour->lat[i+k];
+                        // std::cout<<lat2/radConv<<std::endl;
+                        lon2 = neighbour->lon[j+(l-1)];
+                        length = 1./arcLength(lat1, lat2, lon1, lon2);
+                        weights[i][k][l] = length/totalLength;
+                    }
+                }
+            }
+            else if (i == 0) {
+                for (k=0; k<1; k++) {
+                    for (l=0; l<2; l++) {
+                        lat2 = neighbour->lat[i + k];
+                        lon2 = neighbour->lon[j + (l-1)];
+                        totalLength += 1./arcLength(lat1, lat2, lon1, lon2);
+                    }
+                }
+
+                for (k=0; k<1; k++) {
+                    for (l=0; l<2; l++) {
+                        lat2 = neighbour->lat[i+k];
+                        // std::cout<<lat2/radConv<<std::endl;
+                        lon2 = neighbour->lon[j+(l-1)];
+                        length = 1./arcLength(lat1, lat2, lon1, lon2);
+                        weights[i][k][l] = length/totalLength;
+                    }
+                }
+            }
+            else if (i == fieldLatLen-1) {
+                for (k=0; k<1; k++) {
+                    for (l=0; l<2; l++) {
+                        lat2 = neighbour->lat[i - k];
+                        lon2 = neighbour->lon[j + (l-1)];
+                        totalLength += 1./arcLength(lat1, lat2, lon1, lon2);
+                    }
+                }
+
+                for (k=0; k<1; k++) {
+                    for (l=0; l<2; l++) {
+                        lat2 = neighbour->lat[i-k];
+                        // std::cout<<lat2/radConv<<std::endl;
+                        lon2 = neighbour->lon[j+(l-1)];
+                        length = 1./arcLength(lat1, lat2, lon1, lon2);
+                        weights[i][k][l] = length/totalLength;
+                    }
+                }
+            }
+        }
+    }
 };
 
 int Field::ReturnFieldLatLen(){
@@ -171,22 +260,4 @@ int Field::ReturnFieldLatLen(){
 
 int Field::ReturnFieldLonLen(){
   return fieldLonLen;
-};
-
-double Field::SouthWestAvg(int i, int j) {
-  if (j > 0) {
-    return 0.25*(solution[i][j] + solution[i + 1][j] + solution[i][j - 1] + solution[i + 1][j - 1]);
-  }
-  else {
-    return 0.25*(solution[i][j] + solution[i + 1][j] + solution[i][fieldLonLen - 1] + solution[i + 1][fieldLonLen-1]);
-  }
-};
-
-double Field::NorthEastAvg(int i, int j) {
-  if (j < fieldLonLen-1) {
-    return 0.25*(solution[i][j] + solution[i - 1][j] + solution[i][j + 1] + solution[i - 1][j + 1]);
-  }
-  else {
-    return 0.25*(solution[i][j] + solution[i - 1][j] + solution[i][0] + solution[i - 1][0]);
-  }
 };

@@ -190,7 +190,7 @@ class ODISPlot:
 
         norm = 100
 
-        factor = 0.25
+        factor = 0.05
 
         orbits = np.linspace(0,len(self.diss)*factor,len(self.diss))
 

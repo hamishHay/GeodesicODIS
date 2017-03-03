@@ -49,6 +49,8 @@ public:
   double ** cosMLon;
   double ** sinMLon;
 
+  double *** weights;
+
   // node spacing
   double dLat;
   double dLon;
@@ -65,11 +67,9 @@ public:
 
   int ReturnFieldLatLen();
   int ReturnFieldLonLen();
+  void CalcWeights(int, int, Field *);
 
-  double ** MakeSolutionArrayCopy(void);    // Sets up double ** to be a copy of solution 
-
-  double SouthWestAvg(int, int);
-  double NorthEastAvg(int, int);
+  double ** MakeSolutionArrayCopy(void);    // Sets up double ** to be a copy of solution
 };
 
 #endif

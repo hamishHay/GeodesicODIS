@@ -13,10 +13,10 @@ import argparse
 parser = argparse.ArgumentParser()
 
 parser.add_argument("-s","--start",
-                    help="Not yet", 
+                    help="Not yet",
                     type=int,
                     default=0)
-parser.add_argument("-e","--end", 
+parser.add_argument("-e","--end",
                     help="Not yet",
                     type=int,
                     default=10)
@@ -24,7 +24,7 @@ parser.add_argument("-f","--filename",
                     help="Name of the savefile",
                     type=str,
                     default="animation_odis.mp4")
-parser.add_argument("-t","--title", 
+parser.add_argument("-t","--title",
                     help="Animation title",
                     type=str,
                     default="ODIS Animation")
@@ -48,7 +48,7 @@ stop = args.end
 filename = args.filename
 title = args.title
 p_type = args.plot
-h = args.h0 
+h = args.h0
 scale = args.scale
 
 P = 15.95
@@ -56,6 +56,8 @@ P = 15.95
 dt = P * 0.25
 time = 0.0
 
+
+print(p_type)
 # THESE TWO LINES ARE REQD TO PRODUCE SAVEABLE MOVIE
 Writer = animation.writers['ffmpeg']
 writer = Writer(fps=10, metadata=dict(artist='Me'), bitrate=4000)
@@ -74,6 +76,8 @@ if p_type == "velocity":
     DATA_MAG = np.sqrt(DATA_U**2 + DATA_V**2)
 elif p_type == "dissipation":
     DATA_MAG = 1e3 * h * 1e-6 * (DATA_U**2 + DATA_V**2)
+elif p_type = 'displacement':
+    DATA_MAG = np.array(in_file["displacement"])[start:stop+1,:,:]
 
 frames = stop-start
 vmin = np.amin(DATA_MAG)
@@ -97,6 +101,9 @@ if p_type == "velocity":
     qv = ax.quiver(lon[::3],lat[::3],DATA_U[0,::3,::3],DATA_V[0,::3,::3],scale=scale,pivot='mid',color='k')
     ct = ax.imshow(DATA_MAG[0,:,:],vmin=vmin,vmax=vmax,cmap=plt.cm.viridis,interpolation='bicubic',extent=[0,360,90,-90])
 elif p_type == "dissipation":
+    ct = ax.imshow(DATA_MAG[0,:,:],vmin=vmin,vmax=vmax,cmap=plt.cm.plasma,interpolation='bicubic',extent=[0,360,90,-90])
+    ct2 = ax.contour(lon,lat,DATA_MAG[0,:,:],levels=levels,colors='k')
+elif p_type == "displacement":
     ct = ax.imshow(DATA_MAG[0,:,:],vmin=vmin,vmax=vmax,cmap=plt.cm.plasma,interpolation='bicubic',extent=[0,360,90,-90])
     ct2 = ax.contour(lon,lat,DATA_MAG[0,:,:],levels=levels,colors='k')
 
@@ -123,22 +130,23 @@ elif p_type == "dissipation":
 
 def animate(i):
     global time
-    if p_type == "velocity": 
+    if p_type == "velocity":
         ct.set_array(DATA_MAG[i,:,:])
         qv.set_UVC(DATA_U[i,::3,::3],DATA_V[i,::3,::3])
-    elif p_type == "dissipation":
+    elif p_type == "dissipation" or p_type = "displacement":
         global ct2
         ct.set_array(DATA_MAG[i,:,:])
         for contour in ct2.collections:
             contour.remove()
         ct2 = ax.contour(lon,lat,DATA_MAG[i,:,:],levels=levels,colors='k')
 
+
     time += dt
-    ax.set_title('t = %.1f orbits'%(time/P)) 
+    ax.set_title('t = %.1f orbits'%(time/P))
     print("Rendering frame ", i)
     return ax
 
-interval = 500#in seconds     
+interval = 500#in seconds
 ani = animation.FuncAnimation(fig,animate,frames=frames,interval=50,blit=False)
 
 plt.show()

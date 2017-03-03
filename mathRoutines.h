@@ -5,6 +5,7 @@
 #include "solver.h"
 #include <math.h>
 
+double arcLength(double lat1, double lat2, double lon1, double lon2);
 
 inline double gamm1n(double xx);
 inline double gamm1n(double xx) {

@@ -28,16 +28,10 @@ public:
 	int ReturnLatLen(void) const;
 	int ReturnLonLen(void) const;
 
-        double ** cellArea;
+    double ** cellArea;
 
 	std::vector<double> lat;
 	std::vector<double> lon;
-
-	std::vector<double> CenterP(int, int); //Lat and lon at center point
-	std::vector<double> NorthP(int, int); //Lat and lon at point (i+2,j)
-	std::vector<double> SouthP(int, int); //Lat and lon at point (i-2,j)
-	std::vector<double> EastP(int, int); //Lat and lon at point (i,j+2)
-	std::vector<double> WestP(int, int); //Lat and lon at point (i,j-2)
 };
 
 #endif

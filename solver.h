@@ -7,6 +7,7 @@
 #include "depth.h"
 #include "energy.h"
 #include "outFiles.h"
+#include "array2D.h"
 
 #include "H5Cpp.h"
 
@@ -101,6 +102,7 @@ public:
 
   double ** oceanLoadingArrayU;           // Derivative of the ocean loading term at u nodes
   double ** oceanLoadingArrayV;           // Derivative of the ocean loading term at v nodes
+  double ** oceanLoadingArrayEta;
 
   double ** vDissArray;                   // Array to contain v dissipation term across the gird
   double ** uDissArray;                   // Array to contain u dissipation term across the gird
@@ -127,11 +129,17 @@ public:
   */
   double *** vdLegendreArray;             // Derivative of associated legendre polynomials at v nodes
   double *** uLegendreArray;              // Associated legendre polynomials at u nodes
+  // double *** etaLegendreArray;
+  double * etaLegendreArray;
+
 
   double ** vCosMLon;                     // cos(m*lon) at v nodes ([m][lon])
   double ** vSinMLon;                     // sin(m*lon) at v nodes ([m][lon])
   double ** uCosMLon;                     // cos(m*lon) at u nodes ([m][lon])
   double ** uSinMLon;                     // sin(m*lon) at u nodes ([m][lon])
+  double * etaCosMLon;                   // cos(m*lon) at eta nodes ([m][lon])
+  double * etaSinMLon;                   // sin(m*lon) at eta nodes ([m][lon])
+
 
   int uLatLen;
   int uLonLen;
@@ -163,6 +171,7 @@ public:
 
   double ** SH_cos_coeff;
   double ** SH_sin_coeff;
+  // Array2D * SH_cos_coeff, * SH_sin_coeff;
 
   double * loadK;
   double * loadH;
@@ -189,6 +198,9 @@ public:
 
   int ExtractSHCoeff();
   int LegendreDeriv();
+  int Legendre();
+  int InterpPoles();
+  int FindAverages();
 
   void DumpSolutions(int output_num, double time);
   void DumpFields(int output_num);

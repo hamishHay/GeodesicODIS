@@ -3,6 +3,12 @@
 #include "globals.h"
 #include "solver.h"
 
+double arcLength(double lat1, double lat2, double lon1, double lon2) {
+    // return fabs(acos(sin(lat1)*sin(lat2) + cos(lat1)*cos(lat2)*cos(fabs(lon1-lon2))));
+    return fabs(acos(sin(lat1)*sin(lat2) + cos(lat1)*cos(lat2)*(cos(lon1)*cos(lon2) + sin(lon1)*sin(lon2))));
+
+}
+
 double linearInterp1(Field * field, int i, int j) {
     //first order accurate forward difference method
     if (i < field->fieldLatLen / 2) {
