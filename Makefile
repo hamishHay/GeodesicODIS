@@ -19,8 +19,8 @@ BUILDDIR = /source/build/
 
 all: ODIS
 
-ODIS: legendre.o legendreDeriv.o extractSHCoeff.o main.o mathRoutines.o tidalPotentials.o array2D.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o solver.o
-	$(CC) legendre.o legendreDeriv.o extractSHCoeff.o $(FLINK) main.o mathRoutines.o tidalPotentials.o array2D.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o solver.o -o ODIS -lgfortran -fopenmp $(CLINK)
+ODIS: legendre.o legendreDeriv.o extractSHCoeff.o main.o mathRoutines.o tidalPotentials.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o solver.o
+	$(CC) legendre.o legendreDeriv.o extractSHCoeff.o $(FLINK) main.o mathRoutines.o tidalPotentials.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o solver.o -o ODIS -lgfortran -fopenmp $(CLINK)
 
 legendre.o: legendre.f95
 	$(F) $(FFLAGS) legendre.f95
@@ -39,9 +39,6 @@ mathRoutines.o: mathRoutines.cpp
 
 tidalPotentials.o: tidalPotentials.cpp
 	$(CC) $(CFLAGS) tidalPotentials.cpp
-
-array2D.o: array2D.cpp
-	$(CC) $(CFLAGS) array2D.cpp
 
 outFiles.o: outFiles.cpp
 	$(CC) $(CFLAGS) outFiles.cpp
