@@ -61,6 +61,9 @@ int main(void)
   Field * dUlat = new Field(grid,1,0); // Latitudinal tidal potential gradient. Staggered south.
   Field * dUlon = new Field(grid,0,1); // Longitudinal tidal potential gradient. Staggered east.
 
+  v->CalcWeights(1, 0, u);
+  u->CalcWeights(0, 1, v);
+
   Depth * h = new Depth(grid);
 
   // Allocate memory for (hopefully) conserved quantities, mass and energy.

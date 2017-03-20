@@ -14,16 +14,19 @@ Mesh::Mesh(Globals * Globals) //non-default constructor
 	dLat = globals->dLat.Value();
 	dLon = globals->dLon.Value();
 
-	latLength = dLat*2. + 1.;
-	dLat = 0.5*180. / dLat;
+    // TODO - Make sure dLat is an even number
 
-	std::cout<<"dlat: "<<dLat<<std::endl;
-
-
-	lonLength = dLon*2.;
-	dLon = 0.5*360. / dLon;
+    lonLength = 4*dLat;
+	dLon = 360./lonLength;
 
 	std::cout<<"dlon: "<<dLon<<std::endl;
+    std::cout<<"lon nodes: "<<lonLength<<std::endl;
+
+	latLength = 2*dLat + 1;
+	dLat = 180. / (latLength - 1);
+
+	std::cout<<"dlat: "<<dLat<<std::endl;
+    std::cout<<"lat nodes: "<<latLength<<std::endl;
 
 	//Populate lat vector with co-latitude
 	int count = 0;
@@ -31,15 +34,16 @@ Mesh::Mesh(Globals * Globals) //non-default constructor
 	double currentLat = 90.0;
 	while (count < latLength) {
 		lat.push_back(currentLat);
+
 		currentLat -= dLat;
 		count++;
 	}
 
-	//latLength = lat.size(); //EDIT
+	for (int j = 0; j < lonLength; j++) {
+        lon.push_back(j*dLon);
+    }
 
-	for (int j = 0; j < lonLength; j++) lon.push_back(j*dLon);
-
-        CalculateCellArea();
+    CalculateCellArea();
 
 	CalculateDt();
 };
@@ -53,7 +57,6 @@ int Mesh::CalculateCellArea(void)
               cellArea[i][j] = globals->radius.Value()*globals->radius.Value();
               cellArea[i][j] *= sin(radConv*lat[i]) - sin(radConv*lat[i+1]);
               cellArea[i][j] *= radConv*dLon;
-              //if (j==0) std::cout<<cellArea[i][j]<<std::endl;
            }
         }
 };
@@ -66,48 +69,6 @@ int Mesh::ReturnLatLen(void) const
 int Mesh::ReturnLonLen(void) const
 {
 	return lonLength;
-};
-
-std::vector<double> Mesh::CenterP(int i, int j)
-{
-	std::vector<double> point = { lat[i], lon[j] };
-	return point;
-};
-
-std::vector<double> Mesh::NorthP(int i, int j)
-{
-	std::vector<double> point = { lat[i-2], lon[j] };
-	return point;
-};
-
-std::vector<double> Mesh::SouthP(int i, int j)
-{
-	std::vector<double> point;
-	if (i == this->ReturnLatLen() - 1) {
-		point = { lat[i], lon[this->ReturnLonLen()/2] };
-	}
-	else {
-		point = { lat[i+2], lon[j] };
-	}
-	return point;
-};
-
-std::vector<double> Mesh::EastP(int i, int j)
-{
-	std::vector<double> point;
-	if (j == this->ReturnLonLen() - 1) {
-		point = { lat[i], lon[0] };
-	}
-	else {
-		point = { lat[i], lon[j+2] };
-	}
-	return point;
-};
-
-std::vector<double> Mesh::WestP(int i, int j)
-{
-	std::vector<double> point = { lat[i], lon[j-2] };
-	return point;
 };
 
 int Mesh::CalculateDt(void){

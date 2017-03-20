@@ -5,6 +5,7 @@
 #include "solver.h"
 #include <math.h>
 
+double arcLength(double lat1, double lat2, double lon1, double lon2);
 
 inline double gamm1n(double xx);
 inline double gamm1n(double xx) {
@@ -259,48 +260,5 @@ inline double lagrangeInterp3ArrayCenter(Field * fieldDat, double ** field, int 
 
     return L[0] + L[1] + L[2] + L[3];
 };
-
-inline double lagrangeInterp4ArrayCenter(Field * fieldDat, double ** field, int i, int j) __attribute__((always_inline));
-inline double lagrangeInterp4ArrayCenter(Field * fieldDat, double ** field, int i, int j) {
-
-    double x, x1, x2, x3, x4;
-    double val, val1, val2, val3, val4;
-
-    double dx = fieldDat->dLat;
-
-    int inc;
-
-    if (j<(fieldDat->fieldLonLen/2)) inc = (fieldDat->fieldLonLen)/2;
-    else inc = -(fieldDat->fieldLonLen)/2;
-
-    inc = 0;
-
-    x = 0.0;
-    x1 = x - 2.0*dx;
-    x2 = x - dx;
-    x3 = x + dx;
-    x4 = x + 2.0*dx;
-
-    if (i==0) {
-        val1 = field[i+2][j];
-        val2 = field[i+1][j];
-        val3 = field[i+1][j+inc];
-        val4 = field[i+2][j+inc];
-    }
-    else {
-        val1 = field[i-2][j];
-        val2 = field[i-1][j];
-        val3 = field[i-1][j+inc];
-        val4 = field[i-2][j+inc];
-    }
-
-    val = (x-x2) * (x-x3) * (x-x4) / ((x1-x2) * (x1-x3) * (x1-x4)) * val1;
-    val += (x-x1) * (x-x3) * (x-x4) / ((x2-x1) * (x2-x3) * (x2-x4)) * val2;
-    val += (x-x1) * (x-x2) * (x-x4) / ((x3-x1) * (x3-x2) * (x3-x4)) * val3;
-    val += (x-x1) * (x-x2) * (x-x3) / ((x4-x1) * (x4-x2) * (x4-x3)) * val4;
-
-    return val;
-
-}
 
 #endif
