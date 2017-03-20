@@ -7,7 +7,6 @@
 #include "depth.h"
 #include "energy.h"
 #include "outFiles.h"
-#include "array2D.h"
 
 #include "H5Cpp.h"
 
@@ -169,9 +168,8 @@ public:
   double * sinMinusB;
   double * sinPlusB;
 
-  double ** SH_cos_coeff;
-  double ** SH_sin_coeff;
-  // Array2D * SH_cos_coeff, * SH_sin_coeff;
+  double * SH_cos_coeff;
+  double * SH_sin_coeff;
 
   double * loadK;
   double * loadH;
