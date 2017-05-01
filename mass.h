@@ -16,13 +16,13 @@ private:
 
 
 	void UpdateCellMass(int i, int j);
-	void UpdateTotalMass(void);
 
 public:
 	double totalMass=0;
 	Mass(Mesh *, int, int, Globals * Consts, Field * Eta, Depth * Thickness);
 
 	void UpdateMass();
+    void UpdateTotalMass(void);
 };
 
 #endif

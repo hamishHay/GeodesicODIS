@@ -38,6 +38,8 @@ public:
 
 	double SouthWestAvg(int, int);
 	double NorthEastAvg(int, int);
+
+    double ** MakeSolutionArrayCopy(void);    // Sets up double ** to be a copy of solution
 };
 
 #endif

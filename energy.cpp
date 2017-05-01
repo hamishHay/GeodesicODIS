@@ -28,6 +28,8 @@ Energy::Energy(Mesh * mesh, int lat, int lon, Globals * Consts, Field * UVel, Fi
 	dtKinEAvg = new double[totalSize+1];
 	dtDissEAvg = new double[totalSize+1];
 
+    CalculateCellArea();
+
   currentDissEAvg = 0;
 
 	orbitDissEAvg[1] = 0;
@@ -191,3 +193,17 @@ void Energy::IsConverged(void) {
 
 	count += 1;
 };
+
+
+void Energy::CalculateCellArea(void) {
+
+    cellArea = new double*[fieldLatLen];
+    for (int i=0; i<fieldLatLen; i++) {
+       cellArea[i] = new double[fieldLonLen];
+       for (int j=0; j<fieldLonLen; j++) {
+          cellArea[i][j] = consts->radius.Value()*consts->radius.Value();
+          cellArea[i][j] *= sin(lat[i]) - sin(lat[i+1]);
+          cellArea[i][j] *= dLon;
+       }
+    }
+}

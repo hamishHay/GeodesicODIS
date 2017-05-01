@@ -56,11 +56,15 @@ public:
 	std::vector<double> minima;
 	std::vector<double> maxima;
 
+    double ** cellArea;
+
 	void UpdateKinE(double **, double **);
 
 	//Function finds globally averaged kinetic energy at the current timestep and appends it
 	//to timeStepGlobalAvg
 	void UpdateDtKinEAvg(void);
+
+    void CalculateCellArea(void);
 
 
 	//Function finds orbtially and globally averaged kinetic energy at end of the simulation for

@@ -33,18 +33,25 @@ void Mass::UpdateCellMass(int i, int j) {
 
 	solution[i][j] *= (lon[1] - lon[0]);
 
-	solution[i][j] *= 1000. / 3.; //density of water
+	// solution[i][j] *= 1000. / 3.; //density of water
+
+    solution[i][j] *= 2700. / 3.; // density of basalt
 
 	//solution[i][j] = 1000*consts->h.Value()*pow(consts->radius.Value(),2)*cos(lat[i])*dLat*dLon;
 
 };
 
 void Mass::UpdateTotalMass(void) {
+    double oldMass = totalMass;
 	totalMass = 0;
 
 	for (int i = 0; i < fieldLatLen; i++) {
 		for (int j = 0; j < fieldLonLen; j++) {
+            UpdateCellMass(i, j);
 			totalMass += solution[i][j];
 		}
 	}
+
+    std::cout<<"Total Mass: "<<totalMass<<", Mass residual: "<<totalMass-oldMass<<std::endl;
+
 };

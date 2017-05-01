@@ -56,6 +56,7 @@ public:
   int output = 0;                         // Number of current data output
   double outputCount = 0.;                // Simulation time between data output events
   bool loading;                           // Switch for using ocean loading and self-attraction (Matsuyama 2014)
+  bool bc;
 
   double dt;                              // Time-step
 
@@ -114,6 +115,9 @@ public:
   double ** vNEAvgArray;                  // North East average of v (req'd to solve for u)
   double ** uSWAvgArray;                  // South West average of u (req'd to solver for v)
 
+  double ** etaUAvgArray;
+  double ** etaVAvgArray;
+
 
 
   /* To include the effects of ocean loading and self-attraction (Matsuyama 2014),
@@ -138,6 +142,8 @@ public:
   double ** uSinMLon;                     // sin(m*lon) at u nodes ([m][lon])
   double * etaCosMLon;                   // cos(m*lon) at eta nodes ([m][lon])
   double * etaSinMLon;                   // sin(m*lon) at eta nodes ([m][lon])
+
+  double ** boundaryArray;
 
 
   int uLatLen;
@@ -191,6 +197,7 @@ public:
   int UpdateNorthVel();
   void UpdateSurfaceHeight();
   int UpdateLoading();
+  int ApplyBoundaries();
   inline void InterpSurfaceHeight() __attribute__((always_inline));
 
   int ExtractSHCoeff();

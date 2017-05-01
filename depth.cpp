@@ -74,21 +74,23 @@ int Depth::ReturnFieldLonLen(){
 	return fieldLonLen;
 };
 
+double ** Depth::MakeSolutionArrayCopy(void){
+  int i,j;
+  double ** solutionCopy;
 
-double Depth::SouthWestAvg(int i, int j) {
-	if (j > 0) {
-		return 0.25*(solution[i][j] + solution[i + 1][j] + solution[i][j - 1] + solution[i + 1][j - 1]);
-	}
-	else {
-		return 0.25*(solution[i][j] + solution[i + 1][j] + solution[i][fieldLonLen - 1] + solution[i + 1][fieldLonLen-1]);
-	}
-};
+  solutionCopy = new double*[fieldLatLen];
+  solutionCopy[0] = new double[fieldLatLen * fieldLonLen];
+  for (i=1; i < fieldLatLen; i++) {
+    solutionCopy[i] = &solutionCopy[0][i*fieldLonLen];
+  }
 
-double Depth::NorthEastAvg(int i, int j) {
-	if (j < fieldLonLen-1) {
-		return 0.25*(solution[i][j] + solution[i - 1][j] + solution[i][j + 1] + solution[i - 1][j + 1]);
-	}
-	else {
-		return 0.25*(solution[i][j] + solution[i - 1][j] + solution[i][0] + solution[i - 1][0]);
-	}
+  for (i=0; i < fieldLatLen; i++) {
+    for (j=0; j < fieldLonLen; j++) {
+      solutionCopy[i][j] = 0.0;
+    }
+  }
+
+  return solutionCopy;
+  //solutionReturn = solutionCopy;
+
 };
