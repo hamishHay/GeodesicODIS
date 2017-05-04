@@ -143,7 +143,11 @@ public:
   double * etaCosMLon;                   // cos(m*lon) at eta nodes ([m][lon])
   double * etaSinMLon;                   // sin(m*lon) at eta nodes ([m][lon])
 
-  double ** boundaryArray;
+  int ** uBoundaryArray;
+  int ** vBoundaryArray;
+  int ** etaBoundaryArray;
+
+  double ** depthArray2;
 
 
   int uLatLen;
@@ -197,7 +201,8 @@ public:
   int UpdateNorthVel();
   void UpdateSurfaceHeight();
   int UpdateLoading();
-  int ApplyBoundaries();
+  int ApplyEtaBoundaries();
+  int ApplyVelocityBoundaries();
   inline void InterpSurfaceHeight() __attribute__((always_inline));
 
   int ExtractSHCoeff();
@@ -205,6 +210,7 @@ public:
   int Legendre();
   int InterpPoles();
   int FindAverages();
+  int FindBoundaryType(Field * field, int ** mask, int i, int j, int i_h, int j_h);
 
   void DumpSolutions(int output_num, double time);
   void DumpFields(int output_num);
