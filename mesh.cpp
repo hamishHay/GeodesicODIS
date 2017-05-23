@@ -78,13 +78,13 @@ int Mesh::CalculateDt(void){
 
 	outstring << std::endl << "Calculating maximum time step: " << std::endl;
 
-	waveSpeed = sqrt(globals->g.Value()*globals->h.Value()*1.1);
+	waveSpeed = sqrt(globals->g.Value()*globals->h.Value());
 
 	outstring << std::endl << "\t\t Average gravitational wave speed = sqrt(gh): " << waveSpeed << " m/s."<<std::endl;
 
 	minDistance = globals->radius.Value() * sin(dLat*radConv) * dLon*radConv;
 
-	dt = minDistance/waveSpeed;
+	dt = minDistance/waveSpeed*1.5;
 
 	outstring << "\t\t Time step calculated: " << dt <<" s."<< std::endl;
 
