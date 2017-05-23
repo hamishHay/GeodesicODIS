@@ -39,6 +39,7 @@ Energy::Energy(Mesh * mesh, int lat, int lon, Globals * Consts, Field * UVel, Fi
 };
 
 void Energy::UpdateKinE(double ** u, double ** v) {
+  double velocity = 0.0;
 	switch (consts->fric_type) {
 		//Linear dissipation
 	case LINEAR:
@@ -52,7 +53,9 @@ void Energy::UpdateKinE(double ** u, double ** v) {
 	case QUADRATIC:
 		for (int i = 0; i < fieldLatLen - 1; i++) {
 			for (int j = 0; j < fieldLonLen; j++) {
-				solution[i][j] = 0.5*massArray[i][j] * pow((u[i][j]*u[i][j] + v[i][j]*v[i][j]), 1.5);
+        velocity = u[i][j]*u[i][j] + v[i][j]*v[i][j];
+				solution[i][j] = 0.5*massArray[i][j] * sqrt(velocity)*velocity;
+        // solution[i][j] = 0.5*massArray[i][j] *pow(u[i][j]*u[i][j] + v[i][j]*v[i][j], 1.5);
 			}
 		}
 		break;
