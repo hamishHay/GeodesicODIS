@@ -147,7 +147,7 @@ public:
   int ** vBoundaryArray;
   int ** etaBoundaryArray;
 
-  double ** depthArray2;
+  double ** cdArray;
 
 
   int uLatLen;

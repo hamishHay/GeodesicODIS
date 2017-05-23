@@ -21,6 +21,7 @@
 #include "tidalPotentials.h"
 #include "energy.h"
 #include "outFiles.h"
+#include "viscosity.h"
 #include "vector"
 
 #include <math.h>
@@ -104,9 +105,10 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 
     depth = Depth_h;
     depthArray = Depth_h->solution;
+    cdArray = depth->MakeSolutionArrayCopy();
     // depthArray2 = eta->MakeSolutionArrayCopy();
 
-    std::ifstream thickness(consts->path + SEP + "ocean_profile_257x512_al2o3.txt", std::ifstream::in);
+    std::ifstream thickness(consts->path + SEP + "ocean_profile_257x512_al2o3_v2.txt", std::ifstream::in);
     std::string line;
     double inputValue = 0.0;
 
@@ -116,30 +118,28 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
         std::getline(thickness, line, '\t');
         std::stringstream inputString(line);
         inputString >> inputValue;
-        depth->solution[i][j] = inputValue*4.0;
-        // std::cout<<inputValue<<std::endl;
+        depth->solution[i][j] = inputValue*1e3;
       }
     }
     thickness.close();
 
-    // std::ifstream thickness2(consts->path + SEP + "ocean_profile_129x256_al2o3.txt", std::ifstream::in);
-    // // std::string line;
-    // // double inputValue = 0.0;
-    //
-    // thickness2.is_open();
-    // for (int i = 0; i < depth->ReturnFieldLatLen(); i++) {
-    //   for (int j = 0; j < depth->ReturnFieldLonLen(); j++) {
-    //     std::getline(thickness2, line, '\t');
-    //     std::stringstream inputString(line);
-    //     inputString >> inputValue;
-    //     depth->solution[i*2][j*2] = inputValue;
-    //     depth->solution[i*2+1][j*2] = inputValue;
-    //     depth->solution[i*2][j*2+1] = inputValue;
-    //     depth->solution[i*2+1][j*2+1] = inputValue;
-    //     // std::cout<<inputValue<<std::endl;
-    //   }
-    // }
-    // thickness2.close();
+    std::ifstream thickness2(consts->path + SEP + "cd_profile_257x512_al2o3.txt", std::ifstream::in);
+    // std::string line;
+    // double inputValue = 0.0;
+
+    thickness2.is_open();
+    for (int i = 0; i < depth->ReturnFieldLatLen(); i++) {
+      for (int j = 0; j < depth->ReturnFieldLonLen(); j++) {
+        std::getline(thickness2, line, '\t');
+        std::stringstream inputString(line);
+        inputString >> inputValue;
+        cdArray[i][j] = inputValue;
+        cdArray[i][j] = consts->alpha.Value();
+        // std::cout<<inputValue<<' ';
+      }
+      // std::cout<<std::endl;
+    }
+    thickness2.close();
 
     vBoundaryArray = new int*[v->fieldLatLen];
     for (int i=0; i<v->fieldLatLen; i++) {
@@ -165,29 +165,26 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
       }
     }
 
-
-
     int i_h, j_h;
+
     for (int i=1; i<v->fieldLatLen-1; i++) {
       i_h = i*2 + 1;
       for (int j=0;  j<v->fieldLonLen; j++) {
         j_h = j*2;
         FindBoundaryType(v, vBoundaryArray, i, j, i_h, j_h);
-        // if ((j< 25) || (j > 95) ) std::cout<<vBoundaryArray[i][j];
-
       }
-      // std::cout<<std::endl;
     }
-    // std::cout<<"NYAH"<<std::endl;
+    v->mask = vBoundaryArray;
 
     for (int i=1; i<u->fieldLatLen-1; i++) {
       i_h = i*2;
       for (int j=0;  j<u->fieldLonLen; j++) {
         j_h = j*2 + 1;
         FindBoundaryType(u, uBoundaryArray, i, j, i_h, j_h);
-
       }
     }
+    u->mask = uBoundaryArray;
+
     int count = 0;
     for (int i=1; i<eta->fieldLatLen-1; i++) {
       i_h = i*2;
@@ -196,9 +193,7 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
         FindBoundaryType(eta, etaBoundaryArray, i, j, i_h, j_h);
       }
     }
-
-
-
+    eta->mask = etaBoundaryArray;
 
     l_max = consts->l_max.Value();
 
@@ -328,6 +323,8 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
 
     signal(SIGINT, CatchExit);
 
+    std::cout<<"Initialization complete."<<std::endl;
+
 };
 
 int Solver::FindBoundaryType(Field * field, int ** mask, int i, int j, int i_h, int j_h) {
@@ -339,16 +336,24 @@ int Solver::FindBoundaryType(Field * field, int ** mask, int i, int j, int i_h, 
   //       /|  ocean
   //       /|
 
-  if (j==0 || j==field->fieldLonLen-1) {
-    if (depthArray[i_h][j_h] > 0.0) {
-      if (!(depthArray[i_h-1][j_h] > 0.0)) mask[i][j] = 2;
-      else if (!(depthArray[i_h+1][j_h] > 0.0)) mask[i][j] = 4;
-      else mask[i][j] = 1;
-    }
-    else mask[i][j] = 0;
-
-    return 0;
-  }
+  // if (j==0 || j==field->fieldLonLen-1) {
+  //   if (depthArray[i_h][j_h] > 0.0) {
+  //     if (!(depthArray[i_h-1][j_h] > 0.0)) mask[i][j] = 2;
+  //     else if (!(depthArray[i_h+1][j_h] > 0.0)) mask[i][j] = 4;
+  //     else mask[i][j] = 1;
+  //   }
+  //   else mask[i][j] = 0;
+  //
+  //   if ((field == v) && (depthArray[i_h][j_h] > 0.0)) {
+  //     if (!(depthArray[i_h-2][j_h] > 0) ||
+  //         !(depthArray[i_h-1][j_h] > 0)) mask[i][j] = 2;
+  //
+  //     else if (!(depthArray[i_h+2][j_h] > 0) ||
+  //             !(depthArray[i_h+1][j_h] > 0)) mask[i][j] = 4;
+  //   }
+  //
+  //   return 0;
+  // }
 
   if (depthArray[i_h][j_h] > 0.0) mask[i][j] = 1;
 
@@ -369,85 +374,84 @@ int Solver::FindBoundaryType(Field * field, int ** mask, int i, int j, int i_h, 
   //            1
 
   // Outer corners
-  if (field == v) {
-    if (!(depthArray[i_h][j_h] > 0.0)) {
-      if (!(depthArray[i_h-1][j_h] > 0.0) &&
-          !(depthArray[i_h][j_h+1] > 0.0) &&
-          (depthArray[i_h+1][j_h] > 0.0) &&
-          (depthArray[i_h][j_h-1] > 0.0)) mask[i][j] = 3;             //North east
-      else if ((depthArray[i_h-1][j_h] > 0.0) &&
-               !(depthArray[i_h][j_h+1] > 0.0) &&
-               !(depthArray[i_h+1][j_h] > 0.0) &&
-               (depthArray[i_h][j_h-1] > 0.0)) mask[i][j] = 3;        //South east
-      else if ((depthArray[i_h-1][j_h] > 0.0) &&
-               (depthArray[i_h][j_h+1] > 0.0) &&
-               !(depthArray[i_h+1][j_h] > 0.0) &&
-               !(depthArray[i_h][j_h-1] > 0.0)) mask[i][j] = 5;       //South west
-      else if (!(depthArray[i_h-1][j_h] > 0.0) &&
-               (depthArray[i_h][j_h+1] > 0.0) &&
-               (depthArray[i_h+1][j_h] > 0.0) &&
-              !(depthArray[i_h][j_h-1] > 0.0)) mask[i][j] = 5;        //North west
-    }
-  }
+  // if (field == v) {
+  //   if (!(depthArray[i_h][j_h] > 0.0)) {
+  //     if (!(depthArray[i_h-1][j_h] > 0.0) &&
+  //         !(depthArray[i_h][j_h+1] > 0.0) &&
+  //         (depthArray[i_h+1][j_h] > 0.0) &&
+  //         (depthArray[i_h][j_h-1] > 0.0)) mask[i][j] = 3;             //North east
+  //     else if ((depthArray[i_h-1][j_h] > 0.0) &&
+  //              !(depthArray[i_h][j_h+1] > 0.0) &&
+  //              !(depthArray[i_h+1][j_h] > 0.0) &&
+  //              (depthArray[i_h][j_h-1] > 0.0)) mask[i][j] = 3;        //South east
+  //     else if ((depthArray[i_h-1][j_h] > 0.0) &&
+  //              (depthArray[i_h][j_h+1] > 0.0) &&
+  //              !(depthArray[i_h+1][j_h] > 0.0) &&
+  //              !(depthArray[i_h][j_h-1] > 0.0)) mask[i][j] = 5;       //South west
+  //     else if (!(depthArray[i_h-1][j_h] > 0.0) &&
+  //              (depthArray[i_h][j_h+1] > 0.0) &&
+  //              (depthArray[i_h+1][j_h] > 0.0) &&
+  //             !(depthArray[i_h][j_h-1] > 0.0)) mask[i][j] = 5;        //North west
+  //   }
+  // }
 
-  if (field == u) {
-    if (!(depthArray[i_h][j_h] > 0.0)) {
-      if (!(depthArray[i_h-1][j_h] > 0.0) &&
-          !(depthArray[i_h][j_h+1] > 0.0) &&
-          (depthArray[i_h+1][j_h] > 0.0) &&
-          (depthArray[i_h][j_h-1] > 0.0)) mask[i][j] = 2;             //North east
-      else if ((depthArray[i_h-1][j_h] > 0.0) &&
-               !(depthArray[i_h][j_h+1] > 0.0) &&
-               !(depthArray[i_h+1][j_h] > 0.0) &&
-               (depthArray[i_h][j_h-1] > 0.0)) mask[i][j] = 4;        //South east
-      else if ((depthArray[i_h-1][j_h] > 0.0) &&
-               (depthArray[i_h][j_h+1] > 0.0) &&
-               !(depthArray[i_h+1][j_h] > 0.0) &&
-               !(depthArray[i_h][j_h-1] > 0.0)) mask[i][j] = 4;       //South west
-      else if (!(depthArray[i_h-1][j_h] > 0.0) &&
-               (depthArray[i_h][j_h+1] > 0.0) &&
-               (depthArray[i_h+1][j_h] > 0.0) &&
-              !(depthArray[i_h][j_h-1] > 0.0)) mask[i][j] = 2;        //North west
-    }
-  }
+  // if (field == u) {
+  //   if (!(depthArray[i_h][j_h] > 0.0)) {
+  //     if (!(depthArray[i_h-1][j_h] > 0.0) &&
+  //         !(depthArray[i_h][j_h+1] > 0.0) &&
+  //         (depthArray[i_h+1][j_h] > 0.0) &&
+  //         (depthArray[i_h][j_h-1] > 0.0)) mask[i][j] = 2;             //North east
+  //     else if ((depthArray[i_h-1][j_h] > 0.0) &&
+  //              !(depthArray[i_h][j_h+1] > 0.0) &&
+  //              !(depthArray[i_h+1][j_h] > 0.0) &&
+  //              (depthArray[i_h][j_h-1] > 0.0)) mask[i][j] = 4;        //South east
+  //     else if ((depthArray[i_h-1][j_h] > 0.0) &&
+  //              (depthArray[i_h][j_h+1] > 0.0) &&
+  //              !(depthArray[i_h+1][j_h] > 0.0) &&
+  //              !(depthArray[i_h][j_h-1] > 0.0)) mask[i][j] = 4;       //South west
+  //     else if (!(depthArray[i_h-1][j_h] > 0.0) &&
+  //              (depthArray[i_h][j_h+1] > 0.0) &&
+  //              (depthArray[i_h+1][j_h] > 0.0) &&
+  //             !(depthArray[i_h][j_h-1] > 0.0)) mask[i][j] = 2;        //North west
+  //   }
+  // }
 
-  if (field == eta) {
-    if (!(depthArray[i_h][j_h] > 0.0)) {
-      if (!(depthArray[i_h-1][j_h] > 0.0) &&
-          !(depthArray[i_h][j_h+1] > 0.0) &&
-          (depthArray[i_h+1][j_h] > 0.0) &&
-          (depthArray[i_h][j_h-1] > 0.0)) mask[i][j] = 1;             //North east
-      else if ((depthArray[i_h-1][j_h] > 0.0) &&
-               !(depthArray[i_h][j_h+1] > 0.0) &&
-               !(depthArray[i_h+1][j_h] > 0.0) &&
-               (depthArray[i_h][j_h-1] > 0.0)) mask[i][j] = 1;        //South east
-      else if ((depthArray[i_h-1][j_h] > 0.0) &&
-               (depthArray[i_h][j_h+1] > 0.0) &&
-               !(depthArray[i_h+1][j_h] > 0.0) &&
-               !(depthArray[i_h][j_h-1] > 0.0)) mask[i][j] = 1;       //South west
-      else if (!(depthArray[i_h-1][j_h] > 0.0) &&
-               (depthArray[i_h][j_h+1] > 0.0) &&
-               (depthArray[i_h+1][j_h] > 0.0) &&
-              !(depthArray[i_h][j_h-1] > 0.0)) mask[i][j] = 1;        //North west
-    }
-  }
+  // if (field == eta) {
+  //   if (!(depthArray[i_h][j_h] > 0.0)) {
+  //     if (!(depthArray[i_h-1][j_h] > 0.0) &&
+  //         !(depthArray[i_h][j_h+1] > 0.0) &&
+  //         (depthArray[i_h+1][j_h] > 0.0) &&
+  //         (depthArray[i_h][j_h-1] > 0.0)) mask[i][j] = 1;             //North east
+  //     else if ((depthArray[i_h-1][j_h] > 0.0) &&
+  //              !(depthArray[i_h][j_h+1] > 0.0) &&
+  //              !(depthArray[i_h+1][j_h] > 0.0) &&
+  //              (depthArray[i_h][j_h-1] > 0.0)) mask[i][j] = 1;        //South east
+  //     else if ((depthArray[i_h-1][j_h] > 0.0) &&
+  //              (depthArray[i_h][j_h+1] > 0.0) &&
+  //              !(depthArray[i_h+1][j_h] > 0.0) &&
+  //              !(depthArray[i_h][j_h-1] > 0.0)) mask[i][j] = 1;       //South west
+  //     else if (!(depthArray[i_h-1][j_h] > 0.0) &&
+  //              (depthArray[i_h][j_h+1] > 0.0) &&
+  //              (depthArray[i_h+1][j_h] > 0.0) &&
+  //             !(depthArray[i_h][j_h-1] > 0.0)) mask[i][j] = 1;        //North west
+  //   }
+  // }
   //Inner corners...
 
-  if (field != eta) {
-  if (!(depthArray[i_h-1][j_h] > 0.0) &&
-      !(depthArray[i_h][j_h+1] > 0.0) &&
-      !(depthArray[i_h+1][j_h] > 0.0) &&
-      !(depthArray[i_h][j_h-1] > 0.0) &&
-      !(depthArray[i_h][j_h] > 0.0)) {
+  // if (field == eta) {
+  // if (!(depthArray[i_h-1][j_h] > 0.0) &&
+  //     !(depthArray[i_h][j_h+1] > 0.0) &&
+  //     !(depthArray[i_h+1][j_h] > 0.0) &&
+  //     !(depthArray[i_h][j_h-1] > 0.0) &&
+  //     !(depthArray[i_h][j_h] > 0.0)) {
+  //
+  //       if (depthArray[i_h+1][j_h-1] > 0.0) mask[i][j] = 6;
+  //       else if (depthArray[i_h-1][j_h-1] > 0.0) mask[i][j] = 7;
+  //       else if (depthArray[i_h-1][j_h+1] > 0.0) mask[i][j] = 8;
+  //       else if (depthArray[i_h+1][j_h+1] > 0.0) mask[i][j] = 9;
+  //
+  // }
 
-        if (depthArray[i_h+1][j_h-1] > 0.0) mask[i][j] = 6;
-        else if (depthArray[i_h-1][j_h-1] > 0.0) mask[i][j] = 7;
-        else if (depthArray[i_h-1][j_h+1] > 0.0) mask[i][j] = 8;
-        else if (depthArray[i_h+1][j_h+1] > 0.0) mask[i][j] = 9;
-
-  }
-}
-// }
   // wall grid points, defined with the mask:
   //                   2
   //              -----u-----
@@ -482,6 +486,77 @@ int Solver::FindBoundaryType(Field * field, int ** mask, int i, int j, int i_h, 
             !(depthArray[i_h+1][j_h] > 0.0) &&
             (depthArray[i_h][j_h+1] > 0.0) &&
             !(depthArray[i_h][j_h-1] > 0.0)) mask[i][j] = 5;
+  }
+
+  if (field == u) {
+  //   if ((depthArray[i_h][j_h] > 0) &&
+  //       (depthArray[i_h+1][j_h] > 0) &&
+  //       (depthArray[i_h][j_h - 1] > 0) &&
+  //       (depthArray[i_h][j_h + 1] > 0) &&
+  //       !(depthArray[i_h-2][j_h] > 0)) mask[i][j] = 2;
+  //   //
+  //   // if ((depthArray[i_h][j_h] > 0) &&
+  //   //     !(depthArray[i_h][j_h+2] > 0)) mask[i][j] = 3;
+  //   //
+     if ((depthArray[i_h][j_h] > 0) &&
+          (i_h > 1) &&
+          !(depthArray[i_h-2][j_h] > 0)) mask[i][j] = 2;
+
+     // if ((depthArray[i_h][j_h] > 0) &&
+  //   //     // (i_h > 1) &&
+  //   //     !(depthArray[i_h+2][j_h] > 0)) mask[i][j] = 4;
+  //
+    // if ((depthArray[i_h][j_h] > 0) &&
+    //     (depthArray[i_h-1][j_h] > 0) &&
+    //     (depthArray[i_h][j_h - 1] > 0) &&
+    //     (depthArray[i_h][j_h + 1] > 0) &&
+    //     !(depthArray[i_h+2][j_h] > 0)) mask[i][j] = 4;
+  if ((depthArray[i_h][j_h] > 0) &&
+      !(depthArray[i_h+2][j_h] > 0)) mask[i][j] = 4;
+  //   //
+  //   // if ((depthArray[i_h][j_h] > 0) &&
+  //   //     (depthArray[i_h-1][j_h] > 0) &&
+  //   //     (depthArray[i_h][j_h-1] > 0) &&
+  //   //     !(depthArray[i_h][j_h+2] > 0)) mask[i][j] = 0;
+  //   //
+    if ((depthArray[i_h][j_h] > 0) &&
+        (mask[i][j-1] == 0) &&
+        (!(depthArray[i_h][j_h-1] > 0) ||
+         !(depthArray[i_h][j_h-2] > 0))) mask[i][j] = 5;
+  }
+  // //
+  if (field == v) {
+    // if ((i==1) &&
+    //     !(depthArray[i_h][j_h+2] > 0) &&
+    //     !(depthArray[i_h][j_h-2] > 0)
+    // mask[1][j] = 2;
+  //
+    if ((i == 1) &&
+        (depthArray[i_h-1][j_h] > 0) &&
+        !(depthArray[i_h-3][j_h] > 0)) mask[i-1][j] = 2;
+
+    if ((i == v->fieldLatLen-2) &&
+        (depthArray[i_h+1][j_h] > 0) &&
+        !(depthArray[i_h+3][j_h] > 0)) mask[i+1][j] = 2;
+
+    // if ((depthArray[i_h][j_h] > 0) &&
+    //     !(depthArray[i_h-1][j_h] > 0)) mask[i][j] = 2;
+  // // //
+  //   // if ((depthArray[i_h][j_h] > 0) &&
+  //   //     !(depthArray[i_h+2][j_h] > 0)) mask[i][j] = 4;
+  // // //
+  // // //
+    if ((depthArray[i_h][j_h] > 0) &&
+        !(depthArray[i_h][j_h+2] > 0)) mask[i][j] = 3;
+
+    //if ((mask[i-1][j] == 5) && (mask[i][j] == 0)) mask[i][j] =
+  // // // //
+  // //   if ((depthArray[i_h][j_h] > 0) &&
+  // //       !(depthArray[i_h][j_h-2] > 0)) mask[i][j] = 5;
+  // // //
+  // // //   if ((mask[i][j] == 4) &&
+  // // //       (mask[i-1][j] == 4)) mask[i-1][j] = 1;
+  // // //
   }
 
 
@@ -520,6 +595,8 @@ int Solver::Legendre(void) {
     delete[] fort_plm;
     delete[] fort_dplm_dtheta;
 
+    return 1;
+
 };
 
 int Solver::LegendreDeriv(void) {
@@ -555,6 +632,8 @@ int Solver::LegendreDeriv(void) {
 
     delete[] fort_plm;
     delete[] fort_dplm_dtheta;
+
+    return 1;
 
 };
 
@@ -625,8 +704,9 @@ void Solver::UpdatePotential() {
     }
 };
 
-
 void Solver::UpdateEastVel(){
+    double ** visc;
+
     double coriolis = 0.0;//0;
     double tidalForce = 0;
 
@@ -657,7 +737,7 @@ void Solver::UpdateEastVel(){
             i_a = i*2;
             j_a = j*2;
 
-            if (j < vLonLen - 1) {
+            if (j != vLonLen - 1) {
                 vNEAvgArray[i][j] = 0.25*vOldArray[i][j]
                                     + 0.25*vOldArray[i - 1][j]
                                     + 0.25*vOldArray[i][j + 1]
@@ -686,27 +766,20 @@ void Solver::UpdateEastVel(){
         break;
 
     case QUADRATIC:
-        for (int i = 0; i < uLatLen; i++) {
-            for (int j = 0; j < uLonLen; j++) {
-                if (j != uLonLen-1) etaUAvgArray[i][j] = (etaOldArray[i][j+1] + etaOldArray[i][j])*0.5;
-                else etaUAvgArray[i][j] = (etaOldArray[i][0] + etaOldArray[i][j])*0.5;
-            }
-        }
         double alphah = 0.0;
-        // int i_h = 0;
-        // int j_h = 0;
-
         for (int i = 1; i < uLatLen - 1; i++) {
             i_h = i*2;
             for (int j = 0; j < uLonLen; j++) {
                 j_h = j*2+1;
-                if (uBoundaryArray[i][j] != 0) {
-                  // if ((depthArray[i_h][j_h] + etaUAvgArray[i][j]) > 0) alphah = alpha / depthArray[i_h][j_h];
-                  // else alphah = 1e6;
-                  alphah = alpha / std::max(depthArray[i_h][j_h],1.0);
-                  // if (alphah < 1.0) std::cout<<alphah<<std::endl;
-                  // alphah = alpha / (depthArray[i_h+1][j_h] + etaUAvgArray[i][j]);
-                  uDissArray[i][j] = alphah * uOldArray[i][j] * sqrt(uOldArray[i][j]*uOldArray[i][j] + vNEAvgArray[i][j]*vNEAvgArray[i][j]);
+                switch (uBoundaryArray[i][j])
+                {
+                  case 0:
+                    break;
+
+                  default:
+                    alphah = cdArray[i_h][j_h] / std::max(depthArray[i_h][j_h],1.0);
+                    uDissArray[i][j] = alphah * uOldArray[i][j] * sqrt(uOldArray[i][j]*uOldArray[i][j] + vNEAvgArray[i][j]*vNEAvgArray[i][j]);
+                    break;
               }
             }
         }
@@ -727,8 +800,7 @@ void Solver::UpdateEastVel(){
     double g = consts->g.Value();
     double r = consts->radius.Value();
 
-    // int i_h = 0;
-    // int j_h = 0;
+    visc = u->viscSolution;
 
     for (int i = 1; i < uLatLen - 1; i++) {
         i_h = i*2;
@@ -740,8 +812,9 @@ void Solver::UpdateEastVel(){
         for (int j = 0; j < uLonLen; j++) {
             j_h = j*2 + 1;
 
-            if (uBoundaryArray[i][j] != 0) {
-
+            switch (uBoundaryArray[i][j])
+            {
+              case 1:
                 if (j != uLonLen - 1) eastEta = etaOldArray[i][j+1];
                 else eastEta = etaOldArray[i][0];
 
@@ -762,27 +835,30 @@ void Solver::UpdateEastVel(){
                     surfHeight = 0.0;
                 }
 
+                uNewArray[i][j] = (coriolis - surfHeight - oceanLoadingTerm - advection + visc[i][j] + tidalForce - uDissArray[i][j])*dt + uOldArray[i][j];
+                break;
 
-                uNewArray[i][j] = (coriolis - surfHeight - oceanLoadingTerm - advection + tidalForce - uDissArray[i][j])*dt + uOldArray[i][j];
-
-                if ((uLon[j] >= 90.0*radConv && uLon[j] <= 270.0*radConv) && !bc) uNewArray[i][j] = 0.0;
+              default:
+                break;
             }
         }
     }
 
-    for (int j = 0; j < uLonLen; j++) {
-        uNewArray[0][j] = linearInterp1Array(u,uNewArray, 0, j);
-        uNewArray[uLatLen - 1][j] = linearInterp1Array(u,uNewArray, uLatLen - 1, j);
+    //for (int j = 0; j < uLonLen; j++) {
+    //    uNewArray[0][j] = linearInterp1Array(u,uNewArray, 0, j);
+    //    uNewArray[uLatLen - 1][j] = linearInterp1Array(u,uNewArray, uLatLen - 1, j);
 
-        if ((uLon[j] >= 90.0*radConv && uLon[j] <= 270.0*radConv) && !bc) {
-            uNewArray[0][j] = 0.0;
-            uNewArray[uLatLen - 1][j] = 0.0;
-        }
-    }
+    //    if ((uLon[j] >= 90.0*radConv && uLon[j] <= 270.0*radConv) && !bc) {
+    //        uNewArray[0][j] = 0.0;
+    //        uNewArray[uLatLen - 1][j] = 0.0;
+    //    }
+    //}
 
 }
 
 int Solver::UpdateNorthVel(){
+    double ** visc;
+
     double coriolis = 0;
     double tidalForce = 0;
     double dSurfLat = 0;
@@ -833,8 +909,7 @@ int Solver::UpdateNorthVel(){
 
     switch (consts->fric_type) {
     case LINEAR:
-        // int i_h = 0;
-        // int j_h = 0;
+
         for (int i = 0; i < vLatLen; i++) {
             i_h = i*2 + 1;
             for (int j = 0; j < vLonLen; j++) {
@@ -845,72 +920,60 @@ int Solver::UpdateNorthVel(){
         break;
 
     case QUADRATIC:
-        for (int i = 0; i < vLatLen; i++) {
-            for (int j = 0; j < vLonLen; j++) {
-                etaVAvgArray[i][j] = (etaOldArray[i+1][j] + etaOldArray[i][j])*0.5;
-            }
-        }
-
         double alphah = 0.0;
-        // int i_h = 0;
-        // int j_h = 0;
+
         for (int i = 0; i < vLatLen; i++) {
             i_h = i*2 + 1;
             for (int j = 0; j < vLonLen; j++) {
                 j_h = j*2;
-                if (vBoundaryArray[i][j] != 0) {
-                  // if ((depthArray[i_h][j_h] + etaVAvgArray[i][j]) > 0) alphah = alpha / depthArray[i_h][j_h];
-                  // else alphah = 1;
-                  alphah = alpha / std::max(depthArray[i_h][j_h],1.0);
-                  // alphah = alpha / std::max(depthArray[i_h][j_h],1e2);
-                  vDissArray[i][j] = alphah * vOldArray[i][j] * sqrt(vOldArray[i][j] * vOldArray[i][j] + uSWAvgArray[i][j]*uSWAvgArray[i][j]);
+                switch (vBoundaryArray[i][j]) {
+                  case 1:
+                    alphah = cdArray[i_h][j_h] / std::max(depthArray[i_h][j_h],1.0);
+                    vDissArray[i][j] = alphah * vOldArray[i][j] * sqrt(vOldArray[i][j] * vOldArray[i][j] + uSWAvgArray[i][j]*uSWAvgArray[i][j]);
+                    break;
+
+                  default:
+                    break;
                 }
             }
         }
         break;
     }
 
-
-    // int i_h = 0;
-    // int j_h = 0;
-    double * vLon = v->lon;
-
-    double northV, southV, eastV, westV;
-
+    visc = v->viscSolution;
 
     for (int i = 0; i < vLatLen; i++) {
         coriolisFactor = 2. * angVel * v->sinLat[i];
         i_h = i*2 + 1;
 
-        // cosLatRadius = 1.0/(r*v->cosLat[i]);
-
         for (int j = 0; j < vLonLen; j++) {
             j_h = j*2;
 
-            if (vBoundaryArray[i][j] != 0) {
+            switch (vBoundaryArray[i][j]) {
+              case 1:
+                northEta = etaOldArray[i][j];
+                southEta = etaOldArray[i+1][j];
 
-            northEta = etaOldArray[i][j];
-            southEta = etaOldArray[i+1][j];
+                dSurfLat = (northEta - southEta) / etadLat;
 
-            dSurfLat = (northEta - southEta) / etadLat;
+                if (!loading) {
+                    surfHeight = gRadius*dSurfLat;
+                    oceanLoadingTerm = 0.0;
+                }
+                else {
+                    oceanLoadingTerm = gRadius*oceanLoadingArrayV[i][j];
+                    surfHeight = 0.0;
+                }
 
-            if (!loading) {
-                surfHeight = gRadius*dSurfLat;
-                oceanLoadingTerm = 0.0;
-            }
-            else {
-                oceanLoadingTerm = gRadius*oceanLoadingArrayV[i][j];
-                surfHeight = 0.0;
-            }
+                coriolis = coriolisFactor*uSWAvgArray[i][j];
 
-            coriolis = coriolisFactor*uSWAvgArray[i][j];
+                tidalForce = loveRadius * dUlatArray[i][j];
 
-            tidalForce = loveRadius * dUlatArray[i][j];
+                vNewArray[i][j] = (-coriolis - surfHeight - oceanLoadingTerm - advection  + tidalForce + visc[i][j] - vDissArray[i][j])*dt + vOldArray[i][j];
+                break;
 
-            // vNewArray[i][j] = (-coriolis - surfHeight - oceanLoadingTerm + tidalForce - vDissArray[i][j])*dt + vOldArray[i][j];
-            vNewArray[i][j] = (-coriolis - surfHeight - oceanLoadingTerm - advection  + tidalForce - vDissArray[i][j])*dt + vOldArray[i][j];
-            // if ((vLon[j] > 90.0*radConv && vLon[j] < 270.0*radConv) && !bc) vNewArray[i][j] = 0.0;
-            // if (i == 0 || i == vLatLen-1) vNewArray[i][j] = 0.0;
+              default:
+                break;
 
         }
     }
@@ -929,38 +992,40 @@ void Solver::UpdateSurfaceHeight(){
     double eastAdvection, northAdvection, advection;
     double uAvg, vAvg;
 
-    double cosLat;
+    double * etaCosLat;
+    double * vCosLat;
     double vdLat = v->dLat;
     double vdLon = v->dLon;
     double r = consts->radius.Value();
-    double hRadius = 1.0/r;
+    double hRadius = 1./r;
     double h = consts->h.Value();
     int i_h = 0;
     int j_h = 0;
+
+    etaCosLat = eta->cosLat;
+    vCosLat = v->cosLat;
 
     double cosLatRadius;
     advection = 0.0;
 
     for (int i = 1; i < etaLatLen-1; i++) {
-        cosLat = eta->cosLat[i];
-
-        cosLatRadius = 1.0/(r*cosLat);
+        cosLatRadius = 1.0/(r*etaCosLat[i]);
         i_h = i*2;
         for (int j = 0; j < etaLonLen; j++) {
             j_h = j*2;
 
-            if (etaBoundaryArray[i][j] != 0) {
+            switch (etaBoundaryArray[i][j])
+            {
+              case 1:
+                northv = ( depthArray[i_h - 1][j_h]) * vNewArray[i - 1][j] * vCosLat[i - 1];
+                southv = ( depthArray[i_h + 1][j_h]) * vNewArray[i][j] * vCosLat[i];
 
-                northv = ( depthArray[i_h - 1][j_h]) * vNewArray[i - 1][j] * v->cosLat[i - 1];
-                southv = ( depthArray[i_h + 1][j_h]) * vNewArray[i][j] * v->cosLat[i];
-
-                // northv = std::max( etaVAvgArray[i-1][j] + depthArray[i_h - 1][j_h], 0.0) * vNewArray[i - 1][j] * v->cosLat[i - 1];
-                // southv = std::max( etaVAvgArray[i+1][j] + depthArray[i_h + 1][j_h], 0.0) * vNewArray[i][j] * v->cosLat[i];
-
+                // northv = (etaVAvgArray[i-1][j] + depthArray[i_h - 1][j_h]) * vNewArray[i - 1][j] * v->cosLat[i - 1];
+                // southv = (etaVAvgArray[i][j] + depthArray[i_h + 1][j_h]) * vNewArray[i][j] * v->cosLat[i];
 
                 vGrad = (northv - southv) / vdLat;
 
-                if (j > 0) {
+                if (j != 0) {
                     eastu = (depthArray[i_h][j_h + 1]) * uNewArray[i][j];
                     westu = (depthArray[i_h][j_h - 1]) * uNewArray[i][j - 1];
                 }
@@ -969,9 +1034,22 @@ void Solver::UpdateSurfaceHeight(){
                     westu = (depthArray[i_h][uLonLen*2 - 1]) * uNewArray[i][uLonLen - 1];
                 }
 
+                // if (j > 0) {
+                //     eastu = (depthArray[i_h][j_h + 1] + etaUAvgArray[i][j]) * uNewArray[i][j];
+                //     westu = (depthArray[i_h][j_h - 1] + etaUAvgArray[i][j-1]) * uNewArray[i][j - 1];
+                // }
+                // else {
+                //     eastu = (depthArray[i_h][j_h + 1] + etaUAvgArray[i][j]) * uNewArray[i][j];
+                //     westu = (depthArray[i_h][uLonLen*2 - 1] + etaUAvgArray[i][uLonLen - 1]) * uNewArray[i][uLonLen - 1];
+                // }
+
                 uGrad = (eastu - westu) / vdLon;
 
-                etaNewArray[i][j] = (-advection + hRadius/cosLat*(-vGrad - uGrad))*dt + etaOldArray[i][j];
+                etaNewArray[i][j] = (-advection + cosLatRadius*(-vGrad - uGrad))*dt + etaOldArray[i][j];
+                break;
+
+              default:
+                break;
             }
         }
     }
@@ -1183,6 +1261,7 @@ int Solver::ApplyVelocityBoundaries() {
             vNewArray[i][j] = vNewArray[i][j+1];                  //West wall
             // vNewArray[i][j] = 0.0;
             break;
+
           case 0:
             vNewArray[i][j] = 0.0;
             break;
@@ -1198,6 +1277,7 @@ int Solver::ApplyVelocityBoundaries() {
           case 2:
             uNewArray[i][j] = uNewArray[i+1][j];                  //North wall
             // uNewArray[i][j] = 0.0;
+            //std::cout<<"NORTH WALL"<<std::endl;
             break;
           case 3:
             uNewArray[i][j] = 0.0;//uNewArray[i][j-1];                  //East wall
@@ -1209,8 +1289,11 @@ int Solver::ApplyVelocityBoundaries() {
           case 5:
             uNewArray[i][j] = 0.0;//uNewArray[i][j+1];                  //West wall
             break;
+          // case 7:
+          //   uNewArray[i][j] = 0.5 * uNewArray[i][j];
+            // break;
           case 0:
-            uNewArray[i][j] = 0.0;
+            // uNewArray[i][j] = 0.0;
             break;
           }
         }
@@ -1226,21 +1309,21 @@ int Solver::ApplyEtaBoundaries() {
           switch (etaBoundaryArray[i][j]) {
           case 1:
             break;
-          // case 2:
-          //   etaNewArray[i][j] = etaNewArray[i+1][j];                  //North wall
-          //   // etaNewArray[i-1][j] = etaNewArray[i][j];
-          //   break;
-          // case 3:
-          //   etaNewArray[i][j] = etaNewArray[i][j-1];                  //East wall
-          //   // etaNewArray[i][j+1] = etaNewArray[i][j];
-          //   break;
-          // case 4:
-          //   etaNewArray[i][j] = etaNewArray[i-1][j];                  //South wall
-          //   // etaNewArray[i+1][j] = etaNewArray[i][j];
-          //   break;
-          // case 5:
-          //   etaNewArray[i][j] = etaNewArray[i][j+1];                  //West wall
-          //   break;
+          case 2:
+            etaNewArray[i][j] = etaNewArray[i+1][j];                  //North wall
+            // etaNewArray[i-1][j] = etaNewArray[i][j];
+            break;
+          case 3:
+            etaNewArray[i][j] = etaNewArray[i][j-1];                  //East wall
+            // etaNewArray[i][j+1] = etaNewArray[i][j];
+            break;
+          case 4:
+            etaNewArray[i][j] = etaNewArray[i-1][j];                  //South wall
+            // etaNewArray[i+1][j] = etaNewArray[i][j];
+            break;
+          case 5:
+            etaNewArray[i][j] = etaNewArray[i][j+1];                  //West wall
+            break;
           case 6:
             etaNewArray[i][j] = etaNewArray[i+1][j-1];
             break;
@@ -1300,13 +1383,15 @@ int Solver::Explicit() {
 
         simulationTime += dt;
 
+        UpdateViscosity(u, v, consts);
+
         UpdateNorthVel();
         UpdateEastVel();
 
         ApplyVelocityBoundaries();
 
         UpdateSurfaceHeight();
-        ApplyEtaBoundaries();
+        // ApplyEtaBoundaries();
         //
         // if (!loading) {
         //     if (simulationTime > 0.0*consts->endTime.Value()) {
@@ -1314,7 +1399,7 @@ int Solver::Explicit() {
         //         loading = true;
         //     }
         // }
-
+        //
         // if (loading) {
         //     UpdateLoading();
         //     // output++;
@@ -1323,6 +1408,7 @@ int Solver::Explicit() {
         // }
         // else InterpPoles();
         // InterpPoles();
+
 
         for (int i = 0; i < vLatLen; i++) {
             for (int j = 0; j < vLonLen; j++) {
@@ -1373,6 +1459,7 @@ int Solver::Explicit() {
             outCount = 1;
 
             energy->timePos = 0; //Reset time position after energy data output
+            energy->mass->UpdateTotalMass();
 
             DumpFields(output);
         }
@@ -1381,7 +1468,7 @@ int Solver::Explicit() {
 
             outCount++;
 
-            // energy->mass->UpdateTotalMass();
+            energy->mass->UpdateTotalMass();
             // std::cout<<energy->mass->totalMass<<std::endl;
 
 
@@ -1522,7 +1609,7 @@ void Solver::ReadInitialConditions(bool yes) {
 
 void Solver::DumpFields(int output_num) {
     std::string out = std::to_string(output_num);
-
+    int i_h, j_h;
 
 
     double factor = 0;
@@ -1559,10 +1646,25 @@ void Solver::DumpFields(int output_num) {
             v_1D[i*vLonLen + j] = (float)vNewArray[i][j];
         }
     }
-
+    double cd = 0.0;
     for (int i=0; i<etaLatLen; i++) {
+        i_h = i*2;
         for (int j=0; j<etaLonLen; j++) {
-            diss_1D[i*etaLonLen + j] = (float)energy->solution[i][j]*2.0*factor/energy->cellArea[i][j];
+            j_h = j*2;
+            switch (consts->fric_type) {
+                case QUADRATIC:
+                  cd = cdArray[i_h][j_h];
+                  //std::cout<<cd;
+                  if (cd <= 0.0 || depthArray[i_h][j_h] <= 0.0) diss_1D[i*etaLonLen + j] = 0.0;
+                  else diss_1D[i*etaLonLen + j] = (float)energy->solution[i][j]*2.0*cd/(energy->cellArea[i][j]*depthArray[i_h][j_h]);
+                  break;
+                case LINEAR:
+                  diss_1D[i*etaLonLen + j] = (float)energy->solution[i][j]*2.0*consts->alpha.Value()/energy->cellArea[i][j];
+                  break;
+
+            // if (!(depthArray[i_h][j_h] > 0.0)) diss_1D[i*etaLonLen + j] = 0.0;
+            //std::cout<<energy->solution[i][j]*cd<<std::endl;
+            }
         }
     }
 
