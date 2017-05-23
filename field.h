@@ -51,6 +51,8 @@ public:
 
   double *** weights;
 
+  int ** mask;
+
   // node spacing
   double dLat;
   double dLon;
@@ -60,6 +62,8 @@ public:
 
   // 2D array for the numerical solution of the field
   double ** solution;
+
+  double ** viscSolution;
 
   // Constructor. First int is for latitude staggering and second is for longitude
   // staggering (1 or 0).
