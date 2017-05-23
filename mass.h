@@ -18,7 +18,7 @@ private:
 	void UpdateCellMass(int i, int j);
 
 public:
-	double totalMass=0;
+	double totalMass;
 	Mass(Mesh *, int, int, Globals * Consts, Field * Eta, Depth * Thickness);
 
 	void UpdateMass();

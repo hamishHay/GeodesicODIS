@@ -5,6 +5,7 @@
 #include "globals.h"
 
 #include <math.h>
+#include <algorithm>
 
 Mass::Mass(Mesh * mesh, int lat, int lon, Globals * Consts, Field * Eta, Depth * Thickness) : Field(mesh, lat, lon) {
 	consts = Consts;
@@ -37,7 +38,13 @@ void Mass::UpdateCellMass(int i, int j) {
 
     solution[i][j] *= 2700. / 3.; // density of basalt
 
+    // solution[i][j] = std::max(solution[i][j], 0.0);
+
+  // if (solution[i][j] < 0) std::cout<<"NO MASS"<<std::endl;
+
 	//solution[i][j] = 1000*consts->h.Value()*pow(consts->radius.Value(),2)*cos(lat[i])*dLat*dLon;
+
+
 
 };
 
@@ -52,6 +59,6 @@ void Mass::UpdateTotalMass(void) {
 		}
 	}
 
-    std::cout<<"Total Mass: "<<totalMass<<", Mass residual: "<<totalMass-oldMass<<std::endl;
+    // std::cout<<"Total Mass: "<<totalMass<<", Mass residual: "<<totalMass-oldMass<<std::endl;
 
 };
