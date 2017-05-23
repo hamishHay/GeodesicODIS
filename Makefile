@@ -6,7 +6,7 @@ HOME=/usr/local
 
 #-mavx2 -mfma
 
-CFLAGS= -O3 -g -c -Wall -Wno-unused-variable -Wunused-but-set-variable -std=c++11 -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp -fopenmp
+CFLAGS= -O3 -c -Wall -Wno-unused-variable -Wunused-but-set-variable -std=c++11 -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp -fopenmp
 
 CLINK = -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp
 
@@ -19,8 +19,8 @@ BUILDDIR = /source/build/
 
 all: ODIS
 
-ODIS: legendre.o legendreDeriv.o extractSHCoeff.o main.o mathRoutines.o tidalPotentials.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o solver.o
-	$(CC) legendre.o legendreDeriv.o extractSHCoeff.o $(FLINK) main.o mathRoutines.o tidalPotentials.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o solver.o -o ODIS -lgfortran -fopenmp $(CLINK)
+ODIS: legendre.o legendreDeriv.o extractSHCoeff.o main.o mathRoutines.o tidalPotentials.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o viscosity.o solver.o
+	$(CC) legendre.o legendreDeriv.o extractSHCoeff.o $(FLINK) main.o mathRoutines.o tidalPotentials.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o viscosity.o solver.o -o ODIS -lgfortran -fopenmp $(CLINK)
 
 legendre.o: legendre.f95
 	$(F) $(FFLAGS) legendre.f95
@@ -60,6 +60,9 @@ mass.o: mass.cpp
 
 energy.o: energy.cpp
 	$(CC) $(CFLAGS) energy.cpp
+
+viscosity.o: viscosity.cpp
+	$(CC) $(CFLAGS) viscosity.cpp
 
 solver.o: solver.cpp
 	$(CC)  $(CFLAGS) $(CLINK) solver.cpp
