@@ -1,0 +1,33 @@
+\section{Artificial Viscosity} \label{sec:viscosity}
+
+In some situations small oscillations can grow in ODIS' numerical solutions to the point where the simulations become unstable. This is particularly prevalent in complicated geometry or when low drag coefficients are used. To help stabilize numerical noise ODIS uses a simple artificial viscosity term on the RHS of the momentum equations. The term takes the classic form of a diffusion equation $\nu \nabla^2 \vec{u}$, whose rate of diffusion is controlled by the artificial viscosity $\nu$. In ODIS, second order accurate spatial finite differences are employed to evaluate the viscosity term in the interior of the ocean domain. Boundary cells are not evaluated. In Cartesian and spherical geometry, the viscosity term becomes (ignoring radial components); 
+\begin{align}
+\nu \nabla^2 \vec{u} &= \nu \left[\frac{\partial^2 \vec{u}}{\partial x^2}  + \frac{\partial^2 \vec{u}}{\partial y^2}\right]  \\
+&= \frac{\nu}{R^2 \cos \lambda}  \label{eq:viscosity_sph}
+\left[ \frac{\partial }{\partial \lambda} \left( \cos \lambda \frac{\partial \vec{u}}{\partial \lambda}\right) +
+\frac{1}{\cos \lambda}\frac{\partial^2 \vec{u}}{\partial \phi^2}\right]
+\end{align} 
+
+\noindent ODIS, which is designed for ocean tides on spherical bodies, solves equation \ref{eq:viscosity_sph} to evaluate the diffusion of velocity in the LTEs. The finite difference expansion used is as
+\begin{equation}
+\nu \nabla^2 \vec{u}_{i,j} \approx \frac{1}{\left( R \Delta \lambda \right)^2} \frac{1}{\cos \lambda_i} 
+\left\{
+\left[
+\left(\vec{u}_{i-1,j} - \vec{u}_{i,j} \right) \cos \lambda_{i-1/2} - 
+\left(\vec{u}_{i,j} - \vec{u}_{i+1,j} \right) \cos \lambda_{i+1/2}
+\right] + \frac{1}{\cos \lambda_i}
+\left[
+\vec{u}_{i,j+1} - 2 \vec{u}_{i,j} + \vec{u}_{i,j-1}
+\right]
+\right\},
+\end{equation}
+
+\noindent which is $\mathcal{O}(\Delta \lambda^2)$. In the above expansion, we assume that $\Delta \lambda = \Delta \phi$, which is automatically satisfied in the current version of ODIS. The default value for the artificial viscosity $\nu = \SI{5e5}{\metre \squared \per \second}$, which is consistent with typical values of eddy viscosity used in Earth ocean tide studies \citep{zahel1978influence, sears1995tidal}. Note that viscosity term in ODIS is not equivalent to that of eddy viscosity diffusion. 
+
+The above calculation is performed in every cell whose boundary value is \num{1}, corresponding to a wet cell which does not lie at a dry/wet interface. Calculations occur in the function \texttt{UpdateViscosity} which is defined in \texttt{viscosity.h} and implemented in \texttt{viscosity.cpp}. The \texttt{UpdateViscosity} function requires three arguments, \texttt{Field $^*$ u}, \texttt{Field * v}, and \texttt{Globals * consts}. 
+
+
+\bigskip\noindent \texttt{viscosity.h}:
+\lstinputlisting{../viscosity.h}
+\bigskip\noindent \texttt{viscosity.cpp}:
+\lstinputlisting{../viscosity.cpp}
