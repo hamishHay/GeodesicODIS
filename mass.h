@@ -13,8 +13,6 @@ private:
 	Field * eta;
 	Depth * thickness;
 
-
-
 	void UpdateCellMass(int i, int j);
 
 public:
