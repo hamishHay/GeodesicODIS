@@ -22,6 +22,7 @@
 #include "energy.h"
 #include "outFiles.h"
 #include "viscosity.h"
+#include "interpolation.h"
 #include "vector"
 
 #include <math.h>
@@ -86,14 +87,16 @@ Solver::Solver(int type, int dump, Globals * Consts, Mesh * Grid, Field * UGradL
     uOldArray = u->solution;
     uNewArray = u->MakeSolutionArrayCopy();
     uDissArray = u->MakeSolutionArrayCopy();
-    vNEAvgArray = u->MakeSolutionArrayCopy();
+    // vNEAvgArray = u->MakeSolutionArrayCopy();
+    vNEAvgArray = u->vInterp;
     oceanLoadingArrayU = u->MakeSolutionArrayCopy();
     etaUAvgArray = u->MakeSolutionArrayCopy();
 
     vOldArray = v->solution;
     vNewArray = v->MakeSolutionArrayCopy();
     vDissArray = v->MakeSolutionArrayCopy();
-    uSWAvgArray = v->MakeSolutionArrayCopy();
+    // uSWAvgArray = v->MakeSolutionArrayCopy();
+    uSWAvgArray = v->uInterp;
     oceanLoadingArrayV = v->MakeSolutionArrayCopy();
     etaVAvgArray = v->MakeSolutionArrayCopy();
 
@@ -732,27 +735,6 @@ void Solver::UpdateEastVel(){
 
     int i, j, i_a, j_a;
 
-    for (i = 1; i < uLatLen - 1; i++) {
-        for (j = 0; j < uLonLen; j++) {
-            i_a = i*2;
-            j_a = j*2;
-
-            if (j != vLonLen - 1) {
-                vNEAvgArray[i][j] = 0.25*vOldArray[i][j]
-                                    + 0.25*vOldArray[i - 1][j]
-                                    + 0.25*vOldArray[i][j + 1]
-                                    + 0.25*vOldArray[i - 1][j + 1];
-            }
-            else {
-                vNEAvgArray[i][j] = 0.25*vOldArray[i][j]
-                                    + 0.25*vOldArray[i - 1][j]
-                                    + 0.25*vOldArray[i][0]
-                                    + 0.25*vOldArray[i - 1][0];
-            }
-        }
-    }
-
-
     switch (consts->fric_type) {
     case LINEAR:
         // int i_h, j_h;
@@ -886,27 +868,6 @@ int Solver::UpdateNorthVel(){
     int j_a, i_a;
     int i_h, j_h;
 
-    for (int i = 0; i < vLatLen; i++) {
-        i_a = i*2;
-        for (int j = 0; j < vLonLen; j++) {
-            j_a = j*2;
-            if (j > 0) {
-                uSWAvgArray[i][j] = 0.25*(uOldArray[i][j]
-                                    + uOldArray[i + 1][j]
-                                    + uOldArray[i][j - 1]
-                                    + uOldArray[i + 1][j - 1]);
-            }
-            else {
-                uSWAvgArray[i][j] = 0.25*(uOldArray[i][j]
-                                    + uOldArray[i + 1][j]
-                                    + uOldArray[i][uLonLen - 1]
-                                    + uOldArray[i + 1][uLonLen - 1]);
-            }
-        }
-
-
-    }
-
     switch (consts->fric_type) {
     case LINEAR:
 
@@ -975,10 +936,9 @@ int Solver::UpdateNorthVel(){
               default:
                 break;
 
-        }
-    }
-}
-
+          }
+      }
+  }
 }
 
 void Solver::UpdateSurfaceHeight(){
@@ -1379,8 +1339,6 @@ int Solver::Explicit() {
 
         UpdatePotential();
 
-
-
         simulationTime += dt;
 
         UpdateViscosity(u, v, consts);
@@ -1391,8 +1349,7 @@ int Solver::Explicit() {
         ApplyVelocityBoundaries();
 
         UpdateSurfaceHeight();
-        // ApplyEtaBoundaries();
-        //
+
         // if (!loading) {
         //     if (simulationTime > 0.0*consts->endTime.Value()) {
         //         printf("Kicking in ocean loading at orbit num %d\n", output);
@@ -1428,6 +1385,8 @@ int Solver::Explicit() {
                 etaOldArray[i][j] = etaNewArray[i][j];
             }
         }
+
+        InterpolateVel2Vel(u, v);
 
 
 
