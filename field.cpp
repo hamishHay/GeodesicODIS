@@ -63,6 +63,42 @@ Field::Field(Mesh *mesh, int latStagg, int lonStagg)
     }
   }
 
+  uInterp = new double*[fieldLatLen];
+  uInterp[0] = new double[fieldLatLen * fieldLonLen];
+  for (int i=1; i < fieldLatLen; i++) {
+   uInterp[i] = &uInterp[0][i*fieldLonLen];
+  }
+
+  for (int i=0; i < fieldLatLen; i++) {
+    for (int j=0; j < fieldLonLen; j++) {
+      uInterp[i][j] = 0.0;
+    }
+  }
+
+  vInterp = new double*[fieldLatLen];
+  vInterp[0] = new double[fieldLatLen * fieldLonLen];
+  for (int i=1; i < fieldLatLen; i++) {
+   vInterp[i] = &vInterp[0][i*fieldLonLen];
+  }
+
+  for (int i=0; i < fieldLatLen; i++) {
+    for (int j=0; j < fieldLonLen; j++) {
+      vInterp[i][j] = 0.0;
+    }
+  }
+
+  etaInterp = new double*[fieldLatLen];
+  etaInterp[0] = new double[fieldLatLen * fieldLonLen];
+  for (int i=1; i < fieldLatLen; i++) {
+   etaInterp[i] = &etaInterp[0][i*fieldLonLen];
+  }
+
+  for (int i=0; i < fieldLatLen; i++) {
+    for (int j=0; j < fieldLonLen; j++) {
+      etaInterp[i][j] = 0.0;
+    }
+  }
+
   // allocate and assign position values for lat and lon.
   lat = new double[fieldLatLen];
   for (int i = 0; i < fieldLatLen; i++) {

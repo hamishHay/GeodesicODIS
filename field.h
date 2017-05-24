@@ -64,6 +64,9 @@ public:
   double ** solution;
 
   double ** viscSolution;
+  double ** uInterp;
+  double ** vInterp;
+  double ** etaInterp;
 
   // Constructor. First int is for latitude staggering and second is for longitude
   // staggering (1 or 0).
