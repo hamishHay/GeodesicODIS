@@ -1,6 +1,6 @@
 #!/home/hamish/anaconda3/bin/python
 
-import h5py 
+import h5py
 import numpy as np
 import sys
 import os
@@ -16,7 +16,6 @@ in_file = h5py.File("DATA/data.h5", 'r')
 sg1 = "displacement"
 sg2 = "east velocity"
 sg3 = "north velocity"
-
 
 data_eta = np.array(in_file[sg1][-1])
 data_u = np.array(in_file[sg2][-1])

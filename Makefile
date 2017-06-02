@@ -19,8 +19,8 @@ BUILDDIR = /source/build/
 
 all: ODIS
 
-ODIS: legendre.o legendreDeriv.o extractSHCoeff.o main.o mathRoutines.o tidalPotentials.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o viscosity.o interpolation.o solver.o
-	$(CC) legendre.o legendreDeriv.o extractSHCoeff.o $(FLINK) main.o mathRoutines.o tidalPotentials.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o viscosity.o interpolation.o solver.o -o ODIS -lgfortran -fopenmp $(CLINK)
+ODIS: legendre.o legendreDeriv.o extractSHCoeff.o main.o mathRoutines.o tidalPotentials.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o viscosity.o interpolation.o advection.o solver.o
+	$(CC) legendre.o legendreDeriv.o extractSHCoeff.o $(FLINK) main.o mathRoutines.o tidalPotentials.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o viscosity.o interpolation.o advection.o solver.o -o ODIS -lgfortran -fopenmp $(CLINK)
 
 legendre.o: legendre.f95
 	$(F) $(FFLAGS) legendre.f95
@@ -66,6 +66,9 @@ viscosity.o: viscosity.cpp
 
 interpolation.o: interpolation.cpp
 	$(CC) $(CFLAGS) interpolation.cpp
+
+advection.o: advection.cpp
+	$(CC) $(CFLAGS) advection.cpp
 
 solver.o: solver.cpp
 	$(CC)  $(CFLAGS) $(CLINK) solver.cpp

@@ -36,9 +36,9 @@ void Mass::UpdateCellMass(int i, int j) {
 
 	// solution[i][j] *= 1000. / 3.; //density of water
 
-    solution[i][j] *= 2700. / 3.; // density of basalt
+    solution[i][j] *= 2689. / 3.; // density of basalt
 
-    // solution[i][j] = std::max(solution[i][j], 0.0);
+    solution[i][j] = std::max(solution[i][j], 0.0);
 
   // if (solution[i][j] < 0) std::cout<<"NO MASS"<<std::endl;
 

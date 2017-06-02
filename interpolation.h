@@ -17,5 +17,6 @@
 
 void InterpolateVel2Vel(Field * u, Field * v);
 void InterpolateVel2Disp(Field * u, Field * v, Field * eta);
+void InterpolateDisp2Vel(Field * u, Field *v, Field * eta);
 
 #endif

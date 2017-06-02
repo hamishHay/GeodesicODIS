@@ -45,22 +45,16 @@ Field::Field(Mesh *mesh, int latStagg, int lonStagg)
     solution[i] = &solution[0][i*fieldLonLen];
   }
 
- for (int i=0; i < fieldLatLen; i++) {
-   for (int j=0; j < fieldLonLen; j++) {
-     solution[i][j] = 0.0;
-   }
- }
-
   viscSolution = new double*[fieldLatLen];
   viscSolution[0] = new double[fieldLatLen * fieldLonLen];
   for (int i=1; i < fieldLatLen; i++) {
    viscSolution[i] = &viscSolution[0][i*fieldLonLen];
   }
 
-  for (int i=0; i < fieldLatLen; i++) {
-    for (int j=0; j < fieldLonLen; j++) {
-      viscSolution[i][j] = 0.0;
-    }
+  advSolution = new double*[fieldLatLen];
+  advSolution[0] = new double[fieldLatLen * fieldLonLen];
+  for (int i=1; i < fieldLatLen; i++) {
+   advSolution[i] = &advSolution[0][i*fieldLonLen];
   }
 
   uInterp = new double*[fieldLatLen];
@@ -69,22 +63,10 @@ Field::Field(Mesh *mesh, int latStagg, int lonStagg)
    uInterp[i] = &uInterp[0][i*fieldLonLen];
   }
 
-  for (int i=0; i < fieldLatLen; i++) {
-    for (int j=0; j < fieldLonLen; j++) {
-      uInterp[i][j] = 0.0;
-    }
-  }
-
   vInterp = new double*[fieldLatLen];
   vInterp[0] = new double[fieldLatLen * fieldLonLen];
   for (int i=1; i < fieldLatLen; i++) {
    vInterp[i] = &vInterp[0][i*fieldLonLen];
-  }
-
-  for (int i=0; i < fieldLatLen; i++) {
-    for (int j=0; j < fieldLonLen; j++) {
-      vInterp[i][j] = 0.0;
-    }
   }
 
   etaInterp = new double*[fieldLatLen];
@@ -95,6 +77,11 @@ Field::Field(Mesh *mesh, int latStagg, int lonStagg)
 
   for (int i=0; i < fieldLatLen; i++) {
     for (int j=0; j < fieldLonLen; j++) {
+      solution[i][j] = 0.0;
+      viscSolution[i][j] = 0.0;
+      advSolution[i][j] = 0.0;
+      uInterp[i][j] = 0.0;
+      vInterp[i][j] = 0.0;
       etaInterp[i][j] = 0.0;
     }
   }

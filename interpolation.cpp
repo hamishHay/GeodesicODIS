@@ -65,3 +65,66 @@ void InterpolateVel2Vel(Field * uField, Field * vField) {
     }
   }
 };
+
+void InterpolateDisp2Vel(Field * uField, Field * vField, Field * etaField) {
+  double ** eta;
+  double ** etaInterp;
+  int ** uMask, ** vMask;
+  int uLatLen, uLonLen;
+  int vLatLen, vLonLen;
+  int i, j;
+
+  // POINT TO DESIRED ARRAYS AND SET CONSTANTS ---------------------------------
+
+  eta = etaField->solution;
+
+  etaInterp = uField->etaInterp;              // array for interpolated eta at u nodes
+
+  uMask = uField->mask;
+  vMask = vField->mask;
+
+  uLatLen = uField->fieldLatLen;
+  uLonLen = uField->fieldLonLen;
+
+  vLatLen = vField->fieldLatLen;
+  vLonLen = vField->fieldLonLen;
+
+
+  // INTERPOLATE DISPLACEMENT TO EAST VELOCITY NODE LOCATIONS ------------------
+
+  for (i=0; i<uLatLen; i++)
+  {
+    for (j=0; j<uLonLen; j++)
+    {
+      switch (uMask[i][j])
+      {
+        case 1:
+          if (j != uLonLen-1) etaInterp[i][j] = 0.5*(eta[i][j] + eta[i][j+1]);
+          else etaInterp[i][uLonLen-1] = 0.5*(eta[i][uLonLen-1] + eta[i][0]);
+          break;
+        default:
+          break;
+      }
+    }
+  }
+
+
+  // INTERPOLATE EAST VELOCITY TO NORTH VELOCITY NODE LOCATIONS ----------------
+
+  etaInterp = vField->etaInterp;
+
+  for (i=0; i<vLatLen; i++)
+  {
+    for (j=0; j<vLonLen; j++)
+    {
+      switch (vMask[i][j])
+      {
+        case 1:
+           etaInterp[i][j] = 0.5*(eta[i][j] + eta[i+1][j]);
+          break;
+        default:
+          break;
+      }
+    }
+  }
+};

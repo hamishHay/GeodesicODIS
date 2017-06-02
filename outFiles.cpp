@@ -113,7 +113,8 @@ void OutFiles::WelcomeMessage(void) {
 void OutFiles::TerminateODIS(void) {
 	std::ostringstream sstream;
 
-	sstream << "Terminating ODIS." << std::endl;
+	sstream << "TERMINATING ODIS." << std::endl;
+  std::cout << "ODIS HAS FOUND AN ERROR. TERMINATING PROGRAM." << std::endl;
 	WriteError(&sstream);
 	std::exit(0);
 };

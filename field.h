@@ -64,6 +64,8 @@ public:
   double ** solution;
 
   double ** viscSolution;
+  double ** advSolution;
+  
   double ** uInterp;
   double ** vInterp;
   double ** etaInterp;
