@@ -6,7 +6,7 @@ HOME=/usr/local
 
 #-mavx2 -mfma
 
-CFLAGS= -O3 -c -Wall -Wno-unused-variable -Wunused-but-set-variable -std=c++11 -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp -fopenmp
+CFLAGS= -O1 -c -Wall -Wno-unused-variable -Wunused-but-set-variable -std=c++11 -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp -fopenmp
 
 CLINK = -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp
 
@@ -19,26 +19,30 @@ BUILDDIR = /source/build/
 
 all: ODIS
 
-ODIS: legendre.o legendreDeriv.o extractSHCoeff.o main.o mathRoutines.o tidalPotentials.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o viscosity.o interpolation.o advection.o solver.o
-	$(CC) legendre.o legendreDeriv.o extractSHCoeff.o $(FLINK) main.o mathRoutines.o tidalPotentials.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o viscosity.o interpolation.o advection.o solver.o -o ODIS -lgfortran -fopenmp $(CLINK)
+# ODIS: legendre.o legendreDeriv.o extractSHCoeff.o main.o mathRoutines.o tidalPotentials.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o viscosity.o interpolation.o advection.o solver.o
+# 	$(CC) legendre.o legendreDeriv.o extractSHCoeff.o $(FLINK) main.o mathRoutines.o tidalPotentials.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o viscosity.o interpolation.o advection.o solver.o -o ODIS -lgfortran -fopenmp $(CLINK)
 
-legendre.o: legendre.f95
-	$(F) $(FFLAGS) legendre.f95
 
-legendreDeriv.o: legendreDeriv.f95
-	$(F) $(FFLAGS) legendreDeriv.f95
+ODIS: main.o mathRoutines.o outFiles.o globals.o mesh.o
+	$(CC) $(FLINK) main.o mathRoutines.o outFiles.o globals.o mesh.o -o ODIS -lgfortran -fopenmp $(CLINK)
 
-extractSHCoeff.o: extractSHCoeff.f95
-	$(F) $(FFLAGS) extractSHCoeff.f95
+# legendre.o: legendre.f95
+# 	$(F) $(FFLAGS) legendre.f95
+#
+# legendreDeriv.o: legendreDeriv.f95
+# 	$(F) $(FFLAGS) legendreDeriv.f95
+#
+# extractSHCoeff.o: extractSHCoeff.f95
+# 	$(F) $(FFLAGS) extractSHCoeff.f95
 
 main.o: main.cpp
 	$(CC) $(CFLAGS) main.cpp
 
 mathRoutines.o: mathRoutines.cpp
 	$(CC) $(CFLAGS) mathRoutines.cpp
-
-tidalPotentials.o: tidalPotentials.cpp
-	$(CC) $(CFLAGS) tidalPotentials.cpp
+#
+# tidalPotentials.o: tidalPotentials.cpp
+# 	$(CC) $(CFLAGS) tidalPotentials.cpp
 
 outFiles.o: outFiles.cpp
 	$(CC) $(CFLAGS) outFiles.cpp
@@ -49,29 +53,29 @@ globals.o: globals.cpp
 mesh.o: mesh.cpp
 	$(CC) $(CFLAGS) mesh.cpp
 
-field.o: field.cpp
-	$(CC) $(CFLAGS) field.cpp
-
-depth.o: depth.cpp
-	$(CC) $(CFLAGS) depth.cpp
-
-mass.o: mass.cpp
-	$(CC) $(CFLAGS) mass.cpp
-
-energy.o: energy.cpp
-	$(CC) $(CFLAGS) energy.cpp
-
-viscosity.o: viscosity.cpp
-	$(CC) $(CFLAGS) viscosity.cpp
-
-interpolation.o: interpolation.cpp
-	$(CC) $(CFLAGS) interpolation.cpp
-
-advection.o: advection.cpp
-	$(CC) $(CFLAGS) advection.cpp
-
-solver.o: solver.cpp
-	$(CC)  $(CFLAGS) $(CLINK) solver.cpp
+# field.o: field.cpp
+# 	$(CC) $(CFLAGS) field.cpp
+#
+# depth.o: depth.cpp
+# 	$(CC) $(CFLAGS) depth.cpp
+#
+# mass.o: mass.cpp
+# 	$(CC) $(CFLAGS) mass.cpp
+#
+# energy.o: energy.cpp
+# 	$(CC) $(CFLAGS) energy.cpp
+#
+# viscosity.o: viscosity.cpp
+# 	$(CC) $(CFLAGS) viscosity.cpp
+#
+# interpolation.o: interpolation.cpp
+# 	$(CC) $(CFLAGS) interpolation.cpp
+#
+# advection.o: advection.cpp
+# 	$(CC) $(CFLAGS) advection.cpp
+#
+# solver.o: solver.cpp
+# 	$(CC)  $(CFLAGS) $(CLINK) solver.cpp
 
 clean:
 	rm -r *o ODIS NorthVelocity EastVelocity Displacement Grid Energy

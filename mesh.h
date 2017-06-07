@@ -1,37 +1,32 @@
 #ifndef MESH_H
 #define MESH_H
 
-#include "vector"
 #include "globals.h"
 
 //Class stores all coordinate information about the mesh
 class Mesh {
 private:
-	int latLength;
-	int lonLength;
-
-	int CalculateDt(void);
-        int CalculateCellArea(void);
+  int ReadMeshFile(void);
+  int InitializeArrays(void);
+  int CalcMappingCoords(void);
 
 public:
 //	Mesh(); //constructor
 
 	std::ostringstream outstring;
 
-	double dLon;
-	double dLat;
+	// double dLon;
+	// double dLat;
+
+  double ** node_pos_sph;    // Position array for each node in spherical coords
+  double ** node_pos_map;    // Position array for each node in mapping coords
+
+  int ** node_friends;
 
 	Globals * globals;
 
 	Mesh(Globals *);
 
-	int ReturnLatLen(void) const;
-	int ReturnLonLen(void) const;
-
-    double ** cellArea;
-
-	std::vector<double> lat;
-	std::vector<double> lon;
 };
 
 #endif
