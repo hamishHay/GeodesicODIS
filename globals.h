@@ -85,6 +85,7 @@ public:
   GlobalVar<int> l_max; //Maximum spherical harmonic degree for expansions
   GlobalVar<double> dLat; //NUMBER of cells in latitude
   GlobalVar<double> dLon; //NUMBER of cells in longitude
+  GlobalVar<int> geodesic_l; //Geodesic grid level
   GlobalVar<double> period; // orbital period (=rotation period), assuming syncronous rotation.
   GlobalVar<double> endTime; // maximum simulation run time
   GlobalVar<std::string> potential; // string for tidal potential type

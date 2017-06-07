@@ -105,11 +105,14 @@ Globals::Globals(int action) {
 		l_max.SetStringID("sh degree");
 		allGlobals.push_back(&l_max);
 
-    dLat.SetStringID("latitude spacing");
+    dLat.SetStringID("latitude spacing");     //TODO remove
     allGlobals.push_back(&dLat);
 
     dLon.SetStringID("longitude spacing");
-    allGlobals.push_back(&dLon);
+    allGlobals.push_back(&dLon);              //TODO remove
+
+    geodesic_l.SetStringID("geodesic grid level");
+    allGlobals.push_back(&geodesic_l);
 
     period.SetStringID("orbital period");
     allGlobals.push_back(&period);
@@ -347,6 +350,9 @@ void Globals::SetDefault(void)
   //Lat and long spacing
   dLat.SetValue(45);
   dLon.SetValue(90);
+
+  //Geodesic grid resolution
+  geodesic_l.SetValue(1);
 
   //Orbital period
   period.SetValue(16. * 24 * 60 * 60);
