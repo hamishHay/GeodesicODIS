@@ -1,5 +1,21 @@
 #include "mathRoutines.h"
 #include "globals.h"
+#include "math.h"
+
+
+// void mapAtPoint(double &m, double &x, double &y, double &lat1, double &lat2, double &lon1, double &lon2, double r)
+// {
+//   m = mapFactorAtPoint(lat1, lat2, lon1, lon2);
+//
+//   x = m * r * (cos(lat2)*sin(lon2-lon1));
+//
+//   y = m * r * (sin(lat2)*cos(lat1) - cos(lat2)*sin(lat1)*cos(lon2-lon1));
+// };
+//
+// double mapFactorAtPoint(double lat1, double lat2, double lon1, double lon2)
+// {
+//   return 2.0 / (1.0 + sin(lat1)*sin(lat2) + cos(lat1)*cos(lat2)*cos(lon2 - lon1));
+// };
 
 // double arcLength(double lat1, double lat2, double lon1, double lon2) {
 //     // return fabs(acos(sin(lat1)*sin(lat2) + cos(lat1)*cos(lat2)*cos(fabs(lon1-lon2))));

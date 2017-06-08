@@ -1,14 +1,33 @@
-#ifndef MATHROUTINES_H
-#define MATHROUTINES_H
+#ifndef MATHROUTINES_H_INCDLUDED
+#define MATHROUTINES_H_INCDLUDED
 
 // #include "field.h"
 // #include "solver.h"
+#include "mesh.h"
 #include <math.h>
 
-// inline int mapSph2Local ()
+// Mapping function from Lee and Macdonald (2009) to get to GSTC
+// Returns a mapping factor that is used appy curvature to the local system of
+// equations.
+inline double mapFactorAtPoint(double, double, double, double);
+inline double mapFactorAtPoint(double lat1, double lat2, double lon1, double lon2)
+{
+  return 2.0 / (1.0 + sin(lat1)*sin(lat2) + cos(lat1)*cos(lat2)*cos(lon2 - lon1));
+}
 
+// Mapping function from Lee and Macdonald (2009) to get to GSTC.
+// Function assigns a mapping factor that is used appy curvature to the local system of
+// equations, as well as the x and y coordinates in the local GSTC coordinate system.
+// lat1 and lat2 are the coordinates at which the projection is centered around.
+inline void mapAtPoint(double &, double &, double &, double &, double &, double &, double &, double &);
+inline void mapAtPoint(double &m, double &x, double &y, double &lat1, double &lat2, double &lon1, double &lon2, double &r)
+{
+  m = mapFactorAtPoint(lat1, lat2, lon1, lon2);
 
+  x = m * r * (cos(lat2)*sin(lon2-lon1));
 
+  y = m * r * (sin(lat2)*cos(lat1) - cos(lat2)*sin(lat1)*cos(lon2-lon1));
+}
 
 //
 // double arcLength(double lat1, double lat2, double lon1, double lon2);
