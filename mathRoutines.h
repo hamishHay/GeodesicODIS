@@ -29,6 +29,25 @@ inline void mapAtPoint(double &m, double &x, double &y, double &lat1, double &la
   y = m * r * (sin(lat2)*cos(lat1) - cos(lat2)*sin(lat1)*cos(lon2-lon1));
 }
 
+// Velocity transform factors from Lee and Macdonald (2009) to get to GSTC.
+// Function calculates the cos(alpha) and sin(alpha) transform coefficients,
+// which are required to convert spherical coord velocities to mapped velocities
+// and back again. The back conversion requires inversion of the tranform matrix:
+//
+//                            ( cos_a   sin_a)
+//                        T = (-sin_a   cos_a)
+//
+inline void velTransform(double &, double &, double &, double &, double &, double &);
+inline void velTransform(double &cos_a, double &sin_a, double &lat1, double &lat2, double &lon1, double &lon2)
+{
+  cos_a = cos(lat1) * cos(lat2);
+  cos_a += (1.0 + sin(lat1)*sin(lat2)*cos(lon2-lon1));
+  cos_a /= (1.0 + sin(lat2)*sin(lat2) + cos(lat1)*cos(lat2)*cos(lon2-lon1));
+
+  sin_a = -(sin(lat1) + sin(lat2))*sin(lon2-lon1);
+  sin_a /= (1.0 + sin(lat1)*sin(lat2) + cos(lat1)*cos(lat2)*cos(lon2-lon1));
+}
+
 //
 // double arcLength(double lat1, double lat2, double lon1, double lon2);
 //
