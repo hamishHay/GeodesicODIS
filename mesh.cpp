@@ -18,12 +18,13 @@
 
 Mesh::Mesh(Globals * Globals, int N)
   :node_pos_sph(N,2),
-   node_pos_map(N,7,2),       // len 7 to include central node coords (even though it's zero)
+   node_pos_map(N,7,2),        // len 7 to include central node coords (even though it's zero)
    node_friends(N,6),
    centroid_pos_sph(N,6,2),
    centroid_pos_map(N,6,2),
-   node_m(N,7),               // len 7 to include central (parent) node
-   centroid_m(N,6)            // len 6 as there is are only 5 or 6 centroids
+   node_m(N,7),                // len 7 to include central (parent) node
+   centroid_m(N,6),            // len 6 as there is are only 5 or 6 centroids
+   node_vel_trans(N,7,2)       // In the last dimension, element 1 is cos_a, element 2 is sin_a
 {
 
 	globals = Globals;                   // define reference to all constants
@@ -34,8 +35,64 @@ Mesh::Mesh(Globals * Globals, int N)
   // Calculate mapping coordinates
   CalcMappingCoords();
 
+  // Calculate velocity transform factors
+  CalcVelocityTransformFactors();
+
 };
 
+// Function to calculate the cosine(alpha) and sine(alpha) velocity tranform
+// factors from Lee and Macdonald (2009). These factors are constant in time,
+// and so are pre-calculated here to be easily accessed during the spatial
+// integration.
+int Mesh::CalcVelocityTransformFactors(void)
+{
+  int i, j, node_num, f;
+  double * cos_a, * sin_a;
+  double lat1, lat2, lon1, lon2;
+
+  node_num = globals->node_num;
+
+  for (i=0; i<node_num; i++)
+  {
+    lat1 = node_pos_sph(i,0);
+    lon1 = node_pos_sph(i,1);
+
+    // Set pointers to address of variables we want to change
+    cos_a = &node_vel_trans(i,0,0);
+    sin_a = &node_vel_trans(i,0,1);
+
+    // Pass pointers by reference
+    velTransform(*cos_a, *sin_a, lat1, lat1, lon1, lon1);
+
+    // Loop through all friends (len is 7 as first element is parent node)
+    // Assign node mapping factors and coordinates
+    for (j = 1; j<7; j++)
+    {
+      cos_a = &node_vel_trans(i,j,0);
+      sin_a = &node_vel_trans(i,j,1);
+
+      f = node_friends(i,j-1);            // j-1 because len node_friends[i] = 6;
+      switch (f) {
+        case -1:                          // if node is pentagon center
+          *cos_a = -1.0;
+          *sin_a = -1.0;
+          break;
+        default:                          // if node is a hexagon center
+          lat2 = node_pos_sph(f, 0);
+          lon2 = node_pos_sph(f, 1);
+
+          // assign transform factors values to arrays
+          velTransform(*cos_a, *sin_a, lat1, lat2, lon1, lon2);
+          break;
+      }
+    }
+  }
+}
+
+// Function to convert all spherical coorinate quantities to mapping coordinates
+// x and y from Lee and Macdonald (2009). Mapping factors are also calculated
+// and stored. These quantities are stored for node positions, centroid positions,
+// node mapping factors, and centroid mapping factors.
 int Mesh::CalcMappingCoords(void)
 {
   int i, j, node_num, f;
@@ -113,6 +170,8 @@ int Mesh::CalcMappingCoords(void)
       }
     }
   }
+
+  return 1;
 };
 
 // Function to read in text file containing mesh information

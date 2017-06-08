@@ -13,6 +13,7 @@ private:
   int ReadMeshFile(void);
   // int InitializeArrays(void);
   int CalcMappingCoords(void);
+  int CalcVelocityTransformFactors(void);
 
 public:
 //	Mesh(); //constructor
@@ -44,6 +45,8 @@ public:
 
   Array2D<double> node_m;
   Array2D<double> centroid_m;
+
+  Array3D<double> node_vel_trans;
 
 	Globals * globals;
 
