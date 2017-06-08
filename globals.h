@@ -70,6 +70,8 @@ public:
   // character array for identical string from 'path'
   char cpath[PATH];
 
+  int node_num;
+
   GlobalVar<double> angVel; // Angular velocity
   GlobalVar<double> radius; // Body radius
   GlobalVar<double> loveK2; // k_2 Love Number

@@ -6,7 +6,7 @@ HOME=/usr/local
 
 #-mavx2 -mfma
 
-CFLAGS= -O1 -c -Wall -Wno-unused-variable -Wunused-but-set-variable -std=c++11 -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp -fopenmp
+CFLAGS= -O2 -c -Wall -Wno-unused-variable -Wunused-but-set-variable -std=c++11 -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp -fopenmp
 
 CLINK = -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp
 

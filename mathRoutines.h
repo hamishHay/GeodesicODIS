@@ -5,7 +5,7 @@
 // #include "solver.h"
 #include <math.h>
 
-// inline 
+// inline int mapSph2Local ()
 
 
 

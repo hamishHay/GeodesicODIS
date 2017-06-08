@@ -47,7 +47,7 @@ int main(void)
   // Create the numerical grid using the minimum node spacing from "constants"
   // Globals instance.
 
-  Mesh * grid = new Mesh(constants);
+  Mesh * grid = new Mesh(constants, constants->node_num);
 
   // Allocate the solvable "Fields". These are all the quantities which ODIS aims
   // to calculate a solution for (velocity and surface displacement), as well as

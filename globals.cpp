@@ -162,6 +162,9 @@ Globals::Globals(int action) {
   // Convert end time from units of orbital period to seconds.
   endTime.SetValue(endTime.Value()*period.Value());
 
+  // geodesic node num expression (Lee and Macdonald, 2008)
+  node_num = 10 * pow(pow(2, geodesic_l.Value() - 1), 2) + 2;
+
   // identify friction type and select the corresponding enum value.
   if (friction.Value() == "LINEAR") fric_type = LINEAR;
   else if (friction.Value() == "QUADRATIC") fric_type = QUADRATIC;
