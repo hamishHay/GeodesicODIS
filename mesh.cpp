@@ -25,7 +25,10 @@ Mesh::Mesh(Globals * Globals, int N)
    node_m(N,7),                // len 7 to include central (parent) node
    centroid_m(N,6),            // len 6 as there is are only 5 or 6 centroids
    node_vel_trans(N,7,2),      // In the last dimension, element 1 is cos_a, element 2 is sin_a
-   control_vol_edge_len(N,6)
+   control_vol_edge_len(N,6),
+   control_vol_edge_centre_pos_map(N,6,2),
+   control_vol_edge_centre_m(N,6),
+   control_vol_edge_normal_map(N,6,2)
 {
 
 	globals = Globals;                   // define reference to all constants
@@ -40,7 +43,10 @@ Mesh::Mesh(Globals * Globals, int N)
   CalcVelocityTransformFactors();
 
   // Find control volume edge lengths in mapping coords
-  CalcControlVolumeEgeLengths();
+  CalcControlVolumeEdgeLengths();
+
+  // Find control volume edge midpoints in mapping coords
+  CalcControlVolumeEdgeCentres();
 
 };
 
@@ -178,7 +184,9 @@ int Mesh::CalcMappingCoords(void)
   return 1;
 };
 
-int Mesh::CalcControlVolumeEgeLengths(void)
+// Function to find the length of control volume edges for each node, in mapping
+// coordinates. Values are stored in control_vol_edge_len 2D array.
+int Mesh::CalcControlVolumeEdgeLengths(void)
 {
   int i, j, node_num, f, friend_num;
   double * x1, * y1, * x2, * y2, * edge_len;
@@ -212,7 +220,107 @@ int Mesh::CalcControlVolumeEgeLengths(void)
                                                         // Edge_len automatically assigned the length
     }
   }
+
+  return 1;
 };
+
+// Function to find the midpoint of control volume edges for each node, in
+// mapping coordinates. Values are stored in control_vol_edge_centre_pos_map 2D
+// array.
+int Mesh::CalcControlVolumeEdgeCentres(void)
+{
+  int i, j, node_num, f, friend_num;
+  double * x1, * y1, * x2, * y2, * xc, * yc, * m;
+  double lat1, lat2, lon1, lon2;
+
+  node_num = globals->node_num;
+
+  for (i=0; i<node_num; i++)
+  {
+
+    f = node_friends(i,5);
+
+    friend_num = 6;                                     // Assume hexagon (6 centroids)
+    if (f == -1) {
+      friend_num = 5;                                   // Check if pentagon (5 centroids)
+      control_vol_edge_len(i,5) = -1.0;
+      control_vol_edge_centre_m(i,5) = -1.0;
+    }
+
+    for (j=0; j<friend_num; j++)                        // Loop through all centroids in the control volume
+    {
+      f = node_friends(i,j);
+
+      xc = &control_vol_edge_centre_pos_map(i,j,0);     // set pointer to edge length array
+      yc = &control_vol_edge_centre_pos_map(i,j,1);
+
+      x1 = &centroid_pos_map(i, j, 0);                  // set map coords for first centroid
+      y1 = &centroid_pos_map(i, j, 1);
+
+      x2 = &centroid_pos_map(i, (j+1)%friend_num, 0);   // set map coords for second centroid
+      y2 = &centroid_pos_map(i, (j+1)%friend_num, 1);   // automatically loops around using %
+
+      midpointBetween(*xc, *yc, *x1, *x2, *y1, *y2);    // calculate center coords between the two centroids.
+                                                        // xc and yc automatically assigned the coords
+
+      m = &control_vol_edge_centre_m(i,j);
+
+      lat1 = centroid_pos_sph(i, j, 0);
+      lon1 = centroid_pos_sph(i, j, 1);
+
+      lat2 = centroid_pos_sph(i, (j+1)%friend_num, 0);
+      lon2 = centroid_pos_sph(i, (j+1)%friend_num, 1);
+
+      mapFactorAtPoint(*m, lat1, lat2, lon1, lon2);
+    }
+  }
+
+  return 1;
+};
+
+// Function to find the midpoint of control volume edges for each node, in
+// mapping coordinates. Values are stored in control_vol_edge_centre_pos_map 2D
+// array.
+int Mesh::CalcControlVolumeEdgeNormals(void)
+{
+  int i, j, node_num, f, friend_num;
+  double * x1, * y1, * x2, * y2, * xn, * yn;
+
+  node_num = globals->node_num;
+
+  // for (i=0; i<node_num; i++)
+  // {
+  //
+  //   f = node_friends(i,5);
+  //
+  //   friend_num = 6;                                     // Assume hexagon (6 centroids)
+  //   if (f == -1) {
+  //     friend_num = 5;                                   // Check if pentagon (5 centroids)
+  //     control_vol_edge_len(i,5) = -1.0;
+  //   }
+  //
+  //   for (j=0; j<friend_num; j++)                        // Loop through all centroids in the control volume
+  //   {
+  //     f = node_friends(i,j);
+  //
+  //     xc = &control_vol_edge_centre_pos_map(i,j,0);     // set pointer to edge length array
+  //     yc = &control_vol_edge_centre_pos_map(i,j,1);
+  //
+  //     x1 = &centroid_pos_map(i, j, 0);                  // set map coords for first centroid
+  //     y1 = &centroid_pos_map(i, j, 1);
+  //
+  //     x2 = &centroid_pos_map(i, (j+1)%friend_num, 0);   // set map coords for second centroid
+  //     y2 = &centroid_pos_map(i, (j+1)%friend_num, 1);   // automatically loops around using %
+  //
+  //     midpointBetween(*xc, *yc, *x1, *x2, *y1, *y2);    // calculate center coords between the two centroids.
+  //                                                       // xc and yc automatically assigned the coords
+  //
+  //   }
+  // }
+
+  return 1;
+};
+
 
 // Function to read in text file containing mesh information
 // The four pieces of information read and stored are:
