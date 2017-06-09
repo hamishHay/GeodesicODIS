@@ -17,7 +17,7 @@ friction type;                    QUADRATIC;                     friction;
 time step;                        100;                            timeStep;
 latitude spacing;                 128;                           lat;
 longitude spacing;                128;                           lon;
-geodesic grid level;              4;                              geodesic_l;
+geodesic grid level;              3;                              geodesic_l;
 initial conditions;               false;                          init;
 converge;                         1e-14;                         convergence criteria;
 output time;                      0.01;                           outputTime;
