@@ -48,6 +48,8 @@ Mesh::Mesh(Globals * Globals, int N)
   // Find control volume edge midpoints in mapping coords
   CalcControlVolumeEdgeCentres();
 
+  CalcControlVolumeEdgeNormals();
+
 };
 
 // Function to calculate the cosine(alpha) and sine(alpha) velocity tranform
@@ -263,15 +265,15 @@ int Mesh::CalcControlVolumeEdgeCentres(void)
       midpointBetween(*xc, *yc, *x1, *x2, *y1, *y2);    // calculate center coords between the two centroids.
                                                         // xc and yc automatically assigned the coords
 
-      m = &control_vol_edge_centre_m(i,j);
+      m = &control_vol_edge_centre_m(i,j);              // assign pointer to midpoint map factor
 
-      lat1 = centroid_pos_sph(i, j, 0);
+      lat1 = centroid_pos_sph(i, j, 0);                 // get first centroid coords
       lon1 = centroid_pos_sph(i, j, 1);
 
-      lat2 = centroid_pos_sph(i, (j+1)%friend_num, 0);
+      lat2 = centroid_pos_sph(i, (j+1)%friend_num, 0);  // get second centroid coords
       lon2 = centroid_pos_sph(i, (j+1)%friend_num, 1);
 
-      mapFactorAtPoint(*m, lat1, lat2, lon1, lon2);
+      mapFactorAtPoint(*m, lat1, lat2, lon1, lon2);     // calculate map factor and store
     }
   }
 
@@ -288,35 +290,36 @@ int Mesh::CalcControlVolumeEdgeNormals(void)
 
   node_num = globals->node_num;
 
-  // for (i=0; i<node_num; i++)
-  // {
-  //
-  //   f = node_friends(i,5);
-  //
-  //   friend_num = 6;                                     // Assume hexagon (6 centroids)
-  //   if (f == -1) {
-  //     friend_num = 5;                                   // Check if pentagon (5 centroids)
-  //     control_vol_edge_len(i,5) = -1.0;
-  //   }
-  //
-  //   for (j=0; j<friend_num; j++)                        // Loop through all centroids in the control volume
-  //   {
-  //     f = node_friends(i,j);
-  //
-  //     xc = &control_vol_edge_centre_pos_map(i,j,0);     // set pointer to edge length array
-  //     yc = &control_vol_edge_centre_pos_map(i,j,1);
-  //
-  //     x1 = &centroid_pos_map(i, j, 0);                  // set map coords for first centroid
-  //     y1 = &centroid_pos_map(i, j, 1);
-  //
-  //     x2 = &centroid_pos_map(i, (j+1)%friend_num, 0);   // set map coords for second centroid
-  //     y2 = &centroid_pos_map(i, (j+1)%friend_num, 1);   // automatically loops around using %
-  //
-  //     midpointBetween(*xc, *yc, *x1, *x2, *y1, *y2);    // calculate center coords between the two centroids.
-  //                                                       // xc and yc automatically assigned the coords
-  //
-  //   }
-  // }
+  for (i=0; i<node_num; i++)
+  {
+
+    f = node_friends(i,5);
+
+    friend_num = 6;                                     // Assume hexagon (6 centroids)
+    if (f == -1) {
+      friend_num = 5;                                   // Check if pentagon (5 centroids)
+      control_vol_edge_len(i,5) = -1.0;
+      control_vol_edge_normal_map(i,5,0) = -1.0;        // set pointer to edge length array
+      control_vol_edge_normal_map(i,5,1) = -1.0;
+    }
+
+    for (j=0; j<friend_num; j++)                        // Loop through all centroids in the control volume
+    {
+      f = node_friends(i,j);
+
+      xn = &control_vol_edge_normal_map(i,j,0);         // set pointer to edge length array
+      yn = &control_vol_edge_normal_map(i,j,1);
+
+      x1 = &centroid_pos_map(i, j, 0);                  // set map coords for first centroid
+      y1 = &centroid_pos_map(i, j, 1);
+
+      x2 = &centroid_pos_map(i, (j+1)%friend_num, 0);   // set map coords for second centroid
+      y2 = &centroid_pos_map(i, (j+1)%friend_num, 1);   // automatically loops around using %
+
+      normalVectorBetween(*xn, *yn, *x1, *x2, *y1, *y2);    // calculate center coords between the two centroids.
+                                                            // xc and yc automatically assigned the coords
+    }
+  }
 
   return 1;
 };
