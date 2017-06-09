@@ -87,6 +87,14 @@ inline void normalVectorBetween(double &xn, double &yn, double &x1, double &x2, 
   yn = xx;
 }
 
+// Function to find the area of a triangle with points p(xc,yc), p(x1,y2) and
+// p(x2,y2) in cartesian or mapping coordinates.
+inline void triangularArea(double &, double &, double &, double &, double &, double &, double &);
+inline void triangularArea(double &area, double &xc, double &yc, double &x1, double &x2, double &y1, double &y2)
+{
+  area = 0.5 * fabs((xc - x2)*(y1 - yc) - (xc - x1)*(y2 - yc));
+}
+
 //
 // double arcLength(double lat1, double lat2, double lon1, double lon2);
 //
