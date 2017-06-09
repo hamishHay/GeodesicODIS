@@ -67,6 +67,26 @@ inline void midpointBetween(double &xc, double &yc, double &x1, double &x2, doub
   yc = 0.5 * (y1 + y2);
 }
 
+
+// Function to find the outward unit vector between two points with coordinates
+// p1 = (x1,y1) and p2 = (x2,y2)
+inline void normalVectorBetween(double &, double &, double &, double &, double &, double &);
+inline void normalVectorBetween(double &xn, double &yn, double &x1, double &x2, double &y1, double &y2)
+{
+  double xx,yy,mag;
+
+  xx = x2-x1;                   // Components of the tangent vector
+  yy = y2-y1;
+
+  mag = sqrt(xx*xx + yy*yy);    // Find magnitude of tangent vector
+
+  xx /= mag;                    // Normalise tangent vector
+  yy /= mag;
+
+  xn = -yy;                     // Find normal unit vector to the tangent vector
+  yn = xx;
+}
+
 //
 // double arcLength(double lat1, double lat2, double lon1, double lon2);
 //
