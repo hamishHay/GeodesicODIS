@@ -14,6 +14,7 @@ private:
   // int InitializeArrays(void);
   int CalcMappingCoords(void);
   int CalcVelocityTransformFactors(void);
+  int CalcControlVolumeEgeLengths(void);
 
 public:
 //	Mesh(); //constructor
@@ -34,7 +35,6 @@ public:
   // node 4 would be accessed via node_friends[4][0], node_friends[4][1], etc.
   Array2D<int> node_friends;
 
-
   // Each row contains the coordinates of the centroids to the 5 or 6 surrounding
   // cells for a specific node (e.g., node ID 8 corresponds to row 8).
   // Column 0 holds the coordinates for the centroid formed from the parent
@@ -43,10 +43,20 @@ public:
   Array3D<double> centroid_pos_sph;
   Array3D<double> centroid_pos_map;
 
+  // Array to hold mapping factor at at each node and its friends
   Array2D<double> node_m;
+
+  // Array to hold mapping factor at at each centroid
   Array2D<double> centroid_m;
 
+  // Array to hold the cos(alpha) and sin(alpha) velocity conversion coefficients
+  // from Lee and Macdonald (2009)
   Array3D<double> node_vel_trans;
+
+  // Array to store the edge length of each side to the control volume surrounding
+  // the central node
+  Array2D<double> control_vol_edge_len;
+
 
 	Globals * globals;
 
