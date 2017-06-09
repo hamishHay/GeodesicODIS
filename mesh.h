@@ -17,6 +17,7 @@ private:
   int CalcControlVolumeEdgeLengths(void);
   int CalcControlVolumeEdgeCentres(void);
   int CalcControlVolumeEdgeNormals(void);
+  int CalcControlVolumeArea(void);
 
 public:
 //	Mesh(); //constructor
@@ -70,6 +71,9 @@ public:
   // Array to store the midpoint normal vectors to each side of the control
   // volume surroinding the central node
   Array3D<double> control_vol_edge_normal_map;
+
+  // Array to store the area of the control volume for each node
+  Array1D<double> control_volume_surf_area_map;
 
 
 	Globals * globals;

@@ -28,10 +28,12 @@ Mesh::Mesh(Globals * Globals, int N)
    control_vol_edge_len(N,6),
    control_vol_edge_centre_pos_map(N,6,2),
    control_vol_edge_centre_m(N,6),
-   control_vol_edge_normal_map(N,6,2)
+   control_vol_edge_normal_map(N,6,2),
+   control_volume_surf_area_map(N)
 {
 
 	globals = Globals;                   // define reference to all constants
+
 
   // Read in grid file
   ReadMeshFile();
@@ -48,7 +50,11 @@ Mesh::Mesh(Globals * Globals, int N)
   // Find control volume edge midpoints in mapping coords
   CalcControlVolumeEdgeCentres();
 
+  // Find control volume edge outward normal unit vectors
   CalcControlVolumeEdgeNormals();
+
+  // Find control volume area for each node
+  CalcControlVolumeArea();
 
 };
 
@@ -324,6 +330,51 @@ int Mesh::CalcControlVolumeEdgeNormals(void)
   return 1;
 };
 
+// Function to find the area of each node's control volume. THe function loops
+// over each pair of centroids belonging to a node, while summing the area of
+// each triangle to find the total area of the hexagon or pentagon.
+int Mesh::CalcControlVolumeArea(void)
+{
+  int i, j, node_num, f, friend_num;
+  double * x1, * y1, * x2, * y2, * xc, * yc, *t_area, area;
+
+  node_num = globals->node_num;
+
+  for (i=0; i<node_num; i++)
+  {
+
+    f = node_friends(i,5);
+
+    friend_num = 6;                                     // Assume hexagon (6 centroids)
+    if (f == -1) {
+      friend_num = 5;                                   // Check if pentagon (5 centroids)
+    }
+
+    xc = &node_pos_map(i,0,0);                          // set pointer to edge length array
+    yc = &node_pos_map(i,0,1);
+
+    t_area = &control_volume_surf_area_map(i);
+
+    area = 0.0;
+    for (j=0; j<friend_num; j++)                        // Loop through all centroids in the control volume
+    {
+      f = node_friends(i,j);
+
+      x1 = &centroid_pos_map(i, j, 0);                  // set map coords for first centroid
+      y1 = &centroid_pos_map(i, j, 1);
+
+      x2 = &centroid_pos_map(i, (j+1)%friend_num, 0);   // set map coords for second centroid
+      y2 = &centroid_pos_map(i, (j+1)%friend_num, 1);   // automatically loops around using %
+
+      triangularArea(*t_area, *xc, *yc, *x1, *x2, *y1, *y2);     // calculate center coords between the two centroids.
+                                                        // xc and yc automatically assigned the coords
+      area += *t_area;
+    }
+    control_volume_surf_area_map(i) = area;
+  }
+
+  return 1;
+}
 
 // Function to read in text file containing mesh information
 // The four pieces of information read and stored are:
