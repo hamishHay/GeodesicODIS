@@ -48,6 +48,17 @@ inline void velTransform(double &cos_a, double &sin_a, double &lat1, double &lat
   sin_a /= (1.0 + sin(lat1)*sin(lat2) + cos(lat1)*cos(lat2)*cos(lon2-lon1));
 }
 
+inline void distanceBetween(double &, double &, double &, double &, double &);
+inline void distanceBetween(double &len, double &x1, double &x2, double &y1, double &y2)
+{
+  double xx, yy;
+
+  xx = x2 - x1;
+  yy = y2 - y1;
+
+  len = sqrt(xx*xx + yy*yy);
+}
+
 //
 // double arcLength(double lat1, double lat2, double lon1, double lon2);
 //
