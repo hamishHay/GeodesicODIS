@@ -5,14 +5,15 @@
 // #include "solver.h"
 #include "mesh.h"
 #include <math.h>
+#include <iostream>
 
 // Mapping function from Lee and Macdonald (2009) to get to GSTC
 // Returns a mapping factor that is used appy curvature to the local system of
 // equations.
-inline double mapFactorAtPoint(double, double, double, double);
-inline double mapFactorAtPoint(double lat1, double lat2, double lon1, double lon2)
+inline void mapFactorAtPoint(double &, double, double, double, double);
+inline void mapFactorAtPoint(double &m, double lat1, double lat2, double lon1, double lon2)
 {
-  return 2.0 / (1.0 + sin(lat1)*sin(lat2) + cos(lat1)*cos(lat2)*cos(lon2 - lon1));
+  m = 2.0 / (1.0 + sin(lat1)*sin(lat2) + cos(lat1)*cos(lat2)*cos(lon2 - lon1));
 }
 
 // Mapping function from Lee and Macdonald (2009) to get to GSTC.
@@ -22,7 +23,7 @@ inline double mapFactorAtPoint(double lat1, double lat2, double lon1, double lon
 inline void mapAtPoint(double &, double &, double &, double &, double &, double &, double &, double &);
 inline void mapAtPoint(double &m, double &x, double &y, double &lat1, double &lat2, double &lon1, double &lon2, double &r)
 {
-  m = mapFactorAtPoint(lat1, lat2, lon1, lon2);
+  mapFactorAtPoint(m, lat1, lat2, lon1, lon2);
 
   x = m * r * (cos(lat2)*sin(lon2-lon1));
 
@@ -57,6 +58,13 @@ inline void distanceBetween(double &len, double &x1, double &x2, double &y1, dou
   yy = y2 - y1;
 
   len = sqrt(xx*xx + yy*yy);
+}
+
+inline void midpointBetween(double &, double &, double &, double &, double &, double &);
+inline void midpointBetween(double &xc, double &yc, double &x1, double &x2, double &y1, double &y2)
+{
+  xc = 0.5 * (x1 + x2);
+  yc = 0.5 * (y1 + y2);
 }
 
 //
