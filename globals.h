@@ -38,7 +38,7 @@
 // here
 const double pi = 3.1415926535897932384626433832795028841971693993751058;
 const double radConv = pi / 180.0; // global constant for converting deg --> rad
-const int PATH = 512; // global int for number of characters in the system path
+const int PATH = 1028; // global int for number of characters in the system path
 
 enum Friction { LINEAR, QUADRATIC }; // enumerate for drag type, selected by user
 
