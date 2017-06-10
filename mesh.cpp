@@ -6,6 +6,7 @@
 #include "array3d.h"
 #include "mathRoutines.h"
 
+
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -42,6 +43,7 @@ Mesh::Mesh(Globals * Globals, int N)
 
     globals = Globals;                   // define reference to all constants
 
+    node_num = globals->node_num;
 
     // Read in grid file
     ReadMeshFile();
@@ -69,7 +71,6 @@ Mesh::Mesh(Globals * Globals, int N)
 
     // Evaluate trig functions at every node
     CalcTrigFunctions();
-
 };
 
 // Function to calculate the cosine(alpha) and sine(alpha) velocity tranform
@@ -78,11 +79,9 @@ Mesh::Mesh(Globals * Globals, int N)
 // integration.
 int Mesh::CalcVelocityTransformFactors(void)
 {
-    int i, j, node_num, f;
+    int i, j, f;
     double * cos_a, * sin_a;
     double lat1, lat2, lon1, lon2;
-
-    node_num = globals->node_num;
 
     for (i=0; i<node_num; i++)
     {
@@ -127,11 +126,10 @@ int Mesh::CalcVelocityTransformFactors(void)
 // node mapping factors, and centroid mapping factors.
 int Mesh::CalcMappingCoords(void)
 {
-    int i, j, node_num, f;
+    int i, j, f;
     double * x, * y, * m, r;
     double lat1, lat2, lon1, lon2;
 
-    node_num = globals->node_num;
     r = globals->radius.Value();
 
     for (i=0; i<node_num; i++)
@@ -210,10 +208,8 @@ int Mesh::CalcMappingCoords(void)
 // coordinates. Values are stored in control_vol_edge_len 2D array.
 int Mesh::CalcControlVolumeEdgeLengths(void)
 {
-    int i, j, node_num, f, friend_num;
+    int i, j, f, friend_num;
     double * x1, * y1, * x2, * y2, * edge_len;
-
-    node_num = globals->node_num;
 
     for (i=0; i<node_num; i++)
     {
@@ -251,11 +247,9 @@ int Mesh::CalcControlVolumeEdgeLengths(void)
 // array.
 int Mesh::CalcControlVolumeEdgeCentres(void)
 {
-    int i, j, node_num, f, friend_num;
+    int i, j, f, friend_num;
     double * x1, * y1, * x2, * y2, * xc, * yc, * m;
     double lat1, lat2, lon1, lon2;
-
-    node_num = globals->node_num;
 
     for (i=0; i<node_num; i++)
     {
@@ -305,10 +299,8 @@ int Mesh::CalcControlVolumeEdgeCentres(void)
 // array.
 int Mesh::CalcControlVolumeEdgeNormals(void)
 {
-    int i, j, node_num, f, friend_num;
+    int i, j, f, friend_num;
     double * x1, * y1, * x2, * y2, * xn, * yn;
-
-    node_num = globals->node_num;
 
     for (i=0; i<node_num; i++)
     {
@@ -349,10 +341,8 @@ int Mesh::CalcControlVolumeEdgeNormals(void)
 // each triangle to find the total area of the hexagon or pentagon.
 int Mesh::CalcControlVolumeArea(void)
 {
-    int i, j, node_num, f, friend_num;
+    int i, j, f, friend_num;
     double * x1, * y1, * x2, * y2, * xc, * yc, *t_area, area;
-
-    node_num = globals->node_num;
 
     for (i=0; i<node_num; i++)
     {
@@ -395,10 +385,8 @@ int Mesh::CalcControlVolumeArea(void)
 // friend. Values are stored in node_friend_element_areas_map
 int Mesh::CalcElementAreas(void)
 {
-    int i, j, k, as, ae, node_num, f, friend_num;
+    int i, j, k, as, ae, f, friend_num;
     double * x1, * y1, * x2, * y2, * xc, * yc, *t_area;
-
-    node_num = globals->node_num;
 
     for (i=0; i<node_num; i++)
     {
@@ -454,10 +442,8 @@ int Mesh::CalcElementAreas(void)
 // every node.
 int Mesh::CalcTrigFunctions(void)
 {
-    int i, node_num;
+    int i;
     double lat, lon;
-
-    node_num = globals->node_num;
 
     for (i=0; i<node_num; i++)
     {

@@ -11,7 +11,6 @@
 class Mesh {
 private:
   int ReadMeshFile(void);
-  // int InitializeArrays(void);
   int CalcMappingCoords(void);
   int CalcVelocityTransformFactors(void);
   int CalcControlVolumeEdgeLengths(void);
@@ -27,6 +26,8 @@ public:
   Mesh(Globals *, int);
 
   std::ostringstream outstring;
+
+  int node_num;
 
   // Each row in node_pos_sph represents the lat,lon coords of node. Node ID 5
   // corresponds to node_pos_sph(5,x).
