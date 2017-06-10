@@ -22,11 +22,10 @@
 */
 void deg2Ecc(Mesh * grid, double simulationTime, double radius, double omega, double ecc) {
     double cosM, sinM, factor;              // cos(Mean anomaly), sin(Mean anomaly)
-    Array2D<double> * trig2Lat, * trigSqLat;
-    Array2D<double> * trig2Lon;           // Pointer to 1D arrays for trig functions of latitude
-    // double * cos2Lon, * sin2Lon;            // Pointer to 1D arrays for trig functions of longitude
-    // double ** latGrad, ** lonGrad;          // Pointer to 2D array solutions
+    double * sin2Lat, * sin2Lon, *cos2Lon;
+    double * cosSqLat;
     int i, node_num;
+    double val;
 
     node_num = grid->node_num;
 
@@ -34,42 +33,45 @@ void deg2Ecc(Mesh * grid, double simulationTime, double radius, double omega, do
     cosM = cos(omega*simulationTime);
     sinM = sin(omega*simulationTime);
 
-    trig2Lat = &(grid->trig2Lat);
-    trig2Lon = &(grid->trig2Lon);
-
-
-    double * sin2Lat, * sin2Lon, *cos2Lon;
-    // double * cosSqLat,
-    double val;
-
+    // Assign pointers to start of trig node arrays
     sin2Lat = &(grid->trig2Lat(0,1));
     sin2Lon = &(grid->trig2Lon(0,1));
     cos2Lon = &(grid->trig2Lon(0,0));
 
     // Solve for dUdlat
     for (i=0; i<node_num; i++) {
-
+        // calculate potential gradient in latitude
         val = -factor*0.75*(*sin2Lat)
               *(3.*cosM*(1.+(*cos2Lon))
               + 4*sinM*(*sin2Lon));
 
-      sin2Lat += 2; //&(grid->trig2Lat(i,1));
-      sin2Lon += 2; //&(grid->trig2Lon(i,1));
-      cos2Lon += 2;//&(grid->trig2Lon(i,0));
-        // std::cout<<val<<std::endl;
-
+        // Use pointer artithmetic to move to next memory address
+        // in trig arrays. This appears much faster than manually
+        // assigning the pointers themselves. Perhaps the compiler
+        // would optimize this anyway?
+        sin2Lat += 2;
+        sin2Lon += 2;
+        cos2Lon += 2;
     }
 
+    // Assign pointers to start of trig node arrays
+    cosSqLat = &(grid->trigSqLat(0,0));
+    cos2Lon = &(grid->trig2Lon(0,0));
+    sin2Lon = &(grid->trig2Lon(0,1));
 
+    // Solve for dUdlon
+    for (i=0; i<node_num; i++) {
+        // calculate potential gradient in longitude
+        val = factor* 1.5 * (*cosSqLat)
+                        * (4.*sinM * (*cos2Lon)
+                        - 3.*cosM * (*sin2Lon));
 
-    // // Solve for dUdlon
-    // for (i=0; i<latLen; i++) {
-    //     for (j=0; j<lonLen; j++) {
-    //         lonGrad[i][j] = factor* 1.5 * cosSqLat[i]
-    //                         * (4.*sinM * cos2Lon[j]
-    //                         - 3.*cosM * sin2Lon[j]);
-    //     }
-    // }
+        // Pointer artithmetic
+        cosSqLat += 2;
+        cos2Lon += 2;
+        sin2Lon += 2;
+    }
+
 };
 
 // OLD VERSION ----------------------------------------------------------------
