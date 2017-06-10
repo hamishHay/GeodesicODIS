@@ -27,12 +27,14 @@
 */
 
 #include "mesh.h"
-#include "field.h"
-#include "depth.h"
+// #include "field.h"
+// #include "depth.h"
 #include "globals.h"
-#include "solver.h"
-#include "mass.h"
-#include "energy.h"
+// #include "solver.h"
+// #include "mass.h"
+// #include "energy.h"
+#include "tidalPotentials.h"
+
 
 #include <iostream>
 
@@ -49,6 +51,14 @@ int main(void)
 
   Mesh * grid = new Mesh(constants, constants->node_num);
 
+
+  std::cout<<"Mesh generated"<<std::endl;
+  int count = 0;
+  while (count < 10000)
+  {
+    deg2Ecc(grid, 0.0, 252.1e3, 4e-5, 0.0047);
+    count++;
+  }
   // Allocate the solvable "Fields". These are all the quantities which ODIS aims
   // to calculate a solution for (velocity and surface displacement), as well as
   // the tidal forcing components. Each field is allocated to a particular node

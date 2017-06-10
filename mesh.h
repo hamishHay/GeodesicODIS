@@ -11,20 +11,23 @@
 class Mesh {
 private:
   int ReadMeshFile(void);
-  // int InitializeArrays(void);
   int CalcMappingCoords(void);
   int CalcVelocityTransformFactors(void);
   int CalcControlVolumeEdgeLengths(void);
   int CalcControlVolumeEdgeCentres(void);
   int CalcControlVolumeEdgeNormals(void);
   int CalcControlVolumeArea(void);
+  int CalcElementAreas(void);
+  int CalcTrigFunctions(void);
 
 public:
 //	Mesh(); //constructor
   Mesh(Globals *);
   Mesh(Globals *, int);
 
-	std::ostringstream outstring;
+  std::ostringstream outstring;
+
+  int node_num;
 
   // Each row in node_pos_sph represents the lat,lon coords of node. Node ID 5
   // corresponds to node_pos_sph(5,x).
@@ -75,8 +78,18 @@ public:
   // Array to store the area of the control volume for each node
   Array1D<double> control_volume_surf_area_map;
 
+  // Array to store the triangular areas within each subelement.
+  Array3D<double> node_friend_element_areas_map;
 
-	Globals * globals;
+  // Arrays to store trig functions evaluated at each node
+  Array2D<double> trigLat;
+  Array2D<double> trigLon;
+  Array2D<double> trig2Lat;
+  Array2D<double> trig2Lon;
+  Array2D<double> trigSqLat;
+  Array2D<double> trigSqLon;
+
+  Globals * globals;
 
 };
 
