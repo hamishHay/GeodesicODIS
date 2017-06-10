@@ -38,74 +38,30 @@ void deg2Ecc(Mesh * grid, double simulationTime, double radius, double omega, do
     trig2Lon = &(grid->trig2Lon);
 
 
-    // double * sin2Lat, * sin2Lon, *cos2Lon;
-    double sin2Lat, sin2Lon,cos2Lon;
+    double * sin2Lat, * sin2Lon, *cos2Lon;
+    // double * cosSqLat,
     double val;
+
+    sin2Lat = &(grid->trig2Lat(0,1));
+    sin2Lon = &(grid->trig2Lon(0,1));
+    cos2Lon = &(grid->trig2Lon(0,0));
+
     // Solve for dUdlat
     for (i=0; i<node_num; i++) {
-        val = -factor*0.75*(*trig2Lat)(i,1)
-              *(3.*cosM*(1.+(*trig2Lon)(i,0))
-              + 4*sinM*(*trig2Lon)(i,1));
+
+        val = -factor*0.75*(*sin2Lat)
+              *(3.*cosM*(1.+(*cos2Lon))
+              + 4*sinM*(*sin2Lon));
+
+      sin2Lat += 2; //&(grid->trig2Lat(i,1));
+      sin2Lon += 2; //&(grid->trig2Lon(i,1));
+      cos2Lon += 2;//&(grid->trig2Lon(i,0));
+        // std::cout<<val<<std::endl;
+
     }
 
-    // for (i=0; i<node_num; i++) {
-    //     sin2Lat = &(grid->trig2Lat(i,1));
-    //     sin2Lon = &(grid->trig2Lon(i,1));
-    //     cos2Lon = &(grid->trig2Lon(i,0));
-    //
-    //     val = -factor*0.75*(*sin2Lat)
-    //           *(3.*cosM*(1.+(*cos2Lon))
-    //           + 4*sinM*(*sin2Lon));
-    // }
-    //
-    // for (i=0; i<node_num; i++) {
-    //     sin2Lat = grid->trig2Lat(i,1);
-    //     sin2Lon = grid->trig2Lon(i,1);
-    //     cos2Lon = grid->trig2Lon(i,0);
-    //
-    //     val = -factor*0.75*sin2Lat
-    //           *(3.*cosM*(1.+cos2Lon)
-    //           + 4*sinM*sin2Lon);
-    // }
 
-    // // Solve for dUdlat
-    // for (i=0; i<latLen; i++) {
-    //     latGrad[i][j] = -factor*0.75*sin2Lat[i]
-    //                     *(3.*cosM*(1.+cos2Lon[j])
-    //                     + 4*sinM*sin2Lon[j]);
-    // }
-    //
-    // std::cout<<(*trig2Lat)(1,1)<<std::endl;
-    // std::cout<<trig2Lat->(1,1)<<std::endl;
-    // Get pointer to arrays
-    // latGrad = DUlat->solution;
-    // lonGrad = DUlon->solution;
-    //
-    // // Set variables for dUlat solution
-    // latLen = DUlat->fieldLatLen;
-    // lonLen = DUlat->fieldLonLen;
-    //
-    // sin2Lat = DUlat->sin2Lat;
-    // cos2Lon = DUlat->cos2Lon;
-    // sin2Lon = DUlat->sin2Lon;
 
-    // // Solve for dUdlat
-    // for (i=0; i<latLen; i++) {
-    //     for (j=0; j<lonLen; j++) {
-    //         latGrad[i][j] = -factor*0.75*sin2Lat[i]
-    //                         *(3.*cosM*(1.+cos2Lon[j])
-    //                         + 4*sinM*sin2Lon[j]);
-    //         }
-    // }
-    //
-    // // Set variable for dUlon solution
-    // latLen = DUlon->fieldLatLen;
-    // lonLen = DUlon->fieldLonLen;
-    //
-    // cosSqLat = DUlon->cosSqLat;
-    // sin2Lon = DUlon->sin2Lon;
-    // cos2Lon = DUlon->cos2Lon;
-    //
     // // Solve for dUdlon
     // for (i=0; i<latLen; i++) {
     //     for (j=0; j<lonLen; j++) {
