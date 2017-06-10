@@ -92,7 +92,8 @@ inline void normalVectorBetween(double &xn, double &yn, double &x1, double &x2, 
 inline void triangularArea(double &, double &, double &, double &, double &, double &, double &);
 inline void triangularArea(double &area, double &xc, double &yc, double &x1, double &x2, double &y1, double &y2)
 {
-  area = 0.5 * fabs((xc - x2)*(y1 - yc) - (xc - x1)*(y2 - yc));
+  // area = 0.5 * fabs((xc - x2)*(y1 - yc) - (xc - x1)*(y2 - yc));
+  area = 0.5 * fabs(xc*(y1 - y2) + x1*(y2-yc) + x2*(yc-y1));
 }
 
 //
