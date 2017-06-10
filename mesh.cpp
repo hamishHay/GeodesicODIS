@@ -17,20 +17,27 @@
 //Mesh::Mesh():Mesh(2., 2.) {}; //default constructor
 
 Mesh::Mesh(Globals * Globals, int N)
-:node_pos_sph(N,2),
-node_pos_map(N,7,2),        // len 7 to include central node coords (even though it's zero)
-node_friends(N,6),
-centroid_pos_sph(N,6,2),
-centroid_pos_map(N,6,2),
-node_m(N,7),                // len 7 to include central (parent) node
-centroid_m(N,6),            // len 6 as there is are only 5 or 6 centroids
-node_vel_trans(N,7,2),      // In the last dimension, element 1 is cos_a, element 2 is sin_a
-control_vol_edge_len(N,6),
-control_vol_edge_centre_pos_map(N,6,2),
-control_vol_edge_centre_m(N,6),
-control_vol_edge_normal_map(N,6,2),
-control_volume_surf_area_map(N),
-node_friend_element_areas_map(N,6,2)
+   :node_pos_sph(N,2),
+    node_pos_map(N,7,2),        // len 7 to include central node coords (even though it's zero)
+    node_friends(N,6),
+    centroid_pos_sph(N,6,2),
+    centroid_pos_map(N,6,2),
+    node_m(N,7),                // len 7 to include central (parent) node
+    centroid_m(N,6),            // len 6 as there is are only 5 or 6 centroids
+    node_vel_trans(N,7,2),      // In the last dimension, element 1 is cos_a, element 2 is sin_a
+    control_vol_edge_len(N,6),
+    control_vol_edge_centre_pos_map(N,6,2),
+    control_vol_edge_centre_m(N,6),
+    control_vol_edge_normal_map(N,6,2),
+    control_volume_surf_area_map(N),
+    node_friend_element_areas_map(N,6,2),
+
+    trigLat(N,2),
+    trigLon(N,2),
+    trig2Lat(N,2),
+    trig2Lon(N,2),
+    trigSqLat(N,2),
+    trigSqLon(N,2)
 {
 
     globals = Globals;                   // define reference to all constants
@@ -58,7 +65,10 @@ node_friend_element_areas_map(N,6,2)
     CalcControlVolumeArea();
 
     // Find the area of each sub triangle within each element
-    CalculateElementAreas();
+    CalcElementAreas();
+
+    // Evaluate trig functions at every node
+    CalcTrigFunctions();
 
 };
 
@@ -383,7 +393,7 @@ int Mesh::CalcControlVolumeArea(void)
 // Function to fine the areas of each subelement. Each subelement is a triangle
 // subtended by the central node, one friend, and the centroid belonging to the
 // friend. Values are stored in node_friend_element_areas_map
-int Mesh::CalculateElementAreas(void)
+int Mesh::CalcElementAreas(void)
 {
     int i, j, k, as, ae, node_num, f, friend_num;
     double * x1, * y1, * x2, * y2, * xc, * yc, *t_area;
@@ -435,6 +445,42 @@ int Mesh::CalculateElementAreas(void)
 
             }
         }
+    }
+
+    return 1;
+};
+
+// Function to evaluate trigonometric functions over latitude and longitude for
+// every node.
+int Mesh::CalcTrigFunctions(void)
+{
+    int i, node_num;
+    double lat, lon;
+
+    node_num = globals->node_num;
+
+    for (i=0; i<node_num; i++)
+    {
+        lat = node_pos_sph(i, 0);
+        lon = node_pos_sph(i, 1);
+
+        trigLat(i,0) = cos(lat);
+        trigLat(i,1) = sin(lat);
+
+        trigLon(i,0) = cos(lon);
+        trigLon(i,1) = sin(lon);
+
+        trig2Lat(i,0) = cos(2.0 * lat);
+        trig2Lat(i,1) = sin(2.0 * lat);
+
+        trig2Lon(i,0) = cos(2.0 * lon);
+        trig2Lon(i,1) = sin(2.0 * lon);
+
+        trigSqLat(i,0) = pow(cos(lat), 2.0);
+        trigSqLat(i,1) = pow(sin(lat), 2.0);
+
+        trigSqLon(i,0) = pow(cos(lon), 2.0);
+        trigSqLon(i,1) = pow(sin(lon), 2.0);
     }
 
     return 1;
