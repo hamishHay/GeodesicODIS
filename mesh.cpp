@@ -492,7 +492,7 @@ int Mesh::ReadMeshFile(void)
     if (gridFile.is_open())
     {
         outstring << "Found mesh file: " + file_str << std::endl;
-        globals->Output.Write(OUT_MESSAGE, &outstring);
+        globals->Output->Write(OUT_MESSAGE, &outstring);
 
         std::getline(gridFile, line);                               // READ HEADER
         while (std::getline(gridFile, line))
@@ -557,8 +557,8 @@ int Mesh::ReadMeshFile(void)
     else
     {
         outstring << "ERROR: GRID FILE NOT FOUND AT " + file_str << std::endl;
-        globals->Output.Write(ERR_MESSAGE, &outstring);
-        globals->Output.TerminateODIS();
+        globals->Output->Write(ERR_MESSAGE, &outstring);
+        globals->Output->TerminateODIS();
     }
 
     return 1;
