@@ -6,7 +6,11 @@
 #include <string>
 #include <sstream>
 
+#include "globals.h"
+
 enum mess_type{ OUT_MESSAGE, ERR_MESSAGE, GRID_MESSAGE };
+
+class Globals;        // Forward declare globals class
 
 class OutFiles {
 private:
@@ -30,6 +34,8 @@ public:
 	void WelcomeMessage(void);
 
 	void TerminateODIS(void);
+
+  void CreateHDF5Framework(Globals *);
 
 };
 

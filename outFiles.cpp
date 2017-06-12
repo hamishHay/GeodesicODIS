@@ -17,6 +17,7 @@
 #include "outFiles.h"
 #include "globals.h"
 #include <sstream>
+#include <vector>
 
 OutFiles::OutFiles() {
 	char buffer[PATH];
@@ -122,4 +123,20 @@ void OutFiles::TerminateODIS(void) {
 void OutFiles::ClearSStream(std::ostringstream * sstream) {
 	(*sstream).str(std::string());
 	(*sstream).clear();
-}
+};
+
+
+void OutFiles::CreateHDF5Framework(Globals * globals)
+{
+  std::vector<std::string> tags;
+  unsigned int i, size;
+
+  tags = globals->out_tags;
+
+  size = tags.size();
+
+  for (i=0; i<size; i++)
+  {
+    std::cout<<tags[i]<<std::endl;
+  }
+};
