@@ -128,6 +128,9 @@ Globals::Globals(int action) {
     friction.SetStringID("friction type");
     allGlobals.push_back(&friction);
 
+    solver.SetStringID("solver type");
+    allGlobals.push_back(&solver);
+
     init.SetStringID("initial conditions");
     allGlobals.push_back(&init);
 
@@ -173,7 +176,15 @@ Globals::Globals(int action) {
   if (friction.Value() == "LINEAR") fric_type = LINEAR;
   else if (friction.Value() == "QUADRATIC") fric_type = QUADRATIC;
   else {
-    outstring << "No friction type found." << std::endl;
+    outstring << "ERROR: NO DRAG MODEL FOUND!" << std::endl;
+    Output->Write(ERR_MESSAGE, &outstring);
+    Output->TerminateODIS();
+  }
+
+  if (solver.Value() == "EULER") solver_type = EULER;
+  else if (solver.Value() == "AB3") solver_type = AB3;
+  else {
+    outstring << "ERROR: NO SOLVER FOUND!" << std::endl;
     Output->Write(ERR_MESSAGE, &outstring);
     Output->TerminateODIS();
   }

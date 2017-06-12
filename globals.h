@@ -44,6 +44,8 @@ const int PATH = 1028; // global int for number of characters in the system path
 
 enum Friction { LINEAR, QUADRATIC }; // enumerate for drag type, selected by user
 
+enum Solver { EULER, AB3 };
+
 //Class stores all global values
 class Globals {
 private:
@@ -62,6 +64,7 @@ public:
   std::vector<IGlobalVar *> allGlobals;
 
   Friction fric_type;
+  Solver solver_type;
 
   // Stringstream for composing outgoing messages, which is then passed to Output.
   std::ostringstream outstring;
@@ -97,6 +100,7 @@ public:
   GlobalVar<double> endTime; // maximum simulation run time
   GlobalVar<std::string> potential; // string for tidal potential type
   GlobalVar<std::string> friction; // string for drag type
+  GlobalVar<std::string> solver; // string for type of time sovler
   GlobalVar<bool> init; // boolean for using initial conditions
   GlobalVar<double> converge; // convergence criteria for ODIS.
 
