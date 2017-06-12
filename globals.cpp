@@ -104,8 +104,8 @@ Globals::Globals(int action) {
     alpha.SetStringID("friction coefficient");
     allGlobals.push_back(&alpha);
 
-		l_max.SetStringID("sh degree");
-		allGlobals.push_back(&l_max);
+	l_max.SetStringID("sh degree");
+	allGlobals.push_back(&l_max);
 
     dLat.SetStringID("latitude spacing");     //TODO remove
     allGlobals.push_back(&dLat);
@@ -166,6 +166,8 @@ Globals::Globals(int action) {
 
   // geodesic node num expression (Lee and Macdonald, 2008)
   node_num = 10 * pow(pow(2, geodesic_l.Value() - 1), 2) + 2;
+
+  Output->CreateHDF5Framework(this);
 
   // identify friction type and select the corresponding enum value.
   if (friction.Value() == "LINEAR") fric_type = LINEAR;
@@ -319,8 +321,6 @@ int Globals::ReadGlobals(void)
     Output->Write(ERR_MESSAGE, &outstring);
     Output->TerminateODIS();
   }
-
-  Output->CreateHDF5Framework(this);
 
   return 0;
 };
