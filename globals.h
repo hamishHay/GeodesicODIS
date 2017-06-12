@@ -34,6 +34,8 @@
 #include "globalVar.h"
 #include "outFiles.h"
 
+class OutFiles;           // Forward declare OutFiles class
+
 // define pi here - c++ has no built in value of pi, so it is explicitly defined
 // here
 const double pi = 3.1415926535897932384626433832795028841971693993751058;
@@ -52,7 +54,7 @@ private:
 public:
   // Class containing functions to output errors and messages, or terminate ODIS.
 
-  OutFiles Output;
+  OutFiles * Output;
 
   // Vector to store a 'list' of all global constants.
   // Note that it stores the template IGlobalVar pointer rather than GlobalVar.
@@ -66,6 +68,9 @@ public:
 
   // string to store path of current simulation.
   std::string path;
+
+  // string for each output tag
+  std::vector<std::string> out_tags;
 
   // character array for identical string from 'path'
   char cpath[PATH];
