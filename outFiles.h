@@ -20,6 +20,8 @@ private:
 	std::ofstream output;
 	std::ofstream error;
 
+    int node_num;
+
 	void WriteMessage(std::ostringstream * sstream);
 	void WriteError(std::ostringstream * sstream);
 
@@ -29,6 +31,8 @@ public:
 	std::string path;
 	std::string dataPath;
 
+    std::vector<std::string> * tags;
+
 	OutFiles();
 
 	void Write(mess_type message, std::ostringstream * sstream);
@@ -37,6 +41,8 @@ public:
 	void TerminateODIS(void);
 
   void CreateHDF5Framework(Globals *);
+
+  void DumpData(Globals *, int, double **);
 
   //------------------------Objects for HDF5 Storage----------------------------
 

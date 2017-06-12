@@ -136,12 +136,12 @@ void OutFiles::ClearSStream(std::ostringstream * sstream) {
 
 void OutFiles::CreateHDF5Framework(Globals * globals)
 {
-  std::vector<std::string> tags;
-  unsigned int i, size, node_num, l_max;
+
+  unsigned int i, size, l_max;
   double end_time, orbit_period, output_time;
 
-  tags = globals->out_tags;
-  size = tags.size();
+  tags = &globals->out_tags;
+  size = tags->size();
   node_num = globals->node_num;
   l_max = globals->l_max.Value();
 
@@ -162,10 +162,10 @@ void OutFiles::CreateHDF5Framework(Globals * globals)
   #endif
 
     // eta_1D
-    // eta_1D = new float[node_num];
-    // v_1D = new float[node_num];
-    // u_1D = new float[node_num];
-    // diss_1D = new float[node_num];
+    eta_1D = new float[node_num];
+    v_1D = new float[node_num];
+    u_1D = new float[node_num];
+    diss_1D = new float[node_num];
     // diss_avg_1D = new float[1];
     // harm_coeff_1D = new float[2*(l_max+1)*(l_max+1)];
 
@@ -342,6 +342,228 @@ void OutFiles::CreateHDF5Framework(Globals * globals)
     //     data_set_dx[1] = (float)etadLon*1.0/radConv;
     //
     //     H5Awrite(attr, H5T_NATIVE_FLOAT, data_set_dx);
+    // }
+
+};
+
+void OutFiles::DumpData(Globals * globals, int time_level, double ** data)
+{
+    std::string out = std::to_string(time_level);
+    unsigned int i, j;
+    double * p;
+
+
+    start[0] = time_level - 1;
+    start[1] = 0;
+
+    count[0] = 1;
+
+
+    // double factor = 0;
+    //
+    // switch (consts->fric_type) {
+    // case LINEAR:
+    //     factor = consts->alpha.Value();
+    //     break;
+    //
+    // case QUADRATIC:
+    //     factor = consts->alpha.Value()/consts->h.Value();
+    //     break;
+    // }
+    //
+    //
+    // //-----------------Unravel solutions into 1D arrays---------------------------
+    //
+    // for (int i=0; i<etaLatLen; i++) {
+    //     for (int j=0; j<etaLonLen; j++) {
+    //         eta_1D[i*etaLonLen + j] = (float)etaNewArray[i][j];
+    //         //eta_1D[i*etaLonLen + j] = (float)depthArray[i*2][j*2];
+    //         // std::cout<<eta_1D[i*etaLonLen + j]<<std::endl;
+    //     }
+    // }
+    //
+
+
+    for (j=0; j<tags->size(); j++)
+    {
+        p = data[j];
+        if ((*tags)[j] == "velocity output")
+        {
+            for (i=0; i<node_num; i++) {
+                u_1D[i] = (float)(*p);
+                p++;
+
+                v_1D[i] = (float)(*p);
+                p++;
+            }
+
+            count[1] = node_num;
+
+            H5Sselect_hyperslab(data_space_u, H5S_SELECT_SET, start, NULL, count, NULL);
+            H5Dwrite(data_set_u, H5T_NATIVE_FLOAT, mem_space_u, data_space_u, H5P_DEFAULT, u_1D);
+
+            count[1] = node_num;
+
+            H5Sselect_hyperslab(data_space_v, H5S_SELECT_SET, start, NULL, count, NULL);
+            H5Dwrite(data_set_v, H5T_NATIVE_FLOAT, mem_space_v, data_space_v, H5P_DEFAULT, v_1D);
+        }
+
+        else if ((*tags)[j] == "displacement output")
+        {
+
+            for (i=0; i<node_num; i++) {
+                eta_1D[i] = (float)(*p);
+                p++;
+            }
+
+            count[1] = node_num;
+
+            H5Sselect_hyperslab(data_space_eta, H5S_SELECT_SET, start, NULL, count, NULL);
+            H5Dwrite(data_set_eta, H5T_NATIVE_FLOAT, mem_space_eta, data_space_eta, H5P_DEFAULT, eta_1D);
+        }
+
+        else if ((*tags)[j] == "dissipation output")
+        {
+
+            for (i=0; i<node_num; i++) {
+                diss_1D[i] = (float)(*p);
+                p++;
+            }
+
+            count[1] = node_num;
+
+            H5Sselect_hyperslab(data_space_diss, H5S_SELECT_SET, start, NULL, count, NULL);
+            H5Dwrite(data_set_diss, H5T_NATIVE_FLOAT, mem_space_diss, data_space_diss, H5P_DEFAULT, diss_1D);
+        }
+    }
+    //
+    // for (int i=0; i<vLatLen; i++) {
+    //     for (int j=0; j<vLonLen; j++) {
+    //         v_1D[i*vLonLen + j] = (float)vNewArray[i][j];
+    //     }
+    // }
+    // double cd = 0.0;
+    // for (int i=0; i<etaLatLen; i++) {
+    //     i_h = i*2;
+    //     for (int j=0; j<etaLonLen; j++) {
+    //         j_h = j*2;
+    //         switch (consts->fric_type) {
+    //             case QUADRATIC:
+    //               cd = cdArray[i_h][j_h];
+    //               //std::cout<<cd;
+    //               if (cd <= 0.0 || depthArray[i_h][j_h] <= 0.0) diss_1D[i*etaLonLen + j] = 0.0;
+    //               else diss_1D[i*etaLonLen + j] = (float)energy->solution[i][j]*2.0*cd/(energy->cellArea[i][j]*depthArray[i_h][j_h]);
+    //               break;
+    //             case LINEAR:
+    //               diss_1D[i*etaLonLen + j] = (float)energy->solution[i][j]*2.0*consts->alpha.Value()/energy->cellArea[i][j];
+    //               break;
+    //
+    //         // if (!(depthArray[i_h][j_h] > 0.0)) diss_1D[i*etaLonLen + j] = 0.0;
+    //         //std::cout<<energy->solution[i][j]*cd<<std::endl;
+    //         }
+    //     }
+    // }
+    //
+    //
+    // for (int i=0; i<l_max+1; i++)
+    // {
+    //     for (int j=0; j<l_max+1; j++)
+    //     {
+    //         // harm_coeff_1D[i*harm_cols + j] = (float)SH_cos_coeff[i][j];
+    //         harm_coeff_1D[i*harm_cols + j] = (float)SH_cos_coeff[i*(l_max+1) + j];
+    //     }
+    // }
+    //
+    // for (int i=0; i<l_max+1; i++)
+    // {
+    //     for (int j=0; j<l_max+1; j++)
+    //     {
+    //         // harm_coeff_1D[(l_max+1)*(l_max+1) + i*harm_cols + j] = (float)SH_sin_coeff[i][j];
+    //         harm_coeff_1D[(l_max+1)*(l_max+1) + i*harm_cols + j] = (float)SH_sin_coeff[i*(l_max+1) + j];
+    //     }
+    // }
+    //
+    //
+    // diss_avg_1D[0] = energy->currentDissEAvg;
+    //
+    start[0] = time_level - 1;
+    start[1] = 0;
+    // start[2] = 0;
+    //
+    count[0] = 1;
+    //
+    // start_1D[0] = output_num - 1;
+    //
+    // start_harm[0] = output_num - 1;
+    //
+    // // count 1D is already set to 1.
+    //
+    //----------------------------------------------------------------------------
+    //------------------------WRITE ARRAYS TO DATA FILE---------------------------
+    //----------------------------------------------------------------------------
+    //
+    //
+    // // ----------------------- Write displacement field --------------------------
+    //
+    // if (consts->field_displacement_output.Value()) {
+    //     count[1] = eta_rows;
+    //     count[2] = eta_cols;
+    //
+    //     H5Sselect_hyperslab(data_space_eta, H5S_SELECT_SET, start, NULL, count, NULL);
+    //
+    //     H5Dwrite(data_set_eta, H5T_NATIVE_FLOAT, mem_space_eta, data_space_eta, H5P_DEFAULT, eta_1D);
+    // }
+    //
+    //
+    // ----------------------- Write velocity fields -----------------------------
+
+    // if (globals->field_velocity_output.Value()) {
+    //
+    //
+    //
+    //     // ----------------------- Write north velocity field ------------------------
+    //
+    //     // count[1] = v_rows;
+    //     // count[2] = v_cols;
+    //     //
+    //     // H5Sselect_hyperslab(data_space_v, H5S_SELECT_SET, start, NULL, count, NULL);
+    //     //
+    //     // H5Dwrite(data_set_v, H5T_NATIVE_FLOAT, mem_space_v, data_space_v, H5P_DEFAULT, v_1D);
+    //
+    //     // ----------------------- Write east velocity field -------------------------
+    //
+    //     count[1] = node_num;
+    //     // count[2] = u_cols;
+    //
+    //     H5Sselect_hyperslab(data_space_u, H5S_SELECT_SET, start, NULL, count, NULL);
+    //
+    //     H5Dwrite(data_set_u, H5T_NATIVE_FLOAT, mem_space_u, data_space_u, H5P_DEFAULT, u_1D);
+    // }
+    //
+    // // ----------------------- Write dissipated energy field ---------------------
+    // if (consts->field_diss_output.Value()) {
+    //
+    //     count[1] = eta_rows;
+    //     count[2] = eta_cols;
+    //
+    //     H5Sselect_hyperslab(data_space_diss, H5S_SELECT_SET, start, NULL, count, NULL);
+    //
+    //     H5Dwrite(data_set_diss, H5T_NATIVE_FLOAT, mem_space_diss, data_space_diss, H5P_DEFAULT, diss_1D);
+    // }
+    //
+    // // ------------------- Write global average dissipation ----------------------
+    // if (consts->diss.Value()) {
+    //
+    //     H5Sselect_hyperslab(data_space_1D_avg, H5S_SELECT_SET, start_1D, NULL, count_1D, NULL);
+    //
+    //     H5Dwrite(data_set_1D_avg, H5T_NATIVE_FLOAT, mem_space_1D_avg, data_space_1D_avg, H5P_DEFAULT, diss_avg_1D);
+    // }
+    //
+    // // ----------------------- Write SH coefficients ------------------------
+    // if (consts->sh_coeff_output.Value()) {
+    //     H5Sselect_hyperslab(data_space_harm_coeff, H5S_SELECT_SET, start_harm, NULL, count_harm, NULL);
+    //
+    //     H5Dwrite(data_set_harm_coeff, H5T_NATIVE_FLOAT, mem_space_harm_coeff, data_space_harm_coeff, H5P_DEFAULT, harm_coeff_1D);
     // }
 
 };
