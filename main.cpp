@@ -26,6 +26,7 @@
  * ---- Initial version of ODIS, described in Hay and Matsuyama (2017)
 */
 
+#include "outFiles.h"
 #include "mesh.h"
 // #include "field.h"
 // #include "depth.h"
