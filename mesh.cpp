@@ -118,6 +118,8 @@ int Mesh::CalcVelocityTransformFactors(void)
             }
         }
     }
+
+    return 1;
 };
 
 // Function to convert all spherical coorinate quantities to mapping coordinates
@@ -491,7 +493,7 @@ int Mesh::ReadMeshFile(void)
 
     if (gridFile.is_open())
     {
-        outstring << "Found mesh file: " + file_str << std::endl;
+        outstring << std::endl << "Found mesh file: " + file_str << std::endl;
         globals->Output->Write(OUT_MESSAGE, &outstring);
 
         std::getline(gridFile, line);                               // READ HEADER
