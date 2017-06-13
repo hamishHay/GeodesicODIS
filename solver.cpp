@@ -5,14 +5,16 @@
 #include "array1d.h"
 #include "array2d.h"
 #include "array3d.h"
+#include "timeIntegrator.h"
 #include <math.h>
 #include <iostream>
 #include <sstream>
 
-std::ostringstream outstring;
 
+// Function to identify time solver method and call the corresponding function.
 int solveODIS(Globals * globals, Mesh * mesh)
 {
+    std::ostringstream outstring;
     OutFiles * Output;
     Output = globals->Output;
 
@@ -25,6 +27,8 @@ int solveODIS(Globals * globals, Mesh * mesh)
         outstring << "Entering time solver " << globals->solver.Value() << "...";
         outstring << std::endl << std::endl;
         Output->Write(OUT_MESSAGE, &outstring);
+
+        eulerIntegrator(globals, mesh);
         break;
 
     case AB3:
