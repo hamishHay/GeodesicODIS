@@ -29,9 +29,9 @@ int eulerIntegrator(Globals * globals, Mesh * grid)
     Array2D<double> * vel_tm1;     // velocity solution at previous timestep (t minus 1)
     Array2D<double> * dvel_dt_t0;  // velocity time derivative at current timestep
 
-    Array1D<double> * disp_t0;      // displacement solution for current timestep
-    Array1D<double> * disp_tm1;     // displacement solution at previous timestep (t minus 1)
-    Array1D<double> * ddisp_dt_t0;  // displacement time derivative at current timestep
+    Array1D<double> * press_t0;      // displacement solution for current timestep
+    Array1D<double> * press_tm1;     // displacement solution at previous timestep (t minus 1)
+    Array1D<double> * dpress_dt_t0;  // displacement time derivative at current timestep
 
     double end_time, current_time, dt, out_frac, orbit_period, orbit_out_frac, out_time;
     double r, omega, e, obliq, drag_coeff;
