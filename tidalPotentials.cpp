@@ -26,6 +26,7 @@ void deg2Ecc(Mesh * grid, Array2D<double> & velocity, double simulationTime, dou
     double * cosSqLat;
     int i,j, node_num;
     double * val;
+    double * m;
 
     node_num = grid->node_num;
 

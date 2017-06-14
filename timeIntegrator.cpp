@@ -82,7 +82,7 @@ int eulerIntegrator(Globals * globals, Mesh * grid)
         current_time += dt;
         out_time += dt;
 
-        linearDrag(node_num, drag_coeff, *dvel_dt_t0, *vel_tm1);
+        // linearDrag(node_num, drag_coeff, *dvel_dt_t0, *vel_tm1);
 
         // Calculate pressure gradient
         // pressureGrad(grid, node_num, h, *dvel_dt_t0, *press_tm1);
@@ -103,7 +103,7 @@ int eulerIntegrator(Globals * globals, Mesh * grid)
         // velocityDivergence(grid, h, *dpress_dt_t0, *vel_t0)
 
         // Update displacement solution
-
+//
         // Check for output
         iter ++;
 
