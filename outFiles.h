@@ -5,6 +5,8 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <vector>
+#include "H5Cpp.h"
 
 enum mess_type{ OUT_MESSAGE, ERR_MESSAGE, GRID_MESSAGE };
 
@@ -30,6 +32,10 @@ public:
 	void WelcomeMessage(void);
 
 	void TerminateODIS(void);
+
+    int DumpData(double **, std::vector<std::string> *);
+
+    int CreateHDF5FrameWork(void);
 
 };
 
