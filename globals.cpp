@@ -188,6 +188,20 @@ Globals::Globals(int action) {
     Output->Write(ERR_MESSAGE, &outstring);
     Output->TerminateODIS();
   }
+
+  if (potential.Value() == "ECC_RAD")         tide_type = ECC_RAD;
+    else if (potential.Value() == "ECC_LIB")    tide_type = ECC_LIB;
+    else if (potential.Value() == "ECC")        tide_type = ECC;
+    else if (potential.Value() == "OBLIQ")      tide_type = OBLIQ;
+    else if (potential.Value() == "FULL")       tide_type = FULL;
+    else if (potential.Value() == "TOTAL")      tide_type = TOTAL;
+    else if (potential.Value() == "ECC_W3")     tide_type = ECC_W3;
+    else if (potential.Value() == "OBLIQ_W3")   tide_type = OBLIQ_W3;
+    else {
+        outstring << "No potential forcing found." << std::endl;
+        Output->Write(ERR_MESSAGE, &outstring);
+        Output->TerminateODIS();
+    }
 };
 
 int Globals::ReadGlobals(void)

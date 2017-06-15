@@ -46,6 +46,16 @@ enum Friction { LINEAR, QUADRATIC }; // enumerate for drag type, selected by use
 
 enum Solver { EULER, AB3 };
 
+enum Potential {OBLIQ,         // Obliquity tide (Tyler 2011)
+                  ECC_RAD,       // Eccentricity radial tide (Tyler 2011)
+                  ECC_LIB,       // Eccentricity libration tide (Tyler 2011)
+                  ECC,           // ECC_RAD + ECC_LIB
+                  FULL,          // ECC_RAD + ECC_LIB + OBLIQ
+                  TOTAL,         // Entire ecc and obliq potential to second order in Eccentricity and Obliquity
+                  ECC_W3,        // Time-dependent degree-3 eccentricity tide // TODO - Add expressions to documentation
+                  OBLIQ_W3};     // Time-dependent degree-3 obliquity tide
+
+
 //Class stores all global values
 class Globals {
 private:
@@ -65,6 +75,7 @@ public:
 
   Friction fric_type;
   Solver solver_type;
+  Potential tide_type;
 
   // Stringstream for composing outgoing messages, which is then passed to Output.
   std::ostringstream outstring;
