@@ -20,10 +20,7 @@ int eulerIntegrator(Globals * globals, Mesh * grid)
     std::ostringstream outstring;
     int i,j,iter,out_count;
     double ** pp, * p_t0, * p_tm1, * p_dt_t0;
-
-    // Array2D<double> * vel_t0;      // velocity solution for current timestep
-    // Array2D<double> * vel_tm1;     // velocity solution at previous timestep (t minus 1)
-    // Array2D<double> * dvel_dt_t0;  // velocity time derivative at current timestep
+    double * sinLat;
 
     Array2D<double> * vel_t0;      // velocity solution for current timestep
     Array2D<double> * vel_tm1;     // velocity solution at previous timestep (t minus 1)
@@ -56,6 +53,7 @@ int eulerIntegrator(Globals * globals, Mesh * grid)
     Output = globals->Output;
     pp = new double *[globals->out_tags.size()-1];
 
+    sinLat = &(grid->trigLat(0,1));
 
     outstring << "Defining arrays for Euler time integration..." << std::endl;
 
@@ -73,29 +71,39 @@ int eulerIntegrator(Globals * globals, Mesh * grid)
     out_time = 0.0;
     while (current_time <= end_time)
     {
-        // Apply tidal forcing at the last time step
 
-
-        // linearDrag(node_num, drag_coeff, *dvel_dt_t0, *vel_tm1);
-        deg2Ecc(grid, *dvel_dt_t0, current_time, r, omega, e);
+        switch (globals->tide_type)
+        {
+            case ECC:
+                deg2Ecc(grid, *dvel_dt_t0, current_time, r, omega, e);
+                break;
+            case ECC_RAD:
+                deg2EccRad(grid, *dvel_dt_t0, current_time, r, omega, e);
+                break;
+        }
 
         current_time += dt;
         out_time += dt;
 
-        // linearDrag(node_num, drag_coeff, *dvel_dt_t0, *vel_tm1);
+        linearDrag(node_num, drag_coeff, *dvel_dt_t0, *vel_tm1);
+
 
         // Calculate pressure gradient
         // pressureGrad(grid, node_num, h, *dvel_dt_t0, *press_tm1);
 
+        // Explicit time integration
         for (i = 0; i<node_num; i++)
         {
+            // Coriolis force
+            (*dvel_dt_t0)(i,0) += 2.0 * omega * sinLat[i*2] * (*vel_tm1)(i,1);
+            (*dvel_dt_t0)(i,1) -= 2.0 * omega * sinLat[i*2] * (*vel_tm1)(i,0);
+
 
             (*vel_t0)(i,0) = (*dvel_dt_t0)(i,0) * dt + (*vel_tm1)(i,0);
             (*vel_tm1)(i,0) = (*vel_t0)(i,0);
 
             (*vel_t0)(i,1) = (*dvel_dt_t0)(i,1) * dt + (*vel_tm1)(i,1);
             (*vel_tm1)(i,1) = (*vel_t0)(i,1);
-
         }
 
 
