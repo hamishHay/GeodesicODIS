@@ -45,8 +45,10 @@ Globals::Globals() :Globals(1) {};
 Globals::Globals(int action) {
   // Constructor assings stringIDs and automatically reads from the input file.
 
+  Output = new OutFiles;
+
   // set simulation path to that from the Output class.
-  path = Output.path;
+  path = Output->path;
 
   // copy the string path to a character array
   strcpy(cpath, path.c_str());
@@ -102,8 +104,8 @@ Globals::Globals(int action) {
     alpha.SetStringID("friction coefficient");
     allGlobals.push_back(&alpha);
 
-		l_max.SetStringID("sh degree");
-		allGlobals.push_back(&l_max);
+	l_max.SetStringID("sh degree");
+	allGlobals.push_back(&l_max);
 
     dLat.SetStringID("latitude spacing");     //TODO remove
     allGlobals.push_back(&dLat);
@@ -125,6 +127,9 @@ Globals::Globals(int action) {
 
     friction.SetStringID("friction type");
     allGlobals.push_back(&friction);
+
+    solver.SetStringID("solver type");
+    allGlobals.push_back(&solver);
 
     init.SetStringID("initial conditions");
     allGlobals.push_back(&init);
@@ -165,13 +170,23 @@ Globals::Globals(int action) {
   // geodesic node num expression (Lee and Macdonald, 2008)
   node_num = 10 * pow(pow(2, geodesic_l.Value() - 1), 2) + 2;
 
+  Output->CreateHDF5Framework(this);
+
   // identify friction type and select the corresponding enum value.
   if (friction.Value() == "LINEAR") fric_type = LINEAR;
   else if (friction.Value() == "QUADRATIC") fric_type = QUADRATIC;
   else {
-    outstring << "No friction type found." << std::endl;
-    Output.Write(ERR_MESSAGE, &outstring);
-    Output.TerminateODIS();
+    outstring << "ERROR: NO DRAG MODEL FOUND!" << std::endl;
+    Output->Write(ERR_MESSAGE, &outstring);
+    Output->TerminateODIS();
+  }
+
+  if (solver.Value() == "EULER") solver_type = EULER;
+  else if (solver.Value() == "AB3") solver_type = AB3;
+  else {
+    outstring << "ERROR: NO SOLVER FOUND!" << std::endl;
+    Output->Write(ERR_MESSAGE, &outstring);
+    Output->TerminateODIS();
   }
 };
 
@@ -201,7 +216,7 @@ int Globals::ReadGlobals(void)
   {
 
     outstring << "Found input file." << std::endl;
-    Output.Write(OUT_MESSAGE, &outstring);
+    Output->Write(OUT_MESSAGE, &outstring);
 
 
     while (std::getline(inputFile >> std::ws, varID, ';')) //>> std::ws removes any leading whitespace
@@ -257,8 +272,8 @@ int Globals::ReadGlobals(void)
           }
           else {
             outstring << "Unsused type read for " << allGlobals[i]->StringID() << ". " << std::endl;
-            Output.Write(ERR_MESSAGE, &outstring);
-            Output.TerminateODIS();
+            Output->Write(ERR_MESSAGE, &outstring);
+            Output->TerminateODIS();
           };
         }
         i++;
@@ -276,6 +291,15 @@ int Globals::ReadGlobals(void)
 
     theta.SetValue(theta.Value()*pi/180.);
 
+
+    // Add all output tags to the string array out_tags
+    if (diss.Value()) out_tags.push_back(diss.StringID());
+    if (kinetic.Value()) out_tags.push_back(kinetic.StringID());
+    if (work.Value()) out_tags.push_back(work.StringID());
+    if (field_displacement_output.Value()) out_tags.push_back(field_displacement_output.StringID());
+    if (field_velocity_output.Value()) out_tags.push_back(field_velocity_output.StringID());
+    if (field_diss_output.Value()) out_tags.push_back(field_diss_output.StringID());
+    if (sh_coeff_output.Value()) out_tags.push_back(sh_coeff_output.StringID());
 
     // Check for any unassigned global variables
     for (unsigned int i = 0; i < allGlobals.size(); i++){
@@ -297,7 +321,7 @@ int Globals::ReadGlobals(void)
           outstring << ((GlobalVar<std::string > *) allGlobals[i])->Value() << std::endl << std::endl;
         }
 
-        Output.Write(ERR_MESSAGE, &outstring);
+        Output->Write(ERR_MESSAGE, &outstring);
       }
     }
   }
@@ -305,8 +329,8 @@ int Globals::ReadGlobals(void)
   {
     // if input.in cannot be found, terminate the program.
     outstring << "Unable to open 'input.in' file." << std::endl << std::endl;
-    Output.Write(ERR_MESSAGE, &outstring);
-    Output.TerminateODIS();
+    Output->Write(ERR_MESSAGE, &outstring);
+    Output->TerminateODIS();
   }
 
   return 0;
@@ -420,6 +444,6 @@ void Globals::OutputConsts(void)
       outstring << ((GlobalVar<std::string > *) allGlobals[i])->Value();
     }
 
-    Output.Write(OUT_MESSAGE, &outstring);
+    Output->Write(OUT_MESSAGE, &outstring);
   }
 };

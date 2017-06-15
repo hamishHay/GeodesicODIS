@@ -6,9 +6,9 @@ HOME=/usr/local
 
 #-mavx2 -mfma
 
-CFLAGS= -c -Wall -Wno-unused-variable -Wunused-but-set-variable -std=c++11 -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp -fopenmp
+CFLAGS = -g -pg -O3 -c  -Wall -Wno-unused-variable -Wno-sign-compare -Wunused-but-set-variable  -ffast-math -funroll-loops -finline-functions  -std=c++14 -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp
 
-CLINK = -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp
+CLINK = -g -pg -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp
 
 FFLAGS= -c -I/home/hamish/Research/SHTOOLS-4.0/modules  -m64 -fPIC -O2 -ffast-math -L/home/hamish/Research/SHTOOLS-4.0/lib -lSHTOOLS -L/usr/local/lib -lfftw3 -lm -llapack -lblas
 
@@ -23,8 +23,8 @@ all: ODIS
 # 	$(CC) legendre.o legendreDeriv.o extractSHCoeff.o $(FLINK) main.o mathRoutines.o tidalPotentials.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o viscosity.o interpolation.o advection.o solver.o -o ODIS -lgfortran -fopenmp $(CLINK)
 
 
-ODIS: main.o mathRoutines.o tidalPotentials.o outFiles.o globals.o mesh.o
-	$(CC) $(FLINK) main.o mathRoutines.o tidalPotentials.o outFiles.o globals.o mesh.o -o ODIS -lgfortran -fopenmp $(CLINK)
+ODIS: main.o mathRoutines.o tidalPotentials.o outFiles.o globals.o mesh.o solver.o timeIntegrator.o drag.o
+	$(CC) $(FLINK) main.o mathRoutines.o tidalPotentials.o outFiles.o globals.o mesh.o solver.o timeIntegrator.o drag.o -o ODIS -lgfortran $(CLINK)
 
 # legendre.o: legendre.f95
 # 	$(F) $(FFLAGS) legendre.f95
@@ -74,8 +74,14 @@ mesh.o: mesh.cpp
 # advection.o: advection.cpp
 # 	$(CC) $(CFLAGS) advection.cpp
 #
-# solver.o: solver.cpp
-# 	$(CC)  $(CFLAGS) $(CLINK) solver.cpp
+solver.o: solver.cpp
+	$(CC)  $(CFLAGS) $(CLINK) solver.cpp
+
+timeIntegrator.o: timeIntegrator.cpp
+	$(CC)  $(CFLAGS) $(CLINK) timeIntegrator.cpp
+
+drag.o: drag.cpp
+	$(CC)  $(CFLAGS) $(CLINK) drag.cpp
 
 clean:
 	rm -r *o ODIS NorthVelocity EastVelocity Displacement Grid Energy

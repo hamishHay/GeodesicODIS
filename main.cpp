@@ -26,6 +26,7 @@
  * ---- Initial version of ODIS, described in Hay and Matsuyama (2017)
 */
 
+#include "outFiles.h"
 #include "mesh.h"
 // #include "field.h"
 // #include "depth.h"
@@ -34,6 +35,8 @@
 // #include "mass.h"
 // #include "energy.h"
 #include "tidalPotentials.h"
+#include "array2d.h"
+#include "solver.h"
 
 
 #include <iostream>
@@ -50,6 +53,34 @@ int main(void)
   // Globals instance.
 
   Mesh * grid = new Mesh(constants, constants->node_num);
+
+  solveODIS(constants, grid);
+
+  // Array2D<double> * velocity = new Array2D<double>(constants->node_num, 2);
+  //
+  //
+  // double ** p;
+  // p = new double *[constants->out_tags.size()-1];
+  //
+  // double time = 0.0;
+  // double end_time = constants->endTime.Value();
+  // double dt = 0.1 * end_time;
+  // int count = 1;
+  //
+  //
+  // while (time <= end_time)
+  // {
+  //     deg2Ecc(grid, velocity, time, 252.1e3, 5.31e-5, 0.0047);
+  //
+  //     p[0] = &(*velocity)(0,0);
+  //
+  //     constants->Output->DumpData(constants, count, p);
+  //
+  //     count++;
+  //     time += dt;
+  //
+  // }
+
 
   // Allocate the solvable "Fields". These are all the quantities which ODIS aims
   // to calculate a solution for (velocity and surface displacement), as well as

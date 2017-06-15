@@ -34,6 +34,8 @@
 #include "globalVar.h"
 #include "outFiles.h"
 
+class OutFiles;           // Forward declare OutFiles class
+
 // define pi here - c++ has no built in value of pi, so it is explicitly defined
 // here
 const double pi = 3.1415926535897932384626433832795028841971693993751058;
@@ -41,6 +43,8 @@ const double radConv = pi / 180.0; // global constant for converting deg --> rad
 const int PATH = 1028; // global int for number of characters in the system path
 
 enum Friction { LINEAR, QUADRATIC }; // enumerate for drag type, selected by user
+
+enum Solver { EULER, AB3 };
 
 //Class stores all global values
 class Globals {
@@ -52,7 +56,7 @@ private:
 public:
   // Class containing functions to output errors and messages, or terminate ODIS.
 
-  OutFiles Output;
+  OutFiles * Output;
 
   // Vector to store a 'list' of all global constants.
   // Note that it stores the template IGlobalVar pointer rather than GlobalVar.
@@ -60,12 +64,16 @@ public:
   std::vector<IGlobalVar *> allGlobals;
 
   Friction fric_type;
+  Solver solver_type;
 
   // Stringstream for composing outgoing messages, which is then passed to Output.
   std::ostringstream outstring;
 
   // string to store path of current simulation.
   std::string path;
+
+  // string for each output tag
+  std::vector<std::string> out_tags;
 
   // character array for identical string from 'path'
   char cpath[PATH];
@@ -92,6 +100,7 @@ public:
   GlobalVar<double> endTime; // maximum simulation run time
   GlobalVar<std::string> potential; // string for tidal potential type
   GlobalVar<std::string> friction; // string for drag type
+  GlobalVar<std::string> solver; // string for type of time sovler
   GlobalVar<bool> init; // boolean for using initial conditions
   GlobalVar<double> converge; // convergence criteria for ODIS.
 

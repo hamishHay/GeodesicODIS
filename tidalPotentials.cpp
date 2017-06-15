@@ -20,12 +20,13 @@
  *              double ecc              Satellite eccentricity (must be << 1)
  *
 */
-void deg2Ecc(Mesh * grid, double simulationTime, double radius, double omega, double ecc) {
+void deg2Ecc(Mesh * grid, Array2D<double> & velocity, double simulationTime, double radius, double omega, double ecc) {
     double cosM, sinM, factor;              // cos(Mean anomaly), sin(Mean anomaly)
     double * sin2Lat, * sin2Lon, *cos2Lon;
     double * cosSqLat;
-    int i, node_num;
-    double val;
+    int i,j, node_num;
+    double * val;
+    double * m;
 
     node_num = grid->node_num;
 
@@ -34,42 +35,27 @@ void deg2Ecc(Mesh * grid, double simulationTime, double radius, double omega, do
     sinM = sin(omega*simulationTime);
 
     // Assign pointers to start of trig node arrays
-    sin2Lat = &(grid->trig2Lat(0,1));
-    sin2Lon = &(grid->trig2Lon(0,1));
-    cos2Lon = &(grid->trig2Lon(0,0));
-
-    // Solve for dUdlat
-    for (i=0; i<node_num; i++) {
-        // calculate potential gradient in latitude
-        val = -factor*0.75*(*sin2Lat)
-              *(3.*cosM*(1.+(*cos2Lon))
-              + 4*sinM*(*sin2Lon));
-
-        // Use pointer artithmetic to move to next memory address
-        // in trig arrays. This appears much faster than manually
-        // assigning the pointers themselves. Perhaps the compiler
-        // would optimize this anyway?
-        sin2Lat += 2;
-        sin2Lon += 2;
-        cos2Lon += 2;
-    }
-
-    // Assign pointers to start of trig node arrays
     cosSqLat = &(grid->trigSqLat(0,0));
     cos2Lon = &(grid->trig2Lon(0,0));
     sin2Lon = &(grid->trig2Lon(0,1));
+    // val = &(*velocity)(0,0);
+
+    sin2Lat = &(grid->trig2Lat(0,1));
+
 
     // Solve for dUdlon
     for (i=0; i<node_num; i++) {
+        j = i*2;
         // calculate potential gradient in longitude
-        val = factor* 1.5 * (*cosSqLat)
-                        * (4.*sinM * (*cos2Lon)
-                        - 3.*cosM * (*sin2Lon));
+        velocity(i,0) = factor * 1.5 * cosSqLat[j]
+                        * (4.*sinM * cos2Lon[j]
+                        - 3.*cosM * sin2Lon[j]);
 
-        // Pointer artithmetic
-        cosSqLat += 2;
-        cos2Lon += 2;
-        sin2Lon += 2;
+
+        velocity(i,1) = -factor*0.75*sin2Lat[j]
+                        *(3.*cosM*(1.+cos2Lon[j])
+                        + 4.*sinM*sin2Lon[j]);
+
     }
 
 };
