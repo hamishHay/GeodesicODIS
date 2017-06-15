@@ -20,42 +20,80 @@
  *              double ecc              Satellite eccentricity (must be << 1)
  *
 */
-void deg2Ecc(Mesh * grid, Array2D<double> & velocity, double simulationTime, double radius, double omega, double ecc) {
+void deg2Ecc(Mesh * grid, Array2D<double> & velocity, double simulationTime, double radius, double omega, double ecc)
+{
     double cosM, sinM, factor;              // cos(Mean anomaly), sin(Mean anomaly)
-    double * sin2Lat, * sin2Lon, *cos2Lon;
-    double * cosSqLat;
+    double * sin2Lat, * sin2Lon, *cos2Lon, *cosLat;
     int i,j, node_num;
     double * val;
     double * m;
 
     node_num = grid->node_num;
 
-    factor = pow(omega,2.0)*pow(radius,2.0)*ecc;
+    // factor = pow(omega,2.0)*pow(radius,2.0)*ecc;
+    factor = omega*omega*radius*ecc;
     cosM = cos(omega*simulationTime);
     sinM = sin(omega*simulationTime);
 
     // Assign pointers to start of trig node arrays
-    cosSqLat = &(grid->trigSqLat(0,0));
+    cosLat = &(grid->trigLat(0,0));
     cos2Lon = &(grid->trig2Lon(0,0));
     sin2Lon = &(grid->trig2Lon(0,1));
-    // val = &(*velocity)(0,0);
-
     sin2Lat = &(grid->trig2Lat(0,1));
-
 
     // Solve for dUdlon
     for (i=0; i<node_num; i++) {
         j = i*2;
         // calculate potential gradient in longitude
-        velocity(i,0) = factor * 1.5 * cosSqLat[j]
+        velocity(i,0) = factor * 1.5 * cosLat[j]   // cosLat here as cos^2(lat)/cos(lat)
                         * (4.*sinM * cos2Lon[j]
                         - 3.*cosM * sin2Lon[j]);
 
 
+        // calculate potential gradient in latitude
         velocity(i,1) = -factor*0.75*sin2Lat[j]
                         *(3.*cosM*(1.+cos2Lon[j])
                         + 4.*sinM*sin2Lon[j]);
 
+    }
+
+};
+
+// /* Degree 2 component of the eccentricity-radial tide (see docs)
+//  *
+//  * Finds the gradient components of the degree-3 ecc-radial tide for Fields
+//  * DUlat and DUlon. Only current simulation required is absolute simulation
+//  * time. The function directly writes the solution arrays in both Field
+//  * classes. The radial time contains only the P_20 term of eccentricity tide. As
+//  * the order of potential expansion is zero (m=0), this potential only depends
+//  * on latitude.
+//  *
+//  *      inputs: Field * DUlat           Field for latitude gradient of potential
+//  *              Field * DUlon           Field for longitude gradient of potential
+//  *              double simulationTime   Current time in the simulation
+//  *              double radius           Satellite radius
+//  *              double omega            Satellite rotational angular speed
+//  *              double ecc              Satellite eccentricity (must be << 1)
+//  *
+// */
+void deg2EccRad(Mesh * grid, Array2D<double> & velocity, double simulationTime, double radius, double omega, double ecc)
+{
+    double cosM, factor;              // cos(Mean anomaly), sin(Mean anomaly)
+    double * sin2Lat;
+    int i, j, node_num;
+
+    node_num = grid->node_num;
+
+    cosM = cos(omega*simulationTime);
+    factor = -2.25 * cosM * omega * omega * radius * ecc;
+
+    sin2Lat = &(grid->trig2Lat(0,1));
+
+    for (i=0; i<node_num; i++) {
+        j = i*2;
+
+        velocity(i,0) = 0.0;                    // no lon gradient
+        velocity(i,1) = factor * sin2Lat[j];    // lat gradient
     }
 
 };
