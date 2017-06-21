@@ -31,7 +31,7 @@ void deg2Ecc(Mesh * grid, Array2D<double> & velocity, double simulationTime, dou
     node_num = grid->node_num;
 
     // factor = pow(omega,2.0)*pow(radius,2.0)*ecc;
-    factor = omega*omega*radius*ecc;
+    factor = pow(omega,2.0)*radius*ecc;
     cosM = cos(omega*simulationTime);
     sinM = sin(omega*simulationTime);
 
@@ -85,7 +85,7 @@ void deg2EccRad(Mesh * grid, Array2D<double> & velocity, double simulationTime, 
     node_num = grid->node_num;
 
     cosM = cos(omega*simulationTime);
-    factor = -2.25 * cosM * omega * omega * radius * ecc;
+    factor = -2.25 * cosM * pow(omega, 2.0) * radius * ecc;
 
     sin2Lat = &(grid->trig2Lat(0,1));
 
