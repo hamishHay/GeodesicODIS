@@ -42,7 +42,7 @@ inline void velTransform(double &, double &, double &, double &, double &, doubl
 inline void velTransform(double &cos_a, double &sin_a, double &lat1, double &lat2, double &lon1, double &lon2)
 {
   cos_a = cos(lat1) * cos(lat2);
-  cos_a += (1.0 + sin(lat1)*sin(lat2)*cos(lon2-lon1));
+  cos_a += (1.0 + sin(lat1)*sin(lat2))*cos(lon2-lon1);
   cos_a /= (1.0 + sin(lat2)*sin(lat2) + cos(lat1)*cos(lat2)*cos(lon2-lon1));
 
   sin_a = -(sin(lat1) + sin(lat2))*sin(lon2-lon1);
