@@ -31,7 +31,7 @@ Mesh::Mesh(Globals * Globals, int N)
     control_vol_edge_centre_m(N,6),
     control_vol_edge_normal_map(N,6,2),
     control_volume_surf_area_map(N),
-    node_friend_element_areas_map(N,6,2),
+    node_friend_element_areas_map(N,6,3),
 
     trigLat(N,2),
     trigLon(N,2),
@@ -198,6 +198,11 @@ int Mesh::CalcMappingCoords(void)
 
                 // assign mapped values to arrays
                 mapAtPoint(*m, *x, *y, lat1, lat2, lon1, lon2, r);
+
+                // if (i == 1280)
+                // {
+                //     std::cout<<j<<" m = "<<*m<<" x = "<<*x<<" y = "<<*y<<std::endl;
+                // }
                 break;
             }
         }
@@ -235,6 +240,8 @@ int Mesh::CalcControlVolumeEdgeLengths(void)
 
             x2 = &centroid_pos_map(i, (j+1)%friend_num, 0);   // set map coords for second centroid
             y2 = &centroid_pos_map(i, (j+1)%friend_num, 1);   // automatically loops around using %
+
+            // if (i == 1280) std::cout<<*x1<<' '<<*y1<<' '<<*x2<<' '<<*y2<<std::endl;
 
             distanceBetween(*edge_len, *x1, *x2, *y1, *y2);   // calculate distance between the two centroids.
             // Edge_len automatically assigned the length
@@ -281,6 +288,11 @@ int Mesh::CalcControlVolumeEdgeCentres(void)
             midpointBetween(*xc, *yc, *x1, *x2, *y1, *y2);    // calculate center coords between the two centroids.
             // xc and yc automatically assigned the coords
 
+            if (i == 1280)
+            {
+                std::cout<<j<<" xc = "<<*xc<<" yc = "<<*yc<<std::endl;
+            }
+
             m = &control_vol_edge_centre_m(i,j);              // assign pointer to midpoint map factor
 
             lat1 = centroid_pos_sph(i, j, 0);                 // get first centroid coords
@@ -317,6 +329,8 @@ int Mesh::CalcControlVolumeEdgeNormals(void)
             control_vol_edge_normal_map(i,5,1) = -1.0;
         }
 
+
+
         for (j=0; j<friend_num; j++)                        // Loop through all centroids in the control volume
         {
             f = node_friends(i,j);
@@ -332,7 +346,19 @@ int Mesh::CalcControlVolumeEdgeNormals(void)
 
             normalVectorBetween(*xn, *yn, *x1, *x2, *y1, *y2);    // calculate center coords between the two centroids.
             // xc and yc automatically assigned the coords
+
+            if (i == 1280)
+            {
+                std::cout<<j<<" xn = "<<*xn<<" yn = "<<*yn<<std::endl;
+            }
+
+            // if (i == 1280) {
+            //     std::cout<<'['<<*x1<<','<<*y1<<"],";
+            //     std::cout<<'['<<*x2<<','<<*y2<<"],";
+            // }
         }
+
+        // if (i == 1280) globals->Output->TerminateODIS();
     }
 
     return 1;
@@ -432,6 +458,8 @@ int Mesh::CalcElementAreas(void)
                 y2 = &node_pos_map(i, ae, 1);
 
                 triangularArea(*t_area, *xc, *yc, *x1, *x2, *y1, *y2);     // calculate subelement area
+
+                if (i == 1280) std::cout<<j<<' '<<k<<' '<<*t_area/1e6<<std::endl;
 
             }
         }
