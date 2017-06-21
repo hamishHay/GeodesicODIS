@@ -36,6 +36,8 @@ int solveODIS(Globals * globals, Mesh * mesh)
         outstring << "Entering time solver " << globals->solver.Value() << "...";
         outstring << std::endl << std::endl;
         Output->Write(OUT_MESSAGE, &outstring);
+
+        ab3Integrator(globals, mesh);
         break;
 
     default:
