@@ -8,6 +8,7 @@
 #include "tidalPotentials.h"
 #include "spatialOperators.h"
 #include "drag.h"
+#include "coriolis.h"
 #include <math.h>
 #include <iostream>
 #include <sstream>
@@ -32,7 +33,7 @@ int eulerIntegrator(Globals * globals, Mesh * grid)
     Array1D<double> * dpress_dt_t0;  // displacement time derivative at current timestep
 
     double end_time, current_time, dt, out_frac, orbit_period, orbit_out_frac, out_time;
-    double r, omega, e, obliq, drag_coeff;
+    double r, omega, e, obliq, drag_coeff, h;
 
     int node_num;
 
@@ -48,6 +49,7 @@ int eulerIntegrator(Globals * globals, Mesh * grid)
     omega = globals->angVel.Value();
     e = globals->e.Value();
     drag_coeff = globals->alpha.Value();
+    h = globals->h.Value();
 
     // std::cout<<"Omega: "<<omega<<std::endl;
     // std::cout<<"End time: "<<end_time<<std::endl;
@@ -82,7 +84,7 @@ int eulerIntegrator(Globals * globals, Mesh * grid)
     out_time = 0.0;
     while (current_time <= end_time)
     {
-
+        // UPDATE TIDAL POTENTIAL / EXTERNAL FORCING
         switch (globals->tide_type)
         {
             case ECC:
@@ -96,19 +98,27 @@ int eulerIntegrator(Globals * globals, Mesh * grid)
         current_time += dt;
         out_time += dt;
 
-        linearDrag(node_num, drag_coeff, *dvel_dt_t0, *vel_tm1);
+        // APPLY DRAG TO FLUID
+        switch (globals->fric_type)
+        {
+          case LINEAR:
+            linearDrag(node_num, drag_coeff, *dvel_dt_t0, *vel_tm1);
+            break;
+          case QUADRATIC:
+            quadraticDrag(node_num, drag_coeff, h, *dvel_dt_t0, *vel_tm1);
+            break;
+        }
 
-        // Calculate pressure gradient
+        // APPLY CORIOLIS ACCELERATION
+        coriolisForce(grid, *dvel_dt_t0, *vel_tm1);
+
+
+        // APPLY PRESSURE GRADIENT
         pressureGradient(grid, *dvel_dt_t0, *press_tm1);
 
-        // Explicit time integration
+        // INTEGRATE VELOCITIES FORWARD IN TIME
         for (i = 0; i<node_num; i++)
         {
-            // Coriolis force
-            // (*dvel_dt_t0)(i,0) += 2.0 * omega * sinLat[i*2] * (*vel_tm1)(i,1);
-            // (*dvel_dt_t0)(i,1) -= 2.0 * omega * sinLat[i*2] * (*vel_tm1)(i,0);
-
-
             (*vel_t0)(i,0) = (*dvel_dt_t0)(i,0) * dt + (*vel_tm1)(i,0);
             (*vel_tm1)(i,0) = (*vel_t0)(i,0);
 
@@ -117,16 +127,16 @@ int eulerIntegrator(Globals * globals, Mesh * grid)
         }
 
 
-        // Calculate velocity divergence
+        // CALCULATE VELOCITY FIELD DIVERGENCE
         velocityDivergence(grid, *dpress_dt_t0, *vel_t0);
 
-        // Update displacement solution
+        // INTEGRATE PRESSURE FORWARD IN TIME
         for (i = 0; i<node_num; i++)
         {
             (*press_t0)(i) = (*dpress_dt_t0)(i) * dt + (*press_tm1)(i);
             (*press_tm1)(i) = (*press_t0)(i);
         }
-// //
+
         // Check for output
         iter ++;
 
@@ -142,9 +152,6 @@ int eulerIntegrator(Globals * globals, Mesh * grid)
             Output->DumpData(globals, out_count, pp);
             out_count++;
 
-
-
-            // Output->TerminateODIS();
         }
     }
 
@@ -183,10 +190,12 @@ int ab3Integrator(Globals * globals, Mesh * grid)
     Array1D<double> * dpress_dt_tm1;  // displacement time derivative at current timestep
     Array1D<double> * dpress_dt_tm2;  // displacement time derivative at current timestep
 
+    Array1D<double> * energy_diss;
+    Array1D<double> * cv_mass;
 
 
     double end_time, current_time, dt, out_frac, orbit_period, orbit_out_frac, out_time;
-    double r, omega, e, obliq, drag_coeff;
+    double r, omega, e, obliq, drag_coeff, h;
 
     int node_num;
 
@@ -202,18 +211,17 @@ int ab3Integrator(Globals * globals, Mesh * grid)
     omega = globals->angVel.Value();
     e = globals->e.Value();
     drag_coeff = globals->alpha.Value();
-
-    // std::cout<<"Omega: "<<omega<<std::endl;
-    // std::cout<<"End time: "<<end_time<<std::endl;
+    obliq = globals->theta.Value();
+    h = globals->h.Value();
 
     node_num = globals->node_num;
 
     Output = globals->Output;
     pp = new double *[globals->out_tags.size()-1];
 
-    std::cout<<globals->out_tags[0]<<std::endl;
+    // std::cout<<globals->out_tags[1]<<std::endl;
 
-    sinLat = &(grid->trigLat(0,1));
+    // sinLat = &(grid->trigLat(0,1));
 
     outstring << "Defining arrays for Euler time integration..." << std::endl;
 
@@ -229,13 +237,21 @@ int ab3Integrator(Globals * globals, Mesh * grid)
     press_t0 = new Array1D<double>(node_num);      // pressure solution for current timestep
     press_tm1 = new Array1D<double>(node_num);     // pressure solution at previous timestep (t minus 1)
 
+    cv_mass = new Array1D<double>(node_num);
+
+    energy_diss = new Array1D<double>(node_num);
+
     for (i=0; i<node_num; i++)
     {
-        (*press_tm1)(i) = 0.0;//sinLat[i*2];
+        (*press_tm1)(i) = 0.0;
+        (*cv_mass)(i) = 1000.0 * h * grid->control_volume_surf_area_map(i);
+
+        // std::cout<<(*cv_mass)(i)<<std::endl;
     }
 
     double a, b, c;
 
+    // AB3 constants for the time integration
     a = 23./12.;
     b = -16./12.;
     c = 5./12.;
@@ -255,12 +271,27 @@ int ab3Integrator(Globals * globals, Mesh * grid)
             case ECC_RAD:
                 deg2EccRad(grid, *dvel_dt_t0, current_time, r, omega, e);
                 break;
+            case OBLIQ:
+                deg2Obliq(grid, *dvel_dt_t0, current_time, r, omega, obliq);
+                break;
+
         }
 
         current_time += dt;
         out_time += dt;
 
-        linearDrag(node_num, drag_coeff, *dvel_dt_t0, *vel_tm1);
+        switch (globals->fric_type)
+        {
+          case LINEAR:
+            linearDrag(node_num, drag_coeff, *dvel_dt_t0, *vel_tm1);
+            break;
+          case QUADRATIC:
+            quadraticDrag(node_num, drag_coeff, h, *dvel_dt_t0, *vel_tm1);
+            break;
+        }
+
+
+        coriolisForce(grid, *dvel_dt_t0, *vel_tm1);
 
         // Calculate pressure gradient
         pressureGradient(grid, *dvel_dt_t0, *press_tm1);
@@ -270,10 +301,6 @@ int ab3Integrator(Globals * globals, Mesh * grid)
         {
             for (i = 0; i<node_num; i++)
             {
-                // Coriolis force
-                // (*dvel_dt_t0)(i,0) += 2.0 * omega * sinLat[i*2] * (*vel_tm1)(i,1);
-                // (*dvel_dt_t0)(i,1) -= 2.0 * omega * sinLat[i*2] * (*vel_tm1)(i,0);
-
                 (*vel_t0)(i,0) = (a*(*dvel_dt_t0)(i,0)
                                   + b*(*dvel_dt_tm1)(i,0)
                                   + c*(*dvel_dt_tm2)(i,0)) * dt
@@ -284,26 +311,23 @@ int ab3Integrator(Globals * globals, Mesh * grid)
                                   + c*(*dvel_dt_tm2)(i,1)) * dt
                                  + (*vel_tm1)(i,1);
 
-
                 (*vel_tm1)(i, 0) = (*vel_t0)(i, 0);
-                (*dvel_dt_tm2)(i, 0) = (*dvel_dt_tm1)(i, 0);
-                (*dvel_dt_tm1)(i, 0) = (*dvel_dt_t0)(i, 0);
-
                 (*vel_tm1)(i, 1) = (*vel_t0)(i, 1);
+
+                (*dvel_dt_tm2)(i, 0) = (*dvel_dt_tm1)(i, 0);
                 (*dvel_dt_tm2)(i, 1) = (*dvel_dt_tm1)(i, 1);
+
+                (*dvel_dt_tm1)(i, 0) = (*dvel_dt_t0)(i, 0);
                 (*dvel_dt_tm1)(i, 1) = (*dvel_dt_t0)(i, 1);
 
-
+                (*energy_diss)(i) = drag_coeff * (*cv_mass)(i)
+                                    * ((*vel_t0)(i,0)*(*vel_t0)(i,0) + (*vel_t0)(i,1)*(*vel_t0)(i,1));
             }
         }
         else if (iter == 1)
         {
             for (i = 0; i<node_num; i++)
             {
-                // Coriolis force
-                // (*dvel_dt_t0)(i,0) += 2.0 * omega * sinLat[i*2] * (*vel_tm1)(i,1);
-                // (*dvel_dt_t0)(i,1) -= 2.0 * omega * sinLat[i*2] * (*vel_tm1)(i,0);
-
                 (*vel_t0)(i,0) = (*dvel_dt_t0)(i,0) * dt + (*vel_tm1)(i,0);
                 (*vel_tm1)(i,0) = (*vel_t0)(i,0);
                 (*dvel_dt_tm1)(i,0) = (*dvel_dt_t0)(i,0);
@@ -311,16 +335,14 @@ int ab3Integrator(Globals * globals, Mesh * grid)
                 (*vel_t0)(i,1) = (*dvel_dt_t0)(i,1) * dt + (*vel_tm1)(i,1);
                 (*vel_tm1)(i,1) = (*vel_t0)(i,1);
                 (*dvel_dt_tm1)(i,1) = (*dvel_dt_t0)(i,1);
+
+                (*energy_diss)(i) = drag_coeff * (*cv_mass)(i) * ((*vel_t0)(i,0)*(*vel_t0)(i,0) + (*vel_t0)(i,1)*(*vel_t0)(i,1));
             }
         }
         else
         {
             for (i = 0; i<node_num; i++)
             {
-                // Coriolis force
-                // (*dvel_dt_t0)(i,0) += 2.0 * omega * sinLat[i*2] * (*vel_tm1)(i,1);
-                // (*dvel_dt_t0)(i,1) -= 2.0 * omega * sinLat[i*2] * (*vel_tm1)(i,0);
-
                 (*vel_t0)(i,0) = (*dvel_dt_t0)(i,0) * dt + (*vel_tm1)(i,0);
                 (*vel_tm1)(i,0) = (*vel_t0)(i,0);
                 (*dvel_dt_tm2)(i,0) = (*dvel_dt_t0)(i,0);
@@ -328,6 +350,8 @@ int ab3Integrator(Globals * globals, Mesh * grid)
                 (*vel_t0)(i,1) = (*dvel_dt_t0)(i,1) * dt + (*vel_tm1)(i,1);
                 (*vel_tm1)(i,1) = (*vel_t0)(i,1);
                 (*dvel_dt_tm2)(i,1) = (*dvel_dt_t0)(i,1);
+
+                (*energy_diss)(i) = drag_coeff * (*cv_mass)(i) * ((*vel_t0)(i,0)*(*vel_t0)(i,0) + (*vel_t0)(i,1)*(*vel_t0)(i,1));
 
             }
         }
@@ -372,21 +396,15 @@ int ab3Integrator(Globals * globals, Mesh * grid)
             }
         }
 
-        // // Update displacement solution
-        // for (i = 0; i<node_num; i++)
-        // {
-        //     (*press_t0)(i) = (*dpress_dt_t0)(i) * dt + (*press_tm1)(i);
-        //     (*press_tm1)(i) = (*press_t0)(i);
-        // }
-// //
         // Check for output
         iter ++;
 
         if (out_time >= out_frac*orbit_period)
         {
-            std::cout<<std::fixed << std::setprecision(8) <<"DUMPING DATA AT "<<current_time<<std::endl;
+            std::cout<<std::fixed << std::setprecision(8) <<"DUMPING DATA AT "<<current_time/orbit_period<<std::endl;
 
             out_time -= out_frac*orbit_period;
+            pp[2] = &(*energy_diss)(0);
             pp[0] = &(*press_t0)(0);
             pp[1] = &(*vel_t0)(0,0);
             // pp[0] = &(*dvel_dt_t0)(0,0);
