@@ -17,7 +17,9 @@ private:
   int CalcControlVolumeEdgeCentres(void);
   int CalcControlVolumeEdgeNormals(void);
   int CalcControlVolumeArea(void);
+  int CalcControlVolumeMass(void);
   int CalcElementAreas(void);
+  int CalcCentNodeDists(void);
   int CalcTrigFunctions(void);
 
 public:
@@ -40,6 +42,8 @@ public:
   // to all surrounding friends. E.g, the ID's of the neighbouring nodes to
   // node 4 would be accessed via node_friends[4][0], node_friends[4][1], etc.
   Array2D<int> node_friends;
+
+  Array2D<double> centroid_node_dists_map;
 
   // Each row contains the coordinates of the centroids to the 5 or 6 surrounding
   // cells for a specific node (e.g., node ID 8 corresponds to row 8).
@@ -77,6 +81,8 @@ public:
 
   // Array to store the area of the control volume for each node
   Array1D<double> control_volume_surf_area_map;
+
+  Array1D<double> control_volume_mass;
 
   // Array to store the triangular areas within each subelement.
   Array3D<double> node_friend_element_areas_map;

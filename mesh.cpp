@@ -31,7 +31,9 @@ Mesh::Mesh(Globals * Globals, int N)
     control_vol_edge_centre_m(N,6),
     control_vol_edge_normal_map(N,6,2),
     control_volume_surf_area_map(N),
+    control_volume_mass(N),
     node_friend_element_areas_map(N,6,3),
+    centroid_node_dists_map(N,6),
 
     trigLat(N,2),
     trigLon(N,2),
@@ -51,6 +53,7 @@ Mesh::Mesh(Globals * Globals, int N)
     // Calculate mapping coordinates
     CalcMappingCoords();
 
+
     // Calculate velocity transform factors
     CalcVelocityTransformFactors();
 
@@ -69,6 +72,7 @@ Mesh::Mesh(Globals * Globals, int N)
     // Find the area of each sub triangle within each element
     CalcElementAreas();
 
+    CalcCentNodeDists();
     // Evaluate trig functions at every node
     CalcTrigFunctions();
 };
@@ -241,7 +245,44 @@ int Mesh::CalcControlVolumeEdgeLengths(void)
             x2 = &centroid_pos_map(i, (j+1)%friend_num, 0);   // set map coords for second centroid
             y2 = &centroid_pos_map(i, (j+1)%friend_num, 1);   // automatically loops around using %
 
-            // if (i == 1280) std::cout<<*x1<<' '<<*y1<<' '<<*x2<<' '<<*y2<<std::endl;
+            distanceBetween(*edge_len, *x1, *x2, *y1, *y2);   // calculate distance between the two centroids.
+            // Edge_len automatically assigned the length
+        }
+    }
+
+    return 1;
+};
+
+
+// Function to find the length of control volume edges for each node, in mapping
+// coordinates. Values are stored in control_vol_edge_len 2D array.
+int Mesh::CalcCentNodeDists(void)
+{
+    int i, j, f, friend_num;
+    double * x1, * y1, * x2, * y2, * edge_len;
+
+    for (i=0; i<node_num; i++)
+    {
+
+        f = node_friends(i,5);
+
+        friend_num = 6;                                     // Assume hexagon (6 centroids)
+        if (f == -1) {
+            friend_num = 5;                                   // Check if pentagon (5 centroids)
+            centroid_node_dists_map(i,5) = -1.0;
+        }
+
+        for (j=0; j<friend_num; j++)                        // Loop through all centroids in the control volume
+        {
+            f = node_friends(i,j);
+
+            edge_len = &centroid_node_dists_map(i,j);            // set pointer to edge length array
+
+            x1 = &node_pos_map(i, 0, 0);   // set map coords for second centroid
+            y1 = &node_pos_map(i, 0, 1);   // automatically loops around using %
+
+            x2 = &centroid_pos_map(i, j%friend_num, 0);   // set map coords for second centroid
+            y2 = &centroid_pos_map(i, j%friend_num, 1);   // automatically loops around using %
 
             distanceBetween(*edge_len, *x1, *x2, *y1, *y2);   // calculate distance between the two centroids.
             // Edge_len automatically assigned the length
@@ -287,11 +328,6 @@ int Mesh::CalcControlVolumeEdgeCentres(void)
 
             midpointBetween(*xc, *yc, *x1, *x2, *y1, *y2);    // calculate center coords between the two centroids.
             // xc and yc automatically assigned the coords
-
-            if (i == 1280)
-            {
-                std::cout<<j<<" xc = "<<*xc<<" yc = "<<*yc<<std::endl;
-            }
 
             m = &control_vol_edge_centre_m(i,j);              // assign pointer to midpoint map factor
 
@@ -347,18 +383,7 @@ int Mesh::CalcControlVolumeEdgeNormals(void)
             normalVectorBetween(*xn, *yn, *x1, *x2, *y1, *y2);    // calculate center coords between the two centroids.
             // xc and yc automatically assigned the coords
 
-            if (i == 1280)
-            {
-                std::cout<<j<<" xn = "<<*xn<<" yn = "<<*yn<<std::endl;
-            }
-
-            // if (i == 1280) {
-            //     std::cout<<'['<<*x1<<','<<*y1<<"],";
-            //     std::cout<<'['<<*x2<<','<<*y2<<"],";
-            // }
         }
-
-        // if (i == 1280) globals->Output->TerminateODIS();
     }
 
     return 1;
@@ -458,8 +483,6 @@ int Mesh::CalcElementAreas(void)
                 y2 = &node_pos_map(i, ae, 1);
 
                 triangularArea(*t_area, *xc, *yc, *x1, *x2, *y1, *y2);     // calculate subelement area
-
-                if (i == 1280) std::cout<<j<<' '<<k<<' '<<*t_area/1e6<<std::endl;
 
             }
         }
