@@ -98,6 +98,79 @@ void deg2EccRad(Mesh * grid, Array2D<double> & velocity, double simulationTime, 
 
 };
 
+
+/* Degree 2 component of the obliquity tide (see Tyler 2011, Matsuyama 2014)
+ *
+ * Finds the gradient components of the degree-2 obliquity tide for Fields
+ * DUlat and DUlon. Only current simulation required is absolute simulation
+ * time. The function directly writes the solution arrays in both Field
+ * classes.
+ *
+ *      inputs: Field * DUlat           Field for latitude gradient of potential
+ *              Field * DUlon           Field for longitude gradient of potential
+ *              double simulationTime   Current time in the simulation
+ *              double radius           Satellite radius
+ *              double omega            Satellite rotational angular speed
+ *              double theta            Satellite obliquity in radians
+ *
+*/
+void deg2Obliq(Mesh * grid, Array2D<double> & velocity, double simulationTime, double radius, double omega, double theta)
+{
+    double * sinLat, * sinLon, *cosLon, *cosLat, * cos2Lat;
+    int i,j, node_num;
+    double * val;
+    double * m;
+    double cosM, factor;
+
+    node_num = grid->node_num;
+
+    // factor = pow(omega,2.0)*pow(radius,2.0)*ecc;
+    factor = pow(omega,2.0)*radius*theta;
+    cosM = cos(omega*simulationTime);
+    // sinM = sin(omega*simulationTime);
+
+    // Assign pointers to start of trig node arrays
+    cosLat = &(grid->trigLat(0,0));
+    cos2Lat = &(grid->trig2Lat(0,0));
+    cosLon = &(grid->trigLon(0,0));
+    sinLon = &(grid->trigLon(0,1));
+    sinLat = &(grid->trigLat(0,1));
+
+    // Solve for dUdlon
+    for (i=0; i<node_num; i++) {
+        j = i*2;
+        // calculate potential gradient in longitude
+        velocity(i,0) = -factor * sinLat[j] * sinLon[j] * cosM;
+
+
+        // calculate potential gradient in latitude
+        velocity(i,1) = factor * cos2Lat[j] * cosLon[j] * cosM;
+
+    }
+    // // Solve for dUdlat
+    // for (i=0; i<latLen; i++) {
+    //     for (j=0; j<lonLen; j++) {
+    //         latGrad[i][j] = factor*cos2Lat[i]*cosLon[j]*cosM;
+    //     }
+    // }
+    //
+    // // Set variable for dUlon solution
+    // latLen = DUlon->fieldLatLen;
+    // lonLen = DUlon->fieldLonLen;
+    //
+    // cosLat = DUlon->cosLat;
+    // sinLat = DUlon->sinLat;
+    // sinLon = DUlon->sinLon;
+    //
+    // // Solve for dUdlon
+    // for (i=0; i<latLen; i++) {
+    //     for (j=0; j<lonLen; j++) {
+    //         lonGrad[i][j] = -factor*cosLat[i]*sinLat[i]*sinLon[j]*cosM;
+    //     }
+    // }
+
+};
+
 // OLD VERSION ----------------------------------------------------------------
 
 

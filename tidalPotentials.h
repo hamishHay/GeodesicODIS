@@ -18,6 +18,10 @@ void deg2Ecc(Mesh * grid, Array2D<double> &, double simulationTime, double radiu
 
 // // Degree 2 component of the eccentricity-radial tide (see Tyler 2011, Matsuyama 2014)
 void deg2EccRad(Mesh * grid, Array2D<double> &, double simulationTime, double radius, double omega, double ecc);
+
+// // Degree 2 component of the eccentricity-radial tide (see Tyler 2011, Matsuyama 2014)
+void deg2Obliq(Mesh * grid, Array2D<double> &, double simulationTime, double radius, double omega, double theta);
+
 //
 // // Degree 2 component of the eccentricity-libration tide (see Tyler 2011, Matsuyama 2014)
 // void deg2EccLib(Field * DUlat, Field * DUlon, double simulationTime, double radius, double omega, double ecc);
