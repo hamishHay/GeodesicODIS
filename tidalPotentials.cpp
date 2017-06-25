@@ -125,7 +125,7 @@ void deg2Obliq(Mesh * grid, Array2D<double> & velocity, double simulationTime, d
     node_num = grid->node_num;
 
     // factor = pow(omega,2.0)*pow(radius,2.0)*ecc;
-    factor = pow(omega,2.0)*radius*theta;
+    factor = -3.*pow(omega,2.0)*radius*theta;
     cosM = cos(omega*simulationTime);
     // sinM = sin(omega*simulationTime);
 
@@ -147,28 +147,6 @@ void deg2Obliq(Mesh * grid, Array2D<double> & velocity, double simulationTime, d
         velocity(i,1) = factor * cos2Lat[j] * cosLon[j] * cosM;
 
     }
-    // // Solve for dUdlat
-    // for (i=0; i<latLen; i++) {
-    //     for (j=0; j<lonLen; j++) {
-    //         latGrad[i][j] = factor*cos2Lat[i]*cosLon[j]*cosM;
-    //     }
-    // }
-    //
-    // // Set variable for dUlon solution
-    // latLen = DUlon->fieldLatLen;
-    // lonLen = DUlon->fieldLonLen;
-    //
-    // cosLat = DUlon->cosLat;
-    // sinLat = DUlon->sinLat;
-    // sinLon = DUlon->sinLon;
-    //
-    // // Solve for dUdlon
-    // for (i=0; i<latLen; i++) {
-    //     for (j=0; j<lonLen; j++) {
-    //         lonGrad[i][j] = -factor*cosLat[i]*sinLat[i]*sinLon[j]*cosM;
-    //     }
-    // }
-
 };
 
 // OLD VERSION ----------------------------------------------------------------
