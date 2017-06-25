@@ -44,7 +44,7 @@ const int PATH = 1028; // global int for number of characters in the system path
 
 enum Friction { LINEAR, QUADRATIC }; // enumerate for drag type, selected by user
 
-enum Solver { EULER, AB3 };
+enum Solver { EULER, AB3, RK4 };
 
 enum Potential {OBLIQ,         // Obliquity tide (Tyler 2011)
                   ECC_RAD,       // Eccentricity radial tide (Tyler 2011)
