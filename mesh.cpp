@@ -69,6 +69,8 @@ Mesh::Mesh(Globals * Globals, int N)
     // Find control volume area for each node
     CalcControlVolumeArea();
 
+    CalcControlVolumeMass();
+
     // Find the area of each sub triangle within each element
     CalcElementAreas();
 
@@ -432,6 +434,57 @@ int Mesh::CalcControlVolumeArea(void)
 
     return 1;
 };
+
+
+int Mesh::CalcControlVolumeMass(void)
+{
+  int i, j, k, as, ae, f, friend_num;
+  double * lat1, * lon1, * lat2, * lon2, * lat3, * lon3, *t_area, r;
+  double area, avg_area;
+
+  r = globals->radius.Value();
+
+  avg_area = 0.0;
+  for (i=0; i<node_num; i++)
+  {
+
+      f = node_friends(i,5);
+
+      friend_num = 6;                    // Assume hexagon (6 centroids)
+      if (f == -1) {
+          friend_num = 5;                // Check if pentagon (5 centroids)
+      }
+
+      lat1 = &node_pos_sph(i,0);
+      lon1 = &node_pos_sph(i,1);
+
+      t_area = &control_volume_mass(i);     // set pointer to area of sub element
+      *t_area = 0.0;
+      for (j=0; j<friend_num; j++)                       // Loop through all centroids in the control volume
+      {
+
+          lat2 = &centroid_pos_sph(i,j%friend_num, 0);
+          lon2 = &centroid_pos_sph(i,j%friend_num, 1);
+
+          lat3 = &centroid_pos_sph(i,(j+1)%friend_num, 0);
+          lon3 = &centroid_pos_sph(i,(j+1)%friend_num, 1);
+
+
+          triangularAreaSph(area, *lat1, *lat2, *lat3, *lon1, *lon2, *lon3, r);     // calculate subelement area
+          *t_area += area;
+      }
+      avg_area += *t_area;
+  }
+  avg_area /= node_num;
+
+  for (i=0; i<node_num; i++)
+  {
+      t_area = &control_volume_mass(i);
+      *t_area *= avg_area/(*t_area) * 1000.0 * globals->h.Value();
+  }
+
+  return 1;
+}
 
 // Function to fine the areas of each subelement. Each subelement is a triangle
 // subtended by the central node, one friend, and the centroid belonging to the
