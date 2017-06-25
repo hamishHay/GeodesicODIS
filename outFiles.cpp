@@ -166,7 +166,7 @@ void OutFiles::CreateHDF5Framework(Globals * globals)
     v_1D = new float[node_num];
     u_1D = new float[node_num];
     diss_1D = new float[node_num];
-    // diss_avg_1D = new float[1];
+    diss_avg_1D = new float[1];
     // harm_coeff_1D = new float[2*(l_max+1)*(l_max+1)];
 
     time_slices = (end_time/orbit_period)/output_time + 1;
@@ -200,6 +200,11 @@ void OutFiles::CreateHDF5Framework(Globals * globals)
     max_dims_field[0] = time_slices;
     max_dims_field[1] = node_num;
 
+    dims_1D_diss_avg = new hsize_t[1];
+    dims_1D_diss_avg[0] = 1;
+
+    max_dims_1D_diss_avg = new hsize_t[1];
+    max_dims_1D_diss_avg[0] = time_slices;
     // max_dims_harm_coeff = new hsize_t[4];
     // max_dims_harm_coeff[0] = time_slices;
     // max_dims_harm_coeff[1] = 2;
@@ -228,11 +233,6 @@ void OutFiles::CreateHDF5Framework(Globals * globals)
     }
     //
     if (globals->diss.Value()) {
-        dims_1D_diss_avg = new hsize_t[1];
-        dims_1D_diss_avg[0] = 1;
-
-        max_dims_1D_diss_avg = new hsize_t[1];
-        max_dims_1D_diss_avg[0] = time_slices;
 
         data_space_1D_avg = H5Screate_simple(rank_1D, max_dims_1D_diss_avg, NULL);
         data_set_1D_avg = H5Dcreate(file, globals->diss.StringID().c_str(), H5T_NATIVE_FLOAT, data_space_1D_avg, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
@@ -353,10 +353,13 @@ void OutFiles::DumpData(Globals * globals, int time_level, double ** data)
     double * p;
 
 
-    start[0] = time_level - 1;
+    start[0] = time_level-1;
     start[1] = 0;
 
     count[0] = 1;
+
+    start_1D[0] = time_level - 1;
+    count_1D[0] = 1;
 
 
     // double factor = 0;
@@ -435,7 +438,24 @@ void OutFiles::DumpData(Globals * globals, int time_level, double ** data)
             H5Sselect_hyperslab(data_space_diss, H5S_SELECT_SET, start, NULL, count, NULL);
             H5Dwrite(data_set_diss, H5T_NATIVE_FLOAT, mem_space_diss, data_space_diss, H5P_DEFAULT, diss_1D);
         }
+
+        else if ((*tags)[j] == "avg dissipation output")
+        {
+            diss_avg_1D[0] = (float)(*p);
+
+            H5Sselect_hyperslab(data_space_1D_avg, H5S_SELECT_SET, start_1D, NULL, count_1D, NULL);
+            H5Dwrite(data_set_1D_avg, H5T_NATIVE_FLOAT, mem_space_1D_avg, data_space_1D_avg, H5P_DEFAULT, diss_avg_1D);
+        }
     }
+
+    // // ------------------- Write global average dissipation ----------------------
+    // if (consts->diss.Value()) {
+    //
+    //     H5Sselect_hyperslab(data_space_1D_avg, H5S_SELECT_SET, start_1D, NULL, count_1D, NULL);
+    //
+    //     H5Dwrite(data_set_1D_avg, H5T_NATIVE_FLOAT, mem_space_1D_avg, data_space_1D_avg, H5P_DEFAULT, diss_avg_1D);
+    // }
+
     //
     // for (int i=0; i<vLatLen; i++) {
     //     for (int j=0; j<vLonLen; j++) {
@@ -486,11 +506,11 @@ void OutFiles::DumpData(Globals * globals, int time_level, double ** data)
     //
     // diss_avg_1D[0] = energy->currentDissEAvg;
     //
-    start[0] = time_level - 1;
-    start[1] = 0;
-    // start[2] = 0;
-    //
-    count[0] = 1;
+    // start[0] = time_level - 1;
+    // start[1] = 0;
+    // // start[2] = 0;
+    // //
+    // count[0] = 1;
     //
     // start_1D[0] = output_num - 1;
     //
