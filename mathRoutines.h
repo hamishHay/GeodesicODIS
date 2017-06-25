@@ -96,6 +96,28 @@ inline void triangularArea(double &area, double &xc, double &yc, double &x1, dou
   area = 0.5 * fabs(xc*(y1 - y2) + x1*(y2-yc) + x2*(yc-y1));
 }
 
+inline void triangularAreaSph(double &, double &, double &, double &, double &, double &, double &, double &);
+inline void triangularAreaSph(double &area, double &lat1, double &lat2, double &lat3, double &lon1, double &lon2, double &lon3, double &r)
+{
+
+  double a, b, c;
+  double A, B, C;
+
+  // double a, b;
+
+  // std::cout<<lat1<<' '<<lat2<<' '<<lat3<<std::endl;
+
+  c = acos(sin(lat1) * sin(lat2) + cos(lat1) * cos(lat2) * cos(lon2-lon1));
+  a = acos(sin(lat2) * sin(lat3) + cos(lat2) * cos(lat3) * cos(lon3-lon2));
+  b = acos(sin(lat3) * sin(lat1) + cos(lat3) * cos(lat1) * cos(lon1-lon3));
+
+  A = acos((cos(a) - cos(b)*cos(c))/(sin(b)*sin(c)));
+  B = acos((cos(b) - cos(a)*cos(c))/(sin(a)*sin(c)));
+  C = acos((cos(c) - cos(b)*cos(a))/(sin(b)*sin(a)));
+
+  area = pow(r,2.0) * ((A + B + C) - pi);
+}
+
 //
 // double arcLength(double lat1, double lat2, double lon1, double lon2);
 //
