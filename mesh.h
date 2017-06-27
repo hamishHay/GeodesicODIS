@@ -21,6 +21,8 @@ private:
   int CalcElementAreas(void);
   int CalcCentNodeDists(void);
   int CalcTrigFunctions(void);
+  int CalcNodeDists(void);
+  int CalcMaxTimeStep(void);
 
 public:
 //	Mesh(); //constructor
@@ -44,6 +46,8 @@ public:
   Array2D<int> node_friends;
 
   Array2D<double> centroid_node_dists_map;
+
+  Array2D<double> node_dists;
 
   // Each row contains the coordinates of the centroids to the 5 or 6 surrounding
   // cells for a specific node (e.g., node ID 8 corresponds to row 8).

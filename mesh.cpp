@@ -21,6 +21,7 @@ Mesh::Mesh(Globals * Globals, int N)
    :node_pos_sph(N,2),
     node_pos_map(N,7,2),        // len 7 to include central node coords (even though it's zero)
     node_friends(N,6),
+    node_dists(N,6),
     centroid_pos_sph(N,6,2),
     centroid_pos_map(N,6,2),
     node_m(N,7),                // len 7 to include central (parent) node
@@ -53,6 +54,7 @@ Mesh::Mesh(Globals * Globals, int N)
     // Calculate mapping coordinates
     CalcMappingCoords();
 
+    CalcNodeDists();
 
     // Calculate velocity transform factors
     CalcVelocityTransformFactors();
@@ -77,6 +79,8 @@ Mesh::Mesh(Globals * Globals, int N)
     CalcCentNodeDists();
     // Evaluate trig functions at every node
     CalcTrigFunctions();
+
+    CalcMaxTimeStep();
 };
 
 // Function to calculate the cosine(alpha) and sine(alpha) velocity tranform
@@ -204,12 +208,6 @@ int Mesh::CalcMappingCoords(void)
 
                 // assign mapped values to arrays
                 mapAtPoint(*m, *x, *y, lat1, lat2, lon1, lon2, r);
-
-                // if (i == 1280)
-                // {
-                //     std::cout<<j<<" m = "<<*m<<" x = "<<*x<<" y = "<<*y<<std::endl;
-                // }
-                break;
             }
         }
     }
@@ -255,6 +253,83 @@ int Mesh::CalcControlVolumeEdgeLengths(void)
     return 1;
 };
 
+// Function to find the spherical distance between a node and each of
+// its neighbours.
+int Mesh::CalcNodeDists(void)
+{
+    int i, j, f, friend_num;
+    double * lat1, * lat2, * lon1, * lon2, * edge_len;
+    double r;
+
+    r = globals->radius.Value();
+
+    for (i=0; i<node_num; i++)
+    {
+
+        f = node_friends(i,5);
+
+        friend_num = 6;                                     // Assume hexagon (6 centroids)
+        if (f == -1) {
+            friend_num = 5;                                 // Check if pentagon (5 centroids)
+            node_dists(i,5) = -1.0;
+        }
+
+        lat1 = &node_pos_sph(i, 0);                     // set map coords for first
+        lon1 = &node_pos_sph(i, 1);
+        for (j=0; j<friend_num; j++)                        // Loop through all centroids in the control volume
+        {
+            edge_len = &node_dists(i,j);                    // set pointer to edge length array
+
+            f = node_friends(i,j);
+
+            lat2 = &node_pos_sph(f, 0);                     // set map coords for second centroid
+            lon2 = &node_pos_sph(f, 1);
+
+            distanceBetweenSph(*edge_len, *lat1, *lat2, *lon1, *lon2, r);   // calculate distance between the two centroids.
+            // Edge_len automatically assigned the length
+        }
+    }
+
+    return 1;
+};
+
+
+int Mesh::CalcMaxTimeStep(void)
+{
+  int i, j, f, friend_num;
+  double dist;
+  double g, h_max, dt;
+
+  g = globals->g.Value();
+  h_max = globals->h.Value();
+
+
+
+  dt = 1000.0;
+  for (i=0; i<node_num; i++)
+  {
+    f = node_friends(i,5);
+    friend_num = 6;                                     // Assume hexagon (6 centroids)
+    if (f == -1) {
+      friend_num = 5;                                   // Check if pentagon (5 centroids)
+    }
+      for (j=0; j<friend_num; j++)                      // Loop through all centroids in the control volume
+      {
+          dist = node_dists(i,j) * 0.5;                 // consider half node-node distance
+          dt = std::min(dt, dist/sqrt(g*h_max));
+      }
+  }
+
+  dt *= 0.75;         // take some caution
+
+  std::cout<<"DT: "<<dt<<std::endl;
+
+  globals->timeStep.SetValue(dt);
+
+
+
+  return 1;
+}
 
 // Function to find the length of control volume edges for each node, in mapping
 // coordinates. Values are stored in control_vol_edge_len 2D array.
