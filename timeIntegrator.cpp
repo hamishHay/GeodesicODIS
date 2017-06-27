@@ -446,9 +446,6 @@ int ab3Integrator(Globals * globals, Mesh * grid)
     delete press_current;
 
 
-
-
-
     while (current_time <= end_time)
     {
       current_time += dt;
@@ -484,6 +481,9 @@ int ab3Integrator(Globals * globals, Mesh * grid)
 
         // Calculate pressure gradient
         pressureGradient(grid, *dvel_dt_t0, *press_tm1);
+
+        velocityDiffusion(grid, *dvel_dt_t0, *vel_tm1);
+
 
         // Explicit time integration
         total_diss[0] = 0.0;
