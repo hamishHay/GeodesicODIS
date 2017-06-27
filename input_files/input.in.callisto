@@ -1,12 +1,12 @@
-radius;                        5.614000E+05;                     satellite radius [m];
+radius;                        2.410300E+06;                     satellite radius [m];
 k2;                                 0.00000;           degree-2 potential love number;
 h2;                                 0.00000;        degree-2 displacement love number;
-angular velocity;              2.656513E-05;              rotational speed, [rad / s];
-surface gravity;                    0.23197;                        gravity [m / s^2];
-semimajor axis;                3.773960E+08;                                   a, [m];
-eccentricity;                       0.00220;                             eccentricity;
+angular velocity;              4.357657E-06;              rotational speed, [rad / s];
+surface gravity;                    1.23605;                        gravity [m / s^2];
+semimajor axis;                1.882700E+09;                                   a, [m];
+eccentricity;                       0.00740;                             eccentricity;
 obliquity;                          0.00100;                                obliquity;
-orbital period;                236520.03368;                         orbit period [s];
+orbital period;                1441872.31968;                         orbit period [s];
 ocean thickness;                 1000.00000;               global ocean thickness [m];
 friction coefficient;               0.00300;                     drag coefficient [?];
 friction type;                    QUADRATIC;                               drag model;
