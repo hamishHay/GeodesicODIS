@@ -60,6 +60,12 @@ inline void distanceBetween(double &len, double &x1, double &x2, double &y1, dou
   len = sqrt(xx*xx + yy*yy);
 }
 
+inline void distanceBetweenSph(double &, double &, double &, double &, double &, double &);
+inline void distanceBetweenSph(double &len, double &lat1, double &lat2, double &lon1, double &lon2, double &r)
+{
+  len = r * acos(sin(lat1) * sin(lat2) + cos(lat1) * cos(lat2) * cos(lon2-lon1));
+}
+
 inline void midpointBetween(double &, double &, double &, double &, double &, double &);
 inline void midpointBetween(double &xc, double &yc, double &x1, double &x2, double &y1, double &y2)
 {
