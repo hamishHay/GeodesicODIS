@@ -11,4 +11,6 @@ void pressureGradient(Mesh *, Array2D<double> &, Array1D<double> &);
 
 void velocityDivergence(Mesh *, Array1D<double> &, Array2D<double> &);
 
+void velocityDiffusion(Mesh *, Array2D<double> &, Array2D<double> &);
+
 #endif

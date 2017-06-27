@@ -265,8 +265,79 @@ void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & v
         }
         div /= (*cv_areas)(i);
 
-
         dpdt(i) = -h*div;
 
     }
+};
+
+
+
+// Function to calculate the Laplacian and diffusion for the velocity field.
+// The discretized operator used here is the second order accurate finite
+// difference operator given as equation 3.2 in Heikes et al (2013).
+void velocityDiffusion(Mesh * mesh, Array2D<double> & dvdt, Array2D<double> & velocity)
+{
+    int node_num, friend_num;
+    int i, j, i1, j1;
+
+    Array2D<int> * friend_list;
+    Array2D<double> * cent_map_factor;
+    Array2D<double> * edge_lens;
+    Array1D<double> * cv_areas;
+    Array3D<double> * vel_transform;
+    Array2D<double> * node_friend_dists;
+
+    double m;                          // mapping factor at current cv edge
+    double u0, u1, u_temp;
+    double v0, v1, v_temp;
+    double edge_len;
+    double cos_a, sin_a;
+    double lap_u, lap_v;
+    double node_friend_dist;
+
+    node_num = mesh->node_num;
+    friend_list = &(mesh->node_friends);
+    cent_map_factor = &(mesh->control_vol_edge_centre_m);
+    edge_lens = &(mesh->control_vol_edge_len);
+    cv_areas = &(mesh->control_volume_surf_area_map);
+    vel_transform = &(mesh->node_vel_trans);
+    node_friend_dists = &(mesh->node_dists);
+
+    for (i=0; i<node_num; i++)
+    {
+        friend_num = 6;
+        if ((*friend_list)(i, 5) == -1) friend_num = 5;
+
+        u0 = velocity(i,0);
+        v0 = velocity(i,1);
+
+        lap_u = 0.0;
+        lap_v = 0.0;
+
+        for (j=0; j<friend_num; j++)
+        {
+            j1 = j%friend_num;
+            i1 = (*friend_list)(i,j1);
+
+            u_temp = velocity(i1,0);
+            v_temp = velocity(i1,1);
+
+            cos_a = (*vel_transform)(i, j1+1, 0);
+            sin_a = (*vel_transform)(i, j1+1, 1);
+
+            u1 = u_temp * cos_a + v_temp * sin_a;
+            v1 = -u_temp * sin_a + v_temp * cos_a;
+
+            node_friend_dist = (*node_friend_dists)(i,(j1+1)%friend_num);
+            edge_len = (*edge_lens)(i,j1);
+
+            lap_u += (u1 - u0)/node_friend_dist * edge_len;
+            lap_v += (v1 - v0)/node_friend_dist * edge_len;
+
+          }
+
+          dvdt(i,0) += 5.0e5 * lap_u/(*cv_areas)(i);
+          dvdt(i,1) += 5.0e5 * lap_v/(*cv_areas)(i);
+    }
+
 };
