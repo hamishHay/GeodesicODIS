@@ -27,13 +27,18 @@ void deg2Ecc(Mesh * grid, Array2D<double> & velocity, double simulationTime, dou
     int i,j, node_num;
     double * val;
     double * m;
+    double k2, h2;
 
     node_num = grid->node_num;
 
+    k2 = grid->globals->loveK2.Value();
+    h2 = grid->globals->loveH2.Value();
     // factor = pow(omega,2.0)*pow(radius,2.0)*ecc;
-    factor = pow(omega,2.0)*radius*ecc;
+
+    factor = (1.0 + k2 - h2) * pow(omega,2.0)*radius*ecc;
     cosM = cos(omega*simulationTime);
     sinM = sin(omega*simulationTime);
+
 
     // Assign pointers to start of trig node arrays
     cosLat = &(grid->trigLat(0,0));
@@ -48,7 +53,6 @@ void deg2Ecc(Mesh * grid, Array2D<double> & velocity, double simulationTime, dou
         velocity(i,0) = factor * 1.5 * cosLat[j]   // cosLat here as cos^2(lat)/cos(lat)
                         * (4.*sinM * cos2Lon[j]
                         - 3.*cosM * sin2Lon[j]);
-
 
         // calculate potential gradient in latitude
         velocity(i,1) = -factor*0.75*sin2Lat[j]
@@ -81,11 +85,15 @@ void deg2EccRad(Mesh * grid, Array2D<double> & velocity, double simulationTime, 
     double cosM, factor;              // cos(Mean anomaly), sin(Mean anomaly)
     double * sin2Lat;
     int i, j, node_num;
+    double k2, h2;
+
+    k2 = grid->globals->loveK2.Value();
+    h2 = grid->globals->loveH2.Value();
 
     node_num = grid->node_num;
 
     cosM = cos(omega*simulationTime);
-    factor = -2.25 * cosM * pow(omega, 2.0) * radius * ecc;
+    factor = -2.25 * (1.0 + k2 - h2) *  cosM * pow(omega, 2.0) * radius * ecc;
 
     sin2Lat = &(grid->trig2Lat(0,1));
 
@@ -121,11 +129,15 @@ void deg2Obliq(Mesh * grid, Array2D<double> & velocity, double simulationTime, d
     double * val;
     double * m;
     double cosM, factor;
+    double k2, h2;
+
+    k2 = grid->globals->loveK2.Value();
+    h2 = grid->globals->loveH2.Value();
 
     node_num = grid->node_num;
 
     // factor = pow(omega,2.0)*pow(radius,2.0)*ecc;
-    factor = -3.*pow(omega,2.0)*radius*theta;
+    factor = -3. * (1.0 + k2 - h2) * pow(omega,2.0)*radius*theta;
     cosM = cos(omega*simulationTime);
     // sinM = sin(omega*simulationTime);
 
