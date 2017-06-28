@@ -143,14 +143,14 @@ void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & v
         friend_num = 6;
         if ((*friend_list)(i, 5) == -1) friend_num = 5;
 
-        u_temp = velocity(i,0);
-        v_temp = velocity(i,1);
+        u0 = velocity(i,0);
+        v0 = velocity(i,1);
 
-        cos_a = (*vel_transform)(i,0,0);
-        sin_a = (*vel_transform)(i,0,1);
-
-        u0 = u_temp * cos_a + v_temp * sin_a;
-        v0 = -u_temp * sin_a + v_temp * cos_a;
+        // cos_a = (*vel_transform)(i,0,0);
+        // sin_a = (*vel_transform)(i,0,1);
+        //
+        // u0 = u_temp * cos_a + v_temp * sin_a;
+        // v0 = -u_temp * sin_a + v_temp * cos_a;
 
         div = 0.0;
 
@@ -172,7 +172,6 @@ void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & v
             u_temp = velocity(i1,0);
             v_temp = velocity(i1,1);
 
-
             // CONVERT TO MAPPED VELOCITIES
 
             cos_a = (*vel_transform)(i, j1+1, 0);
@@ -180,12 +179,10 @@ void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & v
             u1 = u_temp * cos_a + v_temp * sin_a;
             v1 = -u_temp * sin_a + v_temp * cos_a;
 
-
             // FIND VELOCITY AT SECOND FREIND
 
             u_temp = velocity(i2,0);
             v_temp = velocity(i2,1);
-
 
             // CONVERT TO MAPPED VELOCITIES
 
@@ -198,8 +195,6 @@ void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & v
 
             u0_cent = (u0 * a1 + u1 * a2 + u2 * a0) / (a0 + a1 + a2);
             v0_cent = (v0 * a1 + v1 * a2 + v2 * a0) / (a0 + a1 + a2);
-
-
 
             // find avg pressure in element j+1
             j1 = j2;
@@ -230,7 +225,6 @@ void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & v
 
             // CONVERT TO MAPPED VELOCITIES
 
-            // std::cout<<j2+1<<std::endl;
             cos_a = (*vel_transform)(i, j2+1, 0);
             sin_a = (*vel_transform)(i, j2+1, 1);
             u2 = u_temp * cos_a + v_temp * sin_a;
@@ -336,8 +330,8 @@ void velocityDiffusion(Mesh * mesh, Array2D<double> & dvdt, Array2D<double> & ve
 
           }
 
-          dvdt(i,0) += 5.0e5 * lap_u/(*cv_areas)(i);
-          dvdt(i,1) += 5.0e5 * lap_v/(*cv_areas)(i);
+          dvdt(i,0) += 2.0e3 * lap_u/(*cv_areas)(i);
+          dvdt(i,1) += 2.0e3 * lap_v/(*cv_areas)(i);
     }
 
 };
