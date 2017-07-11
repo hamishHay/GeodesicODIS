@@ -45,7 +45,7 @@ void coriolisForce(Mesh * mesh, Array2D<double> & dvdt, Array2D<double> &velocit
         dvdt(i,0) += 2.0 * omega * sinLat[i*2] * velocity(i,1);
         dvdt(i,1) -= 2.0 * omega * sinLat[i*2] * velocity(i,0);
     }
-
+    //
     // for (i=0; i<node_num; i++)
     // {
     //
