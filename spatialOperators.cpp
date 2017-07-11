@@ -320,8 +320,8 @@ void velocityDiffusion(Mesh * mesh, Array2D<double> & dvdt, Array2D<double> & ve
 
         }
 
-        dvdt(i,0) += 5.0e4 * lap_u/(*cv_areas)(i);
-        dvdt(i,1) += 5.0e4 * lap_v/(*cv_areas)(i);
+        dvdt(i,0) += 2.0e4 * lap_u/(*cv_areas)(i);
+        dvdt(i,1) += 2.0e4 * lap_v/(*cv_areas)(i);
 
     }
 
