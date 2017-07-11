@@ -308,7 +308,7 @@ int Mesh::CalcMaxTimeStep(void)
 
 
 
-  dt = 1000.0;
+  dt = globals->timeStep.Value();
   for (i=0; i<node_num; i++)
   {
     f = node_friends(i,5);
@@ -323,7 +323,7 @@ int Mesh::CalcMaxTimeStep(void)
       }
   }
 
-  dt *= 0.72;         // take some caution
+  dt *= 0.8;         // take some caution
 
   std::cout<<"DT: "<<dt<<std::endl;
 
