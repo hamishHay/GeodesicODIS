@@ -37,7 +37,7 @@ ODIS: main.o tidalPotentials.o outFiles.o globals.o mesh.o solver.o timeIntegrat
 
 main.o: main.cpp
 	$(CC) $(CFLAGS) main.cpp
-#
+
 tidalPotentials.o: tidalPotentials.cpp
 	$(CC) $(CFLAGS) tidalPotentials.cpp
 
@@ -50,27 +50,6 @@ globals.o: globals.cpp
 mesh.o: mesh.cpp
 	$(CC) $(CFLAGS) mesh.cpp
 
-# field.o: field.cpp
-# 	$(CC) $(CFLAGS) field.cpp
-#
-# depth.o: depth.cpp
-# 	$(CC) $(CFLAGS) depth.cpp
-#
-# mass.o: mass.cpp
-# 	$(CC) $(CFLAGS) mass.cpp
-#
-# energy.o: energy.cpp
-# 	$(CC) $(CFLAGS) energy.cpp
-#
-# viscosity.o: viscosity.cpp
-# 	$(CC) $(CFLAGS) viscosity.cpp
-#
-# interpolation.o: interpolation.cpp
-# 	$(CC) $(CFLAGS) interpolation.cpp
-#
-# advection.o: advection.cpp
-# 	$(CC) $(CFLAGS) advection.cpp
-#
 solver.o: solver.cpp
 	$(CC)  $(CFLAGS) $(CLINK) solver.cpp
 
