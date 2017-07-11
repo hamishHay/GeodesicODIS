@@ -383,10 +383,13 @@ int ab3Integrator(Globals * globals, Mesh * grid)
 
       for (i=0; i<node_num; i++)
       {
+
         (*vel_t0)(i,0) += (1./6. * (*dvel_dt_k1)(i,0) + 1./3. * (*dvel_dt_k2)(i,0) + 1./3. * (*dvel_dt_k3)(i,0) + 1./6. * (*dvel_dt_k4)(i,0)) * dt;
         (*vel_t0)(i,1) += (1./6. * (*dvel_dt_k1)(i,1) + 1./3. * (*dvel_dt_k2)(i,1) + 1./3. * (*dvel_dt_k3)(i,1) + 1./6. * (*dvel_dt_k4)(i,1)) * dt;
         (*press_t0)(i) += (1./6. * (*dpress_dt_k1)(i) + 1./3. * (*dpress_dt_k2)(i) + 1./3. * (*dpress_dt_k3)(i) + 1./6. * (*dpress_dt_k4)(i)) * dt;
+
       }
+
 
       switch (j)
       {
@@ -541,7 +544,6 @@ int ab3Integrator(Globals * globals, Mesh * grid)
 
             (*dpress_dt_tm2)(i) = (*dpress_dt_tm1)(i);
             (*dpress_dt_tm1)(i) = (*dpress_dt_t0)(i);
-
         }
 
         // Check for output
@@ -556,6 +558,7 @@ int ab3Integrator(Globals * globals, Mesh * grid)
             out_time -= out_frac*orbit_period;
             pp[3] = &(*energy_diss)(0);
             pp[1] = &(*press_t0)(0);
+            // pp[1] = &(grid->land_mask(0));
             pp[2] = &(*vel_t0)(0,0);
             pp[0] = &total_diss[0];
 

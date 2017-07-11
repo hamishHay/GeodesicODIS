@@ -15,6 +15,7 @@ void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pre
     Array3D<double> * normal_vecs;
     Array2D<double> * edge_lens;
     Array1D<double> * cv_areas;
+    Array1D<int> * mask;
 
     double m;                          // mapping factor at current cv edge
     double a0, a1, a2;
@@ -32,6 +33,7 @@ void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pre
     edge_lens = &(mesh->control_vol_edge_len);
     cv_areas = &(mesh->control_volume_surf_area_map);
     g = mesh->globals->g.Value();
+    mask = &(mesh->land_mask);
 
     for (i=0; i<node_num; i++)
     {
@@ -93,15 +95,13 @@ void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pre
             // calculate y gradient
             y_grad += m * p_avg * ny * edge_len;
 
-
         }
+
         x_grad = g * x_grad / (*cv_areas)(i);
         y_grad = g * y_grad / (*cv_areas)(i);
 
-        // if (i== 1280) std::cout<<x_grad<<'\t'<<y_grad<<std::endl;
         dvdt(i,0) -= x_grad;
         dvdt(i,1) -= y_grad;
-
     }
 };
 
@@ -117,6 +117,7 @@ void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & v
     Array2D<double> * edge_lens;
     Array1D<double> * cv_areas;
     Array3D<double> * vel_transform;
+    Array1D<int> * mask;
 
     double m;                          // mapping factor at current cv edge
     double a0, a1, a2;
@@ -137,6 +138,7 @@ void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & v
     cv_areas = &(mesh->control_volume_surf_area_map);
     h = mesh->globals->h.Value();
     vel_transform = &(mesh->node_vel_trans);
+    mask = &(mesh->land_mask);
 
     for (i=0; i<node_num; i++)
     {
@@ -145,12 +147,6 @@ void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & v
 
         u0 = velocity(i,0);
         v0 = velocity(i,1);
-
-        // cos_a = (*vel_transform)(i,0,0);
-        // sin_a = (*vel_transform)(i,0,1);
-        //
-        // u0 = u_temp * cos_a + v_temp * sin_a;
-        // v0 = -u_temp * sin_a + v_temp * cos_a;
 
         div = 0.0;
 
@@ -179,7 +175,7 @@ void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & v
             u1 = u_temp * cos_a + v_temp * sin_a;
             v1 = -u_temp * sin_a + v_temp * cos_a;
 
-            // FIND VELOCITY AT SECOND FREIND
+            // FIND VELOCITY AT SECOND FRIEND
 
             u_temp = velocity(i2,0);
             v_temp = velocity(i2,1);
@@ -192,7 +188,6 @@ void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & v
             v2 = -u_temp * sin_a + v_temp * cos_a;
 
             // FIND AVERAGE VELOCITY AT FIRST ELEMENT CENTRE
-
             u0_cent = (u0 * a1 + u1 * a2 + u2 * a0) / (a0 + a1 + a2);
             v0_cent = (v0 * a1 + v1 * a2 + v2 * a0) / (a0 + a1 + a2);
 
@@ -207,39 +202,32 @@ void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & v
             a2 = (*element_areas)(i,j1,2);
 
             // FIND VELOCITY AT FIRST FRIEND
-
             u_temp = velocity(i1,0);
             v_temp = velocity(i1,1);
 
             // CONVERT TO MAPPED VELOCITIES
-
             cos_a = (*vel_transform)(i, j1+1, 0);
             sin_a = (*vel_transform)(i, j1+1, 1);
             u1 = u_temp * cos_a + v_temp * sin_a;
             v1 = -u_temp * sin_a + v_temp * cos_a;
 
             // FIND VELOCITY AT SECOND FREIND
-
             u_temp = velocity(i2,0);
             v_temp = velocity(i2,1);
 
             // CONVERT TO MAPPED VELOCITIES
-
             cos_a = (*vel_transform)(i, j2+1, 0);
             sin_a = (*vel_transform)(i, j2+1, 1);
             u2 = u_temp * cos_a + v_temp * sin_a;
             v2 = -u_temp * sin_a + v_temp * cos_a;
 
             // FIND AVERAGE VELOCITY AT FIRST ELEMENT CENTRE
-
             u1_cent = (u0 * a1 + u1 * a2 + u2 * a0) / (a0 + a1 + a2);
             v1_cent = (v0 * a1 + v1 * a2 + v2 * a0) / (a0 + a1 + a2);
 
             // Find average p at the center of the control volume edge
-            // u_avg = 0.5*(u0_cent + u1_cent);
             v_avg = 0.5*(v0_cent + v1_cent);
             u_avg = 0.5*(u0_cent + u1_cent);
-
 
             j1 = j%friend_num;
 
@@ -257,10 +245,10 @@ void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & v
             div += ((u_avg * nx) + (v_avg * ny)) * edge_len / m;
 
         }
+
         div /= (*cv_areas)(i);
 
         dpdt(i) = -h*div;
-
     }
 };
 
@@ -280,6 +268,7 @@ void velocityDiffusion(Mesh * mesh, Array2D<double> & dvdt, Array2D<double> & ve
     Array1D<double> * cv_areas;
     Array3D<double> * vel_transform;
     Array2D<double> * node_friend_dists;
+    Array1D<int> * mask;
 
     double m;                          // mapping factor at current cv edge
     double u0, u1, u_temp;
@@ -296,6 +285,7 @@ void velocityDiffusion(Mesh * mesh, Array2D<double> & dvdt, Array2D<double> & ve
     cv_areas = &(mesh->control_volume_surf_area_map);
     vel_transform = &(mesh->node_vel_trans);
     node_friend_dists = &(mesh->node_dists);
+    mask = &(mesh->land_mask);
 
     for (i=0; i<node_num; i++)
     {
@@ -310,28 +300,29 @@ void velocityDiffusion(Mesh * mesh, Array2D<double> & dvdt, Array2D<double> & ve
 
         for (j=0; j<friend_num; j++)
         {
-            j1 = j%friend_num;
-            i1 = (*friend_list)(i,j1);
+              j1 = j%friend_num;
+              i1 = (*friend_list)(i,j1);
 
-            u_temp = velocity(i1,0);
-            v_temp = velocity(i1,1);
+              u_temp = velocity(i1,0);
+              v_temp = velocity(i1,1);
 
-            cos_a = (*vel_transform)(i, j1+1, 0);
-            sin_a = (*vel_transform)(i, j1+1, 1);
+              cos_a = (*vel_transform)(i, j1+1, 0);
+              sin_a = (*vel_transform)(i, j1+1, 1);
 
-            u1 = u_temp * cos_a + v_temp * sin_a;
-            v1 = -u_temp * sin_a + v_temp * cos_a;
+              u1 = u_temp * cos_a + v_temp * sin_a;
+              v1 = -u_temp * sin_a + v_temp * cos_a;
 
-            node_friend_dist = (*node_friend_dists)(i,(j1+1)%friend_num);
-            edge_len = (*edge_lens)(i,j1);
+              node_friend_dist = (*node_friend_dists)(i,(j1+1)%friend_num);
+              edge_len = (*edge_lens)(i,j1);
 
-            lap_u += (u1 - u0)/node_friend_dist * edge_len;
-            lap_v += (v1 - v0)/node_friend_dist * edge_len;
+              lap_u += (u1 - u0)/node_friend_dist * edge_len;
+              lap_v += (v1 - v0)/node_friend_dist * edge_len;
 
-          }
+        }
 
-          dvdt(i,0) += 2.0e3 * lap_u/(*cv_areas)(i);
-          dvdt(i,1) += 2.0e3 * lap_v/(*cv_areas)(i);
+        dvdt(i,0) += 5.0e4 * lap_u/(*cv_areas)(i);
+        dvdt(i,1) += 5.0e4 * lap_v/(*cv_areas)(i);
+
     }
 
 };

@@ -35,6 +35,7 @@ Mesh::Mesh(Globals * Globals, int N)
     control_volume_mass(N),
     node_friend_element_areas_map(N,6,3),
     centroid_node_dists_map(N,6),
+    land_mask(N),
 
     trigLat(N,2),
     trigLon(N,2),
@@ -81,6 +82,8 @@ Mesh::Mesh(Globals * Globals, int N)
     CalcTrigFunctions();
 
     CalcMaxTimeStep();
+
+    CalcLand();
 };
 
 // Function to calculate the cosine(alpha) and sine(alpha) velocity tranform
@@ -320,7 +323,7 @@ int Mesh::CalcMaxTimeStep(void)
       }
   }
 
-  dt *= 0.7;         // take some caution
+  dt *= 0.72;         // take some caution
 
   std::cout<<"DT: "<<dt<<std::endl;
 
@@ -651,6 +654,135 @@ int Mesh::CalcTrigFunctions(void)
     }
 
     return 1;
+};
+
+int Mesh::CalcLand(void)
+{
+    int i, j, f, friend_num, b_friend;
+    double lat, lon, lat0, lon0, r;
+    double xc, yc, x1, y1, x2, y2;
+    double angl;
+
+    lat0 = 0.0;
+    lon0 = 180.0 * radConv;
+    r = 1.0;// globals->radius.Value();
+
+    // Step 1: define dry (0) or wet (1) regions
+    for (i=0; i<node_num; i++)
+    {
+        lat = node_pos_sph(i, 0);
+        lon = node_pos_sph(i, 1);
+
+        // land_mask(i) = 1;
+
+        distanceBetweenSph(angl, lat0, lat, lon0, lon, r);
+        // angl *= 252.1e3;
+
+        if (fabs(angl)*1.0/radConv < 60.0)
+        {
+            land_mask(i) = 1;
+        }
+        else
+        {
+            land_mask(i) = 0;
+        }
+    }
+
+    // Step 2: define boundaries between dry and wet regions (2)
+    for (i=0; i<node_num; i++)
+    {
+      lat = node_pos_sph(i, 0);
+      lon = node_pos_sph(i, 1);
+
+      f = node_friends(i,5);
+
+      friend_num = 6;                    // Assume hexagon (6 centroids)
+      if (f == -1) {
+          friend_num = 5;                // Check if pentagon (5 centroids)
+      }
+
+      for (j=0; j<friend_num; j++)
+      {
+          f = node_friends(i,j);
+
+          // check if node is water and connected to land
+          if ((land_mask(i) == 1) && (land_mask(f) == 0))
+          {
+              land_mask(i) = 2;              // node *must* be a boundary node
+              break;
+          }
+      }
+    }
+
+    // Step 3: Find normal and tangential unit vectors at each local boundary
+    for (i=0; i<node_num; i++)
+    {
+      xc = node_pos_map(i, 0, 0);
+      yc = node_pos_map(i, 0, 1);
+
+      f = node_friends(i,5);
+
+      friend_num = 6;                    // Assume hexagon (6 centroids)
+      if (f == -1) {
+          friend_num = 5;                // Check if pentagon (5 centroids)
+      }
+
+      x1 = 0.0;
+      y1 = 0.0;
+      x2 = 0.0;
+      y2 = 0.0;
+      b_friend = 0;
+      if (land_mask(i) == 2)
+      {
+          for (j=0; j<friend_num; j++)
+          {
+              f = node_friends(i,j);
+
+              if (land_mask(f) == 2)
+              {
+                  if (b_friend == 0)
+                  {
+                      x1 = node_pos_map(i, f, 0);
+                      y1 = node_pos_map(i, f, 1);
+                      b_friend++;
+                  }
+                  else if (b_friend == 1)
+                  {
+                      x2 = node_pos_map(i, f, 0);
+                      y2 = node_pos_map(i, f, 1);
+                      break;
+                  }
+              }
+          }
+
+
+          // fit a function to coords for p1, pc, and p2
+
+          // at pc, find the normal vector and tangential unit vectors of the fitted function
+
+      }
+      else
+      {
+          //Treat non-boundaries
+      }
+
+
+      land_mask(i) = 1;
+    }
+
+
+
+
+  //
+  // for (i=0; i<node_num; i++)
+  // {
+  //     lat = node_pos_sph(i, 0);
+  //     lon = node_pos_sph(i, 1);
+  //
+  //     std::cout<<lat<<' '<<lon<<' '<<land_mask(i)<<std::endl;
+  //
+  // }
+  //   globals->Output->TerminateODIS();
 };
 
 // Function to read in text file containing mesh information

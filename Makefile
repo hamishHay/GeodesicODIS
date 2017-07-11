@@ -23,8 +23,8 @@ all: ODIS
 # 	$(CC) legendre.o legendreDeriv.o extractSHCoeff.o $(FLINK) main.o mathRoutines.o tidalPotentials.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o viscosity.o interpolation.o advection.o solver.o -o ODIS -lgfortran -fopenmp $(CLINK)
 
 
-ODIS: main.o mathRoutines.o tidalPotentials.o outFiles.o globals.o mesh.o solver.o timeIntegrator.o drag.o coriolis.o spatialOperators.o
-	$(CC) $(FLINK) main.o mathRoutines.o tidalPotentials.o outFiles.o globals.o mesh.o solver.o timeIntegrator.o drag.o coriolis.o spatialOperators.o -o ODIS -lgfortran $(CLINK)
+ODIS: main.o tidalPotentials.o outFiles.o globals.o mesh.o solver.o timeIntegrator.o drag.o coriolis.o spatialOperators.o
+	$(CC) $(FLINK) main.o tidalPotentials.o outFiles.o globals.o mesh.o solver.o timeIntegrator.o drag.o coriolis.o spatialOperators.o -o ODIS -lgfortran $(CLINK)
 
 # legendre.o: legendre.f95
 # 	$(F) $(FFLAGS) legendre.f95
@@ -37,9 +37,6 @@ ODIS: main.o mathRoutines.o tidalPotentials.o outFiles.o globals.o mesh.o solver
 
 main.o: main.cpp
 	$(CC) $(CFLAGS) main.cpp
-
-mathRoutines.o: mathRoutines.cpp
-	$(CC) $(CFLAGS) mathRoutines.cpp
 #
 tidalPotentials.o: tidalPotentials.cpp
 	$(CC) $(CFLAGS) tidalPotentials.cpp

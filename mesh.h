@@ -23,6 +23,7 @@ private:
   int CalcTrigFunctions(void);
   int CalcNodeDists(void);
   int CalcMaxTimeStep(void);
+  int CalcLand(void);
 
 public:
 //	Mesh(); //constructor
@@ -90,6 +91,8 @@ public:
 
   // Array to store the triangular areas within each subelement.
   Array3D<double> node_friend_element_areas_map;
+
+  Array1D<int> land_mask;
 
   // Arrays to store trig functions evaluated at each node
   Array2D<double> trigLat;
