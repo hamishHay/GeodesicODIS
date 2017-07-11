@@ -1,6 +1,3 @@
-# ODIS
-Ocean Dissipation in Icy Satellites
-
 # GeodesicODIS
 
 GeodesicODIS is a finite volume fluid dynamics code for simulating oceanic flow in icy satellites and other bodies. GeodesicODIS currently solves the Laplace Tidal Equations (LTEs) assuming a free surface, neglecting the effects of an overlying ice shell.
@@ -65,12 +62,6 @@ Give an example
 
 Add additional notes about how to deploy this on a live system
 
-## Built With
-
-* [Dropwizard](http://www.dropwizard.io/1.0.2/docs/) - The web framework used
-* [Maven](https://maven.apache.org/) - Dependency Management
-* [ROME](https://rometools.github.io/rome/) - Used to generate RSS Feeds
-
 ## Authors
 
-* **Hamish Hay** - *Only Developer* - [PurpleBooth](https://github.com/PurpleBooth)
+* **Hamish Hay** - *Lead Developer* [Lunar and Planetary Lab](https://www.lpl.arizona.edu/graduate/students/hamish-hay)
