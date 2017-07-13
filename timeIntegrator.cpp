@@ -163,9 +163,6 @@ int eulerIntegrator(Globals * globals, Mesh * grid)
 
         updateDisplacement(globals, grid, *dpress_dt_t0, *vel_t0);
 
-        // CALCULATE VELOCITY FIELD DIVERGENCE
-        // velocityDivergence(grid, *dpress_dt_t0, *vel_t0);
-
         // INTEGRATE PRESSURE FORWARD IN TIME
         for (i = 0; i<node_num; i++)
         {
@@ -309,7 +306,8 @@ int ab3Integrator(Globals * globals, Mesh * grid)
 
         updateVelocity(globals, grid, *dvel_dt_t0, *vel_tm1, *press_tm1, current_time);
 
-        // Explicit time integration
+        // Explicit time integration using Adams-Bashforth 3rd order explicit
+        // time-scheme
         total_diss[0] = 0.0;
         if (iter > 1) {
             for (i = 0; i<node_num; i++)
