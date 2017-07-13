@@ -24,6 +24,7 @@ private:
   int CalcNodeDists(void);
   int CalcMaxTimeStep(void);
   int CalcLand(void);
+  int CalcPressureFactor();
 
 public:
 //	Mesh(); //constructor
@@ -91,6 +92,8 @@ public:
 
   // Array to store the triangular areas within each subelement.
   Array3D<double> node_friend_element_areas_map;
+
+  Array1D<double> pressure_factor;
 
   Array1D<int> land_mask;
 

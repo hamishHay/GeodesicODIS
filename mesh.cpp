@@ -35,6 +35,7 @@ Mesh::Mesh(Globals * Globals, int N)
     control_volume_mass(N),
     node_friend_element_areas_map(N,6,3),
     centroid_node_dists_map(N,6),
+    pressure_factor(N),
     land_mask(N),
 
     trigLat(N,2),
@@ -84,6 +85,8 @@ Mesh::Mesh(Globals * Globals, int N)
     CalcMaxTimeStep();
 
     CalcLand();
+
+    CalcPressureFactor();
 };
 
 // Function to calculate the cosine(alpha) and sine(alpha) velocity tranform
@@ -290,8 +293,45 @@ int Mesh::CalcNodeDists(void)
 
             distanceBetweenSph(*edge_len, *lat1, *lat2, *lon1, *lon2, r);   // calculate distance between the two centroids.
             // Edge_len automatically assigned the length
+
+            // std::cout<<*edge_len<<std::endl;
         }
     }
+
+    // int i, j, f, friend_num;
+    // double * x1, * y1, * x2, * y2, * edge_len;
+    //
+    // for (i=0; i<node_num; i++)
+    // {
+    //
+    //     f = node_friends(i,5);
+    //
+    //     friend_num = 6;                                     // Assume hexagon (6 centroids)
+    //     if (f == -1) {
+    //         friend_num = 5;                                   // Check if pentagon (5 centroids)
+    //         node_dists(i,5) = -1.0;
+    //     }
+    //
+    //     for (j=0; j<friend_num; j++)                        // Loop through all centroids in the control volume
+    //     {
+    //         f = node_friends(i,j);
+    //
+    //         edge_len = &node_dists(i,j);            // set pointer to edge length array
+    //
+    //         x1 = &node_pos_map(i, 0, 0);   // set map coords for second centroid
+    //         y1 = &node_pos_map(i, 0, 1);   // automatically loops around using %
+    //
+    //         x2 = &node_pos_map(i, j+1, 0);   // set map coords for second centroid
+    //         y2 = &node_pos_map(i, j+1, 1);   // automatically loops around using %
+    //
+    //
+    //         distanceBetween(*edge_len, *x1, *x2, *y1, *y2);   // calculate distance between the two centroids.
+    //         // Edge_len automatically assigned the length
+    //
+    //         std::cout<<*edge_len<<std::endl;
+    //     }
+    // }
+
 
     return 1;
 };
@@ -332,6 +372,44 @@ int Mesh::CalcMaxTimeStep(void)
 
 
   return 1;
+}
+
+int Mesh::CalcPressureFactor(void)
+{
+    int i, j, f, friend_num;
+    double * area, * edge_len, * node_dist;
+    double factor, relax_factor;
+
+    relax_factor = 5000.0;
+
+    for (i=0; i<node_num; i++)
+    {
+
+        f = node_friends(i,5);
+
+        friend_num = 6;                                     // Assume hexagon (6 centroids)
+        if (f == -1) friend_num = 5;                                   // Check if pentagon (5 centroids)
+
+        area = &control_volume_surf_area_map(i);
+
+        factor = 0.0;
+
+        for (j=0; j<friend_num; j++)                        // Loop through all centroids in the control volume
+        {
+            f = node_friends(i,j);
+
+            edge_len = &control_vol_edge_len(i,j);            // set pointer to edge length array
+            node_dist = &node_dists(i, j);
+
+            factor += (*edge_len)/(*node_dist);
+        }
+
+        factor = relax_factor * (*area) / (globals->timeStep.Value() * factor);
+
+        pressure_factor(i) = factor;
+    }
+
+    return 1;
 }
 
 // Function to find the length of control volume edges for each node, in mapping
