@@ -128,6 +128,9 @@ Globals::Globals(int action) {
     friction.SetStringID("friction type");
     allGlobals.push_back(&friction);
 
+    surface.SetStringID("surface type");
+    allGlobals.push_back(&surface);
+
     solver.SetStringID("solver type");
     allGlobals.push_back(&solver);
 
@@ -172,24 +175,24 @@ Globals::Globals(int action) {
 
   Output->CreateHDF5Framework(this);
 
-  // identify friction type and select the corresponding enum value.
-  if (friction.Value() == "LINEAR") fric_type = LINEAR;
-  else if (friction.Value() == "QUADRATIC") fric_type = QUADRATIC;
-  else {
-    outstring << "ERROR: NO DRAG MODEL FOUND!" << std::endl;
-    Output->Write(ERR_MESSAGE, &outstring);
-    Output->TerminateODIS();
-  }
+    // identify friction type and select the corresponding enum value.
+    if (friction.Value() == "LINEAR") fric_type = LINEAR;
+    else if (friction.Value() == "QUADRATIC") fric_type = QUADRATIC;
+    else {
+        outstring << "ERROR: NO DRAG MODEL FOUND!" << std::endl;
+        Output->Write(ERR_MESSAGE, &outstring);
+        Output->TerminateODIS();
+    }
 
-  if (solver.Value() == "EULER") solver_type = EULER;
-  else if (solver.Value() == "AB3") solver_type = AB3;
-  else {
-    outstring << "ERROR: NO SOLVER FOUND!" << std::endl;
-    Output->Write(ERR_MESSAGE, &outstring);
-    Output->TerminateODIS();
-  }
+    if (solver.Value() == "EULER") solver_type = EULER;
+    else if (solver.Value() == "AB3") solver_type = AB3;
+    else {
+        outstring << "ERROR: NO SOLVER FOUND!" << std::endl;
+        Output->Write(ERR_MESSAGE, &outstring);
+        Output->TerminateODIS();
+    }
 
-  if (potential.Value() == "ECC_RAD")         tide_type = ECC_RAD;
+    if (potential.Value() == "ECC_RAD")         tide_type = ECC_RAD;
     else if (potential.Value() == "ECC_LIB")    tide_type = ECC_LIB;
     else if (potential.Value() == "ECC")        tide_type = ECC;
     else if (potential.Value() == "OBLIQ")      tide_type = OBLIQ;
@@ -198,7 +201,16 @@ Globals::Globals(int action) {
     else if (potential.Value() == "ECC_W3")     tide_type = ECC_W3;
     else if (potential.Value() == "OBLIQ_W3")   tide_type = OBLIQ_W3;
     else {
-        outstring << "No potential forcing found." << std::endl;
+        outstring << "ERROR: NO POTENTIAL FORCING FOUND!" << std::endl;
+        Output->Write(ERR_MESSAGE, &outstring);
+        Output->TerminateODIS();
+    }
+
+    if (surface.Value() == "FREE")              surface_type = FREE;
+    else if (surface.Value() == "LID")          surface_type = LID;
+    else if (surface.Value() == "INF_LID")      surface_type = INF_LID;
+    else {
+        outstring << "ERROR: NO OCEAN SURFACE BOUNDARY CONDITION FOUND!" << std::endl;
         Output->Write(ERR_MESSAGE, &outstring);
         Output->TerminateODIS();
     }

@@ -44,16 +44,22 @@ const int PATH = 1028; // global int for number of characters in the system path
 
 enum Friction { LINEAR, QUADRATIC }; // enumerate for drag type, selected by user
 
-enum Solver { EULER, AB3, RK4 };
+enum Surface { FREE,        // Free surface --> no ice lid
+               LID,         // Lid surface --> moveable lid
+               INF_LID};    // Lid surface --> imoveable (infite rigidity) lid
 
-enum Potential {OBLIQ,         // Obliquity tide (Tyler 2011)
-                  ECC_RAD,       // Eccentricity radial tide (Tyler 2011)
-                  ECC_LIB,       // Eccentricity libration tide (Tyler 2011)
-                  ECC,           // ECC_RAD + ECC_LIB
-                  FULL,          // ECC_RAD + ECC_LIB + OBLIQ
-                  TOTAL,         // Entire ecc and obliq potential to second order in Eccentricity and Obliquity
-                  ECC_W3,        // Time-dependent degree-3 eccentricity tide // TODO - Add expressions to documentation
-                  OBLIQ_W3};     // Time-dependent degree-3 obliquity tide
+enum Solver { EULER,        // Explicit Euler time integration
+              AB3,          // Adams-Bashforth 3rd order explicit time integration
+              RK4 };        // Runge-Kutta 4th order time integration
+
+enum Potential {OBLIQ,      // Obliquity tide (Tyler 2011)
+                ECC_RAD,    // Eccentricity radial tide (Tyler 2011)
+                ECC_LIB,    // Eccentricity libration tide (Tyler 2011)
+                ECC,        // ECC_RAD + ECC_LIB
+                FULL,       // ECC_RAD + ECC_LIB + OBLIQ
+                TOTAL,      // Entire ecc and obliq potential to second order in Eccentricity and Obliquity
+                ECC_W3,     // Time-dependent degree-3 eccentricity tide // TODO - Add expressions to documentation
+                OBLIQ_W3};  // Time-dependent degree-3 obliquity tide
 
 
 //Class stores all global values
@@ -76,6 +82,7 @@ public:
   Friction fric_type;
   Solver solver_type;
   Potential tide_type;
+  Surface surface_type;
 
   // Stringstream for composing outgoing messages, which is then passed to Output.
   std::ostringstream outstring;
@@ -111,6 +118,7 @@ public:
   GlobalVar<double> endTime; // maximum simulation run time
   GlobalVar<std::string> potential; // string for tidal potential type
   GlobalVar<std::string> friction; // string for drag type
+  GlobalVar<std::string> surface; // string for surface boundary condition
   GlobalVar<std::string> solver; // string for type of time sovler
   GlobalVar<bool> init; // boolean for using initial conditions
   GlobalVar<double> converge; // convergence criteria for ODIS.
