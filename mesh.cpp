@@ -323,7 +323,7 @@ int Mesh::CalcMaxTimeStep(void)
       }
   }
 
-  dt *= 0.8;         // take some caution
+  dt *= 0.9;         // take some caution
 
   std::cout<<"DT: "<<dt<<std::endl;
 
