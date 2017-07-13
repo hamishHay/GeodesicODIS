@@ -8,6 +8,7 @@
 #include "tidalPotentials.h"
 #include "spatialOperators.h"
 #include "temporalOperators.h"
+#include "energy.h"
 #include "drag.h"
 #include "coriolis.h"
 #include <math.h>
@@ -274,6 +275,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     energy_diss = new Array1D<double>(node_num);
 
     double * total_diss;
+    double e_diss;
     total_diss = new double[1];
 
     for (i=0; i<node_num; i++)
@@ -305,33 +307,14 @@ int ab3Explicit(Globals * globals, Mesh * grid)
         // MARCH VELOCITY FORWARD IN TIME
         integrateAB3vector(globals, grid, *vel_t0, *vel_tm1, *dvel_dt_t0, *dvel_dt_tm1, *dvel_dt_tm2, iter);
 
-        total_diss[0] = 0.0;
-
-        // UPDATE ENERGY
-        for (i = 0; i<node_num; i++)
-        {
-            switch (globals->fric_type)
-            {
-              case LINEAR:
-                (*energy_diss)(i) = drag_coeff * (*cv_mass)(i)
-                                    * ((*vel_t0)(i,0)*(*vel_t0)(i,0) + (*vel_t0)(i,1)*(*vel_t0)(i,1));
-                break;
-              case QUADRATIC:
-                (*energy_diss)(i) = drag_coeff/h * (*cv_mass)(i)
-                                    * sqrt((*vel_t0)(i,0)*(*vel_t0)(i,0) + (*vel_t0)(i,1)*(*vel_t0)(i,1))
-                                    * ((*vel_t0)(i,0)*(*vel_t0)(i,0) + (*vel_t0)(i,1)*(*vel_t0)(i,1));
-                break;
-            }
-
-            total_diss[0] += (*energy_diss)(i);
-        }
-        total_diss[0] /= (4. * pi * pow(r,2.0));
-
+        // UPDATE ENERGY DISSIPATION
+        updateEnergy(globals, e_diss, *energy_diss, *vel_t0, *cv_mass);
+        total_diss[0] = e_diss;
 
         // SOLVE THE CONTINUITY EQUATION
         updateDisplacement(globals, grid, *dpress_dt_t0, *vel_t0);
 
-        // MARCH VELOCITY FORWARD IN TIME
+        // MARCH DISPLACEMENT FORWARD IN TIME
         integrateAB3scalar(globals, grid, *press_t0, *press_tm1, *dpress_dt_t0, *dpress_dt_tm1, *dpress_dt_tm2, iter);
 
         // Check for output
