@@ -78,7 +78,7 @@ int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt
 
 // Function to implement the time loop to solve mass and momentum equations over
 // the geodesic grid. The time integration method is the explicit Euler method.
-int eulerIntegrator(Globals * globals, Mesh * grid)
+int eulerExplicit(Globals * globals, Mesh * grid)
 {
     std::ostringstream outstring;
     int i,j,iter,out_count;
@@ -204,7 +204,7 @@ int eulerIntegrator(Globals * globals, Mesh * grid)
 
 // Function to implement the time loop to solve mass and momentum equations over
 // the geodesic grid. The time integration method is the explicit Euler method.
-int ab3Integrator(Globals * globals, Mesh * grid)
+int ab3Explicit(Globals * globals, Mesh * grid)
 {
     std::ostringstream outstring;
     int i,j,k,iter,out_count;
@@ -315,12 +315,12 @@ int ab3Integrator(Globals * globals, Mesh * grid)
                 (*vel_t0)(i,0) = (a*(*dvel_dt_t0)(i,0)
                                   + b*(*dvel_dt_tm1)(i,0)
                                   + c*(*dvel_dt_tm2)(i,0)) * dt
-                                 + (*vel_tm1)(i,0);
+                                  + (*vel_tm1)(i,0);
 
                 (*vel_t0)(i,1) = (a*(*dvel_dt_t0)(i,1)
                                   + b*(*dvel_dt_tm1)(i,1)
                                   + c*(*dvel_dt_tm2)(i,1)) * dt
-                                 + (*vel_tm1)(i,1);
+                                  + (*vel_tm1)(i,1);
 
                 (*vel_tm1)(i, 0) = (*vel_t0)(i, 0);
                 (*vel_tm1)(i, 1) = (*vel_t0)(i, 1);

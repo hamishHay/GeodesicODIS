@@ -28,7 +28,7 @@ int solveODIS(Globals * globals, Mesh * mesh)
         outstring << std::endl << std::endl;
         Output->Write(OUT_MESSAGE, &outstring);
 
-        eulerIntegrator(globals, mesh);
+        eulerExplicit(globals, mesh);
         break;
 
     case AB3:
@@ -37,7 +37,7 @@ int solveODIS(Globals * globals, Mesh * mesh)
         outstring << std::endl << std::endl;
         Output->Write(OUT_MESSAGE, &outstring);
 
-        ab3Integrator(globals, mesh);
+        ab3Explicit(globals, mesh);
         break;
 
     default:

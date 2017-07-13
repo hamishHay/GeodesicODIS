@@ -9,8 +9,8 @@
 #include <math.h>
 #include <iostream>
 
-int eulerIntegrator(Globals *, Mesh *);
-int ab3Integrator(Globals *, Mesh *);
+int eulerExplicit(Globals *, Mesh *);
+int ab3Explicit(Globals *, Mesh *);
 
 int updateVelocity(Globals *, Mesh *, Array2D<double> &, Array2D<double> &, Array1D<double> &, double);
 int updateDisplacement(Globals *, Mesh *, Array1D<double> &, Array2D<double> &);
