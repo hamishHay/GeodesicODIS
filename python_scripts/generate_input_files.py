@@ -35,6 +35,7 @@ for moon in icy_satellites:
 
     # WRITE PHYSICS OPTIONS
     f.write(line_str_str.format("friction type;", "QUADRATIC", "drag model"))
+    f.write(line_str_str.format("surface type;", "FREE", "ocean surface boundary"))
     f.write(line_str_str.format("potential;", "ECC", "tidal potential type"))
     f.write(line_str_int.format("sh degree;", 8, "max spherical harmonic degree"))
     f.write(line_str_int.format("geodesic grid level;", 5, "geodesic recursion grid level"))
