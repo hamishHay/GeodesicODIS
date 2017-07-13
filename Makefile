@@ -23,8 +23,8 @@ all: ODIS
 # 	$(CC) legendre.o legendreDeriv.o extractSHCoeff.o $(FLINK) main.o mathRoutines.o tidalPotentials.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o viscosity.o interpolation.o advection.o solver.o -o ODIS -lgfortran -fopenmp $(CLINK)
 
 
-ODIS: main.o tidalPotentials.o outFiles.o globals.o mesh.o solver.o timeIntegrator.o drag.o coriolis.o spatialOperators.o temporalOperators.o energy.o
-	$(CC) $(FLINK) main.o tidalPotentials.o outFiles.o globals.o mesh.o solver.o timeIntegrator.o drag.o coriolis.o spatialOperators.o temporalOperators.o energy.o -o ODIS -lgfortran $(CLINK)
+ODIS: main.o tidalPotentials.o outFiles.o globals.o mesh.o solver.o timeIntegrator.o drag.o coriolis.o spatialOperators.o temporalOperators.o energy.o pressure.o
+	$(CC) $(FLINK) main.o tidalPotentials.o outFiles.o globals.o mesh.o solver.o timeIntegrator.o drag.o coriolis.o spatialOperators.o temporalOperators.o energy.o pressure.o -o ODIS -lgfortran $(CLINK)
 
 # legendre.o: legendre.f95
 # 	$(F) $(FFLAGS) legendre.f95
@@ -70,6 +70,9 @@ temporalOperators.o: temporalOperators.cpp
 
 energy.o: energy.cpp
 	$(CC)  $(CFLAGS) $(CLINK) energy.cpp
+
+pressure.o: pressure.cpp
+	$(CC)  $(CFLAGS) $(CLINK) pressure.cpp
 
 clean:
 	rm -r *o ODIS NorthVelocity EastVelocity Displacement Grid Energy
