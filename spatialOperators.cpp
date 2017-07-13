@@ -257,7 +257,7 @@ void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & v
 // Function to calculate the Laplacian and diffusion for the velocity field.
 // The discretized operator used here is the second order accurate finite
 // difference operator given as equation 3.2 in Heikes et al (2013).
-void velocityDiffusion(Mesh * mesh, Array2D<double> & dvdt, Array2D<double> & velocity)
+void velocityDiffusion(Mesh * mesh, Array2D<double> & dvdt, Array2D<double> & velocity, double viscosity)
 {
     int node_num, friend_num;
     int i, j, i1, j1;
@@ -320,8 +320,8 @@ void velocityDiffusion(Mesh * mesh, Array2D<double> & dvdt, Array2D<double> & ve
 
         }
 
-        dvdt(i,0) += 2.0e4 * lap_u/(*cv_areas)(i);
-        dvdt(i,1) += 2.0e4 * lap_v/(*cv_areas)(i);
+        dvdt(i,0) += viscosity * lap_u/(*cv_areas)(i);
+        dvdt(i,1) += viscosity * lap_v/(*cv_areas)(i);
 
     }
 
