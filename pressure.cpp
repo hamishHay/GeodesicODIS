@@ -15,19 +15,23 @@
 int updatePressure(Globals * globals, Mesh * grid, Array1D<double> & p, Array2D<double> & v)
 {
     int node_num, i, iter, max_iter;
-    double h, epsilon, total_div, relax_f;
+    double h, epsilon, total_div, relax_f, dt;
 
     Array1D<double> * v_div;
     Array1D<double> * p_corr;
+    Array1D<double> * p_factor;
 
     node_num = globals->node_num;
     h = globals->h.Value();
-    max_iter = 1;
-    epsilon = 1e-4;
+    max_iter = 1000;
+    epsilon = 5e-4;
     relax_f = 1.0;
+    dt = globals->timeStep.Value();
 
     v_div = new Array1D<double>(node_num);
     p_corr = new Array1D<double>(node_num);
+
+    p_factor = &(grid->pressure_factor);
 
     for (i=0; i<node_num; i++)
     {
@@ -42,16 +46,25 @@ int updatePressure(Globals * globals, Mesh * grid, Array1D<double> & p, Array2D<
     do {
         total_div = 0.0;
 
-        velocityDivergence(grid, *v_div, v, total_div);
+        velocityDivergence(grid, *v_div, v, total_div, -1.0);
+        // velocityDivergence(grid, p, v, total_div, -1.0);
+
+        for (i=0; i<node_num; i++)
+        {
+            (*p_corr)(i) = (*p_factor)(i) * (*v_div)(i);
+            p(i) += -(*p_corr)(i);
+            p(i) = std::max(0.0, p(i));
+        }
+
+        pressureGradient(grid, v, *p_corr, -dt/1000.0);
 
 
-
-        std::cout<<total_div<<std::endl;
+        // std::cout<<total_div<<std::endl;
         iter++;
     }
     while ((total_div > epsilon) && (iter < max_iter));
 
-    if (iter >= max_iter) return 0;
+    if (iter >= max_iter) return 1;
 
     // CHECK VELOCITY FIELD DIVERGENCE
 
@@ -66,6 +79,6 @@ int updatePressure(Globals * globals, Mesh * grid, Array1D<double> & p, Array2D<
     delete v_div;
     delete p_corr;
 
-    return 1;
+    return 0;
 
 }
