@@ -9,6 +9,7 @@
 #include "spatialOperators.h"
 #include "temporalOperators.h"
 #include "energy.h"
+#include "pressure.h"
 #include "drag.h"
 #include "coriolis.h"
 #include <math.h>
@@ -65,7 +66,8 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
 
 int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt, Array2D<double> & v_t0)
 {
-    velocityDivergence(grid, deta_dt, v_t0);
+    double sum = -1.0;
+    velocityDivergence(grid, deta_dt, v_t0, sum);
 };
 
 // Function to implement the time loop to solve mass and momentum equations over
@@ -301,21 +303,60 @@ int ab3Explicit(Globals * globals, Mesh * grid)
         current_time += dt;
         out_time += dt;
 
-        // SOLVE THE MOMENTUM EQUATION
-        updateVelocity(globals, grid, *dvel_dt_t0, *vel_tm1, *press_tm1, current_time);
+        switch (globals->surface_type)
+        {
+            case FREE:
+                // SOLVE THE MOMENTUM EQUATION
+                updateVelocity(globals, grid, *dvel_dt_t0, *vel_tm1, *press_tm1, current_time);
 
-        // MARCH VELOCITY FORWARD IN TIME
-        integrateAB3vector(globals, grid, *vel_t0, *vel_tm1, *dvel_dt_t0, *dvel_dt_tm1, *dvel_dt_tm2, iter);
+                // MARCH VELOCITY FORWARD IN TIME
+                integrateAB3vector(globals, grid, *vel_t0, *vel_tm1, *dvel_dt_t0, *dvel_dt_tm1, *dvel_dt_tm2, iter);
 
-        // UPDATE ENERGY DISSIPATION
-        updateEnergy(globals, e_diss, *energy_diss, *vel_t0, *cv_mass);
-        total_diss[0] = e_diss;
+                // UPDATE ENERGY DISSIPATION
+                updateEnergy(globals, e_diss, *energy_diss, *vel_t0, *cv_mass);
+                total_diss[0] = e_diss;
 
-        // SOLVE THE CONTINUITY EQUATION
-        updateDisplacement(globals, grid, *dpress_dt_t0, *vel_t0);
+                // SOLVE THE CONTINUITY EQUATION
+                updateDisplacement(globals, grid, *dpress_dt_t0, *vel_t0);
 
-        // MARCH DISPLACEMENT FORWARD IN TIME
-        integrateAB3scalar(globals, grid, *press_t0, *press_tm1, *dpress_dt_t0, *dpress_dt_tm1, *dpress_dt_tm2, iter);
+                // MARCH DISPLACEMENT FORWARD IN TIME
+                integrateAB3scalar(globals, grid, *press_t0, *press_tm1, *dpress_dt_t0, *dpress_dt_tm1, *dpress_dt_tm2, iter);
+
+                break;
+
+            case INF_LID:
+                // SOLVE THE MOMENTUM EQUATION
+                updateVelocity(globals, grid, *dvel_dt_t0, *vel_tm1, *press_tm1, current_time);
+
+                // MARCH FORWARD VELOCITY SOLUTION
+                integrateAB3vector(globals, grid, *vel_t0, *vel_tm1, *dvel_dt_t0, *dvel_dt_tm1, *dvel_dt_tm2, iter);
+
+                // FORCE CONTINUITY EQUATION
+                updatePressure(globals, grid, *press_t0, *vel_t0);
+
+                    // CHECK VELOCITY FIELD DIVERGENCE
+
+                    // ---- CALCULATE PRESSURE CORRECTION
+
+                    // ---- UPDATE PRESSURE FIELD
+
+                    // ---- UPDATE VELOCITY FIELD
+
+                    // ---- REPEAT UNTIL DIVERGENCE IS ZERO
+
+                // UPDATE ENERGY DISSIPATION
+
+                break;
+
+            case LID:
+                outstring << "LID SOLVER COMING SOON!" << std::endl;
+                Output->Write(ERR_MESSAGE, &outstring);
+                Output->TerminateODIS();
+                break;
+
+        }
+
+        if (iter == 1000) Output->TerminateODIS();
 
         // Check for output
         iter ++;

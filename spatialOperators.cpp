@@ -4,6 +4,8 @@
 #include "array2d.h"
 #include "array1d.h"
 
+// static double dummy_sum = 0;
+
 void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pressure)
 {
     int node_num, friend_num;
@@ -105,7 +107,7 @@ void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pre
     }
 };
 
-void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & velocity)
+void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & velocity, double & sum)
 {
     int node_num, friend_num;
     int i, j, j1, j2, i1, i2;
@@ -249,6 +251,8 @@ void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & v
         div /= (*cv_areas)(i);
 
         dpdt(i) = -h*div;
+
+        if (sum >= 0.0) sum += fabs(div);
     }
 };
 
@@ -324,5 +328,4 @@ void velocityDiffusion(Mesh * mesh, Array2D<double> & dvdt, Array2D<double> & ve
         dvdt(i,1) += viscosity * lap_v/(*cv_areas)(i);
 
     }
-
 };
