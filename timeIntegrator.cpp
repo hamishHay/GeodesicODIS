@@ -16,7 +16,7 @@
 
 int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array2D<double> & v_tm1, Array1D<double> & p_tm1, double current_time)
 {
-    double r, omega, e, obliq, h, drag_coeff;
+    double r, omega, e, obliq, h, drag_coeff, visc;
     int node_num;
 
     r = globals->radius.Value();
@@ -26,6 +26,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
     obliq = globals->theta.Value();
     h = globals->h.Value();
     node_num = globals->node_num;
+    visc = 1e3;
 
     switch (globals->tide_type)
     {
@@ -56,13 +57,24 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
 
     pressureGradient(grid, dvdt, p_tm1);
 
-    velocityDiffusion(grid, dvdt, v_tm1);
-}
+    velocityDiffusion(grid, dvdt, v_tm1, visc);
+
+    // if (visc > 1.0) {
+    //     Array2D<double> * temp_v;
+    //     temp_v = new Array2D<double>(node_num, 2);
+    //
+    //     velocityDiffusion(grid, *temp_v, v_tm1, 1.0);
+    //     velocityDiffusion(grid, dvdt, *temp_v, visc);
+    //
+    //     delete temp_v;
+    // }
+
+};
 
 int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt, Array2D<double> & v_t0)
 {
     velocityDivergence(grid, deta_dt, v_t0);
-}
+};
 
 // Function to implement the time loop to solve mass and momentum equations over
 // the geodesic grid. The time integration method is the explicit Euler method.
