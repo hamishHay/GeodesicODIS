@@ -58,7 +58,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
 
     coriolisForce(grid, dvdt, v_tm1);
 
-    pressureGradient(grid, dvdt, p_tm1);
+    pressureGradient(grid, dvdt, p_tm1, globals->g.Value());
 
     velocityDiffusion(grid, dvdt, v_tm1, visc);
 
@@ -67,7 +67,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
 int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt, Array2D<double> & v_t0)
 {
     double sum = -1.0;
-    velocityDivergence(grid, deta_dt, v_t0, sum);
+    velocityDivergence(grid, deta_dt, v_t0, sum, globals->h.Value());
 };
 
 // Function to implement the time loop to solve mass and momentum equations over
@@ -225,6 +225,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
     double end_time, current_time, dt, out_frac, orbit_period, orbit_out_frac, out_time;
     double r, omega, e, obliq, drag_coeff, h;
+    double lon, lat;
 
     int node_num;
 
@@ -298,6 +299,8 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     current_time = 0.0;
     out_time = 0.0;
 
+    int err;
+
     while (current_time <= end_time)
     {
         current_time += dt;
@@ -331,8 +334,27 @@ int ab3Explicit(Globals * globals, Mesh * grid)
                 // MARCH FORWARD VELOCITY SOLUTION
                 integrateAB3vector(globals, grid, *vel_t0, *vel_tm1, *dvel_dt_t0, *dvel_dt_tm1, *dvel_dt_tm2, iter);
 
+                // for (i=0; i<node_num; i++)
+                // {
+                //     lat = pi*0.5 - grid->node_pos_sph(i,0);
+                //     lon = grid->node_pos_sph(i,1);
+                //
+                //     (*press_t0)(i) = 100*sin(2*lat) * cos(3*lon);
+                //
+                //
+                //     // (*vel_t0)(i,0) = sin(4*lat) * cos(3*lon);
+                //     // (*vel_t0)(i,1) = sin(lat) * cos(lon)*cos(lon);
+                // }
+
+                // scalarDiffusion(grid, *energy_diss, *press_t0, 1.0);
+
+                // velocityDiffusion(grid, energy_diss, v_tm1, visc);
+
+
                 // FORCE CONTINUITY EQUATION
-                updatePressure(globals, grid, *press_t0, *vel_t0);
+                err = updatePressure(globals, grid, *press_t0, *vel_t0);
+
+                if (err) Output->TerminateODIS();
 
                     // CHECK VELOCITY FIELD DIVERGENCE
 
