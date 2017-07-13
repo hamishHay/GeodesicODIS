@@ -6,7 +6,7 @@
 
 // static double dummy_sum = 0;
 
-void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pressure)
+void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pressure, double g = 1.0)
 {
     int node_num, friend_num;
     int i, j, j1, j2;
@@ -25,7 +25,7 @@ void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pre
     double x_grad, y_grad;
     double nx, ny;
     double edge_len;
-    double g;
+    // double g;
 
     node_num = mesh->node_num;
     friend_list = &(mesh->node_friends);
@@ -34,7 +34,7 @@ void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pre
     normal_vecs = &(mesh->control_vol_edge_normal_map);
     edge_lens = &(mesh->control_vol_edge_len);
     cv_areas = &(mesh->control_volume_surf_area_map);
-    g = mesh->globals->g.Value();
+    // g = mesh->globals->g.Value();
     mask = &(mesh->land_mask);
 
     for (i=0; i<node_num; i++)
@@ -107,7 +107,7 @@ void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pre
     }
 };
 
-void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & velocity, double & sum)
+void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & velocity, double & sum, double h = 1.0)
 {
     int node_num, friend_num;
     int i, j, j1, j2, i1, i2;
@@ -128,7 +128,7 @@ void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & v
     double div;
     double nx, ny;
     double edge_len;
-    double h;
+    // double h;
     double cos_a, sin_a;
 
     node_num = mesh->node_num;
@@ -138,7 +138,7 @@ void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & v
     normal_vecs = &(mesh->control_vol_edge_normal_map);
     edge_lens = &(mesh->control_vol_edge_len);
     cv_areas = &(mesh->control_volume_surf_area_map);
-    h = mesh->globals->h.Value();
+    // h = mesh->globals->h.Value();
     vel_transform = &(mesh->node_vel_trans);
     mask = &(mesh->land_mask);
 
@@ -326,6 +326,70 @@ void velocityDiffusion(Mesh * mesh, Array2D<double> & dvdt, Array2D<double> & ve
 
         dvdt(i,0) += viscosity * lap_u/(*cv_areas)(i);
         dvdt(i,1) += viscosity * lap_v/(*cv_areas)(i);
+
+    }
+};
+
+// Function to calculate the Laplacian and diffusion for the velocity field.
+// The discretized operator used here is the second order accurate finite
+// difference operator given as equation 3.2 in Heikes et al (2013).
+void scalarDiffusion(Mesh * mesh, Array1D<double> & d2s, Array1D<double> & s, double viscosity)
+{
+    int node_num, friend_num;
+    int i, j, i1, j1;
+
+    Array2D<int> * friend_list;
+    Array2D<double> * cent_map_factor;
+    Array2D<double> * edge_lens;
+    Array1D<double> * cv_areas;
+    Array3D<double> * vel_transform;
+    Array2D<double> * node_friend_dists;
+    Array1D<int> * mask;
+
+    double m;                          // mapping factor at current cv edge
+    double s0, s1, s_temp;
+    // double v0, v1, v_temp;
+    double edge_len;
+    double cos_a, sin_a;
+    double lap_s, lap_v;
+    double node_friend_dist;
+
+    node_num = mesh->node_num;
+    friend_list = &(mesh->node_friends);
+    cent_map_factor = &(mesh->control_vol_edge_centre_m);
+    edge_lens = &(mesh->control_vol_edge_len);
+    cv_areas = &(mesh->control_volume_surf_area_map);
+    vel_transform = &(mesh->node_vel_trans);
+    node_friend_dists = &(mesh->node_dists);
+    mask = &(mesh->land_mask);
+
+    for (i=0; i<node_num; i++)
+    {
+        friend_num = 6;
+        if ((*friend_list)(i, 5) == -1) friend_num = 5;
+
+        s0 = s(i);
+
+        lap_s = 0.0;
+
+        for (j=0; j<friend_num; j++)
+        {
+              j1 = j%friend_num;
+              i1 = (*friend_list)(i,j1);
+
+              s1 = s(i1);
+
+              node_friend_dist = (*node_friend_dists)(i,j1);
+              edge_len = (*edge_lens)(i,(j1+1)%friend_num);
+
+            //   m = (*cent_map_factor)(i, j1);
+
+              lap_s += (s1 - s0)/node_friend_dist * edge_len;
+
+        }
+
+        d2s(i) = lap_s/(*cv_areas)(i);
+        // d2s(i,1) += viscosity * lap_v/(*cv_areas)(i);
 
     }
 };
