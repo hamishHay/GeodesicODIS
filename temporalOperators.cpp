@@ -36,14 +36,14 @@ int integrateAB3vector(Globals * globals,
          for (i = 0; i<node_num; i++)
          {
              v_t0(i,0) = (a*dv_dt_t0(i,0)
-                               + b*dv_dt_tm1(i,0)
-                               + c*dv_dt_tm2(i,0)) * dt
-                               + v_tm1(i,0);
+                           + b*dv_dt_tm1(i,0)
+                           + c*dv_dt_tm2(i,0)) * dt
+                           + v_tm1(i,0);
 
              v_t0(i,1) = (a*dv_dt_t0(i,1)
-                               + b*dv_dt_tm1(i,1)
-                               + c*dv_dt_tm2(i,1)) * dt
-                               + v_tm1(i,1);
+                           + b*dv_dt_tm1(i,1)
+                           + c*dv_dt_tm2(i,1)) * dt
+                           + v_tm1(i,1);
 
              v_tm1(i, 0) = v_t0(i, 0);
              v_tm1(i, 1) = v_t0(i, 1);
@@ -111,9 +111,9 @@ int integrateAB3vector(Globals * globals,
           for (i = 0; i<node_num; i++)
           {
               s_t0(i) = (a*ds_dt_t0(i)
-                                + b*ds_dt_tm1(i)
-                                + c*ds_dt_tm2(i)) * dt
-                                + s_tm1(i);
+                        + b*ds_dt_tm1(i)
+                        + c*ds_dt_tm2(i)) * dt
+                        + s_tm1(i);
 
               s_tm1(i) = s_t0(i);
 
