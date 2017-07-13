@@ -10,6 +10,7 @@ orbital period;                1377703.81203;                         orbit peri
 ocean thickness;                 1000.00000;               global ocean thickness [m];
 friction coefficient;               0.00300;                     drag coefficient [?];
 friction type;                    QUADRATIC;                               drag model;
+surface type;                          FREE;                   ocean surface boundary;
 potential;                              ECC;                     tidal potential type;
 sh degree;                                8;            max spherical harmonic degree;
 geodesic grid level;                      5;            geodesic recursion grid level;
