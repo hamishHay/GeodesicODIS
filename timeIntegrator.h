@@ -12,6 +12,10 @@
 int eulerExplicit(Globals *, Mesh *);
 int ab3Explicit(Globals *, Mesh *);
 
+int integrateAB3vector(Globals *, Mesh *, Array2D<double> &, Array2D<double> &, Array2D<double> &, Array2D<double> &, Array2D<double> &, int interation);
+
+int integrateAB3scalar(Globals *, Mesh *, Array1D<double> &, Array1D<double> &, Array1D<double> &, Array1D<double> &, Array1D<double> &, int interation);
+
 int updateVelocity(Globals *, Mesh *, Array2D<double> &, Array2D<double> &, Array1D<double> &, double);
 int updateDisplacement(Globals *, Mesh *, Array1D<double> &, Array2D<double> &);
 

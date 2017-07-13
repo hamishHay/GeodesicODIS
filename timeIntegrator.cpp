@@ -7,6 +7,7 @@
 #include "array3d.h"
 #include "tidalPotentials.h"
 #include "spatialOperators.h"
+#include "temporalOperators.h"
 #include "drag.h"
 #include "coriolis.h"
 #include <math.h>
@@ -58,16 +59,6 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
     pressureGradient(grid, dvdt, p_tm1);
 
     velocityDiffusion(grid, dvdt, v_tm1, visc);
-
-    // if (visc > 1.0) {
-    //     Array2D<double> * temp_v;
-    //     temp_v = new Array2D<double>(node_num, 2);
-    //
-    //     velocityDiffusion(grid, *temp_v, v_tm1, 1.0);
-    //     velocityDiffusion(grid, dvdt, *temp_v, visc);
-    //
-    //     delete temp_v;
-    // }
 
 };
 
@@ -206,6 +197,10 @@ int eulerExplicit(Globals * globals, Mesh * grid)
 // the geodesic grid. The time integration method is the explicit Euler method.
 int ab3Explicit(Globals * globals, Mesh * grid)
 {
+    //--------------------------------------------------------------------------
+    //------------------------- DECLARE VARIABLES ------------------------------
+    //--------------------------------------------------------------------------
+
     std::ostringstream outstring;
     int i,j,k,iter,out_count;
     double ** pp;
@@ -225,13 +220,16 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     Array1D<double> * energy_diss;
     Array1D<double> * cv_mass;
 
-
     double end_time, current_time, dt, out_frac, orbit_period, orbit_out_frac, out_time;
     double r, omega, e, obliq, drag_coeff, h;
 
     int node_num;
 
     OutFiles * Output;
+
+    //--------------------------------------------------------------------------
+    //------------------------- ASSIGN VARIABLES -------------------------------
+    //--------------------------------------------------------------------------
 
     end_time = globals->endTime.Value();
     dt = globals->timeStep.Value();
@@ -275,15 +273,8 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
     energy_diss = new Array1D<double>(node_num);
 
-    double a, b, c;
-
     double * total_diss;
     total_diss = new double[1];
-
-    // AB3 constants for the time integration
-    a = 23./12.;
-    b = -16./12.;
-    c = 5./12.;
 
     for (i=0; i<node_num; i++)
     {
@@ -293,6 +284,10 @@ int ab3Explicit(Globals * globals, Mesh * grid)
         (*press_t0)(i) = 0.0;
         (*cv_mass)(i) = grid->control_volume_mass(i);
     }
+
+    //--------------------------------------------------------------------------
+    //------------------------- BEGIN TIME LOOP --------------------------------
+    //--------------------------------------------------------------------------
 
     iter = 0;
     out_count = 1;
@@ -304,65 +299,13 @@ int ab3Explicit(Globals * globals, Mesh * grid)
         current_time += dt;
         out_time += dt;
 
+        // SOLVE THE MOMENTUM EQUATION
         updateVelocity(globals, grid, *dvel_dt_t0, *vel_tm1, *press_tm1, current_time);
 
-        // Explicit time integration using Adams-Bashforth 3rd order explicit
-        // time-scheme
+        // MARCH VELOCITY FORWARD IN TIME
+        integrateAB3vector(globals, grid, *vel_t0, *vel_tm1, *dvel_dt_t0, *dvel_dt_tm1, *dvel_dt_tm2, iter);
+
         total_diss[0] = 0.0;
-        if (iter > 1) {
-            for (i = 0; i<node_num; i++)
-            {
-                (*vel_t0)(i,0) = (a*(*dvel_dt_t0)(i,0)
-                                  + b*(*dvel_dt_tm1)(i,0)
-                                  + c*(*dvel_dt_tm2)(i,0)) * dt
-                                  + (*vel_tm1)(i,0);
-
-                (*vel_t0)(i,1) = (a*(*dvel_dt_t0)(i,1)
-                                  + b*(*dvel_dt_tm1)(i,1)
-                                  + c*(*dvel_dt_tm2)(i,1)) * dt
-                                  + (*vel_tm1)(i,1);
-
-                (*vel_tm1)(i, 0) = (*vel_t0)(i, 0);
-                (*vel_tm1)(i, 1) = (*vel_t0)(i, 1);
-
-                (*dvel_dt_tm2)(i, 0) = (*dvel_dt_tm1)(i, 0);
-                (*dvel_dt_tm2)(i, 1) = (*dvel_dt_tm1)(i, 1);
-
-                (*dvel_dt_tm1)(i, 0) = (*dvel_dt_t0)(i, 0);
-                (*dvel_dt_tm1)(i, 1) = (*dvel_dt_t0)(i, 1);
-
-            }
-        }
-        else if (iter == 0)
-        {
-            for (i = 0; i<node_num; i++)
-            {
-                (*vel_t0)(i,0) = (*dvel_dt_t0)(i,0) * dt + (*vel_tm1)(i,0);
-                (*vel_t0)(i,1) = (*dvel_dt_t0)(i,1) * dt + (*vel_tm1)(i,1);
-
-                (*vel_tm1)(i, 0) = (*vel_t0)(i, 0);
-                (*vel_tm1)(i, 1) = (*vel_t0)(i, 1);
-
-                (*dvel_dt_tm2)(i, 0) = (*dvel_dt_t0)(i, 0);
-                (*dvel_dt_tm2)(i, 1) = (*dvel_dt_t0)(i, 1);
-
-            }
-        }
-        else if (iter == 1)
-        {
-            for (i = 0; i<node_num; i++)
-            {
-                (*vel_t0)(i,0) = (*dvel_dt_t0)(i,0) * dt + (*vel_tm1)(i,0);
-                (*vel_t0)(i,1) = (*dvel_dt_t0)(i,1) * dt + (*vel_tm1)(i,1);
-
-                (*vel_tm1)(i, 0) = (*vel_t0)(i, 0);
-                (*vel_tm1)(i, 1) = (*vel_t0)(i, 1);
-
-                (*dvel_dt_tm1)(i, 0) = (*dvel_dt_t0)(i, 0);
-                (*dvel_dt_tm1)(i, 1) = (*dvel_dt_t0)(i, 1);
-            }
-
-        }
 
         // UPDATE ENERGY
         for (i = 0; i<node_num; i++)
@@ -384,47 +327,15 @@ int ab3Explicit(Globals * globals, Mesh * grid)
         }
         total_diss[0] /= (4. * pi * pow(r,2.0));
 
+
+        // SOLVE THE CONTINUITY EQUATION
         updateDisplacement(globals, grid, *dpress_dt_t0, *vel_t0);
 
-
-        if (iter > 1) {
-            for (i = 0; i<node_num; i++)
-            {
-                (*press_t0)(i) = (a*(*dpress_dt_t0)(i)
-                                    + b*(*dpress_dt_tm1)(i)
-                                    + c*(*dpress_dt_tm2)(i)) * dt
-                                    + (*press_tm1)(i);
-                (*press_tm1)(i) = (*press_t0)(i);
-
-                (*dpress_dt_tm2)(i) = (*dpress_dt_tm1)(i);
-                (*dpress_dt_tm1)(i) = (*dpress_dt_t0)(i);
-            }
-        }
-        else if (iter == 0)
-        {
-            for (i = 0; i<node_num; i++)
-            {
-                (*press_t0)(i) = (*dpress_dt_t0)(i) * dt + (*press_tm1)(i);
-
-                (*press_tm1)(i) = (*press_t0)(i);
-                (*dpress_dt_tm2)(i) = (*dpress_dt_t0)(i);
-            }
-        }
-        else if (iter == 1)
-        {
-            for (i = 0; i<node_num; i++)
-            {
-                (*press_t0)(i) = (*dpress_dt_t0)(i) * dt + (*press_tm1)(i);
-
-                (*press_tm1)(i) = (*press_t0)(i);
-                (*dpress_dt_tm1)(i) = (*dpress_dt_t0)(i);
-            }
-        }
-
+        // MARCH VELOCITY FORWARD IN TIME
+        integrateAB3scalar(globals, grid, *press_t0, *press_tm1, *dpress_dt_t0, *dpress_dt_tm1, *dpress_dt_tm2, iter);
 
         // Check for output
         iter ++;
-
 
         if (out_time >= out_frac*orbit_period)
         {
