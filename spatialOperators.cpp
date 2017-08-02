@@ -388,7 +388,7 @@ void scalarDiffusion(Mesh * mesh, Array1D<double> & d2s, Array1D<double> & s, do
 
         }
 
-        d2s(i) = lap_s/(*cv_areas)(i);
+        d2s(i) = viscosity * lap_s/(*cv_areas)(i);
         // d2s(i,1) += viscosity * lap_v/(*cv_areas)(i);
 
     }
