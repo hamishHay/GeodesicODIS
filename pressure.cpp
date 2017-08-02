@@ -15,7 +15,7 @@
 int updatePressure(Globals * globals, Mesh * grid, Array1D<double> & p, Array2D<double> & v)
 {
     int node_num, i, iter, max_iter;
-    double h, epsilon, total_div, relax_f, dt;
+    double h, epsilon, total_div, relax_f, dt, p_min;
 
     Array1D<double> * v_div;
     Array1D<double> * p_corr;
@@ -24,7 +24,7 @@ int updatePressure(Globals * globals, Mesh * grid, Array1D<double> & p, Array2D<
     node_num = globals->node_num;
     h = globals->h.Value();
     max_iter = 1000;
-    epsilon = 5e-4;
+    epsilon = ((double)node_num)/1e8;
     relax_f = 1.0;
     dt = globals->timeStep.Value();
 
@@ -38,6 +38,8 @@ int updatePressure(Globals * globals, Mesh * grid, Array1D<double> & p, Array2D<
         (*v_div)(i) = 0.0;
         // (*v_div)(i,1) = 0.0;
         (*p_corr)(i) = 0.0;
+        p(i) = 0.0; // PERHAPS THE PRESSURE FIELD SHOULD ONLY DEPEND ON THE CURRENT
+                    // TIMESTEPS PRESSURE CORRECTION?
     }
 
     //------------------------- BEGIN PRESSURE SOLVER --------------------------
@@ -45,6 +47,7 @@ int updatePressure(Globals * globals, Mesh * grid, Array1D<double> & p, Array2D<
     iter = 0;
     do {
         total_div = 0.0;
+        p_min = 0.0;
 
         velocityDivergence(grid, *v_div, v, total_div, -1.0);
         // velocityDivergence(grid, p, v, total_div, -1.0);
@@ -53,32 +56,32 @@ int updatePressure(Globals * globals, Mesh * grid, Array1D<double> & p, Array2D<
         {
             (*p_corr)(i) = (*p_factor)(i) * (*v_div)(i);
             p(i) += -(*p_corr)(i);
-            p(i) = std::max(0.0, p(i));
+            // p(i) = std::max(0.0, p(i));
+
+            p_min = std::min(p_min, p(i));
         }
 
-        pressureGradient(grid, v, *p_corr, -dt/1000.0);
+        pressureGradient(grid, v, *p_corr, -dt);
 
-
-        // std::cout<<total_div<<std::endl;
         iter++;
     }
     while ((total_div > epsilon) && (iter < max_iter));
 
-    if (iter >= max_iter) return 1;
-
-    // CHECK VELOCITY FIELD DIVERGENCE
-
-    // ---- CALCULATE PRESSURE CORRECTION
-
-    // ---- UPDATE PRESSURE FIELD
-
-    // ---- UPDATE VELOCITY FIELD
-
-    // ---- REPEAT UNTIL DIVERGENCE IS ZERO
+    p_min = fabs(p_min);
+    for (i=0; i<node_num; i++)
+    {
+        // p_min = std::min(p_min, p(i));
+        p(i) += p_min;
+    }
 
     delete v_div;
     delete p_corr;
 
-    return 0;
+    if (iter >= max_iter) return 1;
+    else {
+        std::cout<<"PRESSURE FIELD CONVERGED AT ITER="<<iter<<"! "<<std::endl;
+        return 0;
+
+    }
 
 }
