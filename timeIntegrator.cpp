@@ -16,20 +16,29 @@
 #include <iostream>
 #include <sstream>
 #include <iomanip>
+#include <signal.h>
+
+int flag = 0;
+
+void CatchExit(int sig) {
+    printf("%s\n", "Caught Terminate Signal...");
+    flag = 1;
+}
 
 int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array2D<double> & v_tm1, Array1D<double> & p_tm1, double current_time)
 {
-    double r, omega, e, obliq, h, drag_coeff, visc;
+    double r, omega, e, obliq, h, drag_coeff, visc, g;
     int node_num;
 
     r = globals->radius.Value();
+    g = globals->g.Value();
     omega = globals->angVel.Value();
     e = globals->e.Value();
     drag_coeff = globals->alpha.Value();
     obliq = globals->theta.Value();
     h = globals->h.Value();
     node_num = globals->node_num;
-    visc = 1e3;
+    visc = 2e3;
 
     switch (globals->tide_type)
     {
@@ -58,7 +67,17 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
 
     coriolisForce(grid, dvdt, v_tm1);
 
-    pressureGradient(grid, dvdt, p_tm1, globals->g.Value());
+    switch (globals->surface_type)
+    {
+        case FREE:
+            pressureGradient(grid, dvdt, p_tm1, g);
+            break;
+
+        case INF_LID:
+            // pressureGradient(grid, dvdt, p_tm1, 1.0);
+            break;
+
+    }
 
     velocityDiffusion(grid, dvdt, v_tm1, visc);
 
@@ -160,7 +179,7 @@ int eulerExplicit(Globals * globals, Mesh * grid)
         // INTEGRATE PRESSURE FORWARD IN TIME
         for (i = 0; i<node_num; i++)
         {
-            (*press_t0)(i) = (*dpress_dt_t0)(i) * dt + (*press_tm1)(i);
+            // (*press_t0)(i) = (*dpress_dt_t0)(i) * dt + (*press_tm1)(i);
             (*press_tm1)(i) = (*press_t0)(i);
         }
 
@@ -230,6 +249,8 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     int node_num;
 
     OutFiles * Output;
+
+    signal(SIGINT, CatchExit);
 
     //--------------------------------------------------------------------------
     //------------------------- ASSIGN VARIABLES -------------------------------
@@ -329,7 +350,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
             case INF_LID:
                 // SOLVE THE MOMENTUM EQUATION
-                updateVelocity(globals, grid, *dvel_dt_t0, *vel_tm1, *press_tm1, current_time);
+                updateVelocity(globals, grid, *dvel_dt_t0, *vel_tm1, *press_t0, current_time);
 
                 // MARCH FORWARD VELOCITY SOLUTION
                 integrateAB3vector(globals, grid, *vel_t0, *vel_tm1, *dvel_dt_t0, *dvel_dt_tm1, *dvel_dt_tm2, iter);
@@ -354,19 +375,18 @@ int ab3Explicit(Globals * globals, Mesh * grid)
                 // FORCE CONTINUITY EQUATION
                 err = updatePressure(globals, grid, *press_t0, *vel_t0);
 
-                if (err) Output->TerminateODIS();
+                updateEnergy(globals, e_diss, *energy_diss, *vel_t0, *cv_mass);
+                total_diss[0] = e_diss;
 
-                    // CHECK VELOCITY FIELD DIVERGENCE
+                if (err) std::cout<<"WARNING: PRESSURE FIELD HAS NOT CONVERGED!"<<std::endl;
 
-                    // ---- CALCULATE PRESSURE CORRECTION
+                // for (i=0; i<node_num; i++)
+                // {
+                //     (*dpress_dt_t0)(i) = ((*press_t0)(i) - (*press_tm1)(i))/dt;
+                //     (*press_tm1)(i) = (*press_t0)(i);
+                // }
 
-                    // ---- UPDATE PRESSURE FIELD
-
-                    // ---- UPDATE VELOCITY FIELD
-
-                    // ---- REPEAT UNTIL DIVERGENCE IS ZERO
-
-                // UPDATE ENERGY DISSIPATION
+                // integrateAB3scalar(globals, grid, *press_t0, *press_tm1, *dpress_dt_t0, *dpress_dt_tm1, *dpress_dt_tm2, iter);
 
                 break;
 
@@ -378,7 +398,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
         }
 
-        if (iter == 1000) Output->TerminateODIS();
+        // if (iter == 1000) Output->TerminateODIS();
 
         // Check for output
         iter ++;
@@ -399,6 +419,8 @@ int ab3Explicit(Globals * globals, Mesh * grid)
             out_count++;
 
         }
+
+        if (flag) return 0;
     }
 
     delete dvel_dt_t0;
