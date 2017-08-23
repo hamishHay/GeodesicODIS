@@ -119,6 +119,7 @@ void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & v
     Array2D<double> * edge_lens;
     Array1D<double> * cv_areas;
     Array3D<double> * vel_transform;
+    // Array1D<double> * mass;
     Array1D<int> * mask;
 
     double m;                          // mapping factor at current cv edge
@@ -128,6 +129,7 @@ void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & v
     double div;
     double nx, ny;
     double edge_len;
+    // double total_dmass, dmass, dt;
     // double h;
     double cos_a, sin_a;
 
@@ -138,10 +140,12 @@ void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & v
     normal_vecs = &(mesh->control_vol_edge_normal_map);
     edge_lens = &(mesh->control_vol_edge_len);
     cv_areas = &(mesh->control_volume_surf_area_map);
-    // h = mesh->globals->h.Value();
+    // mass = &(mesh->control_volume_mass);
+    // dt = mesh->globals->timeStep.Value();
     vel_transform = &(mesh->node_vel_trans);
     mask = &(mesh->land_mask);
 
+    // total_dmass = 0.0;
     for (i=0; i<node_num; i++)
     {
         friend_num = 6;
@@ -151,6 +155,7 @@ void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & v
         v0 = velocity(i,1);
 
         div = 0.0;
+        // dmass = 0.0;
 
         for (j=0; j<friend_num; j++)
         {
@@ -248,12 +253,21 @@ void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & v
 
         }
 
+        // dmass = dt * div * 1000.0 * h;
+
+
         div /= (*cv_areas)(i);
 
         dpdt(i) = -h*div;
 
-        if (sum >= 0.0) sum += fabs(div);
+
+        if (sum >= 0.0) {
+            sum += fabs(div);
+            // total_dmass += dmass/(*mass)(i);
+        }
     }
+
+    // std::cout<<std::scientific<<total_dmass<<std::endl;
 };
 
 

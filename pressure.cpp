@@ -23,8 +23,8 @@ int updatePressure(Globals * globals, Mesh * grid, Array1D<double> & p, Array2D<
 
     node_num = globals->node_num;
     h = globals->h.Value();
-    max_iter = 1000;
-    epsilon = ((double)node_num)/1e8;
+    max_iter = 2000;
+    epsilon = ((double)node_num)/1e9;
     relax_f = 1.0;
     dt = globals->timeStep.Value();
 
@@ -58,7 +58,7 @@ int updatePressure(Globals * globals, Mesh * grid, Array1D<double> & p, Array2D<
             p(i) += -(*p_corr)(i);
             // p(i) = std::max(0.0, p(i));
 
-            p_min = std::min(p_min, p(i));
+            // p_min = std::min(p_min, p(i));
         }
 
         pressureGradient(grid, v, *p_corr, -dt);
@@ -67,19 +67,19 @@ int updatePressure(Globals * globals, Mesh * grid, Array1D<double> & p, Array2D<
     }
     while ((total_div > epsilon) && (iter < max_iter));
 
-    p_min = fabs(p_min);
-    for (i=0; i<node_num; i++)
-    {
-        // p_min = std::min(p_min, p(i));
-        p(i) += p_min;
-    }
+    // p_min = fabs(p_min);
+    // for (i=0; i<node_num; i++)
+    // {
+    //     // p_min = std::min(p_min, p(i));
+    //     p(i) += p_min;
+    // }
 
     delete v_div;
     delete p_corr;
 
     if (iter >= max_iter) return 1;
     else {
-        std::cout<<"PRESSURE FIELD CONVERGED AT ITER="<<iter<<"! "<<std::endl;
+        // std::cout<<"PRESSURE FIELD CONVERGED AT ITER="<<iter<<"! "<<std::endl;
         return 0;
 
     }
