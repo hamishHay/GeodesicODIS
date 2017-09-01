@@ -10,9 +10,9 @@ CFLAGS = -g -pg -O3 -c  -Wall -Wno-unused-variable -Wno-sign-compare -Wunused-bu
 
 CLINK = -g -pg -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp
 
-FFLAGS= -c -I/home/hamish/Research/SHTOOLS-4.0/modules  -m64 -fPIC -O2 -ffast-math -L/home/hamish/Research/SHTOOLS-4.0/lib -lSHTOOLS -L/usr/local/lib -lfftw3 -lm -llapack -lblas
+FFLAGS= -c -I/home/hamish/Research/SHTOOLS-4.0/modules -m64 -fPIC -O2 -ffast-math -L/home/hamish/Research/SHTOOLS-4.0/lib -lSHTOOLS -L/usr/local/lib -lfftw3 -lm -llapack -lblas
 
-FLINK = -lgfortran -L/home/hamish/Research/SHTOOLS-4.0/lib -lSHTOOLS -Llib -lfftw3
+FLINK =  -lgfortran -L/home/hamish/Research/SHTOOLS-4.0/lib -lSHTOOLS -Llib -lfftw3 -llapack
 
 SRCDIR = /source/ODIS/
 BUILDDIR = /source/build/
@@ -23,8 +23,8 @@ all: ODIS
 # 	$(CC) legendre.o legendreDeriv.o extractSHCoeff.o $(FLINK) main.o mathRoutines.o tidalPotentials.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o viscosity.o interpolation.o advection.o solver.o -o ODIS -lgfortran -fopenmp $(CLINK)
 
 
-ODIS: main.o tidalPotentials.o outFiles.o globals.o mesh.o solver.o timeIntegrator.o drag.o coriolis.o spatialOperators.o temporalOperators.o energy.o pressure.o
-	$(CC) $(FLINK) main.o tidalPotentials.o outFiles.o globals.o mesh.o solver.o timeIntegrator.o drag.o coriolis.o spatialOperators.o temporalOperators.o energy.o pressure.o -o ODIS -lgfortran $(CLINK)
+ODIS: extractSHCoeff.o main.o tidalPotentials.o outFiles.o globals.o mesh.o solver.o timeIntegrator.o drag.o coriolis.o spatialOperators.o temporalOperators.o energy.o pressure.o
+	$(CC) $(FLINK) extractSHCoeff.o $(FLINK) main.o tidalPotentials.o outFiles.o globals.o mesh.o solver.o timeIntegrator.o drag.o coriolis.o spatialOperators.o temporalOperators.o energy.o pressure.o -o ODIS -lgfortran $(CLINK)
 
 # legendre.o: legendre.f95
 # 	$(F) $(FFLAGS) legendre.f95
@@ -32,8 +32,8 @@ ODIS: main.o tidalPotentials.o outFiles.o globals.o mesh.o solver.o timeIntegrat
 # legendreDeriv.o: legendreDeriv.f95
 # 	$(F) $(FFLAGS) legendreDeriv.f95
 #
-# extractSHCoeff.o: extractSHCoeff.f95
-# 	$(F) $(FFLAGS) extractSHCoeff.f95
+extractSHCoeff.o: extractSHCoeff.f95
+	$(F) $(FFLAGS) extractSHCoeff.f95
 
 main.o: main.cpp
 	$(CC) $(CFLAGS) main.cpp
