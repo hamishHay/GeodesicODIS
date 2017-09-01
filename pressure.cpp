@@ -7,17 +7,13 @@
 #include "array3d.h"
 #include "pressure.h"
 #include "spatialOperators.h"
+#include "sphericalHarmonics.h"
 #include <math.h>
 #include <iostream>
 #include <sstream>
 #include <iomanip>
 
-extern "C"
-{
-    void extractshcoeff_(double *, double*, double *, int *, int *, double *);
-    // void legendrederiv_(double * P, double * dP, int * lmax, double * cosColat);
-    // void legendre_(double * P, int * lmax, double * cosColat);
-}
+
 
 int updatePressure(Globals * globals, Mesh * grid, Array1D<double> & p, Array2D<double> & v)
 {
@@ -41,8 +37,8 @@ int updatePressure(Globals * globals, Mesh * grid, Array1D<double> & p, Array2D<
     v_div = new Array1D<double>(node_num);
     p_corr = new Array1D<double>(node_num);
 
-    div_lm = new Array2D<double>(l_max+1, l_max+1); // SH coeffs of the divergence field
-    p_lm = new Array2D<double>(l_max+1, l_max+1);   // SH coeffs of the pressure field
+    div_lm = new Array2D<double>(l_max+1, l_max+1);
+    p_lm = new Array2D<double>(l_max+1, l_max+1);
 
     p_factor = &(grid->pressure_factor);
 
@@ -58,10 +54,13 @@ int updatePressure(Globals * globals, Mesh * grid, Array1D<double> & p, Array2D<
     //------------------------- BEGIN PRESSURE SOLVER --------------------------
 
     // FIND THE DIVERGENCE FIELD
+
     total_div = 0.0;
     velocityDivergence(grid, *v_div, v, total_div, -1.0);
 
     // FIND AND STORE THE SPHERICAL HARMONIC COEFFICIENTS OF THE PRESSURE FIELD
+
+
 
 
 

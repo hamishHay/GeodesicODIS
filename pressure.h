@@ -6,6 +6,7 @@
 #include "array1d.h"
 #include "array2d.h"
 #include "array3d.h"
+#include "sphericalHarmonics.h"
 #include <math.h>
 #include <iostream>
 
