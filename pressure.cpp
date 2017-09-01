@@ -12,14 +12,24 @@
 #include <sstream>
 #include <iomanip>
 
+extern "C"
+{
+    void extractshcoeff_(double *, double*, double *, int *, int *, double *);
+    // void legendrederiv_(double * P, double * dP, int * lmax, double * cosColat);
+    // void legendre_(double * P, int * lmax, double * cosColat);
+}
+
 int updatePressure(Globals * globals, Mesh * grid, Array1D<double> & p, Array2D<double> & v)
 {
-    int node_num, i, iter, max_iter;
+    int node_num, i, iter, max_iter, l_max;
     double h, epsilon, total_div, relax_f, dt, p_min;
 
     Array1D<double> * v_div;
     Array1D<double> * p_corr;
     Array1D<double> * p_factor;
+
+    Array2D<double> * p_lm;         // SH coeffs of the divergence field
+    Array2D<double> * div_lm;       // SH coeffs of the pressure field
 
     node_num = globals->node_num;
     h = globals->h.Value();
@@ -30,6 +40,9 @@ int updatePressure(Globals * globals, Mesh * grid, Array1D<double> & p, Array2D<
 
     v_div = new Array1D<double>(node_num);
     p_corr = new Array1D<double>(node_num);
+
+    div_lm = new Array2D<double>(l_max+1, l_max+1); // SH coeffs of the divergence field
+    p_lm = new Array2D<double>(l_max+1, l_max+1);   // SH coeffs of the pressure field
 
     p_factor = &(grid->pressure_factor);
 
@@ -44,44 +57,55 @@ int updatePressure(Globals * globals, Mesh * grid, Array1D<double> & p, Array2D<
 
     //------------------------- BEGIN PRESSURE SOLVER --------------------------
 
-    iter = 0;
-    do {
-        total_div = 0.0;
-        p_min = 0.0;
+    // FIND THE DIVERGENCE FIELD
+    total_div = 0.0;
+    velocityDivergence(grid, *v_div, v, total_div, -1.0);
 
-        velocityDivergence(grid, *v_div, v, total_div, -1.0);
-        // velocityDivergence(grid, p, v, total_div, -1.0);
+    // FIND AND STORE THE SPHERICAL HARMONIC COEFFICIENTS OF THE PRESSURE FIELD
 
-        for (i=0; i<node_num; i++)
-        {
-            (*p_corr)(i) = (*p_factor)(i) * (*v_div)(i);
-            p(i) += -(*p_corr)(i);
-            // p(i) = std::max(0.0, p(i));
 
-            // p_min = std::min(p_min, p(i));
-        }
 
-        pressureGradient(grid, v, *p_corr, -dt);
+    // The below commented section uses a simple iterative approach to pressure
+    // solving. It is very slow.
 
-        iter++;
-    }
-    while ((total_div > epsilon) && (iter < max_iter));
-
-    // p_min = fabs(p_min);
-    // for (i=0; i<node_num; i++)
-    // {
-    //     // p_min = std::min(p_min, p(i));
-    //     p(i) += p_min;
+    // iter = 0;
+    // do {
+    //     total_div = 0.0;
+    //     p_min = 0.0;
+    //
+    //     velocityDivergence(grid, *v_div, v, total_div, -1.0);
+    //     // velocityDivergence(grid, p, v, total_div, -1.0);
+    //
+    //     for (i=0; i<node_num; i++)
+    //     {
+    //         (*p_corr)(i) = (*p_factor)(i) * (*v_div)(i);
+    //         p(i) += -(*p_corr)(i);
+    //         // p(i) = std::max(0.0, p(i));
+    //
+    //         // p_min = std::min(p_min, p(i));
+    //     }
+    //
+    //     pressureGradient(grid, v, *p_corr, -dt);
+    //
+    //     iter++;
+    // }
+    // while ((total_div > epsilon) && (iter < max_iter));
+    //
+    // // p_min = fabs(p_min);
+    // // for (i=0; i<node_num; i++)
+    // // {
+    // //     // p_min = std::min(p_min, p(i));
+    // //     p(i) += p_min;
+    // // }
+    //
+    //
+    // if (iter >= max_iter) return 1;
+    // else {
+    //     // std::cout<<"PRESSURE FIELD CONVERGED AT ITER="<<iter<<"! "<<std::endl;
+    //     return 0;
+    //
     // }
 
     delete v_div;
     delete p_corr;
-
-    if (iter >= max_iter) return 1;
-    else {
-        // std::cout<<"PRESSURE FIELD CONVERGED AT ITER="<<iter<<"! "<<std::endl;
-        return 0;
-
-    }
-
 }
