@@ -11,11 +11,13 @@ orbital period;          118327.40691486979;                         orbit perio
 ocean thickness;                    10000.0;               global ocean thickness [m];
 friction coefficient;                  4E-3;                     drag coefficient [?];
 friction type;                    QUADRATIC;                               drag model;
+surface type;                       INF_LID;                   ocean surface boundary;
 potential;                              ECC;                     tidal potential type;
-sh degree;                                8;            max spherical harmonic degree;
-geodesic grid level;                      6;            geodesic recursion grid level;
-time step;                               20;                                time step;
-simulation end time;                     30;                   end time [# of orbits];
+latitude spacing;                       1.0;             space between ll grid points;
+sh degree;                               32;            max spherical harmonic degree;
+geodesic grid level;                      7;            geodesic recursion grid level;
+time step;                              400;                                time step;
+simulation end time;                    4.0;                   end time [# of orbits];
 output time;                            0.1;     dump time [fraction of orbit period];
 solver type;                            AB3;                              time solver;
 displacement output;                   true;                              output \eta;
