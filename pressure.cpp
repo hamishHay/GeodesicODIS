@@ -15,8 +15,40 @@
 #include <iomanip>
 
 
-
-int updatePressure(Globals * globals, Mesh * grid, Array1D<double> & p, Array2D<double> & v)
+/**
+*   @purpose    Function will iteratively compute the pressure and pressure
+*               gradient force that exists to force the velocity solution to
+*               conserve mass. The pressure is found by solving poission's
+*               equation using the SIMPLE algorithm. The pressure gradient
+*               is then applied to the velocity solution to update it. Three
+*               options are available for the pressure solver: 1. simple
+*               numerical algorithm, 2. spherical harmonic solver on the
+*               geodesic grid, and 3. spherical harmonic solver on an
+*               interpolated lat-lon grid.
+*
+*   @params
+*
+*   globals     pointer to the Globals object in ODIS
+*   mesh        pointer to the Mesh object in ODIS
+*   p           reference to the initialised pressure field on the geodesic grid
+*   v           reference to the initialised velocity field on the geodesic grid
+*
+*   @returns
+*
+*   p           pressure array is updated based on mass conservation
+*   v           velocity array is also updated such that the flow is divergence-free
+*   int         if convergence is achieved, returns 0
+*
+*   @author     Hamish Hay
+*
+*   @history    01/07/2017  - created
+*               15/09/2017  - spherical harmonic lat-lon pressure solver added
+*
+*/
+int updatePressure(Globals * globals,
+                   Mesh * grid,
+                   Array1D<double> & p,
+                   Array2D<double> & v)
 {
     int node_num, i, j, l, m, iter, max_iter, l_max, N_ll;
     double h, r, rr, u_factor, v_factor, factor, epsilon, total_div_new, total_div_old, relax_f, dt, p_min;
@@ -51,7 +83,7 @@ int updatePressure(Globals * globals, Mesh * grid, Array1D<double> & p, Array2D<
     N_ll = (int)globals->dLat.Value();
 
     max_iter = 50;
-    epsilon = 1e-3;//((double)node_num)/1e9;
+    epsilon = 1e-6;
     relax_f = 1.0;
     dt = globals->timeStep.Value();
 
@@ -82,69 +114,8 @@ int updatePressure(Globals * globals, Mesh * grid, Array1D<double> & p, Array2D<
     // FIND THE DIVERGENCE FIELD
 
     int method = 1;
-
+    total_div_old = 0.0;
     switch (method) {
-
-        case 0:
-            for (i=0; i<node_num; i++) (*v_div)(i) = 0.0;
-
-            total_div_new = 0.0;
-            velocityDivergence(grid, *v_div, v, total_div_new, -1.0);
-
-            div_diff = total_div_new;
-
-            iter = 0;
-
-            do
-            {
-                // FIND AND STORE THE SPHERICAL HARMONIC COEFFICIENTS OF THE
-                // PRESSURE FIELD
-
-                getSHCoeffsGG(grid->node_pos_sph, *v_div, *div_lm, node_num, l_max);
-
-                for (l=1; l<l_max+1; l++)
-                {
-                    factor = -rr / (double)( l * (l + 1) );
-                    for (m=0; m<=l; m++)
-                    {
-                        (*p_lm)(l, m, 0) = factor * (*div_lm)(l, m, 0);  // C_lm
-                        (*p_lm)(l, m, 1) = factor * (*div_lm)(l, m, 1);  // S_lm
-                    }
-                }
-
-                // RECONSTRUCT PRESSURE CORRECTION FIELD USING SH COEFFICIENTS
-                for (i=0; i<node_num; i++)
-                {
-                    (*p_corr)(i) = 0.0;
-                    for (l=1; l<l_max+1; l++)
-                    {
-                        for (m=0; m<=l; m++)
-                        {
-                            (*p_corr)(i) += (*Pbar_lm)(i, l, m) * ( (*p_lm)(l, m, 0) * (*trigMLon)(i, m, 0) +
-                                                            (*p_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
-
-                        }
-                    }
-
-                    p(i) += (*p_corr)(i);
-                    (*v_div)(i) = 0.0;
-                }
-
-                // APPLY PRESSURE GRADIENT FORCE
-                pressureGradient(grid, v, *p_corr, 1.0);
-
-                // CHECK SUM OF OCEAN DIVERGENCE
-                div_diff = total_div_new;
-                total_div_new = 0.0;
-                velocityDivergence(grid, *v_div, v, total_div_new, -1.0);
-                div_diff = fabs(total_div_new - div_diff);
-
-                iter++;
-            }
-            while ((total_div_new > epsilon) && (iter < max_iter)  && (div_diff > 1e-5));
-
-            break;
-
         case 1:
             for (i=0; i<node_num; i++) (*v_div)(i) = 0.0;
 
@@ -211,19 +182,18 @@ int updatePressure(Globals * globals, Mesh * grid, Array1D<double> & p, Array2D<
                     (*v_div)(i) = 0.0;
                 }
 
-                // }
-                // CHECK SUM OF OCEAN DIVERGENCE
                 div_diff = total_div_new;
                 total_div_new = 0.0;
                 velocityDivergence(grid, *v_div, v, total_div_new, -1.0);
-                // div_diff = fabs(total_div_new - div_diff);
 
                 residual = fabs( total_div_new - total_div_old);
                 total_div_old = total_div_new;
 
+                // std::cout<<"Residual: "<<residual<<std::endl;
+
                 iter++;
             }
-            while ((iter < max_iter)  && (residual > 1e-6));
+            while ((iter < max_iter)  && (residual > epsilon));
 
             break;
         case 2:
@@ -294,7 +264,7 @@ int updatePressure(Globals * globals, Mesh * grid, Array1D<double> & p, Array2D<
 
                 iter++;
             }
-            while ((total_div_new > epsilon) && (iter < max_iter)  && (div_diff > 1e-5));
+            while ((iter < max_iter)  && (residual > epsilon));
 
             break;
         case 3:
@@ -302,13 +272,14 @@ int updatePressure(Globals * globals, Mesh * grid, Array1D<double> & p, Array2D<
             // The below commented section uses a simple iterative approach to pressure
             // solving. It is very slow.
             //
-            max_iter = 1200;
+            total_div_new = 0.0;
+            velocityDivergence(grid, *v_div, v, total_div_new, -1.0);
+
+
+            max_iter = 5000;
             iter = 0;
             do {
-                total_div_new = 0.0;
                 p_min = 0.0;
-
-                velocityDivergence(grid, *v_div, v, total_div_new, -1.0);
 
                 for (i=0; i<node_num; i++)
                 {
@@ -319,18 +290,23 @@ int updatePressure(Globals * globals, Mesh * grid, Array1D<double> & p, Array2D<
                 pressureGradient(grid, v, *p_corr, -dt);
 
                 iter++;
-            }
-            while ((total_div_new > epsilon) && (iter < max_iter));
 
-            total_div_new = 0.0;
-            velocityDivergence(grid, *v_div, v, total_div_new, -1.0);
+                total_div_new = 0.0;
+                for (i=0; i<node_num; i++) (*v_div)(i) = 0.0;
+                velocityDivergence(grid, *v_div, v, total_div_new, -1.0);
+
+                residual = fabs( total_div_new - total_div_old);
+                total_div_old = total_div_new;
+            }
+            while ((iter < max_iter)  && (residual > epsilon));
+
 
             std::cout<<"GLOBAL DIVERGENCE: "<<total_div_new<<std::endl;
 
             break;
     }
 
-    if (total_div_new > epsilon && residual > 1e-6) return 1;
+    if (total_div_new > epsilon && residual > epsilon) return 1;
     else {
         std::cout<<"PRESSURE FIELD CONVERGED AT ITER="<<iter<<"! "<<std::endl;
         return 0;
