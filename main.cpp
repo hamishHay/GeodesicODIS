@@ -52,7 +52,7 @@ int main(void)
   // Create the numerical grid using the minimum node spacing from "constants"
   // Globals instance.
 
-  Mesh * grid = new Mesh(constants, constants->node_num);
+  Mesh * grid = new Mesh(constants, constants->node_num, (int)constants->dLat.Value(), constants->l_max.Value());
 
   solveODIS(constants, grid);
 

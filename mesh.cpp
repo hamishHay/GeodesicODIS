@@ -5,6 +5,7 @@
 #include "array2d.h"
 #include "array3d.h"
 #include "mathRoutines.h"
+// #include "sphericalHarmonics.h"
 
 
 #include <string>
@@ -15,9 +16,15 @@
 #include <algorithm>
 #include <cstring>
 
+#include "H5Cpp.h"
+
+#ifndef H5_NO_NAMESPACE
+using namespace H5;
+#endif
+
 //Mesh::Mesh():Mesh(2., 2.) {}; //default constructor
 
-Mesh::Mesh(Globals * Globals, int N)
+Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
    :node_pos_sph(N,2),
     node_pos_map(N,7,2),        // len 7 to include central node coords (even though it's zero)
     node_friends(N,6),
@@ -43,7 +50,16 @@ Mesh::Mesh(Globals * Globals, int N)
     trig2Lat(N,2),
     trig2Lon(N,2),
     trigSqLat(N,2),
-    trigSqLon(N,2)
+    trigSqLon(N,2),
+
+    Pbar_lm(N, l_max+1, l_max+1),
+    Pbar_lm_deriv(N, l_max+1, l_max+1),
+    trigMLon(N, l_max+1, 2),
+
+    V_inv(N, 6, 6),
+    ll_map_coords(180/N_ll, 360/N_ll, 2),
+    cell_ID(180/N_ll, 360/N_ll)
+
 {
 
     globals = Globals;                   // define reference to all constants
@@ -84,9 +100,14 @@ Mesh::Mesh(Globals * Globals, int N)
 
     CalcMaxTimeStep();
 
+    CalcLegendreFuncs();
+
     CalcLand();
 
     CalcPressureFactor();
+
+    ReadLatLonFile();
+    
 };
 
 // Function to calculate the cosine(alpha) and sine(alpha) velocity tranform
@@ -372,6 +393,9 @@ int Mesh::CalcMaxTimeStep(void)
           break;
 
       case INF_LID:
+        break;
+
+    case LID:
         break;
 
   }
@@ -745,6 +769,56 @@ int Mesh::CalcTrigFunctions(void)
     return 1;
 };
 
+int Mesh::CalcLegendreFuncs(void)
+{
+    int i, l, m, n, l_max;
+    double cosCoLat;
+
+    Array2D<double> * temp_legendre;    // temp array for legendre polynomials
+    Array2D<double> * temp_dlegendre;   // temp array for legendre polynomial derivs
+
+    //-----------------------------
+
+    l_max = globals->l_max.Value();
+    n = (l_max + 1)*(l_max + 1)/2;
+
+    temp_legendre = new Array2D<double>(2 * (l_max+1), 2 * (l_max+1));
+    temp_dlegendre = new Array2D<double>(2 * (l_max+1), 2 * (l_max+1));
+
+    for (i=0; i<node_num; i++)
+    {
+        cosCoLat = cos(pi*0.5 - node_pos_sph(i,0));     // cos(colatitude) of node i
+
+        getLegendreFuncs(cosCoLat, *temp_legendre, l_max);
+        getLegendreFuncsDeriv(cosCoLat, *temp_dlegendre, l_max);
+
+        for (l = 0; l < l_max+1; l++)
+        {
+            for (m = 0; m <= l; m++)
+            {
+
+                // assign legendre pol at node i for degree l and order m
+                Pbar_lm(i, l, m) = (*temp_legendre)(l, m);
+
+                // assign legendre pol derivative at node i for degree l and order m
+                Pbar_lm_deriv(i, l, m) = (*temp_dlegendre)(l, m)*sin(pi*0.5 - node_pos_sph(i, 0));
+
+            }
+        }
+
+        // calculate cos(m*longitude) and sin(m*longitude) for node i
+        for (m=0; m < l_max+1; m++)
+        {
+            trigMLon(i, m, 0) = cos( m * node_pos_sph( i, 1 ) );
+            trigMLon(i, m, 1) = sin( m * node_pos_sph( i, 1 ) );
+        }
+    }
+
+    // free up memory!
+    delete temp_legendre;
+    delete temp_dlegendre;
+}
+
 int Mesh::CalcLand(void)
 {
     int i, j, f, friend_num, b_friend;
@@ -964,4 +1038,120 @@ int Mesh::ReadMeshFile(void)
     }
 
     return 1;
+};
+
+int Mesh::ReadLatLonFile(void)
+{
+    int i, j, k, N_ll;
+
+    N_ll = (int)globals->dLat.Value();
+
+    const H5std_string DSET_CellID("cell_ID");
+    const H5std_string DSET_VInv("vandermonde_inv");
+
+    std::string file_str;
+    file_str = globals->path + SEP
+               + "input_files" + SEP
+               + "grid_l" + std::to_string(globals->geodesic_l.Value())
+               + '_' + std::to_string(N_ll)
+               + 'x' + std::to_string(N_ll)
+               + ".h5";
+
+    // Define file name and open file
+    H5std_string FILE_NAME(file_str);
+    H5File file(FILE_NAME, H5F_ACC_RDONLY);
+
+    // Access dataspaces in latlon file
+    DataSet dset_cellID = file.openDataSet(DSET_CellID);
+    DataSet dset_vInv = file.openDataSet(DSET_VInv);
+
+    // Create filespaces for the correct rank and dimensions
+    DataSpace fspace_cellID = dset_cellID.getSpace();
+    DataSpace fspace_vInv = dset_vInv.getSpace();
+
+    // Get number of dimensions in the files dataspace
+    int rank_cellID = fspace_cellID.getSimpleExtentNdims();
+    int rank_vInv = fspace_vInv.getSimpleExtentNdims();
+
+    hsize_t dims_cellID[2];
+    hsize_t dims_vInv[3];
+
+    // Get size of each dimension
+    rank_cellID = fspace_cellID.getSimpleExtentDims( dims_cellID );
+    rank_vInv = fspace_vInv.getSimpleExtentDims( dims_vInv );
+
+    // Create memoryspace to read the datasets
+    DataSpace mspace_cellID(2, dims_cellID);
+    DataSpace mspace_vInv(3, dims_vInv);
+
+    // Create 1D arrays to store file data
+    int * cellID_1D;
+    double * vInv_1D;
+
+    cellID_1D = new int[180/N_ll * 360/N_ll];
+    vInv_1D = new double[node_num * 6 * 6];
+
+    // Read in the data
+    dset_cellID.read( cellID_1D, PredType::NATIVE_INT, mspace_cellID, fspace_cellID );
+    dset_vInv.read( vInv_1D, PredType::NATIVE_DOUBLE, mspace_vInv, fspace_vInv );
+
+    // Load Array classes with 1D dynamic arrays
+    int count = 0;
+    for (i=0; i<node_num; i++)
+    {
+        for (j=0; j<6; j++)
+        {
+            for (k=0; k<6; k++)
+            {
+                V_inv(i, j, k) = vInv_1D[count];
+                count++;
+            }
+        }
+    }
+
+    count = 0;
+
+    int ID;
+    double lat1, lat2, lon1, lon2;
+    double *m, *x, *y;
+    double r;
+
+    m = new double;
+
+    r = 1.0;//globals->radius.Value();
+
+    for (i=0; i<180/N_ll; i++)
+    {
+        for (j=0; j<360/N_ll; j++)
+        {
+            cell_ID(i, j) = cellID_1D[count];
+            count++;
+
+            // get cell ID which contains current lat-lon grid point
+            ID = cell_ID(i, j);
+
+            // get sph coords of cell with current lat-lon node
+            lat1 = node_pos_sph(ID,0);
+            lon1 = node_pos_sph(ID,1);
+
+            // calculate regular lat-lon position in radians
+            lat2 = (90.0 - (double)(i*N_ll))*radConv;
+            lon2 = (double)(j*N_ll)*radConv;
+
+            // set pointers to mapped coords of lat-lon node
+            x = &ll_map_coords(i, j, 0);
+            y = &ll_map_coords(i, j, 1);
+            // *m = 0.0;
+
+            // call mapping function to find x y of current lat-lon node
+            mapAtPoint(*m, *x, *y, lat1, lat2, lon1, lon2, r);
+        }
+    }
+
+    delete m;
+
+
+    delete[] cellID_1D;
+    delete[] vInv_1D;
+
 };

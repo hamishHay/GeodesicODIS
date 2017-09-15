@@ -6,11 +6,13 @@
 #include "array2d.h"
 #include "array3d.h"
 #include "mathRoutines.h"
+#include "sphericalHarmonics.h"
 
 //Class stores all coordinate information about the mesh
 class Mesh {
 private:
   int ReadMeshFile(void);
+  int ReadLatLonFile(void);
   int CalcMappingCoords(void);
   int CalcVelocityTransformFactors(void);
   int CalcControlVolumeEdgeLengths(void);
@@ -25,11 +27,13 @@ private:
   int CalcMaxTimeStep(void);
   int CalcLand(void);
   int CalcPressureFactor();
+  int CalcLegendreFuncs();
+
 
 public:
 //	Mesh(); //constructor
   Mesh(Globals *);
-  Mesh(Globals *, int);
+  Mesh(Globals *, int, int, int);
 
   std::ostringstream outstring;
 
@@ -104,6 +108,15 @@ public:
   Array2D<double> trig2Lon;
   Array2D<double> trigSqLat;
   Array2D<double> trigSqLon;
+
+  Array3D<double> Pbar_lm;
+  Array3D<double> Pbar_lm_deriv;
+  Array3D<double> trigMLon;
+
+  Array3D<double> V_inv;
+  // Array2D<double> ll_data;
+  Array3D<double> ll_map_coords;
+  Array2D<int> cell_ID;
 
   Globals * globals;
 

@@ -27,18 +27,19 @@ void CatchExit(int sig) {
 
 int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array2D<double> & v_tm1, Array1D<double> & p_tm1, double current_time)
 {
-    double r, omega, e, obliq, h, drag_coeff, visc, g;
+    double r, omega, e, obliq, h, drag_coeff, visc, g, dt;
     int node_num;
 
     r = globals->radius.Value();
     g = globals->g.Value();
+    dt = globals->timeStep.Value();
     omega = globals->angVel.Value();
     e = globals->e.Value();
     drag_coeff = globals->alpha.Value();
     obliq = globals->theta.Value();
     h = globals->h.Value();
     node_num = globals->node_num;
-    visc = 2e2;
+    visc = 2e3;
 
     switch (globals->tide_type)
     {
@@ -74,7 +75,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
             break;
 
         case INF_LID:
-            // pressureGradient(grid, dvdt, p_tm1, 1.0);
+            // pressureGradient(grid, dvdt, p_tm1, 1.0/1000.0);
             break;
 
     }
@@ -106,8 +107,8 @@ int eulerExplicit(Globals * globals, Mesh * grid)
     Array1D<double> * press_tm1;     // displacement solution at previous timestep (t minus 1)
     Array1D<double> * dpress_dt_t0;  // displacement time derivative at current timestep
 
-    double end_time, current_time, dt, out_frac, orbit_period, orbit_out_frac, out_time;
-    double r, omega, e, obliq, drag_coeff, h;
+    double end_time, current_time, dt, out_frac, orbit_period, out_time;
+    // double r, omega, e, obliq, drag_coeff, h;
 
     int node_num;
 
@@ -117,16 +118,6 @@ int eulerExplicit(Globals * globals, Mesh * grid)
     dt = globals->timeStep.Value();
     out_frac = globals->outputTime.Value();
     orbit_period = globals->period.Value();
-    orbit_out_frac = orbit_period * out_frac;
-
-    r = globals->radius.Value();
-    omega = globals->angVel.Value();
-    e = globals->e.Value();
-    drag_coeff = globals->alpha.Value();
-    h = globals->h.Value();
-
-    // std::cout<<"Omega: "<<omega<<std::endl;
-    // std::cout<<"End time: "<<end_time<<std::endl;
 
     node_num = globals->node_num;
 
@@ -242,8 +233,8 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     Array1D<double> * energy_diss;
     Array1D<double> * cv_mass;
 
-    double end_time, current_time, dt, out_frac, orbit_period, orbit_out_frac, out_time;
-    double r, omega, e, obliq, drag_coeff, h;
+    double end_time, current_time, dt, out_frac, orbit_period, out_time;
+    // double r, omega, e, obliq, drag_coeff, h;
     double lon, lat;
 
     int node_num;
@@ -260,25 +251,11 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     dt = globals->timeStep.Value();
     out_frac = globals->outputTime.Value();
     orbit_period = globals->period.Value();
-    orbit_out_frac = orbit_period * out_frac;
-
-    r = globals->radius.Value();
-    omega = globals->angVel.Value();
-    e = globals->e.Value();
-    drag_coeff = globals->alpha.Value();
-    obliq = globals->theta.Value();
-    h = globals->h.Value();
 
     node_num = globals->node_num;
 
     Output = globals->Output;
     pp = new double *[globals->out_tags.size()];
-
-    // std::cout<<globals->out_tags.size()-1<<std::endl;
-    // std::cout<<globals->out_tags[0]<<std::endl;
-    // std::cout<<globals->out_tags[1]<<std::endl;
-    // std::cout<<globals->out_tags[2]<<std::endl;
-    // std::cout<<globals->out_tags[3]<<std::endl;
 
     outstring << "Defining arrays for Euler time integration..." << std::endl;
 
@@ -355,23 +332,6 @@ int ab3Explicit(Globals * globals, Mesh * grid)
                 // MARCH FORWARD VELOCITY SOLUTION
                 integrateAB3vector(globals, grid, *vel_t0, *vel_tm1, *dvel_dt_t0, *dvel_dt_tm1, *dvel_dt_tm2, iter);
 
-                // for (i=0; i<node_num; i++)
-                // {
-                //     lat = pi*0.5 - grid->node_pos_sph(i,0);
-                //     lon = grid->node_pos_sph(i,1);
-                //
-                //     (*press_t0)(i) = 100*sin(2*lat) * cos(3*lon);
-                //
-                //
-                //     // (*vel_t0)(i,0) = sin(4*lat) * cos(3*lon);
-                //     // (*vel_t0)(i,1) = sin(lat) * cos(lon)*cos(lon);
-                // }
-
-                // scalarDiffusion(grid, *energy_diss, *press_t0, 1.0);
-
-                // velocityDiffusion(grid, energy_diss, v_tm1, visc);
-
-
                 // FORCE CONTINUITY EQUATION
                 err = updatePressure(globals, grid, *press_t0, *vel_t0);
 
@@ -382,10 +342,10 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
                 // for (i=0; i<node_num; i++)
                 // {
-                //     (*dpress_dt_t0)(i) = ((*press_t0)(i) - (*press_tm1)(i))/dt;
+                // //     (*dpress_dt_t0)(i) = ((*press_t0)(i) - (*press_tm1)(i))/dt;
                 //     (*press_tm1)(i) = (*press_t0)(i);
                 // }
-
+                //
                 // integrateAB3scalar(globals, grid, *press_t0, *press_tm1, *dpress_dt_t0, *dpress_dt_tm1, *dpress_dt_tm2, iter);
 
                 break;
@@ -397,8 +357,6 @@ int ab3Explicit(Globals * globals, Mesh * grid)
                 break;
 
         }
-
-        // if (iter == 1000) Output->TerminateODIS();
 
         // Check for output
         iter ++;
@@ -424,12 +382,23 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     }
 
     delete dvel_dt_t0;
+    delete dvel_dt_tm1;
+    delete dvel_dt_tm2;
     delete vel_t0;
     delete vel_tm1;
 
     delete dpress_dt_t0;
+    delete dpress_dt_tm1;
+    delete dpress_dt_tm2;
     delete press_t0;
     delete press_tm1;
+
+    delete cv_mass;
+
+    delete energy_diss;
+
+    delete[] total_diss;
+    delete pp;
 
 
     Output->Write(OUT_MESSAGE, &outstring);

@@ -1,4 +1,4 @@
-subroutine ExtractSHCoeff(DATA, N, L_MAX, HARM)
+subroutine ExtractSHCoeffLL(DATA, N, L_MAX, HARM)
   implicit none
 
   interface
@@ -23,4 +23,4 @@ subroutine ExtractSHCoeff(DATA, N, L_MAX, HARM)
   call SHExpandDH (grid=DATA, n=N, cilm=HARM, lmax=L_MAX_RETURN, lmax_calc=L_MAX, csphase=-1, sampling=2, exitstatus=returnVAL)
 
   return
-end subroutine ExtractSHCoeff
+end subroutine ExtractSHCoeffLL
