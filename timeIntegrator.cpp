@@ -398,6 +398,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     delete energy_diss;
 
     delete[] total_diss;
+    delete pp;
 
 
     Output->Write(OUT_MESSAGE, &outstring);
