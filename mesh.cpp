@@ -57,7 +57,7 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
     trigMLon(N, l_max+1, 2),
 
     V_inv(N, 6, 6),
-    latlon_data(180/N_ll, 360/N_ll),
+    ll_map_coords(180/N_ll, 360/N_ll, 2),
     cell_ID(180/N_ll, 360/N_ll)
 
 {
@@ -1103,16 +1103,46 @@ int Mesh::ReadLatLonFile(void)
     }
 
     count = 0;
+
+    int ID;
+    double lat1, lat2, lon1, lon2;
+    double *m, *x, *y;
+    double r;
+
+    m = new double;
+
+    r = 1.0;//globals->radius.Value();
+
     for (i=0; i<180/N_ll; i++)
     {
         for (j=0; j<360/N_ll; j++)
         {
             cell_ID(i, j) = cellID_1D[count];
-            std::cout<<cell_ID(i, j)<<' ';
             count++;
+
+            // get cell ID which contains current lat-lon grid point
+            ID = cell_ID(i, j);
+
+            // get sph coords of cell with current lat-lon node
+            lat1 = node_pos_sph(ID,0);
+            lon1 = node_pos_sph(ID,1);
+
+            // calculate regular lat-lon position in radians
+            lat2 = (90.0 - (double)(i*N_ll))*radConv;
+            lon2 = (double)(j*N_ll)*radConv;
+
+            // set pointers to mapped coords of lat-lon node
+            x = &ll_map_coords(i, j, 0);
+            y = &ll_map_coords(i, j, 1);
+            // *m = 0.0;
+
+            // call mapping function to find x y of current lat-lon node
+            mapAtPoint(*m, *x, *y, lat1, lat2, lon1, lon2, r);
         }
-        std::cout<<std::endl;
     }
+
+    delete m;
+
 
     delete[] cellID_1D;
     delete[] vInv_1D;

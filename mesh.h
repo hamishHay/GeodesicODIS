@@ -114,7 +114,8 @@ public:
   Array3D<double> trigMLon;
 
   Array3D<double> V_inv;
-  Array2D<double> latlon_data;
+  // Array2D<double> ll_data;
+  Array3D<double> ll_map_coords;
   Array2D<int> cell_ID;
 
   Globals * globals;
