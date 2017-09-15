@@ -107,6 +107,7 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
     CalcPressureFactor();
 
     ReadLatLonFile();
+    
 };
 
 // Function to calculate the cosine(alpha) and sine(alpha) velocity tranform
@@ -392,6 +393,9 @@ int Mesh::CalcMaxTimeStep(void)
           break;
 
       case INF_LID:
+        break;
+
+    case LID:
         break;
 
   }
@@ -771,6 +775,7 @@ int Mesh::CalcLegendreFuncs(void)
     double cosCoLat;
 
     Array2D<double> * temp_legendre;    // temp array for legendre polynomials
+    Array2D<double> * temp_dlegendre;   // temp array for legendre polynomial derivs
 
     //-----------------------------
 
@@ -778,24 +783,25 @@ int Mesh::CalcLegendreFuncs(void)
     n = (l_max + 1)*(l_max + 1)/2;
 
     temp_legendre = new Array2D<double>(2 * (l_max+1), 2 * (l_max+1));
+    temp_dlegendre = new Array2D<double>(2 * (l_max+1), 2 * (l_max+1));
 
     for (i=0; i<node_num; i++)
     {
         cosCoLat = cos(pi*0.5 - node_pos_sph(i,0));     // cos(colatitude) of node i
 
-        for (l=0; l<l_max+1; l++)
+        getLegendreFuncs(cosCoLat, *temp_legendre, l_max);
+        getLegendreFuncsDeriv(cosCoLat, *temp_dlegendre, l_max);
+
+        for (l = 0; l < l_max+1; l++)
         {
-            for (m=0; m<=l; m++)
+            for (m = 0; m <= l; m++)
             {
-                getLegendreFuncs(cosCoLat, *temp_legendre, l_max);
 
                 // assign legendre pol at node i for degree l and order m
-                Pbar_lm(i,l,m) = (*temp_legendre)(l,m);
-
-                getLegendreFuncsDeriv(cosCoLat, *temp_legendre, l_max);
+                Pbar_lm(i, l, m) = (*temp_legendre)(l, m);
 
                 // assign legendre pol derivative at node i for degree l and order m
-                Pbar_lm_deriv(i,l,m) = (*temp_legendre)(l,m)*sin(pi*0.5 - node_pos_sph(i,0));
+                Pbar_lm_deriv(i, l, m) = (*temp_dlegendre)(l, m)*sin(pi*0.5 - node_pos_sph(i, 0));
 
             }
         }
@@ -810,6 +816,7 @@ int Mesh::CalcLegendreFuncs(void)
 
     // free up memory!
     delete temp_legendre;
+    delete temp_dlegendre;
 }
 
 int Mesh::CalcLand(void)
