@@ -9,6 +9,6 @@
 #include <math.h>
 #include <iostream>
 
-int interpolateGG2LL(Globals *, Mesh *, Array2D<double> &, Array1D<double> &, Array3D<double> &, Array2D<int> &);
+int interpolateGG2LL(Globals *, Mesh *, Array2D<double> &, Array1D<double> &, Array3D<double> &, Array3D<double> &, Array2D<int> &);
 
 #endif
