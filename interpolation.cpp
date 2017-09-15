@@ -9,7 +9,7 @@
 /**
 *   @purpose    Function interpolates data from the geodesic grid to the regular
 *               lat-lon grid. Interpolation is biquadratic and takes the form
-*               Vc = d, where V is a 6x6 vandemonde matrix, c is a 6x1 column vector
+*               Vc = d, where V is a 6x6 vandermonde matrix, c is a 6x1 column vector
 *               of the interpolating function coefficients, and d is a 6x1 column
 *               vector of the geodesic grid data to be interpolated. See Lee and
 *               Macdonald (2008).
