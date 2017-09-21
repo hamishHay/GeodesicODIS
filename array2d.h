@@ -30,7 +30,7 @@ Array2D<T>::Array2D(unsigned rows, unsigned cols)
 {
   // if (rows == 0 || cols == 0)
   //   throw BadIndex("Array2D constructor has 0 size");
-  data_ = new T[rows * cols];
+  data_ = new T[rows * cols]();
 }
 
 template<typename T>

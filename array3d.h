@@ -31,7 +31,7 @@ Array3D<T>::Array3D(unsigned rows, unsigned cols, unsigned depth)
 {
   // if (rows == 0 || cols == 0)
   //   throw BadIndex("Array3D constructor has 0 size");
-  data_ = new T[rows * cols * depth];
+  data_ = new T[rows * cols * depth]();
 }
 
 template<typename T>

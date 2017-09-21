@@ -29,7 +29,7 @@ Array1D<T>::Array1D(unsigned rows)
 {
   // if (rows == 0 || cols == 0)
   //   throw BadIndex("Array1D constructor has 0 size");
-  data_ = new T[rows];
+  data_ = new T[rows]();
 }
 
 template<typename T>
