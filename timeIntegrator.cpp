@@ -39,7 +39,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
     obliq = globals->theta.Value();
     h = globals->h.Value();
     node_num = globals->node_num;
-    visc = 2e3;
+    visc = 5e4;
 
     switch (globals->tide_type)
     {
@@ -51,6 +51,9 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
             break;
         case OBLIQ:
             deg2Obliq(grid, dvdt, current_time, r, omega, obliq);
+            break;
+        case FULL:
+            deg2Full(grid, dvdt, current_time, r, omega, obliq, e);
             break;
     }
 
@@ -284,6 +287,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
         (*press_tm1)(i) = 0.0;
         (*vel_t0)(i,0) = 0.0;
         (*vel_t0)(i,1) = 0.0;
+        (*vel_tm1)(i,1) = 0.0;
         (*press_t0)(i) = 0.0;
         (*cv_mass)(i) = grid->control_volume_mass(i);
     }
@@ -364,7 +368,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
         if (out_time >= out_frac*orbit_period)
         {
             std::cout<<std::fixed << std::setprecision(8) <<"DUMPING DATA AT "<<current_time/orbit_period;
-            std::cout<<" TOTAL DISS: "<<*total_diss<<" GW"<<std::endl;
+            std::cout<<" AVG DISS: "<<*total_diss<<" W m^-2"<<std::endl;
 
             out_time -= out_frac*orbit_period;
             pp[3] = &(*energy_diss)(0);
