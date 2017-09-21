@@ -82,6 +82,7 @@ int updatePressure(Globals * globals,
 
     N_ll = (int)globals->dLat.Value();
 
+    iter = 0;
     max_iter = 50;
     epsilon = 1e-6;
     relax_f = 1.0;
@@ -276,7 +277,7 @@ int updatePressure(Globals * globals,
             velocityDivergence(grid, *v_div, v, total_div_new, -1.0);
 
 
-            max_iter = 5000;
+            max_iter = 10000;
             iter = 0;
             do {
                 p_min = 0.0;
@@ -301,16 +302,9 @@ int updatePressure(Globals * globals,
             while ((iter < max_iter)  && (residual > epsilon));
 
 
-            std::cout<<"GLOBAL DIVERGENCE: "<<total_div_new<<std::endl;
+            // std::cout<<"GLOBAL DIVERGENCE: "<<total_div_new<<std::endl;
 
             break;
-    }
-
-    if (total_div_new > epsilon && residual > epsilon) return 1;
-    else {
-        std::cout<<"PRESSURE FIELD CONVERGED AT ITER="<<iter<<"! "<<std::endl;
-        return 0;
-
     }
 
     delete v_div;
@@ -319,4 +313,15 @@ int updatePressure(Globals * globals,
 
     delete div_lm;
     delete p_lm;
-}
+
+    if (total_div_new > epsilon && residual > epsilon) {
+        std::cout<<"PRESSURE FIELD DID NOT CONVERGE AFTER ITER="<<iter<<"! "<<std::endl;
+        return 1;
+    }
+    else {
+        // std::cout<<"PRESSURE FIELD CONVERGED AT ITER="<<iter<<"! "<<std::endl;
+        return 0;
+
+    }
+
+};
