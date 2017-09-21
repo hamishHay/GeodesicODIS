@@ -39,6 +39,7 @@ for moon in icy_satellites:
     f.write(line_str_str.format("potential;", "ECC", "tidal potential type"))
     f.write(line_str_int.format("sh degree;", 8, "max spherical harmonic degree"))
     f.write(line_str_int.format("geodesic grid level;", 5, "geodesic recursion grid level"))
+    f.write(line_str_int.format("latitude spacing;", 1.0, "lat-lon grid space [deg]"))
     f.write(line_str_int.format("time step;", 100, "time step"))
     f.write(line_str_int.format("simulation end time;", 10, "end time [# of orbits]"))
     f.write(line_str_flt.format("output time;", 0.1, "dump time [fraction of orbit period]"))
