@@ -106,7 +106,7 @@ int updatePressure(Globals * globals,
     {
         (*v_div)(i) = 0.0;
         (*p_corr)(i) = 0.0;
-        p(i) = 0.0; // PERHAPS THE PRESSURE FIELD SHOULD ONLY DEPEND ON THE CURRENT
+        // p(i) = 0.0; // PERHAPS THE PRESSURE FIELD SHOULD ONLY DEPEND ON THE CURRENT
                     // TIMESTEPS PRESSURE CORRECTION?
     }
 
@@ -179,7 +179,7 @@ int updatePressure(Globals * globals,
                         }
                     }
 
-                    p(i) += 1000.0*(*p_corr)(i)/dt;
+                    p(i) += 1000.0 * (*p_corr)(i)/dt;
                     (*v_div)(i) = 0.0;
                 }
 
@@ -248,7 +248,7 @@ int updatePressure(Globals * globals,
                         }
                     }
 
-                    p(i) += (*p_corr)(i);
+                    p(i) += 1000.0 * (*p_corr)(i)/dt;
                     (*v_div)(i) = 0.0;
                 }
 
@@ -285,7 +285,7 @@ int updatePressure(Globals * globals,
                 for (i=0; i<node_num; i++)
                 {
                     (*p_corr)(i) = (*p_factor)(i) * (*v_div)(i);
-                    p(i) += -(*p_corr)(i);
+                    p(i) += 1000.0 * (*p_corr)(i);
                 }
 
                 pressureGradient(grid, v, *p_corr, -dt);
