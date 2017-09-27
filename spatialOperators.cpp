@@ -73,7 +73,7 @@ void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pre
             p1 = pressure((*friend_list)(i,j1));
             p2 = pressure((*friend_list)(i,j2));
 
-            p1_cent = (p0 * a1 + p1 * a2 + p2 * a0) / (a0 + a1 + a2);
+            p1_cent = (p0*a1 + p1*a2 + p2*a0) / (a0 + a1 + a2);
 
             // Find average p at the center of the control volume edge
             p_avg = 0.5*(p0_cent + p1_cent);
