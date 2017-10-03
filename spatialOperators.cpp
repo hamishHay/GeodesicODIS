@@ -3,6 +3,8 @@
 #include "array3d.h"
 #include "array2d.h"
 #include "array1d.h"
+#include "sphericalHarmonics.h"
+#include "interpolation.h"
 
 // static double dummy_sum = 0;
 
@@ -106,6 +108,112 @@ void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pre
         dvdt(i,1) -= y_grad;
     }
 };
+
+void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & gg_scalar, double factor)
+{
+    int node_num, l_max, N_ll;
+    int i, j, f, l, m;
+    double lat_factor, lon_factor;
+    double r;
+
+    Array3D<double> * scalar_lm;
+
+    Array3D<double> * Pbar_lm;
+    Array3D<double> * Pbar_lm_deriv;
+    Array3D<double> * trigMLon;
+    Array2D<double> * trigLat;
+
+    Array2D<double> * ll_scalar;
+
+    Array2D<int> * friend_list;
+    friend_list = &(mesh->node_friends);
+
+    node_num = globals->node_num;
+    l_max = globals->l_max.Value();
+    N_ll = (int)globals->dLat.Value();
+    r = globals->radius.Value();
+    lat_factor = factor * 1.0/r;
+
+    scalar_lm = new Array3D<double>(2.*(l_max+1), 2.*(l_max+1), 2);
+    ll_scalar = new Array2D<double>(180/N_ll, 360/N_ll);
+
+    Pbar_lm = &(mesh->Pbar_lm);             // 4-pi Normalised associated leg funcs
+    Pbar_lm_deriv = &(mesh->Pbar_lm_deriv); // 4-pi Normalised associated leg funcs derivs
+    trigMLon = &(mesh->trigMLon);           // cos and sin of m*longitude
+    trigLat = &(mesh->trigLat);
+
+    // INTERPOLATE GEODESIC GRID DATA TO LAT-LON GRID
+    interpolateGG2LL(globals,
+                     mesh,
+                     *ll_scalar,
+                     gg_scalar,
+                     mesh->ll_map_coords,
+                     mesh->V_inv,
+                     mesh->cell_ID);
+
+    // FIND SPHERICAL HARMONIC EXPANSION COEFFICIENTS
+    // OF THE PRESSURE FIELD
+    getSHCoeffsLL(*ll_scalar, *scalar_lm, N_ll, l_max);
+
+    // getSHCoeffsGG(mesh->node_pos_sph, gg_scalar, *scalar_lm, node_num, l_max);
+
+    // LOOP THROUGH EVERY GRID POINT, REBUILDING SCALAR
+    // GRADIENT FROM SPHERICAL HARMONIC COEFFICIENTS
+
+
+    for (i=2; i<node_num; i++)
+    {
+        lon_factor = factor * 1.0/(r*(*trigLat)(i,0));
+
+        // lat_factor = factor * 1.0/r;
+        // if (fabs((*trigLat)(i,0)) < 0.0000000000001) lat_factor = 0.0;
+
+        // if (i > 1)
+        // {
+            for (l=0; l<l_max+1; l++)
+            {
+                for (m=0; m<=l; m++)
+                {
+                    dvdt(i, 0) += lon_factor * (*Pbar_lm)(i, l, m)
+                    * (-(*scalar_lm)(l, m, 0) * (double)m * (*trigMLon)(i, m, 1)
+                    + (*scalar_lm)(l, m, 1) * (double)m * (*trigMLon)(i, m, 0));
+
+                    dvdt(i, 1) += lat_factor * (*Pbar_lm_deriv)(i, l, m)
+                    * ((*scalar_lm)(l, m, 0) * (*trigMLon)(i, m, 0)
+                    + (*scalar_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
+                }
+            }
+        // }
+
+    }
+
+    double avg_val_x, avg_val_y;
+    for (i=0; i<2; i++)
+    {
+        avg_val_x = 0.0;
+        avg_val_y = 0.0;
+        for (j=0; j < 5; j++)
+        {
+            f = (*friend_list)(i,j);
+            avg_val_x += dvdt(f, 0);
+            avg_val_y += dvdt(f, 1);
+
+        }
+
+        avg_val_y /= 5.0;
+        avg_val_x /= 5.0;
+
+        dvdt(i, 0) = avg_val_x;
+        dvdt(i, 1) = avg_val_y;
+    }
+
+
+
+
+    delete scalar_lm;
+    delete ll_scalar;
+
+}
 
 void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & velocity, double & sum, double h = 1.0)
 {
