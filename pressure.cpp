@@ -84,7 +84,7 @@ int updatePressure(Globals * globals,
 
     iter = 0;
     max_iter = 50;
-    epsilon = 1e-6;
+    epsilon = 1e-8;
     relax_f = 1.0;
     dt = globals->timeStep.Value();
 
@@ -106,7 +106,7 @@ int updatePressure(Globals * globals,
     {
         (*v_div)(i) = 0.0;
         (*p_corr)(i) = 0.0;
-        p(i) = 0.0; // PERHAPS THE PRESSURE FIELD SHOULD ONLY DEPEND ON THE CURRENT
+        // p(i) = 0.0; // PERHAPS THE PRESSURE FIELD SHOULD ONLY DEPEND ON THE CURRENT
                     // TIMESTEPS PRESSURE CORRECTION?
     }
 
@@ -190,7 +190,7 @@ int updatePressure(Globals * globals,
                 residual = fabs( total_div_new - total_div_old);
                 total_div_old = total_div_new;
 
-                // std::cout<<"Residual: "<<residual<<std::endl;
+                // std::cout<<"Residual: "<<residual<<'\t'<<"DIV: "<<total_div_new<<std::endl;
 
                 iter++;
             }
