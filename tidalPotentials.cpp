@@ -165,7 +165,7 @@ void deg2Full(Mesh * grid, Array2D<double> & velocity, double simulationTime, do
 {
     double cosM, sinM, factor_lon, factor_lat;              // cos(Mean anomaly), sin(Mean anomaly)
     double * sinLon, * cosLon;
-    double * cosLat;
+    double * sinLat, * cosLat;
     double * sin2Lat, * cos2Lat;
     double * sin2Lon, * cos2Lon;
     double * cosSqLat;
@@ -182,7 +182,7 @@ void deg2Full(Mesh * grid, Array2D<double> & velocity, double simulationTime, do
     h2 = grid->globals->loveH2.Value();
     // factor = pow(omega,2.0)*pow(radius,2.0)*ecc;
 
-    factor_lon = 0.25 * (1.0 + k2 - h2) * pow(omega,2.0)*radius;
+    factor_lon = (1.0 + k2 - h2) * pow(omega,2.0)*radius;
     factor_lat = factor_lon;
 
     cosM = cos(omega*simulationTime);
@@ -192,6 +192,7 @@ void deg2Full(Mesh * grid, Array2D<double> & velocity, double simulationTime, do
     cosLon = &(grid->trigLon(0,0));
     sinLon = &(grid->trigLon(0,1));
     cosLat = &(grid->trigLat(0,0));
+    sinLat = &(grid->trigLat(0,1));
 
     cos2Lat = &(grid->trig2Lat(0,0));
     sin2Lat = &(grid->trig2Lat(0,1));
@@ -216,17 +217,16 @@ void deg2Full(Mesh * grid, Array2D<double> & velocity, double simulationTime, do
         //                 + 4.*sinM*sin2Lon[j]);
 
         // calculate potential gradient in longitude
-        factor_lon = factor_lat/cosLat[j];
-        velocity(i,0) = factor_lon * (6. * theta * sin2Lat[j] * sinLon[j] * cosM
-                        + 24. * ecc * cosSqLat[j]
-                        * (sinM * (cosSqLon[j] - sinSqLon[j])
-                        - 1.5 * cosM * sinLon[j] * cosLon[j]));
+        // factor_lon = factor_lat;
+        velocity(i,0) = factor_lon * (3. * theta * sinLat[j] * sinLon[j] * cosM
+                        + 1.5 * ecc * cosLat[j]
+                        * (4. * sinM * cos2Lon[j]
+                        - 3. * cosM * sin2Lon[j]));
 
         // calculate potential gradient in latitude
-        velocity(i,1) = -factor_lat * (2. * theta * cos2Lat[j] * cosLon[j] * cosM
-                        + 3. * ecc * (3. * sin2Lat[j] * cosM
-                        + sin2Lat[j] * (4. * sin2Lon[j] * sinM
-                        + 3. * cos2Lon[j] * cosM)));
+        velocity(i,1) = -factor_lat * (3. * theta * cos2Lat[j] * cosLon[j] * cosM
+                        + 0.75 * ecc * sin2Lat[j] * (3. * cosM * (1 + cos2Lon[j])
+                        + 4. * sin2Lon[j] * sinM));
     }
 };
 
