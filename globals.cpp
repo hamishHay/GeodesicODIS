@@ -195,7 +195,11 @@ Globals::Globals(int action) {
     if (potential.Value() == "ECC_RAD")         tide_type = ECC_RAD;
     else if (potential.Value() == "ECC_LIB")    tide_type = ECC_LIB;
     else if (potential.Value() == "ECC")        tide_type = ECC;
+    else if (potential.Value() == "ECC_WEST")   tide_type = ECC_WEST;
+    else if (potential.Value() == "ECC_EAST")   tide_type = ECC_EAST;
     else if (potential.Value() == "OBLIQ")      tide_type = OBLIQ;
+    else if (potential.Value() == "OBLIQ_WEST") tide_type = OBLIQ_WEST;
+    else if (potential.Value() == "OBLIQ_EAST") tide_type = OBLIQ_EAST;
     else if (potential.Value() == "FULL")       tide_type = FULL;
     else if (potential.Value() == "TOTAL")      tide_type = TOTAL;
     else if (potential.Value() == "ECC_W3")     tide_type = ECC_W3;

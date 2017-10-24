@@ -98,9 +98,9 @@ void getSHCoeffsLL(Array2D<double> & data,
         {
                 if (m<=l)
                 {
-                    // if (fabs(sh_coeffs_fort[index]) > 1e-16) sh_coeffs(l, m, 0) = sh_coeffs_fort[index];
+                    // if (fabs(sh_coeffs_fort[index]) > 1e-12) sh_coeffs(l, m, 0) = sh_coeffs_fort[index];
                     // else sh_coeffs(l, m, 0) = 0.0;
-                    // if (fabs(sh_coeffs_fort[index+1]) > 1e-16) sh_coeffs(l, m, 1) = sh_coeffs_fort[index+1];
+                    // if (fabs(sh_coeffs_fort[index+1]) > 1e-12) sh_coeffs(l, m, 1) = sh_coeffs_fort[index+1];
                     // else sh_coeffs(l, m, 1) = 0.0;
 
                     sh_coeffs(l, m, 0) = sh_coeffs_fort[index];

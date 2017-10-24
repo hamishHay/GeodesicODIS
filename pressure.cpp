@@ -48,7 +48,8 @@
 int updatePressure(Globals * globals,
                    Mesh * grid,
                    Array1D<double> & p,
-                   Array2D<double> & v)
+                   Array2D<double> & v,
+                   Array2D<double> & dvdt)
 {
     int node_num, i, j, l, m, iter, max_iter, l_max, N_ll;
     double h, r, rr, u_factor, v_factor, factor, epsilon, total_div_new, total_div_old, relax_f, dt, p_min;
@@ -83,8 +84,8 @@ int updatePressure(Globals * globals,
     N_ll = (int)globals->dLat.Value();
 
     iter = 0;
-    max_iter = 50;
-    epsilon = 1e-8;
+    max_iter = 2;
+    epsilon = 1e-16;
     relax_f = 1.0;
     dt = globals->timeStep.Value();
 
@@ -106,7 +107,7 @@ int updatePressure(Globals * globals,
     {
         (*v_div)(i) = 0.0;
         (*p_corr)(i) = 0.0;
-        // p(i) = 0.0; // PERHAPS THE PRESSURE FIELD SHOULD ONLY DEPEND ON THE CURRENT
+        p(i) = 0.0; // PERHAPS THE PRESSURE FIELD SHOULD ONLY DEPEND ON THE CURRENT
                     // TIMESTEPS PRESSURE CORRECTION?
     }
 
@@ -114,7 +115,8 @@ int updatePressure(Globals * globals,
 
     // FIND THE DIVERGENCE FIELD
 
-    int method = 1;
+    int method = 2;
+    double ll_num;
     total_div_old = 0.0;
     switch (method) {
         case 1:
@@ -147,42 +149,66 @@ int updatePressure(Globals * globals,
 
                 for (l=1; l<l_max+1; l++)
                 {
-                    factor = -rr * 1.0 / (double)( l * (l + 1) );
+                    ll_num = (double)(l*(l+1));
+                    factor = -rr * relax_f * 1000.0 / (dt * ll_num);
                     for (m=0; m<=l; m++)
                     {
                         (*p_lm)(l, m, 0) = factor * (*div_lm)(l, m, 0);  // C_lm
                         (*p_lm)(l, m, 1) = factor * (*div_lm)(l, m, 1);  // S_lm
+
+                        // std::cout<<l<<'\t'<<m<<'\t'<<(*p_lm)(l, m, 0)<<'\t'<<(*p_lm)(l, m, 1)<<std::endl;
                     }
                 }
 
+                double u_corr, v_corr;
+                u_corr = 0.0;
+                v_corr = 0.0;
+
                 // RECONSTRUCT PRESSURE CORRECTION FIELD USING SH COEFFICIENTS
+                // std::cout<<"Residual: "<<residual<<'\t'<<"DIV: "<<total_div_new*1e6<<std::endl;
                 for (i=0; i<node_num; i++)
                 {
+
                     u_factor = 1.0/(r*(*trigLat)(i,0));
                     (*p_corr)(i) = 0.0;
+                    u_corr = 0.0;
+                    v_corr = 0.0;
                     // v(i,0) = 0.0;
                     // v(i,1) = 0.0;
-                    for (l=1; l<l_max+1; l++)
+                    for (l=0; l<l_max+1; l++)
                     {
                         for (m=0; m<=l; m++)
                         {
                             (*p_corr)(i) += (*Pbar_lm)(i, l, m) * ( (*p_lm)(l, m, 0) * (*trigMLon)(i, m, 0) +
                                                             (*p_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
 
-                            v(i, 0) -= u_factor * (*Pbar_lm)(i, l, m)
+                            u_corr += u_factor * (*Pbar_lm)(i, l, m)
                                         * (-(*p_lm)(l, m, 0) * (double)m * (*trigMLon)(i, m, 1)
                                            + (*p_lm)(l, m, 1) * (double)m * (*trigMLon)(i, m, 0));
 
-                            v(i, 1) -= v_factor * (*Pbar_lm_deriv)(i, l, m)
+                            v_corr += v_factor * (*Pbar_lm_deriv)(i, l, m)
                                        * ((*p_lm)(l, m, 0) * (*trigMLon)(i, m, 0)
                                           + (*p_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
+
                         }
                     }
 
-                    p(i) += 1000.0 * (*p_corr)(i)/dt;
+                    v(i,0) -= dt*u_corr/1000.0;
+                    v(i,1) -= dt*v_corr/1000.0;
+
+                    dvdt(i,0) -= u_corr/1000.0;
+                    dvdt(i,1) -= v_corr/1000.0;
+
+                    p(i) += (*p_corr)(i);
+
+                    // p(i) += (*p_corr)(i);
+                    // std::cout<<(*p_corr)(i)<<'\t'<<(*v_div)(i)*1e6<<'\t'<<u_corr<<'\t'<<v_corr<<std::endl;
                     (*v_div)(i) = 0.0;
+
+
                 }
 
+                // globals->Output->TerminateODIS();
                 div_diff = total_div_new;
                 total_div_new = 0.0;
                 velocityDivergence(grid, *v_div, v, total_div_new, -1.0);
@@ -190,14 +216,135 @@ int updatePressure(Globals * globals,
                 residual = fabs( total_div_new - total_div_old);
                 total_div_old = total_div_new;
 
-                // std::cout<<"Residual: "<<residual<<'\t'<<"DIV: "<<total_div_new<<std::endl;
+                // for (i=0; i<node_num; i++) std::cout<<(*v_div)(i)*1e12<<std::endl;
+                // std::cout<<"Residual: "<<residual<<'\t'<<"DIV: "<<total_div_new*1e12<<std::endl;
 
                 iter++;
             }
             while ((iter < max_iter)  && (residual > epsilon));
 
+            // std::cout<<iter<<std::endl;
+
             break;
+
         case 2:
+            for (i=0; i<node_num; i++) (*v_div)(i) = 0.0;
+
+            total_div_new = 0.0;
+            velocityDivergence(grid, *v_div, dvdt, total_div_new, -1.0);
+
+            div_diff = total_div_new;
+            total_div_old = 0.0;
+
+            iter = 0;
+
+            // std::cout<<"HERE"<<std::endl;
+
+            do
+            {
+                // FIND AND STORE THE SPHERICAL HARMONIC COEFFICIENTS OF THE
+                // PRESSURE FIELD
+
+                interpolateGG2LL(globals,
+                                 grid,
+                                 *ll_v_div,
+                                 *v_div,
+                                 grid->ll_map_coords,
+                                 grid->V_inv,
+                                 grid->cell_ID);
+
+
+                getSHCoeffsLL(*ll_v_div, *div_lm, N_ll, l_max);
+
+                for (l=1; l<l_max+1; l++)
+                {
+                    ll_num = (double)(l*(l+1));
+                    factor = -rr * relax_f * 1000.0 / (ll_num);
+                    for (m=0; m<=l; m++)
+                    {
+                        (*p_lm)(l, m, 0) = factor * (*div_lm)(l, m, 0);  // C_lm
+                        (*p_lm)(l, m, 1) = factor * (*div_lm)(l, m, 1);  // S_lm
+
+                        // std::cout<<l<<'\t'<<m<<'\t'<<(*p_lm)(l, m, 0)<<'\t'<<(*p_lm)(l, m, 1)<<std::endl;
+                    }
+                }
+
+                double u_corr, v_corr;
+                u_corr = 0.0;
+                v_corr = 0.0;
+
+                // RECONSTRUCT PRESSURE CORRECTION FIELD USING SH COEFFICIENTS
+                // std::cout<<"Residual: "<<residual<<'\t'<<"DIV: "<<total_div_new*1e6<<std::endl;
+                for (i=0; i<node_num; i++)
+                {
+
+                    u_factor = 1.0/(r*(*trigLat)(i,0));
+                    (*p_corr)(i) = 0.0;
+                    u_corr = 0.0;
+                    v_corr = 0.0;
+                    // v(i,0) = 0.0;
+                    // v(i,1) = 0.0;
+                    for (l=0; l<l_max+1; l++)
+                    {
+                        for (m=0; m<=l; m++)
+                        {
+                            (*p_corr)(i) += (*Pbar_lm)(i, l, m) * ( (*p_lm)(l, m, 0) * (*trigMLon)(i, m, 0) +
+                                                            (*p_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
+
+                            u_corr += u_factor * (*Pbar_lm)(i, l, m)
+                                        * (-(*p_lm)(l, m, 0) * (double)m * (*trigMLon)(i, m, 1)
+                                           + (*p_lm)(l, m, 1) * (double)m * (*trigMLon)(i, m, 0));
+
+                            v_corr += v_factor * (*Pbar_lm_deriv)(i, l, m)
+                                       * ((*p_lm)(l, m, 0) * (*trigMLon)(i, m, 0)
+                                          + (*p_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
+
+                        }
+                    }
+
+                    v(i,0) -= dt*u_corr/1000.0;
+                    v(i,1) -= dt*v_corr/1000.0;
+
+                    dvdt(i,0) -= u_corr/1000.0;
+                    dvdt(i,1) -= v_corr/1000.0;
+
+                    // if (iter==2) std::cout<<(*p_corr)(i)<<std::endl;
+                    // if (iter==2) std::cout<<v(i,0)<<'\t'<<v(i,1)<<std::endl;
+                    p(i) += (*p_corr)(i);
+
+
+                    // p(i) += (*p_corr)(i);
+                    // std::cout<<(*p_corr)(i)<<'\t'<<(*v_div)(i)*1e6<<'\t'<<u_corr<<'\t'<<v_corr<<std::endl;
+                    (*v_div)(i) = 0.0;
+
+
+                }
+
+                // if (iter==2) globals->Output->TerminateODIS();
+                div_diff = total_div_new;
+                total_div_new = 0.0;
+
+                velocityDivergence(grid, *v_div, v, total_div_new, -1.0);
+                residual = fabs( total_div_new - total_div_old);
+                total_div_old = total_div_new;
+
+
+                for (i=0; i<node_num; i++) (*v_div)(i) = 0.0;
+
+                velocityDivergence(grid, *v_div, dvdt, total_div_new, -1.0);
+
+
+                // for (i=0; i<node_num; i++) std::cout<<(*v_div)(i)*1e12<<std::endl;
+                std::cout<<"Residual: "<<residual<<'\t'<<"DIV: "<<total_div_new*1e12<<"E-12"<<std::endl;
+
+                iter++;
+            }
+            while ((iter < max_iter)  && (residual > epsilon));
+
+            // std::cout<<iter<<std::endl;
+
+            break;
+        case 3:
             for (i=0; i<node_num; i++) (*v_div)(i) = 0.0;
 
             total_div_new = 0.0;
@@ -216,11 +363,13 @@ int updatePressure(Globals * globals,
 
                 for (l=1; l<l_max+1; l++)
                 {
-                    factor = -rr / (double)( l * (l + 1) );
+                    factor = -rr / (double)( l * (l + 1));
                     for (m=0; m<=l; m++)
                     {
                         (*p_lm)(l, m, 0) = factor * (*div_lm)(l, m, 0);  // C_lm
                         (*p_lm)(l, m, 1) = factor * (*div_lm)(l, m, 1);  // S_lm
+
+                        // std::cout<<l<<'\t'<<m<<'\t'<<(*p_lm)(l, m, 0)<<'\t'<<(*p_lm)(l, m, 1)<<std::endl;
                     }
                 }
 
@@ -250,7 +399,12 @@ int updatePressure(Globals * globals,
 
                     p(i) += 1000.0 * (*p_corr)(i)/dt;
                     (*v_div)(i) = 0.0;
+
+
+
                 }
+
+                // globals->Output->TerminateODIS();
 
                 // CHECK SUM OF OCEAN DIVERGENCE
                 div_diff = total_div_new;
@@ -268,7 +422,7 @@ int updatePressure(Globals * globals,
             while ((iter < max_iter)  && (residual > epsilon));
 
             break;
-        case 3:
+        case 4:
 
             // The below commented section uses a simple iterative approach to pressure
             // solving. It is very slow.
@@ -285,9 +439,11 @@ int updatePressure(Globals * globals,
                 for (i=0; i<node_num; i++)
                 {
                     (*p_corr)(i) = (*p_factor)(i) * (*v_div)(i);
-                    p(i) += 1000.0 * (*p_corr)(i);
+                    p(i) += -1000.0 * (*p_corr)(i);
+                    // std::cout<<(*p_corr)(i)<<'\t'<<std::endl;
                 }
 
+                // globals->Output->TerminateODIS();
                 pressureGradient(grid, v, *p_corr, -dt);
 
                 iter++;
@@ -300,7 +456,6 @@ int updatePressure(Globals * globals,
                 total_div_old = total_div_new;
             }
             while ((iter < max_iter)  && (residual > epsilon));
-
 
             // std::cout<<"GLOBAL DIVERGENCE: "<<total_div_new<<std::endl;
 
@@ -315,7 +470,7 @@ int updatePressure(Globals * globals,
     delete p_lm;
 
     if (total_div_new > epsilon && residual > epsilon) {
-        std::cout<<"PRESSURE FIELD DID NOT CONVERGE AFTER ITER="<<iter<<"! "<<std::endl;
+        // std::cout<<"PRESSURE FIELD DID NOT CONVERGE AFTER ITER="<<iter<<"! "<<std::endl;
         return 1;
     }
     else {

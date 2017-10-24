@@ -46,11 +46,23 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
         case ECC:
             deg2Ecc(grid, dvdt, current_time, r, omega, e);
             break;
+        case ECC_WEST:
+            deg2EccWest(grid, dvdt, current_time, r, omega, e);
+            break;
+        case ECC_EAST:
+            deg2EccEast(grid, dvdt, current_time, r, omega, e);
+            break;
         case ECC_RAD:
             deg2EccRad(grid, dvdt, current_time, r, omega, e);
             break;
         case OBLIQ:
             deg2Obliq(grid, dvdt, current_time, r, omega, obliq);
+            break;
+        case OBLIQ_WEST:
+            deg2ObliqWest(grid, dvdt, current_time, r, omega, obliq);
+            break;
+        case OBLIQ_EAST:
+            deg2ObliqEast(grid, dvdt, current_time, r, omega, obliq);
             break;
         case FULL:
             deg2Full(grid, dvdt, current_time, r, omega, obliq, e);
@@ -80,7 +92,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
 
         case INF_LID:
             // pressureGradient(grid, dvdt, p_tm1, 1.0/1000.0);
-            pressureGradientSH(globals, grid, dvdt, p_tm1, -1.0/1000.0);
+            // pressureGradientSH(globals, grid, dvdt, p_tm1, -1.0/1000.0);
             break;
 
     }
@@ -318,11 +330,10 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     out_time = 0.0;
 
     int err;
-
+    double sum_dummy = 1.0;
     while (current_time <= end_time)
     {
-        current_time += dt;
-        out_time += dt;
+
 
         switch (globals->surface_type)
         {
@@ -348,10 +359,14 @@ int ab3Explicit(Globals * globals, Mesh * grid)
                 // SOLVE THE CONTINUITY EQUATION
                 updateDisplacement(globals, grid, *dpress_dt_t0, *vel_t0);
 
-                pressureGradient(grid, *vel_dummy, *press_tm1, 1.4);
+                // pressureGradient(grid, *vel_dummy, *press_tm1, 1.4);
 
                 // MARCH DISPLACEMENT FORWARD IN TIME
                 integrateAB3scalar(globals, grid, *press_t0, *press_tm1, *dpress_dt_t0, *dpress_dt_tm1, *dpress_dt_tm2, iter);
+
+                sum_dummy = -1.0;
+                for (i=0; i<node_num; i++) (*press_dummy)(i) = 0;
+                velocityDivergence(grid, *press_dummy, *vel_t0, sum_dummy, 1.0);
 
                 break;
 
@@ -375,16 +390,79 @@ int ab3Explicit(Globals * globals, Mesh * grid)
                 //     (*vel_tm1)(i,1) *= 0.5;
                 // }
 
+                // INTEGRATE VELOCITIES FORWARD IN TIME
+                for (i = 0; i<node_num; i++)
+                {
+                    (*vel_t0)(i,0) = (*dvel_dt_t0)(i,0) * dt + (*vel_tm1)(i,0);
+                    (*vel_tm1)(i,0) = (*vel_t0)(i,0);
+
+                    (*vel_t0)(i,1) = (*dvel_dt_t0)(i,1) * dt + (*vel_tm1)(i,1);
+                    (*vel_tm1)(i,1) = (*vel_t0)(i,1);
+                }
+
                 // MARCH FORWARD VELOCITY SOLUTION
-                integrateAB3vector(globals, grid, *vel_t0, *vel_tm1, *dvel_dt_t0, *dvel_dt_tm1, *dvel_dt_tm2, iter);
+                // integrateAB3vector(globals, grid, *vel_t0, *vel_tm1, *dvel_dt_t0, *dvel_dt_tm1, *dvel_dt_tm2, iter);
 
                 // FORCE CONTINUITY EQUATION
-                err = updatePressure(globals, grid, *press_t0, *vel_t0);
 
+                // err = updatePressure(globals, grid, *press_t0, *vel_tm1);
+                // updateEnergy(globals, e_diss, *energy_diss, *vel_tm1, *cv_mass);
+
+                err = updatePressure(globals, grid, *press_t0, *vel_t0, *dvel_dt_t0);
                 updateEnergy(globals, e_diss, *energy_diss, *vel_t0, *cv_mass);
+
+                for (i=0; i<node_num; i++)
+                {
+                    // std::cout<<(*vel_t0)(i,0)<<'\t'<<(*vel_t0)(i,1)<<'\t'<<(*vel_tm1)(i,0)<<'\t'<<(*vel_tm1)(i,1)<<'\t'<<std::endl;
+                    (*vel_tm1)(i,0) = (*vel_t0)(i,0);
+                    (*vel_tm1)(i,1) = (*vel_t0)(i,1);
+                    (*press_dummy)(i) = 0;
+                    // (*dvel_dt_tm1)(i, 0) = (*dvel_dt_t0)(i, 0);
+                    // (*dvel_dt_tm1)(i, 1) = (*dvel_dt_t0)(i, 1);
+                    // std::cout<<(*press_t0)(i)<<std::endl;
+                }
+
+
+                sum_dummy = -1.0;
+
+                velocityDivergence(grid, *press_dummy, *vel_t0, sum_dummy, 1.0);
+                //
+                // if (iter==0)
+                // {
+                //     for (i=0; i<node_num; i++)
+                //     {
+                //         (*dvel_dt_tm2)(i, 0) = (*dvel_dt_t0)(i, 0);
+                //         (*dvel_dt_tm2)(i, 1) = (*dvel_dt_t0)(i, 1);
+                //     }
+                // }
+                // else if (iter==1)
+                // {
+                //     for (i=0; i<node_num; i++)
+                //     {
+                //         (*dvel_dt_tm1)(i, 0) = (*dvel_dt_t0)(i, 0);
+                //         (*dvel_dt_tm1)(i, 1) = (*dvel_dt_t0)(i, 1);
+                //     }
+                // }
+                // else
+                // {
+                //     for (i=0; i<node_num; i++)
+                //     {
+                //
+                //         // (*dvel_dt_tm2)(i, 0) = (*dvel_dt_tm1)(i, 0);
+                //         // (*dvel_dt_tm2)(i, 1) = (*dvel_dt_tm1)(i, 1);
+                //
+                //         (*dvel_dt_tm1)(i, 0) = (*dvel_dt_t0)(i, 0);
+                //         (*dvel_dt_tm1)(i, 1) = (*dvel_dt_t0)(i, 1);
+                //     }
+                // }
+
+
+
                 total_diss[0] = e_diss;
 
-                if (err) std::cout<<"WARNING: PRESSURE FIELD HAS NOT CONVERGED!"<<std::endl;
+                // if (err) std::cout<<"WARNING: PRESSURE FIELD HAS NOT CONVERGED!"<<std::endl;
+
+                // Output->TerminateODIS();
 
                 //
                 // for (i=0; i<node_num; i++)
@@ -416,6 +494,9 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
         }
 
+        current_time += dt;
+        out_time += dt;
+
         // Check for output
         iter ++;
 
@@ -425,9 +506,9 @@ int ab3Explicit(Globals * globals, Mesh * grid)
             std::cout<<" AVG DISS: "<<*total_diss<<" W m^-2"<<std::endl;
 
             out_time -= out_frac*orbit_period;
-            pp[3] = &(*energy_diss)(0);
+            // pp[3] = &(*energy_diss)(0);
             pp[1] = &(*press_t0)(0);
-            // pp[1] = &(*press_dummy)(0);
+            pp[3] = &(*press_dummy)(0);
             // pp[1] = &(grid->land_mask(0));
             pp[2] = &(*vel_t0)(0,0);
             // pp[2] = &(*vel_dummy)(0,0);

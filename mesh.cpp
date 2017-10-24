@@ -107,7 +107,7 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
     CalcPressureFactor();
 
     ReadLatLonFile();
-    
+
 };
 
 // Function to calculate the cosine(alpha) and sine(alpha) velocity tranform
@@ -809,8 +809,8 @@ int Mesh::CalcLegendreFuncs(void)
         // calculate cos(m*longitude) and sin(m*longitude) for node i
         for (m=0; m < l_max+1; m++)
         {
-            trigMLon(i, m, 0) = cos( m * node_pos_sph( i, 1 ) );
-            trigMLon(i, m, 1) = sin( m * node_pos_sph( i, 1 ) );
+            trigMLon(i, m, 0) = cos( (double)m * node_pos_sph( i, 1 ) );
+            trigMLon(i, m, 1) = sin( (double)m * node_pos_sph( i, 1 ) );
         }
     }
 

@@ -161,7 +161,7 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
     // GRADIENT FROM SPHERICAL HARMONIC COEFFICIENTS
 
 
-    for (i=2; i<node_num; i++)
+    for (i=0; i<node_num; i++)
     {
         lon_factor = factor * 1.0/(r*(*trigLat)(i,0));
 
@@ -170,42 +170,45 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
 
         // if (i > 1)
         // {
-            for (l=0; l<l_max+1; l++)
+        for (l=1; l<l_max+1; l++)
+        {
+            for (m=0; m<=l; m++)
             {
-                for (m=0; m<=l; m++)
-                {
-                    dvdt(i, 0) += lon_factor * (*Pbar_lm)(i, l, m)
-                    * (-(*scalar_lm)(l, m, 0) * (double)m * (*trigMLon)(i, m, 1)
-                    + (*scalar_lm)(l, m, 1) * (double)m * (*trigMLon)(i, m, 0));
+                dvdt(i, 0) += lon_factor * (*Pbar_lm)(i, l, m)
+                * (-(*scalar_lm)(l, m, 0) * (double)m * (*trigMLon)(i, m, 1)
+                + (*scalar_lm)(l, m, 1) * (double)m * (*trigMLon)(i, m, 0));
 
-                    dvdt(i, 1) += lat_factor * (*Pbar_lm_deriv)(i, l, m)
-                    * ((*scalar_lm)(l, m, 0) * (*trigMLon)(i, m, 0)
-                    + (*scalar_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
-                }
+                dvdt(i, 1) += lat_factor * (*Pbar_lm_deriv)(i, l, m)
+                * ((*scalar_lm)(l, m, 0) * (*trigMLon)(i, m, 0)
+                + (*scalar_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
             }
+        }
         // }
 
     }
 
-    double avg_val_x, avg_val_y;
-    for (i=0; i<2; i++)
-    {
-        avg_val_x = 0.0;
-        avg_val_y = 0.0;
-        for (j=0; j < 5; j++)
-        {
-            f = (*friend_list)(i,j);
-            avg_val_x += dvdt(f, 0);
-            avg_val_y += dvdt(f, 1);
-
-        }
-
-        avg_val_y /= 5.0;
-        avg_val_x /= 5.0;
-
-        dvdt(i, 0) = avg_val_x;
-        dvdt(i, 1) = avg_val_y;
-    }
+    // double avg_val_x, avg_val_y;
+    // for (i=0; i<2; i++)
+    // {
+    //     avg_val_x = 0.0;
+    //     avg_val_y = 0.0;
+    //     for (j=0; j < 5; j++)
+    //     {
+    //         f = (*friend_list)(i,j);
+    //         avg_val_x += dvdt(f, 0);
+    //         avg_val_y += dvdt(f, 1);
+    //
+    //     }
+    //
+    //     avg_val_y /= 5.0;
+    //     avg_val_x /= 5.0;
+    //
+    //     dvdt(i, 0) = avg_val_x;
+    //     dvdt(i, 1) = avg_val_y;
+    //     //
+    //     // dvdt(i, 0) = 0.0;
+    //     // dvdt(i, 1) = 0.0;
+    // }
 
 
 

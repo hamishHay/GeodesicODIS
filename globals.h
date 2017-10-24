@@ -42,7 +42,8 @@ const double pi = 3.1415926535897932384626433832795028841971693993751058;
 const double radConv = pi / 180.0; // global constant for converting deg --> rad
 const int PATH = 1028; // global int for number of characters in the system path
 
-enum Friction { LINEAR, QUADRATIC }; // enumerate for drag type, selected by user
+enum Friction { LINEAR,
+                QUADRATIC }; // enumerate for drag type, selected by user
 
 enum Surface { FREE,        // Free surface --> no ice lid
                LID,         // Lid surface --> moveable lid
@@ -53,9 +54,13 @@ enum Solver { EULER,        // Explicit Euler time integration
               RK4 };        // Runge-Kutta 4th order time integration
 
 enum Potential {OBLIQ,      // Obliquity tide (Tyler 2011)
+                OBLIQ_WEST, // Westward component of obliquity tide (Tyler 2011)
+                OBLIQ_EAST, // Eastward component of obliquity tide (Tyler 2011)
                 ECC_RAD,    // Eccentricity radial tide (Tyler 2011)
                 ECC_LIB,    // Eccentricity libration tide (Tyler 2011)
                 ECC,        // ECC_RAD + ECC_LIB
+                ECC_WEST,
+                ECC_EAST,
                 FULL,       // ECC_RAD + ECC_LIB + OBLIQ
                 TOTAL,      // Entire ecc and obliq potential to second order in Eccentricity and Obliquity
                 ECC_W3,     // Time-dependent degree-3 eccentricity tide // TODO - Add expressions to documentation

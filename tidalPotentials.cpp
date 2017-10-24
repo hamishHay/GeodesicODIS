@@ -63,6 +63,124 @@ void deg2Ecc(Mesh * grid, Array2D<double> & velocity, double simulationTime, dou
 
 };
 
+/* Degree 2 component of the eccentricity tide (see docs)
+ *
+ * Finds the gradient components of the degree-3 eccentricity tide for Fields
+ * DUlat and DUlon. Only current simulation required is absolute simulation
+ * time. The function directly writes the solution arrays in both Field
+ * classes. The eccentricity tide contains terms for both P_20 and P_22
+ * associated Legendre polynomials.
+ *
+ *      inputs: Field * DUlat           Field for latitude gradient of potential
+ *              Field * DUlon           Field for longitude gradient of potential
+ *              double simulationTime   Current time in the simulation
+ *              double radius           Satellite radius
+ *              double omega            Satellite rotational angular speed
+ *              double ecc              Satellite eccentricity (must be << 1)
+ *
+*/
+void deg2EccEast(Mesh * grid, Array2D<double> & velocity, double simulationTime, double radius, double omega, double ecc)
+{
+    double cosM, sinM, factor;              // cos(Mean anomaly), sin(Mean anomaly)
+    double * sin2Lat, * sin2Lon, *cos2Lon, *cosLat;
+    int i,j, node_num;
+    double * val;
+    double * m;
+    double k2, h2;
+
+    node_num = grid->node_num;
+
+    k2 = grid->globals->loveK2.Value();
+    h2 = grid->globals->loveH2.Value();
+    // factor = pow(omega,2.0)*pow(radius,2.0)*ecc;
+
+    factor = (1.0 + k2 - h2) * pow(omega,2.0)*radius*ecc;
+    cosM = cos(omega*simulationTime);
+    sinM = sin(omega*simulationTime);
+
+
+    // Assign pointers to start of trig node arrays
+    cosLat = &(grid->trigLat(0,0));
+    sin2Lon = &(grid->trig2Lon(0,1));
+    cos2Lon = &(grid->trig2Lon(0,0));
+    sin2Lat = &(grid->trig2Lat(0,1));
+
+    // Solve for dUdlon
+    for (i=0; i<node_num; i++) {
+        j = i*2;
+        // calculate potential gradient in longitude
+        velocity(i,0) = factor *5.25 * cosLat[j]   // cosLat here as cos^2(lat)/cos(lat)
+                        * (cosM * sin2Lon[j]
+                        - sinM * cos2Lon[j]);
+
+        // calculate potential gradient in latitude
+        velocity(i,1) = factor*2.625*sin2Lat[j]
+                        *(cosM*cos2Lon[j]
+                        + sinM*sin2Lon[j]);
+
+    }
+
+};
+
+/* Degree 2 component of the eccentricity tide (see docs)
+ *
+ * Finds the gradient components of the degree-3 eccentricity tide for Fields
+ * DUlat and DUlon. Only current simulation required is absolute simulation
+ * time. The function directly writes the solution arrays in both Field
+ * classes. The eccentricity tide contains terms for both P_20 and P_22
+ * associated Legendre polynomials.
+ *
+ *      inputs: Field * DUlat           Field for latitude gradient of potential
+ *              Field * DUlon           Field for longitude gradient of potential
+ *              double simulationTime   Current time in the simulation
+ *              double radius           Satellite radius
+ *              double omega            Satellite rotational angular speed
+ *              double ecc              Satellite eccentricity (must be << 1)
+ *
+*/
+void deg2EccWest(Mesh * grid, Array2D<double> & velocity, double simulationTime, double radius, double omega, double ecc)
+{
+    double cosM, sinM, factor;              // cos(Mean anomaly), sin(Mean anomaly)
+    double * sin2Lat, * sin2Lon, *cos2Lon, *cosLat;
+    int i,j, node_num;
+    double * val;
+    double * m;
+    double k2, h2;
+
+    node_num = grid->node_num;
+
+    k2 = grid->globals->loveK2.Value();
+    h2 = grid->globals->loveH2.Value();
+    // factor = pow(omega,2.0)*pow(radius,2.0)*ecc;
+
+    factor = (1.0 + k2 - h2) * pow(omega,2.0)*radius*ecc;
+    cosM = cos(omega*simulationTime);
+    sinM = sin(omega*simulationTime);
+
+
+    // Assign pointers to start of trig node arrays
+    cosLat = &(grid->trigLat(0,0));
+    cos2Lon = &(grid->trig2Lon(0,0));
+    sin2Lon = &(grid->trig2Lon(0,1));
+    sin2Lat = &(grid->trig2Lat(0,1));
+
+    // Solve for dUdlon
+    for (i=0; i<node_num; i++) {
+        j = i*2;
+        // calculate potential gradient in longitude
+        velocity(i,0) = -factor * 0.75 * cosLat[j]   // cosLat here as cos^2(lat)/cos(lat)
+                        * (cosM * sin2Lon[j]
+                        + sinM * cos2Lon[j]);
+
+        // calculate potential gradient in latitude
+        velocity(i,1) = -factor*0.375*sin2Lat[j]
+                        *(cosM*cos2Lon[j]
+                        - sinM*sin2Lon[j]);
+
+    }
+
+};
+
 // /* Degree 2 component of the eccentricity-radial tide (see docs)
 //  *
 //  * Finds the gradient components of the degree-3 ecc-radial tide for Fields
@@ -137,7 +255,7 @@ void deg2Obliq(Mesh * grid, Array2D<double> & velocity, double simulationTime, d
     node_num = grid->node_num;
 
     // factor = pow(omega,2.0)*pow(radius,2.0)*ecc;
-    factor = -3. * (1.0 + k2 - h2) * pow(omega,2.0)*radius*theta;
+    factor = 3. * (1.0 + k2 - h2) * pow(omega,2.0)*radius*theta;
     cosM = cos(omega*simulationTime);
     // sinM = sin(omega*simulationTime);
 
@@ -157,6 +275,114 @@ void deg2Obliq(Mesh * grid, Array2D<double> & velocity, double simulationTime, d
 
         // calculate potential gradient in latitude
         velocity(i,1) = factor * cos2Lat[j] * cosLon[j] * cosM;
+
+    }
+};
+
+/* Degree 2 component of the obliquity tide (see Tyler 2011, Matsuyama 2014)
+ *
+ * Finds the gradient components of the degree-2 obliquity tide for Fields
+ * DUlat and DUlon. Only current simulation required is absolute simulation
+ * time. The function directly writes the solution arrays in both Field
+ * classes.
+ *
+ *      inputs: Field * DUlat           Field for latitude gradient of potential
+ *              Field * DUlon           Field for longitude gradient of potential
+ *              double simulationTime   Current time in the simulation
+ *              double radius           Satellite radius
+ *              double omega            Satellite rotational angular speed
+ *              double theta            Satellite obliquity in radians
+ *
+*/
+void deg2ObliqWest(Mesh * grid, Array2D<double> & velocity, double simulationTime, double radius, double omega, double theta)
+{
+    double * sinLat, * sinLon, *cosLon, *cosLat, * cos2Lat;
+    int i,j, node_num;
+    double * val;
+    double * m;
+    double cosM, sinM, factor;
+    double k2, h2;
+
+    k2 = grid->globals->loveK2.Value();
+    h2 = grid->globals->loveH2.Value();
+
+    node_num = grid->node_num;
+
+    // factor = pow(omega,2.0)*pow(radius,2.0)*ecc;
+    factor = 1.5 * (1.0 + k2 - h2) * pow(omega,2.0)*radius*theta;
+    cosM = cos(omega*simulationTime);
+    sinM = sin(omega*simulationTime);
+
+    // Assign pointers to start of trig node arrays
+    cosLat = &(grid->trigLat(0,0));
+    cos2Lat = &(grid->trig2Lat(0,0));
+    cosLon = &(grid->trigLon(0,0));
+    sinLon = &(grid->trigLon(0,1));
+    sinLat = &(grid->trigLat(0,1));
+
+    // Solve for dUdlon
+    for (i=0; i<node_num; i++) {
+        j = i*2;
+        // calculate potential gradient in longitude
+        velocity(i,0) = -factor * sinLat[j] * (sinM * cosLon[j] + sinLon[j] * cosM);
+
+
+        // calculate potential gradient in latitude
+        velocity(i,1) = factor * cos2Lat[j] * (cosM * cosLon[j] - sinM * sinLon[j]);
+
+    }
+};
+
+/* Degree 2 component of the obliquity tide (see Tyler 2011, Matsuyama 2014)
+ *
+ * Finds the gradient components of the degree-2 obliquity tide for Fields
+ * DUlat and DUlon. Only current simulation required is absolute simulation
+ * time. The function directly writes the solution arrays in both Field
+ * classes.
+ *
+ *      inputs: Field * DUlat           Field for latitude gradient of potential
+ *              Field * DUlon           Field for longitude gradient of potential
+ *              double simulationTime   Current time in the simulation
+ *              double radius           Satellite radius
+ *              double omega            Satellite rotational angular speed
+ *              double theta            Satellite obliquity in radians
+ *
+*/
+void deg2ObliqEast(Mesh * grid, Array2D<double> & velocity, double simulationTime, double radius, double omega, double theta)
+{
+    double * sinLat, * sinLon, *cosLon, *cosLat, * cos2Lat;
+    int i,j, node_num;
+    double * val;
+    double * m;
+    double cosM, sinM, factor;
+    double k2, h2;
+
+    k2 = grid->globals->loveK2.Value();
+    h2 = grid->globals->loveH2.Value();
+
+    node_num = grid->node_num;
+
+    // factor = pow(omega,2.0)*pow(radius,2.0)*ecc;
+    factor = 1.5 * (1.0 + k2 - h2) * pow(omega,2.0)*radius*theta;
+    cosM = cos(omega*simulationTime);
+    sinM = sin(omega*simulationTime);
+
+    // Assign pointers to start of trig node arrays
+    cosLat = &(grid->trigLat(0,0));
+    cos2Lat = &(grid->trig2Lat(0,0));
+    cosLon = &(grid->trigLon(0,0));
+    sinLon = &(grid->trigLon(0,1));
+    sinLat = &(grid->trigLat(0,1));
+
+    for (i=0; i<node_num; i++) {
+        j = i*2;
+
+        // calculate potential gradient in longitude
+        velocity(i,0) = -factor * sinLat[j] * (cosM * sinLon[j] - sinM * cosLon[j]);
+
+
+        // calculate potential gradient in latitude
+        velocity(i,1) = factor * cos2Lat[j] * (sinM * sinLon[j] + cosM * cosLon[j]);
 
     }
 };
@@ -207,17 +433,6 @@ void deg2Full(Mesh * grid, Array2D<double> & velocity, double simulationTime, do
     for (i=0; i<node_num; i++) {
         j = i*2;
         // calculate potential gradient in longitude
-        // velocity(i,0) = factor * 1.5 * cosLat[j]   // cosLat here as cos^2(lat)/cos(lat)
-        //                 * (4.*sinM * cos2Lon[j]
-        //                 - 3.*cosM * sin2Lon[j]);
-        //
-        // // calculate potential gradient in latitude
-        // velocity(i,1) = -factor*0.75*sin2Lat[j]
-        //                 *(3.*cosM*(1.+cos2Lon[j])
-        //                 + 4.*sinM*sin2Lon[j]);
-
-        // calculate potential gradient in longitude
-        // factor_lon = factor_lat;
         velocity(i,0) = factor_lon * (3. * theta * sinLat[j] * sinLon[j] * cosM
                         + 1.5 * ecc * cosLat[j]
                         * (4. * sinM * cos2Lon[j]
