@@ -1,3 +1,5 @@
+# import matplotlib as mpl
+# mpl.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.tri as tri
 import matplotlib as mpl
@@ -50,60 +52,64 @@ except:
 x = np.radians(grid[:,1])
 y = np.radians(grid[:,0])
 
+grid5 = np.loadtxt("input_files/grid_l4.txt",skiprows=1,usecols=(1,2))
+x5 = np.radians(grid5[:,1])
+y5 = np.radians(grid5[:,0])
+
 n = int(sys.argv[1])
 
 in_file = h5py.File("DATA/data.h5", 'r')
-# in_file = h5py.File("DATA/data.h5", 'r')
+# in_file = h5py.File("DATA_G6_T1000/data.h5", 'r')
 
+data_u = np.array(in_file["east velocity"][:,149])
+data_v = np.array(in_file["north velocity"][:,149])
+data_eta = np.array(in_file["displacement"][:,149])
+# data_diss = np.array(in_file["dissipated energy"][n])
+
+
+# x = x[2:]
+# y = y[2:]
+# data_u = data_u[2:]
+# data_v = data_v[2:]
+# data_eta = data_eta[2:]
+# data_diss = data_diss[2:]
+
+fig, (ax1, ax2, ax3) = plt.subplots(ncols=3, figsize=(15,4))
+
+t_max = 100
+t_min = 0
+time = np.linspace(t_min, t_max, len(data_u))
+
+# print(time)
+
+ax1.plot(time, data_u)
+ax2.plot(time, data_v)
+ax3.plot(time, data_eta)
+#
+# u_max = np.amax(data_u[-100:-10])*2
+# u_min = np.amin(data_u[-100:-10])*2
+# ax1.set_xlim([980,1000])
+# ax1.set_ylim([u_min, u_max])
+
+# fig.savefig("/home/hamish/Dropbox/LPL/Icy Satellites/InfiniteRigidShell/test.pdf")
 data_u = np.array(in_file["east velocity"][n])
 data_v = np.array(in_file["north velocity"][n])
 data_eta = np.array(in_file["displacement"][n])
 data_diss = np.array(in_file["dissipated energy"][n])
 
-
-x = x[2:]
-y = y[2:]
-data_u = data_u[2:]
-data_v = data_v[2:]
-data_eta = data_eta[2:]
-data_diss = data_diss[2:]
-
+# datas = np.loadtxt("init.txt")
+# data_u = datas[:,0]
+# data_v = datas[:,1]
+# data_eta = datas[:,2]
 
 
 print("DATA LOADED")
 
-r = 2.634100E+06
-# r = 252.1e3
-#
-# u_test = np.cos(y)**2.0 / r * (np.sin(2*x) + np.sin(4*x))
-#
-# v_test = 3 * np.cos(2*x)*np.cos(x)**2.0 * np.cos(y)**2.0 * np.sin(y) / r
-#
-# data_eta = v_test #data_v
-# data_diss = u_test #data_u
-#
-# # data_u = abs(data_u - u_test)
-# # data_v = abs(data_v - v_test)
-#
-# data_u[np.isnan(data_u)] = 0.0
-# data_v[np.isnan(data_v)] = 0.0
+r = 252.1e3
 
-
-# data_diss = -np.cos(2*x)**2.0 * np.sin(2*y)/(r*np.cos(y)) - np.sin(x)/r
-#
-# data_diss = data_diss - data_eta
-#
-# data_eta *= 1000.0
-
-# print(np.amax(data_diss[-100:]))
-
-# data_diss = np.mean(np.array(in_file["dissipated energy"][-100*20:,2:]),axis=0)
-# data_diss = np.mean(np.array(in_file["dissipated energy"][-100:,:]),axis=0)
-# data_u = -np.cos(y)/252.1e3 * 0.11
-# data_diss = np.mean(np.array(in_file["dissipated energy"][-100:,:])
 data_t_diss = np.array(in_file["avg dissipation output"])[:-1] * 4* np.pi * r**2
-
-
+#
+# np.savetxt("test.txt",data_t_diss[100:])
 
 # print("u_max: "+ str(np.amax(abs(data_u))), "v_max: " + str(np.amax(abs(data_v))), "eta_max: " + str(np.amax(data_eta)), "diss_avg: " + str(np.mean(data_t_diss[-101:])))
 
@@ -111,7 +117,7 @@ print("TRIANGULATING POSITIONS")
 # Create the Triangulation; no triangles so Delaunay triangulation created.
 triang = tri.Triangulation(x, y)
 
-t_max = len(data_t_diss)
+t_max = len(data_t_diss)/100
 t_min = 0
 
 fig, ax1 = plt.subplots()
@@ -195,7 +201,7 @@ fig, (ax1, ax2, ax3, ax4, ax5) = plt.subplots(nrows=1,ncols=5,figsize=(15,3),dpi
 lat0 = 0
 lon0 = 0
 
-proj = 'ortho'
+proj = 'hammer'
 
 x = np.degrees(x)
 y = np.degrees(y)
@@ -222,13 +228,16 @@ cbar = map.colorbar(cs,location='bottom',pad="5%")
 map.drawparallels(parallels, linewidth=lw)
 map.drawmeridians(meridians, linewidth=lw)
 
+x5, y5 = map(np.degrees(x5), np.degrees(y5))
 map = Basemap(projection=proj,boundinglat=60,lon_0=lon0,lat_0=lat0, ax=ax3)#, llcrnrlon=-90,urcrnrlon=90)
-map.quiver(x,y,data_u,data_v,scale=3e-4)
+cs = map.contourf(x,y,np.sqrt(data_u**2+data_v**2),9,cmap=plt.cm.winter, tri=True)
+map.quiver(x5,y5,data_u[:len(x5)],data_v[:len(x5)],scale=1e-1,color='w')
 map.drawparallels(parallels, linewidth=lw)
 map.drawmeridians(meridians, linewidth=lw)
 
 map = Basemap(projection=proj,boundinglat=60,lon_0=lon0,lat_0=lat0, ax=ax4)#, llcrnrlon=-90,urcrnrlon=90)
-cs = map.contourf(x,y,data_eta,31,cmap=plt.cm.winter, tri=True)#,vmax=2400)
+cs = map.contourf(x,y,data_eta/1e6,31,cmap=plt.cm.winter, tri=True)#,vmax=2400)
+map.contour(x,y,data_eta/1e6,31,cmap=plt.cm.winter, tri=True)#,vmax=2400)
 cbar = map.colorbar(cs,location='bottom',pad="5%")
 map.drawparallels(parallels, linewidth=lw)
 map.drawmeridians(meridians, linewidth=lw)
