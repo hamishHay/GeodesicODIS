@@ -16,7 +16,7 @@ int integrateAB3vector(Globals *, Mesh *, Array2D<double> &, Array2D<double> &, 
 
 int integrateAB3scalar(Globals *, Mesh *, Array1D<double> &, Array1D<double> &, Array1D<double> &, Array1D<double> &, Array1D<double> &, int interation);
 
-int updateVelocity(Globals *, Mesh *, Array2D<double> &, Array2D<double> &, Array1D<double> &, double);
+int updateVelocity(Globals *, Mesh *, Array2D<double> &, Array2D<double> &, Array1D<double> &, double, int);
 int updateDisplacement(Globals *, Mesh *, Array1D<double> &, Array2D<double> &);
 
 #endif
