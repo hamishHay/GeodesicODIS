@@ -49,12 +49,11 @@ void deg2Ecc(Mesh * grid, Array2D<double> & velocity, double simulationTime, dou
     // Solve for dUdlon
     for (i=0; i<node_num; i++) {
         j = i*2;
-        // calculate potential gradient in longitude
+
         velocity(i,0) = factor * 1.5 * cosLat[j]   // cosLat here as cos^2(lat)/cos(lat)
                         * (4.*sinM * cos2Lon[j]
                         - 3.*cosM * sin2Lon[j]);
 
-        // calculate potential gradient in latitude
         velocity(i,1) = -factor*0.75*sin2Lat[j]
                         *(3.*cosM*(1.+cos2Lon[j])
                         + 4.*sinM*sin2Lon[j]);

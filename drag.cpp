@@ -31,7 +31,7 @@ void quadraticDrag(int & node_num, double & drag_coeff, double & h, Array2D<doub
       uu = u*u;
       vv = v*v;
       sq_uv = sqrt(uu + vv);
-
+      
       dv_dt(i,0) -= inv_h * sq_uv * u;
       dv_dt(i,1) -= inv_h * sq_uv * v;
     }
