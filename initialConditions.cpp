@@ -14,7 +14,7 @@ int loadInitialConditions(Globals * globals, Mesh * mesh, Array2D<double> & vel,
     std::string line, val;                 // strings for column and individual number
     std::string file_str;                  // string with path to mesh file.
 
-    file_str = globals->path + SEP + "pres_init.txt";
+    file_str = globals->path + SEP + "init.txt";
 
     // in stream for input.in file
     std::ifstream gridFile(file_str, std::ifstream::in);
@@ -30,12 +30,11 @@ int loadInitialConditions(Globals * globals, Mesh * mesh, Array2D<double> & vel,
         {
             // std::cout<<line<<std::endl;
             std::istringstream line_ss(line);
-            // std::getline(line_ss >> std::ws,val,' ');                 // COL 0: Node ID number
+            std::getline(line_ss >> std::ws,val,' ');                 // COL 0: Node ID number
+            vel(i,0) = std::stof(val);
             //
-            // vel(i,0) = std::stof(val);
-            //
-            // std::getline(line_ss >> std::ws,val,' ');                 // COL 1: Node Latitude
-            // vel(i,1) = std::stof(val);
+            std::getline(line_ss >> std::ws,val,' ');                 // COL 1: Node Latitude
+            vel(i,1) = std::stof(val);
 
             std::getline(line_ss >> std::ws,val,' ');                 // COL 2: Node Longitude
             pres(i) = std::stof(val);
