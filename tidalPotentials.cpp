@@ -27,15 +27,13 @@ void deg2Ecc(Mesh * grid, Array2D<double> & velocity, double simulationTime, dou
     int i,j, node_num;
     double * val;
     double * m;
-    double k2, h2;
 
     node_num = grid->node_num;
-
-    k2 = grid->globals->loveK2.Value();
-    h2 = grid->globals->loveH2.Value();
     // factor = pow(omega,2.0)*pow(radius,2.0)*ecc;
 
-    factor = (1.0 + k2 - h2) * pow(omega,2.0)*radius*ecc;
+    // std::cout<<grid->globals->loveReduct.Value()<<std::endl;
+
+    factor = grid->globals->loveReduct.Value() * pow(omega,2.0)*radius*ecc;
     cosM = cos(omega*simulationTime);
     sinM = sin(omega*simulationTime);
 
@@ -78,6 +76,61 @@ void deg2Ecc(Mesh * grid, Array2D<double> & velocity, double simulationTime, dou
  *              double ecc              Satellite eccentricity (must be << 1)
  *
 */
+void deg2EccLib(Mesh * grid, Array2D<double> & velocity, double simulationTime, double radius, double omega, double ecc)
+{
+    double cosM, sinM, factor;              // cos(Mean anomaly), sin(Mean anomaly)
+    double * sin2Lat, * sin2Lon, *cos2Lon, *cosLat;
+    int i,j, node_num;
+    double * val;
+    double * m;
+
+    node_num = grid->node_num;
+    // factor = pow(omega,2.0)*pow(radius,2.0)*ecc;
+
+    // std::cout<<grid->globals->loveReduct.Value()<<std::endl;
+    factor = grid->globals->loveReduct.Value() * pow(omega,2.0)*radius*ecc;
+    cosM = cos(omega*simulationTime);
+    sinM = sin(omega*simulationTime);
+
+
+    // Assign pointers to start of trig node arrays
+    cosLat = &(grid->trigLat(0,0));
+    cos2Lon = &(grid->trig2Lon(0,0));
+    sin2Lon = &(grid->trig2Lon(0,1));
+    sin2Lat = &(grid->trig2Lat(0,1));
+
+    // Solve for dUdlon
+    for (i=0; i<node_num; i++) {
+        j = i*2;
+
+        velocity(i,0) = factor * 1.5 * cosLat[j]   // cosLat here as cos^2(lat)/cos(lat)
+                        * (4.*sinM * cos2Lon[j]
+                        - 3.*cosM * sin2Lon[j]);
+
+        velocity(i,1) = -factor*0.75*sin2Lat[j]
+                        *(3.*cosM*cos2Lon[j]
+                        + 4.*sinM*sin2Lon[j]);
+
+    }
+
+};
+
+/* Degree 2 component of the eccentricity tide (see docs)
+ *
+ * Finds the gradient components of the degree-3 eccentricity tide for Fields
+ * DUlat and DUlon. Only current simulation required is absolute simulation
+ * time. The function directly writes the solution arrays in both Field
+ * classes. The eccentricity tide contains terms for both P_20 and P_22
+ * associated Legendre polynomials.
+ *
+ *      inputs: Field * DUlat           Field for latitude gradient of potential
+ *              Field * DUlon           Field for longitude gradient of potential
+ *              double simulationTime   Current time in the simulation
+ *              double radius           Satellite radius
+ *              double omega            Satellite rotational angular speed
+ *              double ecc              Satellite eccentricity (must be << 1)
+ *
+*/
 void deg2EccEast(Mesh * grid, Array2D<double> & velocity, double simulationTime, double radius, double omega, double ecc)
 {
     double cosM, sinM, factor;              // cos(Mean anomaly), sin(Mean anomaly)
@@ -85,15 +138,11 @@ void deg2EccEast(Mesh * grid, Array2D<double> & velocity, double simulationTime,
     int i,j, node_num;
     double * val;
     double * m;
-    double k2, h2;
 
     node_num = grid->node_num;
-
-    k2 = grid->globals->loveK2.Value();
-    h2 = grid->globals->loveH2.Value();
     // factor = pow(omega,2.0)*pow(radius,2.0)*ecc;
 
-    factor = (1.0 + k2 - h2) * pow(omega,2.0)*radius*ecc;
+    factor = grid->globals->loveReduct.Value() * pow(omega,2.0)*radius*ecc;
     cosM = cos(omega*simulationTime);
     sinM = sin(omega*simulationTime);
 
@@ -144,15 +193,11 @@ void deg2EccWest(Mesh * grid, Array2D<double> & velocity, double simulationTime,
     int i,j, node_num;
     double * val;
     double * m;
-    double k2, h2;
 
     node_num = grid->node_num;
-
-    k2 = grid->globals->loveK2.Value();
-    h2 = grid->globals->loveH2.Value();
     // factor = pow(omega,2.0)*pow(radius,2.0)*ecc;
 
-    factor = (1.0 + k2 - h2) * pow(omega,2.0)*radius*ecc;
+    factor = grid->globals->loveReduct.Value() * pow(omega,2.0)*radius*ecc;
     cosM = cos(omega*simulationTime);
     sinM = sin(omega*simulationTime);
 
@@ -202,15 +247,11 @@ void deg2EccRad(Mesh * grid, Array2D<double> & velocity, double simulationTime, 
     double cosM, factor;              // cos(Mean anomaly), sin(Mean anomaly)
     double * sin2Lat;
     int i, j, node_num;
-    double k2, h2;
-
-    k2 = grid->globals->loveK2.Value();
-    h2 = grid->globals->loveH2.Value();
 
     node_num = grid->node_num;
 
     cosM = cos(omega*simulationTime);
-    factor = -2.25 * (1.0 + k2 - h2) *  cosM * pow(omega, 2.0) * radius * ecc;
+    factor = -2.25 * grid->globals->loveReduct.Value() *  cosM * pow(omega, 2.0) * radius * ecc;
 
     sin2Lat = &(grid->trig2Lat(0,1));
 
@@ -246,15 +287,11 @@ void deg2Obliq(Mesh * grid, Array2D<double> & velocity, double simulationTime, d
     double * val;
     double * m;
     double cosM, factor;
-    double k2, h2;
-
-    k2 = grid->globals->loveK2.Value();
-    h2 = grid->globals->loveH2.Value();
 
     node_num = grid->node_num;
 
     // factor = pow(omega,2.0)*pow(radius,2.0)*ecc;
-    factor = 3. * (1.0 + k2 - h2) * pow(omega,2.0)*radius*theta;
+    factor = 3. * grid->globals->loveReduct.Value() * pow(omega,2.0)*radius*theta;
     cosM = cos(omega*simulationTime);
     // sinM = sin(omega*simulationTime);
 
@@ -300,15 +337,11 @@ void deg2ObliqWest(Mesh * grid, Array2D<double> & velocity, double simulationTim
     double * val;
     double * m;
     double cosM, sinM, factor;
-    double k2, h2;
-
-    k2 = grid->globals->loveK2.Value();
-    h2 = grid->globals->loveH2.Value();
 
     node_num = grid->node_num;
 
     // factor = pow(omega,2.0)*pow(radius,2.0)*ecc;
-    factor = 1.5 * (1.0 + k2 - h2) * pow(omega,2.0)*radius*theta;
+    factor = 1.5 * grid->globals->loveReduct.Value() * pow(omega,2.0)*radius*theta;
     cosM = cos(omega*simulationTime);
     sinM = sin(omega*simulationTime);
 
@@ -354,15 +387,11 @@ void deg2ObliqEast(Mesh * grid, Array2D<double> & velocity, double simulationTim
     double * val;
     double * m;
     double cosM, sinM, factor;
-    double k2, h2;
-
-    k2 = grid->globals->loveK2.Value();
-    h2 = grid->globals->loveH2.Value();
 
     node_num = grid->node_num;
 
     // factor = pow(omega,2.0)*pow(radius,2.0)*ecc;
-    factor = 1.5 * (1.0 + k2 - h2) * pow(omega,2.0)*radius*theta;
+    factor = 1.5 * grid->globals->loveReduct.Value() * pow(omega,2.0)*radius*theta;
     cosM = cos(omega*simulationTime);
     sinM = sin(omega*simulationTime);
 
@@ -399,15 +428,11 @@ void deg2Full(Mesh * grid, Array2D<double> & velocity, double simulationTime, do
     int i,j, node_num;
     double * val;
     double * m;
-    double k2, h2;
 
     node_num = grid->node_num;
-
-    k2 = grid->globals->loveK2.Value();
-    h2 = grid->globals->loveH2.Value();
     // factor = pow(omega,2.0)*pow(radius,2.0)*ecc;
 
-    factor_lon = (1.0 + k2 - h2) * pow(omega,2.0)*radius;
+    factor_lon = grid->globals->loveReduct.Value() * pow(omega,2.0)*radius;
     factor_lat = factor_lon;
 
     cosM = cos(omega*simulationTime);
