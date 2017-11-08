@@ -371,33 +371,24 @@ int Mesh::CalcMaxTimeStep(void)
 
   dt = globals->timeStep.Value();
 
-  switch (globals->surface_type)
+  if (globals->surface_type == FREE ||
+      globals->surface_type == FREE_LOADING)
   {
-      // Free-surface: dt controlled by surface gravity wave speed
-      case FREE:
-          for (i=0; i<node_num; i++)
-          {
-              f = node_friends(i,5);
-              friend_num = 6;                                     // Assume hexagon (6 centroids)
-              if (f == -1) {
-                  friend_num = 5;                                   // Check if pentagon (5 centroids)
-              }
-              for (j=0; j<friend_num; j++)                      // Loop through all centroids in the control volume
-              {
-                  dist = node_dists(i,j) * 0.5;                 // consider half node-node distance
-                  dt = std::min(dt, dist/sqrt(g*h_max));
-              }
+      for (i=0; i<node_num; i++)
+      {
+          f = node_friends(i,5);
+          friend_num = 6;                                     // Assume hexagon (6 centroids)
+          if (f == -1) {
+              friend_num = 5;                                   // Check if pentagon (5 centroids)
           }
+          for (j=0; j<friend_num; j++)                      // Loop through all centroids in the control volume
+          {
+              dist = node_dists(i,j) * 0.5;                 // consider half node-node distance
+              dt = std::min(dt, dist/sqrt(g*h_max));
+          }
+      }
 
-          dt *= 0.9;         // take some caution
-          break;
-
-      case INF_LID:
-        break;
-
-    case LID:
-        break;
-
+    //   dt *= 0.9;         // take some caution
   }
 
   std::cout<<"DT: "<<dt<<std::endl;
