@@ -113,10 +113,17 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
 {
     int node_num, l_max, N_ll;
     int i, j, f, l, m;
+    int start_l;
     double lat_factor, lon_factor;
     double r;
+    double dvdt_x, dvdt_y;
+    double dvdt_x_total, dvdt_y_total;
+    double * loading_factor;
+    double * shell_factor_beta;
 
     Array3D<double> * scalar_lm;
+
+    Array1D<double> * scalar_dummy;
 
     Array3D<double> * Pbar_lm;
     Array3D<double> * Pbar_lm_deriv;
@@ -134,85 +141,146 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
     r = globals->radius.Value();
     lat_factor = factor * 1.0/r;
 
+    loading_factor = globals->loading_factor;
+    shell_factor_beta = globals->shell_factor_beta;
+
     scalar_lm = new Array3D<double>(2.*(l_max+1), 2.*(l_max+1), 2);
     ll_scalar = new Array2D<double>(180/N_ll, 360/N_ll);
+    scalar_dummy = new Array1D<double>(node_num);
 
     Pbar_lm = &(mesh->Pbar_lm);             // 4-pi Normalised associated leg funcs
     Pbar_lm_deriv = &(mesh->Pbar_lm_deriv); // 4-pi Normalised associated leg funcs derivs
     trigMLon = &(mesh->trigMLon);           // cos and sin of m*longitude
     trigLat = &(mesh->trigLat);
 
+    start_l = 1;
+    if (globals->surface_type == LID_LOVE) start_l = 2;
+
     // INTERPOLATE GEODESIC GRID DATA TO LAT-LON GRID
     interpolateGG2LL(globals,
-                     mesh,
-                     *ll_scalar,
-                     gg_scalar,
-                     mesh->ll_map_coords,
-                     mesh->V_inv,
-                     mesh->cell_ID);
+                        mesh,
+                        *ll_scalar,
+                        gg_scalar,
+                        mesh->ll_map_coords,
+                        mesh->V_inv,
+                        mesh->cell_ID);
 
     // FIND SPHERICAL HARMONIC EXPANSION COEFFICIENTS
     // OF THE PRESSURE FIELD
     getSHCoeffsLL(*ll_scalar, *scalar_lm, N_ll, l_max);
 
-    // getSHCoeffsGG(mesh->node_pos_sph, gg_scalar, *scalar_lm, node_num, l_max);
-
-    // LOOP THROUGH EVERY GRID POINT, REBUILDING SCALAR
-    // GRADIENT FROM SPHERICAL HARMONIC COEFFICIENTS
-
-
-    for (i=0; i<node_num; i++)
+    int method = 1;
+    switch (method)
     {
-        lon_factor = factor * 1.0/(r*(*trigLat)(i,0));
-
-        // lat_factor = factor * 1.0/r;
-        // if (fabs((*trigLat)(i,0)) < 0.0000000000001) lat_factor = 0.0;
-
-        // if (i > 1)
-        // {
-        for (l=1; l<l_max+1; l++)
+    case 1:
+        // LOOP THROUGH EVERY GRID POINT, REBUILDING SCALAR
+        // GRADIENT FROM SPHERICAL HARMONIC COEFFICIENTS
+        for (i=0; i<node_num; i++)
         {
-            for (m=0; m<=l; m++)
-            {
-                dvdt(i, 0) += lon_factor * (*Pbar_lm)(i, l, m)
-                * (-(*scalar_lm)(l, m, 0) * (double)m * (*trigMLon)(i, m, 1)
-                + (*scalar_lm)(l, m, 1) * (double)m * (*trigMLon)(i, m, 0));
+            lon_factor = factor * 1.0/(r*(*trigLat)(i,0));
 
-                dvdt(i, 1) += lat_factor * (*Pbar_lm_deriv)(i, l, m)
-                * ((*scalar_lm)(l, m, 0) * (*trigMLon)(i, m, 0)
-                + (*scalar_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
+            dvdt_x_total = 0.0;
+            dvdt_y_total = 0.0;
+
+            for (l=start_l; l<l_max+1; l++)
+            {
+                dvdt_x = 0.0;
+                dvdt_y = 0.0;
+                for (m=0; m<=l; m++)
+                {
+                    dvdt_x += lon_factor * (*Pbar_lm)(i, l, m)
+                              * (-(*scalar_lm)(l, m, 0) * (double)m * (*trigMLon)(i, m, 1)
+                              + (*scalar_lm)(l, m, 1) * (double)m * (*trigMLon)(i, m, 0));
+
+                    dvdt_y += lat_factor * (*Pbar_lm_deriv)(i, l, m)
+                              * ((*scalar_lm)(l, m, 0) * (*trigMLon)(i, m, 0)
+                              + (*scalar_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
+                }
+
+                if (globals->surface_type == FREE_LOADING)
+                {
+                    dvdt_x *= loading_factor[l];
+                    dvdt_y *= loading_factor[l];
+                }
+                else if (globals->surface_type == LID_LOVE)
+                {
+                    dvdt_x *= shell_factor_beta[l];
+                    dvdt_y *= shell_factor_beta[l];
+                }
+
+                dvdt_x_total += dvdt_x;
+                dvdt_y_total += dvdt_y;
             }
+
+            dvdt(i,0) += dvdt_x_total;
+            dvdt(i,1) += dvdt_y_total;
+
         }
+
+        // double avg_val_x, avg_val_y;
+        // for (i=0; i<2; i++)
+        // {
+        //     avg_val_x = 0.0;
+        //     avg_val_y = 0.0;
+        //     for (j=0; j < 5; j++)
+        //     {
+        //         f = (*friend_list)(i,j);
+        //         avg_val_x += dvdt(f, 0);
+        //         avg_val_y += dvdt(f, 1);
+        //
+        //     }
+        //
+        //     avg_val_y /= 5.0;
+        //     avg_val_x /= 5.0;
+        //
+        //     dvdt(i, 0) = avg_val_x;
+        //     dvdt(i, 1) = avg_val_y;
         // }
+        break;
+
+    case 2:
+        // LOOP THROUGH EVERY GRID POINT, REBUILDING SCALAR
+        // GRADIENT FROM SPHERICAL HARMONIC COEFFICIENTS
+        for (i=0; i<node_num; i++)
+        {
+            // lon_factor = factor * 1.0/(r*(*trigLat)(i,0));
+
+            dvdt_x_total = 0.0;
+
+            for (l=start_l; l<l_max+1; l++)
+            {
+                dvdt_x = 0.0;
+                for (m=0; m<=l; m++)
+                {
+                    dvdt_x += (*Pbar_lm)(i, l, m)
+                              * ((*scalar_lm)(l, m, 0) * (*trigMLon)(i, m, 0)
+                              + (*scalar_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
+                }
+
+                if (globals->surface_type == FREE_LOADING)
+                {
+                    dvdt_x *= loading_factor[l];
+                }
+                else if (globals->surface_type == LID_LOVE)
+                {
+                    dvdt_x *= shell_factor_beta[l];
+                    // std::cout<<l<<'\t'<<shell_factor_beta[l]<<std::endl;
+                }
+
+                dvdt_x_total += dvdt_x;
+            }
+
+            (*scalar_dummy)(i) += dvdt_x_total;
+
+        }
+
+        pressureGradient(mesh, dvdt, *scalar_dummy, -factor);
+
+        break;
 
     }
 
-    // double avg_val_x, avg_val_y;
-    // for (i=0; i<2; i++)
-    // {
-    //     avg_val_x = 0.0;
-    //     avg_val_y = 0.0;
-    //     for (j=0; j < 5; j++)
-    //     {
-    //         f = (*friend_list)(i,j);
-    //         avg_val_x += dvdt(f, 0);
-    //         avg_val_y += dvdt(f, 1);
-    //
-    //     }
-    //
-    //     avg_val_y /= 5.0;
-    //     avg_val_x /= 5.0;
-    //
-    //     dvdt(i, 0) = avg_val_x;
-    //     dvdt(i, 1) = avg_val_y;
-    //     //
-    //     // dvdt(i, 0) = 0.0;
-    //     // dvdt(i, 1) = 0.0;
-    // }
-
-
-
-
+    delete scalar_dummy;
     delete scalar_lm;
     delete ll_scalar;
 
