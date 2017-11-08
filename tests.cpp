@@ -8,5 +8,9 @@
 
 void runOperatorTests(Globals * globals, Mesh * mesh)
 {
-    
+    // Define alpha and beta test functions
+
+    // Define vector u
+
+    // Define analytical solutions to grad beta, laplacian beta, and div u
 }
