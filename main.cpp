@@ -116,5 +116,8 @@ int main(void)
   // Calculations are finished or ODIS has terminated with an error. Return from
   // main.
 
+  // delete constants;
+
+
   return 0;
 }
