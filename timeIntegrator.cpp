@@ -40,7 +40,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
     obliq = globals->theta.Value();
     h = globals->h.Value();
     node_num = globals->node_num;
-    visc = 5e1;
+    visc = 5e3;
 
     switch (globals->tide_type)
     {

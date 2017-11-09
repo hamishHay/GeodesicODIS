@@ -169,7 +169,7 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
     // OF THE PRESSURE FIELD
     getSHCoeffsLL(*ll_scalar, *scalar_lm, N_ll, l_max);
 
-    int method = 1;
+    int method = 2;
     switch (method)
     {
     case 1:
@@ -244,7 +244,7 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
         for (i=0; i<node_num; i++)
         {
             // lon_factor = factor * 1.0/(r*(*trigLat)(i,0));
-
+            gg_scalar(i) = 0.0;     // THIS IS CHEATING
             dvdt_x_total = 0.0;
 
             for (l=start_l; l<l_max+1; l++)
@@ -257,6 +257,8 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
                               + (*scalar_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
                 }
 
+                gg_scalar(i) += dvdt_x;
+
                 if (globals->surface_type == FREE_LOADING)
                 {
                     dvdt_x *= loading_factor[l];
@@ -264,7 +266,6 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
                 else if (globals->surface_type == LID_LOVE)
                 {
                     dvdt_x *= shell_factor_beta[l];
-                    // std::cout<<l<<'\t'<<shell_factor_beta[l]<<std::endl;
                 }
 
                 dvdt_x_total += dvdt_x;
