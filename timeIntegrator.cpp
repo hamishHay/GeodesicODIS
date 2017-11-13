@@ -109,7 +109,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
 
     }
 
-    velocityDiffusion(grid, dvdt, v_tm1, visc);
+    // velocityDiffusion(grid, dvdt, v_tm1, visc);
 
 };
 
