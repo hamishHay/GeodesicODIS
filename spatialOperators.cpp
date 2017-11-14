@@ -228,38 +228,9 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
 
         }
 
-        // double avg_val_x, avg_val_y;
-        // for (i=0; i<2; i++)
-        // {
-        //     avg_val_x = 0.0;
-        //     avg_val_y = 0.0;
-        //     for (j=0; j < 5; j++)
-        //     {
-        //         f = (*friend_list)(i,j);
-        //         avg_val_x += dvdt(f, 0);
-        //         avg_val_y += dvdt(f, 1);
-        //
-        //     }
-        //
-        //     avg_val_y /= 5.0;
-        //     avg_val_x /= 5.0;
-        //
-        //     dvdt(i, 0) = avg_val_x;
-        //     dvdt(i, 1) = avg_val_y;
-
         pressureGradient(mesh, dvdt, gg_scalar, -factor);
 
-        for (l=0; l<l_max+1; l++)
-        {
-            for (m=0; m<=l; m++)
-            {
-                std::cout<<l<<'\t'<<m<<'\t'<<(*scalar_lm)(l, m, 1)<<std::endl;
-            }
-        }
 
-        globals->Output->TerminateODIS();
-
-        // }
         break;
 
     case 2:
@@ -568,7 +539,6 @@ void scalarDiffusion(Mesh * mesh, Array1D<double> & d2s, Array1D<double> & s, do
 
     double m;                          // mapping factor at current cv edge
     double s0, s1, s_temp;
-    // double v0, v1, v_temp;
     double edge_len;
     double cos_a, sin_a;
     double lap_s, lap_v;
@@ -602,14 +572,11 @@ void scalarDiffusion(Mesh * mesh, Array1D<double> & d2s, Array1D<double> & s, do
               node_friend_dist = (*node_friend_dists)(i,j1);
               edge_len = (*edge_lens)(i,(j1+1)%friend_num);
 
-            //   m = (*cent_map_factor)(i, j1);
-
               lap_s += (s1 - s0)/node_friend_dist * edge_len;
 
         }
 
         d2s(i) = viscosity * lap_s/(*cv_areas)(i);
-        // d2s(i,1) += viscosity * lap_v/(*cv_areas)(i);
 
     }
 };
