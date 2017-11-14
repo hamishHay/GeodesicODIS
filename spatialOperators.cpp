@@ -110,6 +110,9 @@ void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pre
 
         dvdt(i,0) -= x_grad;
         dvdt(i,1) -= y_grad;
+
+        // dvdt(i,0) -= y_grad;
+        // dvdt(i,1) -= x_grad;
     }
 };
 
