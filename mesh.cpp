@@ -235,6 +235,7 @@ int Mesh::CalcMappingCoords(void)
 
                 // assign mapped values to arrays
                 mapAtPoint(*m, *x, *y, lat1, lat2, lon1, lon2, r);
+                break;
             }
         }
     }
@@ -388,7 +389,7 @@ int Mesh::CalcMaxTimeStep(void)
           }
       }
 
-    //   dt *= 0.9;         // take some caution
+      dt *= 0.9;         // take some caution
   }
 
   std::cout<<"DT: "<<dt<<std::endl;
@@ -483,7 +484,8 @@ int Mesh::CalcControlVolumeEdgeCentres(void)
 {
     int i, j, f, friend_num;
     double * x1, * y1, * x2, * y2, * xc, * yc, * m;
-    double lat1, lat2, lon1, lon2;
+    double lat1, lat2, lat3, lon1, lon2, lon3;
+    double r = globals->radius.Value();
 
     for (i=0; i<node_num; i++)
     {
@@ -515,13 +517,29 @@ int Mesh::CalcControlVolumeEdgeCentres(void)
 
             m = &control_vol_edge_centre_m(i,j);              // assign pointer to midpoint map factor
 
-            lat1 = centroid_pos_sph(i, j, 0);                 // get first centroid coords
-            lon1 = centroid_pos_sph(i, j, 1);
+            // lat1 = centroid_pos_sph(i, j, 0);                 // get first centroid coords
+            // lon1 = centroid_pos_sph(i, j, 1);
 
-            lat2 = centroid_pos_sph(i, (j+1)%friend_num, 0);  // get second centroid coords
-            lon2 = centroid_pos_sph(i, (j+1)%friend_num, 1);
+            lat1 = node_pos_sph(i, 0);                 // get first centroid coords
+            lon1 = node_pos_sph(i, 1);
+
+            lat2 = centroid_pos_sph(i, j, 0);  // get second centroid coords
+            lon2 = centroid_pos_sph(i, j, 1);
+
+            // lat3 = centroid_pos_sph(i, (j+1)%friend_num, 0);  // get second centroid coords
+            // lon3 = centroid_pos_sph(i, (j+1)%friend_num, 1);
+            //
+            // lat2 = 0.5*(lat2 + lat3);
+            // lon2 = 0.5*(lon2 + lon3);
 
             mapFactorAtPoint(*m, lat1, lat2, lon1, lon2);     // calculate map factor and store
+
+
+            // Calculate here as the midpoint to the cv edge is only known in
+            // mapped coordinates
+            *m = (4.*pow(r,2.0) + pow(*xc, 2.0) + pow(*yc, 2.0))/(4.*pow(r,2.0));
+
+            // std::cout<<*m<<'\t'<<(4.*r*r + (*xc)*(*xc)+ (*yc)*(*yc))/(4.*r*r)<<std::endl;
         }
     }
 
@@ -685,7 +703,6 @@ int Mesh::CalcElementAreas(void)
         if (f == -1) {
             friend_num = 5;                // Check if pentagon (5 centroids)
         }
-
         for (j=0; j<friend_num; j++)                       // Loop through all centroids in the control volume
         {
             xc = &centroid_pos_map(i,j,0);                 // set pointer element centroid
@@ -695,7 +712,7 @@ int Mesh::CalcElementAreas(void)
 
             for (k=0; k < 3; k++)
             {
-                t_area = &node_friend_element_areas_map(i,j,k);     // set pointer to area of sub element
+                t_area = &node_friend_element_areas_map(i, j, k);     // set pointer to area of sub element
 
 
                 // messy code TODO - try and tidy
@@ -716,6 +733,9 @@ int Mesh::CalcElementAreas(void)
 
                 x2 = &node_pos_map(i, ae, 0);   // set map coords for second vertex on the element
                 y2 = &node_pos_map(i, ae, 1);
+
+                // if (i==20) std::cout<<xc<<
+
 
                 triangularArea(*t_area, *xc, *yc, *x1, *x2, *y1, *y2);     // calculate subelement area
 
