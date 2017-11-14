@@ -291,7 +291,7 @@ void deg2Obliq(Mesh * grid, Array2D<double> & velocity, double simulationTime, d
     node_num = grid->node_num;
 
     // factor = pow(omega,2.0)*pow(radius,2.0)*ecc;
-    factor = 3. * grid->globals->loveReduct.Value() * pow(omega,2.0)*radius*theta;
+    factor = -3. * grid->globals->loveReduct.Value() * pow(omega,2.0)*radius*theta;
     cosM = cos(omega*simulationTime);
     // sinM = sin(omega*simulationTime);
 
