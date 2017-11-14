@@ -12,6 +12,7 @@ void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pre
 {
     int node_num, friend_num;
     int i, j, j1, j2;
+    int end_i;
 
     Array2D<int> * friend_list;
     Array2D<double> * cent_map_factor;
@@ -39,7 +40,10 @@ void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pre
     // g = mesh->globals->g.Value();
     mask = &(mesh->land_mask);
 
-    for (i=0; i<node_num; i++)
+    end_i = node_num;
+    if (mesh->globals->surface_type == FREE_LOADING) end_i = 2;
+
+    for (i=0; i<end_i; i++)
     {
         friend_num = 6;
         if ((*friend_list)(i, 5) == -1) friend_num = 5;
@@ -120,6 +124,7 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
     double dvdt_x_total, dvdt_y_total;
     double * loading_factor;
     double * shell_factor_beta;
+    double * cosLat;
 
     Array3D<double> * scalar_lm;
 
@@ -152,9 +157,10 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
     Pbar_lm_deriv = &(mesh->Pbar_lm_deriv); // 4-pi Normalised associated leg funcs derivs
     trigMLon = &(mesh->trigMLon);           // cos and sin of m*longitude
     trigLat = &(mesh->trigLat);
+    cosLat = &(mesh->trigLat(0,0));
 
     start_l = 1;
-    if (globals->surface_type == LID_LOVE) start_l = 2;
+    if (globals->surface_type == LID_LOVE) start_l = 0;
 
     // INTERPOLATE GEODESIC GRID DATA TO LAT-LON GRID
     interpolateGG2LL(globals,
@@ -169,15 +175,17 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
     // OF THE PRESSURE FIELD
     getSHCoeffsLL(*ll_scalar, *scalar_lm, N_ll, l_max);
 
-    int method = 2;
+    int method = 1;
     switch (method)
     {
     case 1:
         // LOOP THROUGH EVERY GRID POINT, REBUILDING SCALAR
         // GRADIENT FROM SPHERICAL HARMONIC COEFFICIENTS
-        for (i=0; i<node_num; i++)
+        for (i=2; i<node_num; i++)
         {
-            lon_factor = factor * 1.0/(r*(*trigLat)(i,0));
+            // lon_factor = factor * 1.0/(r*(*trigLat)(i,0));
+            lon_factor = factor * 1.0/(r*cosLat[i*2]);
+
 
             dvdt_x_total = 0.0;
             dvdt_y_total = 0.0;
@@ -235,6 +243,19 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
         //
         //     dvdt(i, 0) = avg_val_x;
         //     dvdt(i, 1) = avg_val_y;
+
+        pressureGradient(mesh, dvdt, gg_scalar, -factor);
+
+        for (l=0; l<l_max+1; l++)
+        {
+            for (m=0; m<=l; m++)
+            {
+                std::cout<<l<<'\t'<<m<<'\t'<<(*scalar_lm)(l, m, 1)<<std::endl;
+            }
+        }
+
+        globals->Output->TerminateODIS();
+
         // }
         break;
 
@@ -244,10 +265,11 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
         for (i=0; i<node_num; i++)
         {
             // lon_factor = factor * 1.0/(r*(*trigLat)(i,0));
-            gg_scalar(i) = 0.0;     // THIS IS CHEATING
+            // std::cout<<gg_scalar(i)<<'\t';
+            // gg_scalar(i) = 0.0;     // THIS IS CHEATING
             dvdt_x_total = 0.0;
 
-            for (l=start_l; l<l_max+1; l++)
+            for (l=0.0; l<l_max+1; l++)
             {
                 dvdt_x = 0.0;
                 for (m=0; m<=l; m++)
@@ -257,7 +279,7 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
                               + (*scalar_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
                 }
 
-                gg_scalar(i) += dvdt_x;
+                // gg_scalar(i) += dvdt_x;
 
                 if (globals->surface_type == FREE_LOADING)
                 {
@@ -271,6 +293,7 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
                 dvdt_x_total += dvdt_x;
             }
 
+            // std::cout<<gg_scalar(i)<<std::endl;
             (*scalar_dummy)(i) += dvdt_x_total;
 
         }

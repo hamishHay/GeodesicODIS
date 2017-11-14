@@ -40,7 +40,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
     obliq = globals->theta.Value();
     h = globals->h.Value();
     node_num = globals->node_num;
-    visc = 5e3;
+    visc = 1e1;
 
     switch (globals->tide_type)
     {
@@ -109,7 +109,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
 
     }
 
-    velocityDiffusion(grid, dvdt, v_tm1, visc);
+    // velocityDiffusion(grid, dvdt, v_tm1, visc);
 
 };
 
@@ -200,21 +200,29 @@ int eulerExplicit(Globals * globals, Mesh * grid)
         // INTEGRATE PRESSURE FORWARD IN TIME
         for (i = 0; i<node_num; i++)
         {
-            // (*press_t0)(i) = (*dpress_dt_t0)(i) * dt + (*press_tm1)(i);
+            (*press_t0)(i) = (*dpress_dt_t0)(i) * dt + (*press_tm1)(i);
             (*press_tm1)(i) = (*press_t0)(i);
         }
+
+        current_time += dt;
+        out_time += dt;
 
         // Check for output
         iter ++;
 
         if (out_time >= out_frac*orbit_period)
         {
-            std::cout<<std::fixed << std::setprecision(8) <<"DUMPING DATA AT "<<current_time<<std::endl;
+            std::cout<<std::fixed << std::setprecision(8) <<"DUMPING DATA AT "<<current_time/orbit_period<<std::endl;
+            // std::cout<<" AVG DISS: "<<*total_diss<<" W"<<std::endl;
 
             out_time -= out_frac*orbit_period;
-            pp[0] = &(*press_t0)(0);
-            pp[1] = &(*vel_t0)(0,0);
-            // pp[0] = &(*dvel_dt_t0)(0,0);
+            // pp[3] = &(*energy_diss)(0);
+            pp[1] = &(*press_t0)(0);
+            // pp[3] = &(*press_dummy)(0);
+            // pp[1] = &(grid->land_mask(0));
+            pp[2] = &(*vel_t0)(0,0);
+            // pp[2] = &(*vel_dummy)(0,0);
+            // pp[0] = &total_diss[0];
 
             Output->DumpData(globals, out_count, pp);
             out_count++;
@@ -358,12 +366,27 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     while (current_time <= end_time)
     {
 
+        current_time += dt;
+        out_time += dt;
+
         if (globals->surface_type == FREE ||
             globals->surface_type == FREE_LOADING ||
             globals->surface_type == LID_LOVE)
         {
             // SOLVE THE MOMENTUM EQUATION
             updateVelocity(globals, grid, *dvel_dt_t0, *vel_tm1, *press_tm1, current_time);
+
+            // INTEGRATE VELOCITIES FORWARD IN TIME
+            // for (i = 0; i<node_num; i++)
+            // {
+            //     (*vel_t0)(i,0) = (*dvel_dt_t0)(i,0) * dt + (*vel_tm1)(i,0);
+            //     (*vel_tm1)(i,0) = (*vel_t0)(i,0);
+            //
+            //     (*vel_t0)(i,1) = (*dvel_dt_t0)(i,1) * dt + (*vel_tm1)(i,1);
+            //     (*vel_tm1)(i,1) = (*vel_t0)(i,1);
+            // }
+
+
 
             // MARCH VELOCITY FORWARD IN TIME
             integrateAB3vector(globals, grid, *vel_t0, *vel_tm1, *dvel_dt_t0, *dvel_dt_tm1, *dvel_dt_tm2, iter);
@@ -372,12 +395,15 @@ int ab3Explicit(Globals * globals, Mesh * grid)
             updateEnergy(globals, e_diss, *energy_diss, *vel_t0, *cv_mass);
             total_diss[0] = e_diss;
 
+
             // SOLVE THE CONTINUITY EQUATION
             updateDisplacement(globals, grid, *dpress_dt_t0, *vel_t0);
 
+
             // MARCH DISPLACEMENT FORWARD IN TIME
             integrateAB3scalar(globals, grid, *press_t0, *press_tm1, *dpress_dt_t0, *dpress_dt_tm1, *dpress_dt_tm2, iter);
-
+            // if (iter==10) Output->TerminateODIS();
+            // INTEGRATE PRESSURE FORWARD IN TIME
         }
 
         else if (globals->surface_type == LID_INF)
@@ -496,8 +522,8 @@ int ab3Explicit(Globals * globals, Mesh * grid)
         //
         // }
 
-        current_time += dt;
-        out_time += dt;
+        // current_time += dt;
+        // out_time += dt;
 
         // Check for output
         iter ++;
