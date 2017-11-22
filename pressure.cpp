@@ -64,6 +64,7 @@ int updatePressure(Globals * globals,
     Array1D<double> * v_div;
     Array2D<double> * v_temp;
     Array1D<double> * p_corr;
+    Array1D<double> * p_dummy;
     Array1D<double> * p_factor;
     Array2D<double> * coords;
 
@@ -89,7 +90,7 @@ int updatePressure(Globals * globals,
     N_ll = (int)globals->dLat.Value();
 
     iter = 0;
-    max_iter = 5;
+    max_iter = 1;
     epsilon = 1e-20;
     relax_f = 1.0;
     dt = globals->timeStep.Value();
@@ -97,6 +98,7 @@ int updatePressure(Globals * globals,
     v_div = new Array1D<double>(node_num);
     ll_v_div = new Array2D<double>(180/N_ll, 360/N_ll);
     p_corr = new Array1D<double>(node_num);
+    p_dummy = new Array1D<double>(node_num);
 
     div_lm = new Array3D<double>(2.*(l_max+1), 2.*(l_max+1), 2);
     p_lm = new Array3D<double>(2.*(l_max+1), 2.*(l_max+1), 2);
@@ -112,6 +114,7 @@ int updatePressure(Globals * globals,
     {
         (*v_div)(i) = 0.0;
         (*p_corr)(i) = 0.0;
+        (*p_dummy)(i) = 0.0;
         p(i) = 0.0;
     }
 
@@ -172,7 +175,7 @@ int updatePressure(Globals * globals,
                     (*p_corr)(i) = 0.0;
                     u_corr = 0.0;
                     v_corr = 0.0;
-                    for (l=0; l<l_max+1; l++)
+                    for (l=1; l<l_max+1; l++)
                     {
                         for (m=0; m<=l; m++)
                         {
@@ -190,6 +193,18 @@ int updatePressure(Globals * globals,
                         }
                     }
 
+                    // if (i>1)
+                    // {
+                    //     v(i,0) = v(i,0) - u_corr/1000.0;
+                    //     v(i,1) = v(i,1) - v_corr/1000.0;
+                    //
+                    // }
+                    // else
+                    // {
+                    //     v(i,0) = 0.0;
+                    //     v(i,1) = 0.0;
+                    // }
+
                     v(i,0) = v(i,0) - u_corr/1000.0;
                     v(i,1) = v(i,1) - v_corr/1000.0;
 
@@ -198,6 +213,8 @@ int updatePressure(Globals * globals,
                     (*v_div)(i) = 0.0;
 
                 }
+
+                // pressureGradient(grid, v, *p_corr, 1.0/1000.0);
 
                 div_diff = total_div_new;
                 total_div_new = 0.0;
@@ -209,6 +226,7 @@ int updatePressure(Globals * globals,
                 iter++;
             }
             while ((iter < max_iter));
+
 
             break;
 
