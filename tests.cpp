@@ -56,7 +56,7 @@ void setGradBeta(Array2D<double> & gradBeta, int m, int n, int node_num, double 
 
     for (i = 0 ; i < node_num; i++)
     {
-        gradBeta(i, 1) = -4. * 1e6 * n * trigMLon(i, m, 0);
+        gradBeta(i, 1) =  -1e6 * 4.0 * n * trigMLon(i, m, 0);
         gradBeta(i, 1) *= trigNLat(i, n, 1);
         gradBeta(i, 1) *= trigNLat(i, n, 0)*trigNLat(i, n, 0)*trigNLat(i, n, 0);
         gradBeta(i, 1) /= r;
@@ -73,9 +73,9 @@ void runOperatorTests(Globals * globals, Mesh * mesh)
     int node_num;
     int i, m, n;
     int mMax = 1;
+    int mMin = 1;
     int nMax = 1;
     int nMin = 1;
-    int mMin = 1;
 
     double r;
 
