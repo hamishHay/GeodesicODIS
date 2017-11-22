@@ -104,7 +104,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
 
         case LID_INF:
             // pressureGradient(grid, dvdt, p_tm1, 1.0/1000.0);
-            // pressureGradientSH(globals, grid, dvdt, p_tm1, -g*0.94);
+            // pressureGradientSH(globals, grid, dvdt, p_tm1, -1.0/1000.0);
             break;
 
     }
@@ -340,7 +340,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
         (*press_tm1)(i) = 0.0;
         (*vel_t0)(i,0) = 0.0;
         (*vel_t0)(i,1) = 0.0;
-        (*vel_tm1)(i,0) = 0.0;//cosLat[i*2] * 1.0;
+        (*vel_tm1)(i,0) = 0.0;//cosLat[i*2] * 0.1;
         (*vel_tm1)(i,1) = 0.0;
         (*press_t0)(i) = 0.0;
         (*press_tm1)(i) = 0.0;
