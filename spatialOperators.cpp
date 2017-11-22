@@ -41,7 +41,10 @@ void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pre
     mask = &(mesh->land_mask);
 
     end_i = node_num;
-    if (mesh->globals->surface_type == FREE_LOADING) end_i = 2;
+    if (mesh->globals->surface_type == FREE_LOADING ||
+        mesh->globals->surface_type == LID_INF) {
+        end_i = 2;
+    }
 
     for (i=0; i<end_i; i++)
     {
@@ -95,7 +98,7 @@ void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pre
             ny = (*normal_vecs)(i, j1, 1);
 
             // get edge length of current edge
-            edge_len = (*edge_lens)(i,j1);
+            edge_len = (*edge_lens)(i, j1);
 
             // calculate x gradient
             x_grad += m * p_avg * nx * edge_len;
@@ -348,7 +351,6 @@ void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & v
             a2 = (*element_areas)(i,j1,2);
 
             // FIND VELOCITY AT FIRST FRIEND
-
             u_temp = velocity(i1,0);
             v_temp = velocity(i1,1);
 
@@ -360,7 +362,6 @@ void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & v
             v1 = -u_temp * sin_a + v_temp * cos_a;
 
             // FIND VELOCITY AT SECOND FRIEND
-
             u_temp = velocity(i2,0);
             v_temp = velocity(i2,1);
 
