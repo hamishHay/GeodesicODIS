@@ -233,8 +233,13 @@ int Mesh::CalcMappingCoords(void)
                 lat2 = centroid_pos_sph(i, j, 0);
                 lon2 = centroid_pos_sph(i, j, 1);
 
+
                 // assign mapped values to arrays
                 mapAtPoint(*m, *x, *y, lat1, lat2, lon1, lon2, r);
+                // if (j==0)
+                // {
+                //     std::cout<<i<<'\t'<<f<<'\t'<<node_pos_map(i, j+1, 0)<<std::endl;
+                // }
                 break;
             }
         }
@@ -263,8 +268,6 @@ int Mesh::CalcControlVolumeEdgeLengths(void)
 
         for (j=0; j<friend_num; j++)                        // Loop through all centroids in the control volume
         {
-            f = node_friends(i,j);
-
             edge_len = &control_vol_edge_len(i,j);            // set pointer to edge length array
 
             x1 = &centroid_pos_map(i, j, 0);                  // set map coords for first centroid
@@ -553,6 +556,7 @@ int Mesh::CalcControlVolumeEdgeNormals(void)
 {
     int i, j, f, friend_num;
     double * x1, * y1, * x2, * y2, * xn, * yn;
+    double x3, y3;
 
     for (i=0; i<node_num; i++)
     {
@@ -571,7 +575,6 @@ int Mesh::CalcControlVolumeEdgeNormals(void)
 
         for (j=0; j<friend_num; j++)                        // Loop through all centroids in the control volume
         {
-            f = node_friends(i,j);
 
             xn = &control_vol_edge_normal_map(i,j,0);         // set pointer to edge length array
             yn = &control_vol_edge_normal_map(i,j,1);
@@ -584,6 +587,12 @@ int Mesh::CalcControlVolumeEdgeNormals(void)
 
             normalVectorBetween(*xn, *yn, *x1, *x2, *y1, *y2);    // calculate center coords between the two centroids.
             // xc and yc automatically assigned the coords
+
+            x3 = node_pos_map(i, (j+2)%friend_num, 0);
+            y3 = node_pos_map(i, (j+2)%friend_num, 1);
+
+            // std::cout<<(j+2)%friend_num<<'\t'<<x3<<'\t'<<y3<<'\t'<<acos((x3*(*xn) + y3*(*yn))/sqrt(x3*x3 + y3*y3))/radConv<<std::endl;
+
 
         }
     }
@@ -736,6 +745,8 @@ int Mesh::CalcElementAreas(void)
 
                 // if (i==20) std::cout<<xc<<
 
+
+                // std::cout<<i<<'\t'<<'('<<*xc<<','<<*yc<<") ("<<*x1<<','<<*y1<<") ("<<*x2<<','<<*y2<<")"<<std::endl;
 
                 triangularArea(*t_area, *xc, *yc, *x1, *x2, *y1, *y2);     // calculate subelement area
 
