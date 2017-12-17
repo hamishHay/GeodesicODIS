@@ -30,7 +30,6 @@ void deg2Ecc(Mesh * grid, Array2D<double> & velocity, double simulationTime, dou
 
     node_num = grid->node_num;
     // factor = pow(omega,2.0)*pow(radius,2.0)*ecc;
-
     // std::cout<<grid->globals->loveReduct.Value()<<std::endl;
 
     factor = grid->globals->loveReduct.Value() * pow(omega,2.0)*radius*ecc;

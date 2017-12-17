@@ -9,7 +9,10 @@ def main():
 
     sc, nu, beta = betaNu(1e3, 2e3, 30)
 
-    test(sc, nu, beta, 30)
+    for i in range(len(sc)):
+        print(i, sc[i], nu[i], beta[i])
+
+    # test(sc, nu, beta, 30)
 
 
 def betaNu(den, den_core, l_max):
@@ -43,8 +46,10 @@ def betaNu(den, den_core, l_max):
     grav_ocean_top = gravity(core_mass + ocean_mass, radius_core + ocean_thick)
     grav = gravity(total_mass, radius)
 
-    print(den_bulk, den_ocean, den_ice, den_core)
-    print(grav, grav_core, core_mass, total_mass)
+    # print(total_vol, core_vol)
+
+    # print(den_bulk, den_ocean, den_ice, den_core)
+    # print(grav, grav_core, core_mass, total_mass)
 
     e = 3.0 / (2.*n + 1.0) * (den_ocean/den_core)
 

@@ -7,6 +7,14 @@
 #include <math.h>
 #include <iostream>
 
+inline void sph2cart(double &, double &, double &, double, double, double);
+inline void sph2cart(double &x, double &y, double &z, double r, double colat, double lon)
+{
+    x = r*sin(colat)*cos(lon);
+    y = r*sin(colat)*sin(lon);
+    z = r*cos(colat);
+}
+
 // Mapping function from Lee and Macdonald (2009) to get to GSTC
 // Returns a mapping factor that is used appy curvature to the local system of
 // equations.
@@ -47,6 +55,35 @@ inline void velTransform(double &cos_a, double &sin_a, double &lat1, double &lat
 
   sin_a = -(sin(lat1) + sin(lat2))*sin(lon2-lon1);
   sin_a /= (1.0 + sin(lat1)*sin(lat2) + cos(lat1)*cos(lat2)*cos(lon2-lon1));
+}
+
+inline void volumeSphericalTriangle(double &, double &, double &, double &, double &, double &, double &, double &, double &, double &, double);
+inline void volumeSphericalTriangle(double &vol, double &x1, double &x2, double &x3, double &y1, double &y2, double &y3, double &z1, double &z2, double &z3, double r)
+{
+    double bXc_x, bXc_y, bXc_z;
+    double vTop;
+    double magA, magB, magC;
+    double AdotB, CdotA, BdotC;
+    double solidAngle;
+
+    bXc_x = y2*z3 - z2*y3;
+    bXc_y = -(x2*z3 - z2*x3);
+    bXc_z = x2*y3 - x3*y2;
+
+    vTop = x1*bXc_x + y1*bXc_y + z1*bXc_z ;
+
+    magA = sqrt(x1*x1 + y1*y1 + z1*z1);
+    magB = sqrt(x2*x2 + y2*y2 + z2*z2);
+    magC = sqrt(x3*x3 + y3*y3 + z3*z3);
+
+    AdotB = x1*x2 + y1*y2 + z1*z2;
+    CdotA = x3*x1 + y3*y1 + z3*z1;
+    BdotC = x2*x3 + y2*y3 + z2*z3;
+
+    solidAngle = 2.*atan2(vTop,(magA*magB*magC + AdotB*magC + CdotA*magB + BdotC*magA));
+
+
+    vol = solidAngle/3.0 * pow(r, 3.0);
 }
 
 inline void distanceBetween(double &, double &, double &, double &, double &);

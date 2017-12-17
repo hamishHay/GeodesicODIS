@@ -11,6 +11,7 @@ void updateEnergy(Globals * globals, double & avg_diss, Array1D<double> & e_diss
 {
     int node_num, i;
     double drag_coeff, h, r;
+    double flux;
 
     drag_coeff = globals->alpha.Value();
     h = globals->h.Value();
@@ -19,6 +20,7 @@ void updateEnergy(Globals * globals, double & avg_diss, Array1D<double> & e_diss
     node_num = globals->node_num;
 
     avg_diss = 0.0;
+
 
     // UPDATE ENERGY
     switch (globals->fric_type)
@@ -30,6 +32,7 @@ void updateEnergy(Globals * globals, double & avg_diss, Array1D<double> & e_diss
                             * (v(i,0)*v(i,0) + v(i,1)*v(i,1));
 
             avg_diss += e_diss(i);
+            // flux += 1000.0 * h * drag_coeff * (v(i,0)*v(i,0) + v(i,1)*v(i,1));
         }
         break;
 
@@ -45,5 +48,6 @@ void updateEnergy(Globals * globals, double & avg_diss, Array1D<double> & e_diss
     }
 
     avg_diss /= (4. * pi * r * r);
+    // avg_diss = flux/node_num;
 
 };

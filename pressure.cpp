@@ -90,7 +90,7 @@ int updatePressure(Globals * globals,
     N_ll = (int)globals->dLat.Value();
 
     iter = 0;
-    max_iter = 1;
+    max_iter = 5;
     epsilon = 1e-20;
     relax_f = 1.0;
     dt = globals->timeStep.Value();

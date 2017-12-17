@@ -169,8 +169,7 @@ Globals::Globals(int action) {
     ReadGlobals(); //Read globals from input.in file
   }
 
-  // Print out all constants to output.txt
-  OutputConsts();
+
 
   // Convert end time from units of orbital period to seconds.
   endTime.SetValue(endTime.Value()*period.Value());
@@ -218,6 +217,7 @@ Globals::Globals(int action) {
     if (surface.Value() == "FREE")              surface_type = FREE;
     else if (surface.Value() == "FREE_LOADING") surface_type = FREE_LOADING;
     else if (surface.Value() == "LID_LOVE")     surface_type = LID_LOVE;
+    else if (surface.Value() == "LID_MEMBR")    surface_type = LID_MEMBR;
     else if (surface.Value() == "LID_NUM")      surface_type = LID_NUM;
     else if (surface.Value() == "LID_INF")      surface_type = LID_INF;
     else {
@@ -227,9 +227,16 @@ Globals::Globals(int action) {
     }
 
     if (surface_type == FREE_LOADING) loading_factor = new double[l_max.Value() + 1];
-    else if (surface_type == LID_LOVE) shell_factor_beta = new double[l_max.Value() + 1];
+    else if (surface_type == LID_LOVE ||
+             surface_type == LID_MEMBR)
+    {
+        shell_factor_beta = new double[l_max.Value() + 1];
+    }
 
     applySurfaceBCs(this);
+
+    // Print out all constants to output.txt
+    OutputConsts();
 };
 
 int Globals::ReadGlobals(void)

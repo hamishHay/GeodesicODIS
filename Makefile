@@ -23,8 +23,8 @@ all: ODIS
 # 	$(CC) legendre.o legendreDeriv.o extractSHCoeff.o $(FLINK) main.o mathRoutines.o tidalPotentials.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o viscosity.o interpolation.o advection.o solver.o -o ODIS -lgfortran -fopenmp $(CLINK)
 
 
-ODIS: legendre.o legendreDeriv.o extractSHCoeffGG.o extractSHCoeffLL.o main.o tidalPotentials.o outFiles.o globals.o mesh.o boundaryConditions.o initialConditions.o solver.o timeIntegrator.o drag.o coriolis.o spatialOperators.o temporalOperators.o energy.o sphericalHarmonics.o interpolation.o pressure.o tests.o
-	$(CC) $(FLINK) legendre.o legendreDeriv.o extractSHCoeffGG.o extractSHCoeffLL.o $(FLINK) main.o tidalPotentials.o outFiles.o globals.o mesh.o boundaryConditions.o initialConditions.o solver.o timeIntegrator.o drag.o coriolis.o spatialOperators.o temporalOperators.o energy.o sphericalHarmonics.o interpolation.o pressure.o tests.o -o ODIS -lgfortran $(CLINK)
+ODIS: legendre.o legendreDeriv.o extractSHCoeffGG.o extractSHCoeffLL.o main.o tidalPotentials.o outFiles.o globals.o mesh.o membraneConstants.o boundaryConditions.o initialConditions.o solver.o timeIntegrator.o drag.o coriolis.o spatialOperators.o temporalOperators.o energy.o sphericalHarmonics.o interpolation.o pressure.o tests.o
+	$(CC) $(FLINK) legendre.o legendreDeriv.o extractSHCoeffGG.o extractSHCoeffLL.o $(FLINK) main.o tidalPotentials.o outFiles.o globals.o mesh.o membraneConstants.o boundaryConditions.o initialConditions.o solver.o timeIntegrator.o drag.o coriolis.o spatialOperators.o temporalOperators.o energy.o sphericalHarmonics.o interpolation.o pressure.o tests.o -o ODIS -lgfortran $(CLINK)
 
 legendre.o: legendre.f95
 	$(F) $(FFLAGS) legendre.f95
@@ -52,6 +52,9 @@ globals.o: globals.cpp
 
 mesh.o: mesh.cpp
 	$(CC) $(CFLAGS) mesh.cpp
+
+membraneConstants.o: membraneConstants.cpp
+	$(CC) $(CFLAGS) membraneConstants.cpp
 
 boundaryConditions.o: boundaryConditions.cpp
 	$(CC) $(CFLAGS) boundaryConditions.cpp

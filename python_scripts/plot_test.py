@@ -1,5 +1,5 @@
-# import matplotlib as mpl
-# mpl.use('Agg')
+import matplotlib as mpl
+mpl.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.tri as tri
 import matplotlib as mpl
@@ -45,7 +45,11 @@ data_u = np.array(in_file["east velocity"][:,0])
 data_v = np.array(in_file["north velocity"][:,0])
 data_eta = np.array(in_file["displacement"][:,0])
 
+
 data_diss = np.array(in_file["avg dissipation output"][:])
+
+print(np.mean(data_diss[-200:-1]))
+
 plt.semilogy(data_diss)
 plt.show()
 
@@ -63,19 +67,25 @@ ax3.plot(time, data_eta)
 #
 data_u = np.array(in_file["east velocity"][n])
 data_v = np.array(in_file["north velocity"][n])
+
 data_eta = np.array(in_file["displacement"][n])
 data_diss = np.array(in_file["dissipated energy"][n])
 
+print(np.max(data_u), np.max(data_v), np.max(data_eta))
 print("TRIANGULATING POSITIONS")
 # Create the Triangulation; no triangles so Delaunay triangulation created.
 triang = tri.Triangulation(x, y)
 
 fig, (ax1,ax2,ax3) = plt.subplots(ncols=3, figsize=(15,4))
-ax1.tricontourf(triang,data_u,11)
-ax2.tricontourf(triang,data_v,11)
-ax3.tricontourf(triang,data_eta,11)
+c1 = ax1.tricontourf(triang,data_u,11)
+c2 = ax2.tricontourf(triang,data_v,11)
+c3 = ax3.tricontourf(triang,data_eta,11)
 
+plt.colorbar(c1, ax = ax1, orientation="horizontal")
+plt.colorbar(c2, ax = ax2, orientation="horizontal")
+plt.colorbar(c3, ax = ax3, orientation="horizontal")
 
+fig.savefig("/home/hamish/Dropbox/plottings.pdf")
 fig, (ax1, ax2, ax3) = plt.subplots(ncols=3)
 
 m = Basemap(projection='npstere',boundinglat=80,lon_0=0)

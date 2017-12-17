@@ -638,8 +638,17 @@ int Mesh::CalcControlVolumeMass(void)
   int i, j, k, as, ae, f, friend_num;
   double * lat1, * lon1, * lat2, * lon2, * lat3, * lon3, *t_area, r;
   double area, avg_area;
+  double ax, ay, az;
+  double bx, by, bz;
+  double cx, cy, cz;
+  double * vol;
+  double vol1, vol2;
+  double r_core, r_ocean;
 
   r = globals->radius.Value();
+  r_core = r;
+  r_ocean = r_core + globals->h.Value();
+  double mass_sum = 0.0;
 
   avg_area = 0.0;
   for (i=0; i<node_num; i++)
@@ -655,7 +664,9 @@ int Mesh::CalcControlVolumeMass(void)
       lat1 = &node_pos_sph(i,0);
       lon1 = &node_pos_sph(i,1);
 
-      t_area = &control_volume_mass(i);     // set pointer to area of sub element
+    //   vol = &control_volume_mass(i);     // set pointer to area of sub element
+    //   *vol = 0.0;
+      t_area = &control_volume_mass(i);
       *t_area = 0.0;
       for (j=0; j<friend_num; j++)                       // Loop through all centroids in the control volume
       {
@@ -669,17 +680,37 @@ int Mesh::CalcControlVolumeMass(void)
 
           triangularAreaSph(area, *lat1, *lat2, *lat3, *lon1, *lon2, *lon3, r);     // calculate subelement area
           *t_area += area;
+
+        //   sph2cart(ax, ay, az, r_ocean, radConv*0.5 - *lat1, *lon1);
+        //   sph2cart(bx, by, bz, r_ocean, radConv*0.5 - *lat2, *lon2);
+        //   sph2cart(cx, cy, cz, r_ocean, radConv*0.5 - *lat3, *lon3);
+        //
+        // //   vol = &control_volume_mass(i);
+        //   volumeSphericalTriangle(vol1, ax, bx, cx, ay, by, cy, az, bz, cz, r_ocean);
+        //
+        //   sph2cart(ax, ay, az, r_core, radConv*0.5 - *lat1, *lon1);
+        //   sph2cart(bx, by, bz, r_core, radConv*0.5 - *lat2, *lon2);
+        //   sph2cart(cx, cy, cz, r_core, radConv*0.5 - *lat3, *lon3);
+        //
+        // //   vol = &control_volume_mass(i);
+        //   volumeSphericalTriangle(vol2, ax, bx, cx, ay, by, cy, az, bz, cz, r_core);
+        //
+        //   *vol += fabs(vol1)-fabs(vol2);
+        //   std::cout<<vol1<<'\t'<<vol2<<std::endl;
       }
+    //   *vol *= 1000.0;
       avg_area += *t_area;
+    //   mass_sum += *t_area * 1000.0 * globals->h.Value();
   }
   avg_area /= node_num;
-
   for (i=0; i<node_num; i++)
   {
       t_area = &control_volume_mass(i);
       *t_area *= avg_area/(*t_area) * 1000.0 * globals->h.Value();
+    //   *t_area *= 1000.0 * globals->h.Value();
+    //   mass_sum += *t_area;
   }
-
+  // std::cout<<"MASS: "<<mass_sum<<std::endl;
   return 1;
 }
 

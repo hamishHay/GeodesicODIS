@@ -2,6 +2,7 @@
 #include "globals.h"
 #include "array1d.h"
 #include "boundaryConditions.h"
+#include "membraneConstants.h"
 
 int applySurfaceBCs(Globals * globals)
 {
@@ -62,6 +63,35 @@ int applySurfaceBCs(Globals * globals)
             h2 = globals->loveH2.Value();
 
             globals->loveReduct.SetValue(1.0 + k2 - h2);
+        }
+        break;
+
+    case LID_MEMBR:
+        {
+            int l;
+            double * beta_factor;
+
+            Array1D<double> * beta;
+            Array1D<double> * nu;
+
+            l_max = globals->l_max.Value();
+
+            beta = new Array1D<double>(l_max+1);
+            nu = new Array1D<double>(l_max+1);
+
+            beta_factor = globals->shell_factor_beta;
+
+            membraneNuBeta(*nu, *beta, l_max, globals);
+
+            for (l = 0; l < l_max+1; l++)
+            {
+                beta_factor[l] = (*beta)(l);
+            }
+            globals->loveReduct.SetValue( (*nu)(2) );
+
+            delete beta;
+            delete nu;
+
         }
         break;
 

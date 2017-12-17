@@ -26,8 +26,10 @@ plt.rc('lines', linewidth=0.6)
 
 plt.rc('figure', dpi=120)
 
-fname = "errors2.txt"
-grid = np.loadtxt("input_files/grid_l6.txt",skiprows=1,usecols=(1,2))
+fname = "grid_error_g4_test.txt"
+
+
+grid = np.loadtxt("input_files/grid_l4.txt",skiprows=1,usecols=(1,2))
 x = np.radians(grid[:,1])[2:]
 y = np.radians(grid[:,0])[2:]
 triang = tri.Triangulation(x, y)
@@ -41,13 +43,14 @@ data = np.loadtxt(fname,skiprows=21).T
 anlyt = data[4,2:]
 num = data[5,2:]
 
+# err = np.sqrt((anlyt - num)**2.0)
 err = np.sqrt((anlyt - num)**2.0)
 
 err2 = abs(anlyt-num)/abs(anlyt)*100
 
+err2 = np.log10(err2)
 err2[np.isinf(err2)] = np.nan
-err2 = err2[~np.isnan(err2)]
-err5 = np.log10(err2)
+err5 = err2[~np.isnan(err2)]
 # err = (anlyt - num)**2.0
 
 # plt.hist(err2,bins=30)
@@ -83,7 +86,7 @@ ax3.set_title(" $E = \sqrt{(s_{anylt} - s_{num})^2}$")
 
 fig.suptitle("Divergence Operator Test, $n=1, m=1$", y=1.05)
 
-fig.savefig("div_test_n1_m1.pdf", bbox_inches='tight')
+# fig.savefig("div_test_n1_m1.pdf", bbox_inches='tight')
 # plt.tight_layout()
 
 
@@ -99,8 +102,11 @@ num2 = data[3,2:]
 # err2 = (anlyt2 - num2)**2.0
 
 
-err1 = np.sqrt((anlyt1 - num1)**2.0)
-err2 = np.sqrt((anlyt2 - num2)**2.0)
+# err1 = np.sqrt((anlyt1 - num1)**2.0)
+# err2 = np.sqrt((anlyt2 - num2)**2.0)
+
+err1 = (anlyt1 - num1)
+err2 = (anlyt2 - num2)
 
 err3 = abs(anlyt1-num1)/abs(anlyt1)*100
 err4 = abs(anlyt2-num2)/abs(anlyt2)*100
@@ -134,7 +140,7 @@ for ax in axes:
     ax.set_xlabel("$\log_{10} E$ [\si{\percent}]")
     ax.xaxis.set_minor_locator(ml)
 # ax = plt.gca()
-fig.savefig("error_dist2.pdf",bbox_inches='tight')
+# fig.savefig("error_dist2.pdf",bbox_inches='tight')
 
 cmax1 = max(np.amax(anlyt1), np.amax(num1))
 cmin1 = min(np.amin(anlyt1), np.amin(num1))
@@ -180,9 +186,15 @@ cnt = ax6.tricontour(triang, err2, 9, colors='k', linewidths=0.5)
 cbar = plt.colorbar(tcnt, ax = ax6, orientation='horizontal')
 ax3.set_title(" $E = \sqrt{(s_{anylt} - s_{num})^2}$")
 
+# for i in range(len(err2)):
+#     ax6.text(x[i], y[i], str(i+2))
+
+# ax6.set_xlim([np.radians(30), np.radians(60)])
+# ax6.set_ylim([np.radians(30), np.radians(40)])
+
 fig.suptitle("Gradient Operator Test, $n=1, m=1$")
 
-fig.savefig("grad_test_n1_m1.pdf", bbox_inches='tight')
+# fig.savefig("grad_test_n1_m1.pdf", bbox_inches='tight')
 
 
 plt.show()

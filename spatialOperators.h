@@ -17,4 +17,6 @@ void velocityDiffusion(Mesh *, Array2D<double> &, Array2D<double> &, double);
 
 void scalarDiffusion(Mesh *, Array1D<double> &, Array1D<double> &, double);
 
+void smoothingSH(Globals *, Mesh *, Array1D<double> &);
+
 #endif

@@ -12,7 +12,7 @@ direc = "InitialConditions"
 if not os.path.exists(direc):
     os.makedirs(direc)
 
-in_file = h5py.File("DATA_G6_CD0.1_h10m_T4000/data.h5", 'r')
+in_file = h5py.File("DATA/data.h5", 'r')
 
 sg1 = "displacement"
 sg2 = "east velocity"

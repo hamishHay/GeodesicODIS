@@ -1,6 +1,7 @@
 import numpy as np
 import h5py
 import matplotlib as mpl
+mpl.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.tri as tri
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
@@ -143,9 +144,11 @@ class FieldPlot2:
 
         if data == None:
             data = self.load_data(data_name=data_name, slices=None)
-        data *= 4. * np.pi * (self.radius+300e3)**2.0
+        # data *= 4*np.pi * (self.radius-)
 
-        print(self.radius)
+        data *= 4. * np.pi * (self.radius-(self.h_ocean + self.h_shell))**2.0/1e9
+
+        print(np.mean(data[-100:]))
 
         ax_current = self.fig.add_subplot(111)
 
@@ -154,7 +157,9 @@ class FieldPlot2:
         dt = 20
         # time = time[-16*dt:]
         # data = data[-16*dt:]
-        # data = data[:-1]
+        if len(time) != len(data):
+            data = data[:-1]
+
 
         # time = time[-70000*dt:-69800*dt]
         # data = data[-70000*dt:-69800*dt]
@@ -171,7 +176,7 @@ class FieldPlot2:
         ax_current.grid(which='minor',alpha=0.4)
 
         ax_current.set_xlabel('Time [Orbit \#]')
-        ax_current.set_ylabel('Dissipated Power [\si{\milli\watt}]')
+        ax_current.set_ylabel('Dissipated Power [\si{\giga\watt}]')
 
         # if title=='':
         #     ax_current.set_title(self.data_title[self.potential])
@@ -278,7 +283,7 @@ class FieldPlot2:
             plt.rc('axes', labelpad=10.0)
             plt.rc('axes', linewidth=1.20)
             print(plt.style.available)
-            plt.style.use(['dark_background'])#, 'presentation'])
+            #plt.style.use(['dark_background'])#, 'presentation'])
 
 # ytick.labelsize : 16
 
@@ -320,7 +325,7 @@ class FieldPlot2:
             var_name = line[0]
             var_val = line[1]
 
-            if var_name == 'ocean_thickness':
+            if var_name == 'ocean thickness':
                 self.h_ocean = float(var_val)
 
             elif var_name == 'radius':
@@ -343,6 +348,9 @@ class FieldPlot2:
 
             elif var_name == 'simulation end time':
                 self.t_end = float(var_val)
+
+            elif var_name == 'shell thickness':
+                self.h_shell = float(var_val)
 
             elif var_name == 'output time':
                 self.out_inc = float(var_val)
@@ -431,4 +439,4 @@ if __name__=='__main__':
 
     plt.show()
 
-    # Plotter.save_fig(name='test.png')
+    Plotter.save_fig(name='/home/hamish/Dropbox/diss_eng.pdf')

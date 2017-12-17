@@ -49,6 +49,7 @@ enum Friction { LINEAR,
 enum Surface { FREE,        // Free surface --> no ice lid
                FREE_LOADING,// Free surface with ocean self-gravity --> no ice lid (Matsuyama, 2014)
                LID_LOVE,    // Ice shell using love number theory
+               LID_MEMBR,   // Ice shell using membrane theory Beuthe (2016)
                LID_NUM,     // Ice shell using numerical integration only
                LID_INF};    // Ice shell --> immoveable (infite rigidity) lid
 
