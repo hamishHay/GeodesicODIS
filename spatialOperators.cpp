@@ -168,7 +168,7 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
     trigLat = &(mesh->trigLat);
     cosLat = &(mesh->trigLat(0,0));
 
-    start_l = 1;
+    start_l = 2;
     if (globals->surface_type == LID_LOVE) start_l = 0;
 
     // INTERPOLATE GEODESIC GRID DATA TO LAT-LON GRID
@@ -661,5 +661,80 @@ void smoothingSH(Globals * globals, Mesh * mesh, Array1D<double> & gg_scalar)
 
     delete scalar_lm;
     delete ll_scalar;
+
+};
+
+void avgAtPoles(Mesh * mesh, Array2D<double> & velocity)
+{
+    int node_num, friend_num;
+    int i, j, j1, j2, i1, i2;
+
+    Array2D<int> * friend_list;
+    Array2D<double> * cent_map_factor;
+    Array3D<double> * element_areas;
+    Array3D<double> * normal_vecs;
+    Array2D<double> * edge_lens;
+    Array1D<double> * cv_areas;
+    Array3D<double> * vel_transform;
+    // Array1D<double> * mass;
+    Array1D<int> * mask;
+
+    double m;                          // mapping factor at current cv edge
+    double a0, a1, a2;
+    double u0, u1, u2, u0_cent, u1_cent, u_avg, u_temp;
+    double v0, v1, v2, v0_cent, v1_cent, v_avg, v_temp;
+    double div;
+    double nx, ny;
+    double edge_len;
+    // double total_dmass, dmass, dt;
+    // double h;
+    double cos_a, sin_a;
+
+    node_num = mesh->node_num;
+    friend_list = &(mesh->node_friends);
+    cent_map_factor = &(mesh->control_vol_edge_centre_m);
+    element_areas = &(mesh->node_friend_element_areas_map);
+    normal_vecs = &(mesh->control_vol_edge_normal_map);
+    edge_lens = &(mesh->control_vol_edge_len);
+    cv_areas = &(mesh->control_volume_surf_area_map);
+    // mass = &(mesh->control_volume_mass);
+    // dt = mesh->globals->timeStep.Value();
+    vel_transform = &(mesh->node_vel_trans);
+    mask = &(mesh->land_mask);
+
+    // total_dmass = 0.0;
+    for (i=0; i<2; i++)
+    {
+        friend_num = 5;
+
+        u_avg = 0.0;
+        v_avg = 0.0;
+        for (j=0; j<friend_num; j++)
+        {
+            // FIND VELOCITY AT FRIEND
+            i1 = (*friend_list)(i,j);
+
+            u_temp = velocity(i1,0);
+            v_temp = velocity(i1,1);
+
+            // CONVERT TO MAPPED VELOCITIES
+            cos_a = (*vel_transform)(i, j+1, 0);
+            sin_a = (*vel_transform)(i, j+1, 1);
+            u1 = u_temp * cos_a + v_temp * sin_a;
+            v1 = -u_temp * sin_a + v_temp * cos_a;
+
+            // ADD TO AVERAGE
+            u_avg += u1;
+            v_avg += v1;
+        }
+
+        // WEIGHT BY NUMBER OF SURROUNDING POINTS
+        u_avg /= 5.0;
+        v_avg /= 5.0;
+
+        velocity(i,0) = u_avg;
+        velocity(i,1) = v_avg;
+
+    }
 
 };
