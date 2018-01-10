@@ -55,6 +55,9 @@ void deg2Ecc(Mesh * grid, Array2D<double> & velocity, double simulationTime, dou
                         *(3.*cosM*(1.+cos2Lon[j])
                         + 4.*sinM*sin2Lon[j]);
 
+        // velocity(i,0) = cosM * cosLat[i*2] * 1e-6;
+        // velocity(i,1) = 0;
+
     }
 
 };
