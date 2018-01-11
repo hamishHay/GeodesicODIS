@@ -10,6 +10,6 @@
 #include <math.h>
 #include <iostream>
 
-int updatePressure(Globals *, Mesh *, Array1D<double> &, Array2D<double> &);
+int updatePressure(Globals *, Mesh *, Array1D<double> &, Array2D<double> &, Array2D<double> &);
 
 #endif
