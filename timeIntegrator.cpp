@@ -121,7 +121,6 @@ int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt
 {
     double sum = -1.0;
     velocityDivergence(grid, deta_dt, v_t0, sum, globals->h.Value());
-    // scalarDiffusion(grid, deta_dt, )
 };
 
 // Function to implement the time loop to solve mass and momentum equations over
@@ -266,6 +265,10 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     Array2D<double> * dvel_dt_tm1;  // velocity time derivative at current timestep
     Array2D<double> * dvel_dt_tm2;  // velocity time derivative at current timestep
 
+    Array2D<double> * G_terms_t1;
+    Array2D<double> * G_terms_t0;
+    Array2D<double> * G_terms_tm1;
+
     Array2D<double> * vel_dummy;
 
     Array1D<double> * press_t0;      // displacement solution for current timestep
@@ -322,6 +325,10 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     vel_t0 = new Array2D<double>(node_num, 2);
     vel_tm1 = new Array2D<double>(node_num, 2);
 
+    G_terms_t1 = new Array2D<double>(node_num, 2);
+    G_terms_t0 = new Array2D<double>(node_num, 2);
+    G_terms_tm1 = new Array2D<double>(node_num, 2);
+
     vel_dummy = new Array2D<double>(node_num, 2);
     press_dummy = new Array1D<double>(node_num);
 
@@ -344,7 +351,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
         (*press_tm1)(i) = 0.0;
         (*vel_t0)(i,0) = 0.0;
         (*vel_t0)(i,1) = 0.0;
-        (*vel_tm1)(i,0) = cosLat[i*2] * 1e-6;
+        (*vel_tm1)(i,0) = 0.0;//cosLat[i*2] * 1e-6;
         (*vel_tm1)(i,1) = 0.0;
         (*press_t0)(i) = 0.0;
         (*press_tm1)(i) = 0.0;
@@ -366,14 +373,13 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     int err;
     double sum_dummy = 1.0;
     double avg_val;
-    double cosM;
     int f;
     while (current_time <= end_time)
     {
 
         current_time += dt;
         out_time += dt;
-        cosM = cos(globals->angVel.Value() * current_time);
+
         if (globals->surface_type == FREE ||
             globals->surface_type == FREE_LOADING ||
             globals->surface_type == LID_LOVE ||
@@ -385,7 +391,6 @@ int ab3Explicit(Globals * globals, Mesh * grid)
             // MARCH VELOCITY FORWARD IN TIME
             integrateAB3vector(globals, grid, *vel_t0, *vel_tm1, *dvel_dt_t0, *dvel_dt_tm1, *dvel_dt_tm2, iter);
 
-
             // UPDATE ENERGY DISSIPATION
             updateEnergy(globals, e_diss, *energy_diss, *vel_t0, *cv_mass);
             total_diss[0] = e_diss;
@@ -394,11 +399,8 @@ int ab3Explicit(Globals * globals, Mesh * grid)
             // SOLVE THE CONTINUITY EQUATION
             updateDisplacement(globals, grid, *dpress_dt_t0, *vel_t0);
 
-
             // MARCH DISPLACEMENT FORWARD IN TIME
             integrateAB3scalar(globals, grid, *press_t0, *press_tm1, *dpress_dt_t0, *dpress_dt_tm1, *dpress_dt_tm2, iter);
-            // if (iter==10) Output->TerminateODIS();
-            // INTEGRATE PRESSURE FORWARD IN TIME
 
             //smoothingSH(globals, grid, *press_tm1);
         }
@@ -406,121 +408,56 @@ int ab3Explicit(Globals * globals, Mesh * grid)
         else if (globals->surface_type == LID_INF)
         {
 
+            // TEST VERSION!!!!!!!!!!!!!!!! STILL UNDER TESTING. DON'T TRUST!
+
             // SOLVE THE MOMENTUM EQUATION
-            updateVelocity(globals, grid, *dvel_dt_t0, *vel_tm1, *press_dummy, current_time);
+            updateVelocity(globals, grid, *dvel_dt_t0, *vel_tm1, *press_t0, current_time);
+
+            // for (i=0; i<node_num; i++)
+            // {
+            //     (*G_terms_t0)(i,0) = (*dvel_dt_t0)(i,0);
+            //     (*G_terms_t0)(i,1) = (*dvel_dt_t0)(i,1);
+            //
+            //     (*G_terms_t1)(i,0) = (1.5 + 0.1) * (*G_terms_t0)(i, 0) - (0.5 + 0.1) * (*G_terms_tm1)(i, 0);
+            //     (*G_terms_t1)(i,1) = (1.5 + 0.1) * (*G_terms_t0)(i, 1) - (0.5 + 0.1) * (*G_terms_tm1)(i, 1);
+            // }
 
             // INTEGRATE VELOCITIES FORWARD IN TIME
-            //for (i = 0; i<node_num; i++)
-            //{
-             //   (*vel_t0)(i,0) = (*dvel_dt_t0)(i,0) * dt + (*vel_tm1)(i,0);
-                // (*vel_tm1)(i,0) = (*vel_t0)(i,0);
-
+            // for (i = 0; i<node_num; i++)
+            // {
+            //    (*vel_t0)(i,0) = (*dvel_dt_t0)(i,0) * dt + (*vel_tm1)(i,0);
+            //    (*vel_tm1)(i,0) = (*vel_t0)(i,0);
+            //
             //    (*vel_t0)(i,1) = (*dvel_dt_t0)(i,1) * dt + (*vel_tm1)(i,1);
-                // (*vel_tm1)(i,1) = (*vel_t0)(i,1);
-            //}
-
+            //    (*vel_tm1)(i,1) = (*vel_t0)(i,1);
+            // }
             // MARCH FORWARD VELOCITY SOLUTION
-            integrateAB3vector(globals, grid, *vel_t0, *vel_tm1, *dvel_dt_t0, *dvel_dt_tm1, *dvel_dt_tm2, iter);
+            // integrateAB3vector(globals, grid, *vel_t0, *vel_tm1, *dvel_dt_t0, *dvel_dt_tm1, *dvel_dt_tm2, iter);
 
             // FORCE CONTINUITY EQUATION
-            err = updatePressure(globals, grid, *press_t0, *vel_t0);
-            updateEnergy(globals, e_diss, *energy_diss, *vel_t0, *cv_mass);
+            err = updatePressure(globals, grid, *press_t0, *vel_t0, *dvel_dt_t0);
 
-            for (i=0; i<node_num; i++)
+            // pressureGradientSH(globals, grid, *dvel_dt_t0, *press_t0, -1.0/1000.0);
+
+            // INTEGRATE VELOCITIES FORWARD IN TIME
+            for (i = 0; i<node_num; i++)
             {
+                (*vel_t0)(i,0) = (*dvel_dt_t0)(i,0) * dt + (*vel_tm1)(i,0);
                 (*vel_tm1)(i,0) = (*vel_t0)(i,0);
+
+                (*vel_t0)(i,1) = (*dvel_dt_t0)(i,1) * dt + (*vel_tm1)(i,1);
                 (*vel_tm1)(i,1) = (*vel_t0)(i,1);
+
+                // (*G_terms_tm1)(i,0) = (*G_terms_t0)(i,0);
+                // (*G_terms_tm1)(i,1) = (*G_terms_t0)(i,1);
             }
 
+            updateEnergy(globals, e_diss, *energy_diss, *vel_t0, *cv_mass);
+
             total_diss[0] = e_diss;
+
+
         }
-
-
-        // else if (globals->surface_type == LID_LOVE)
-        // {
-        //     outstring << "LID SOLVER COMING SOON!" << std::endl;
-        //     Output->Write(ERR_MESSAGE, &outstring);
-        //     Output->TerminateODIS();
-        // }
-
-        // if (iter==0)
-        // {
-        //     globals->surface_type = FREE;
-        //     // dt = 200.;
-        //     // globals->timeStep.SetValue(200.);
-        // }
-        // else if (current_time/orbit_period > 0.1)
-        // {
-        //     globals->surface_type = LID_INF;
-        //     // dt = 800.;
-        //     // globals->timeStep.SetValue(800.);
-        // }
-
-        // switch (globals->surface_type)
-        // {
-        //     case FREE:
-        //
-        //         // SOLVE THE MOMENTUM EQUATION
-        //         updateVelocity(globals, grid, *dvel_dt_t0, *vel_tm1, *press_tm1, current_time);
-        //
-        //         // MARCH VELOCITY FORWARD IN TIME
-        //         integrateAB3vector(globals, grid, *vel_t0, *vel_tm1, *dvel_dt_t0, *dvel_dt_tm1, *dvel_dt_tm2, iter);
-        //
-        //         // UPDATE ENERGY DISSIPATION
-        //         updateEnergy(globals, e_diss, *energy_diss, *vel_t0, *cv_mass);
-        //         total_diss[0] = e_diss;
-        //
-        //         // SOLVE THE CONTINUITY EQUATION
-        //         updateDisplacement(globals, grid, *dpress_dt_t0, *vel_t0);
-        //
-        //         // MARCH DISPLACEMENT FORWARD IN TIME
-        //         integrateAB3scalar(globals, grid, *press_t0, *press_tm1, *dpress_dt_t0, *dpress_dt_tm1, *dpress_dt_tm2, iter);
-        //
-        //         break;
-        //
-        //     case LID_INF:
-        //
-        //         // SOLVE THE MOMENTUM EQUATION
-        //         updateVelocity(globals, grid, *dvel_dt_t0, *vel_tm1, *press_dummy, current_time);
-        //
-        //
-        //         // INTEGRATE VELOCITIES FORWARD IN TIME
-        //         for (i = 0; i<node_num; i++)
-        //         {
-        //             (*vel_t0)(i,0) = (*dvel_dt_t0)(i,0) * dt + (*vel_tm1)(i,0);
-        //             // (*vel_tm1)(i,0) = (*vel_t0)(i,0);
-        //
-        //             (*vel_t0)(i,1) = (*dvel_dt_t0)(i,1) * dt + (*vel_tm1)(i,1);
-        //             // (*vel_tm1)(i,1) = (*vel_t0)(i,1);
-        //         }
-        //
-        //         // MARCH FORWARD VELOCITY SOLUTION
-        //         // integrateAB3vector(globals, grid, *vel_t0, *vel_tm1, *dvel_dt_t0, *dvel_dt_tm1, *dvel_dt_tm2, iter);
-        //
-        //         // FORCE CONTINUITY EQUATION
-        //         err = updatePressure(globals, grid, *press_t0, *vel_t0);
-        //         updateEnergy(globals, e_diss, *energy_diss, *vel_t0, *cv_mass);
-        //
-        //         for (i=0; i<node_num; i++)
-        //         {
-        //             (*vel_tm1)(i,0) = (*vel_t0)(i,0);
-        //             (*vel_tm1)(i,1) = (*vel_t0)(i,1);
-        //         }
-        //
-        //         total_diss[0] = e_diss;
-        //
-        //         break;
-        //
-        //     case LID_LOVE:
-        //         outstring << "LID SOLVER COMING SOON!" << std::endl;
-        //         Output->Write(ERR_MESSAGE, &outstring);
-        //         Output->TerminateODIS();
-        //         break;
-        //
-        // }
-
-        // current_time += dt;
-        // out_time += dt;
 
         // Check for output
         iter ++;
@@ -531,9 +468,9 @@ int ab3Explicit(Globals * globals, Mesh * grid)
             std::cout<<" AVG DISS: "<<*total_diss<<" W"<<std::endl;
 
             out_time -= out_frac*orbit_period;
-            // pp[3] = &(*energy_diss)(0);
-            pp[1] = &(*press_tm1)(0);
-            pp[3] = &(*press_dummy)(0);
+            pp[3] = &(*energy_diss)(0);
+            pp[1] = &(*press_t0)(0);
+            // pp[3] = &(*press_dummy)(0);
             // pp[1] = &(grid->land_mask(0));
             pp[2] = &(*vel_t0)(0,0);
             // pp[2] = &(*vel_dummy)(0,0);
