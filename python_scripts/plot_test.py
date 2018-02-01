@@ -1,5 +1,5 @@
 import matplotlib as mpl
-mpl.use('Agg')
+# mpl.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.tri as tri
 import matplotlib as mpl
@@ -28,7 +28,7 @@ plt.rc('figure', dpi=120)
 # Creating a Triangulation without specifying the triangles results in the
 # Delaunay triangulation of the points.
 try:
-    grid = np.loadtxt("input_files/grid_l6.txt",skiprows=1,usecols=(1,2))
+    grid = np.loadtxt("input_files/grid_l8_test_new.txt",skiprows=1,usecols=(1,2))
 except:
     d = input("Grid mismatch! Which grid do you want?: ")
     grid = np.loadtxt("input_files/grid_l" + str(int(d)) + ".txt",skiprows=1,usecols=(1,2))
@@ -41,21 +41,22 @@ n = int(sys.argv[1])
 in_file = h5py.File("DATA/data.h5", 'r')
 # in_file = h5py.File("DATA_G6_T1000/data.h5", 'r')
 
-data_u = np.array(in_file["east velocity"][:,0])
-data_v = np.array(in_file["north velocity"][:,0])
-data_eta = np.array(in_file["displacement"][:,0])
+s = 0
+data_u = np.array(in_file["east velocity"][:,s])
+data_v = np.array(in_file["north velocity"][:,s])
+data_eta = np.array(in_file["displacement"][:,s])
 
 
-data_diss = np.array(in_file["avg dissipation output"][:])
-
-print(np.mean(data_diss[-200:-1]))
-
-plt.semilogy(data_diss)
-plt.show()
+# data_diss = np.array(in_file["avg dissipation output"][:])
+#
+# print(np.mean(data_diss[-200:-1]))
+#
+# plt.semilogy(data_diss)
+# plt.show()
 
 fig, (ax1, ax2, ax3) = plt.subplots(ncols=3, figsize=(15,4))
 
-t_max = 100
+t_max = 150
 t_min = 0
 time = np.linspace(t_min, t_max, len(data_eta))
 
@@ -77,9 +78,9 @@ print("TRIANGULATING POSITIONS")
 triang = tri.Triangulation(x, y)
 
 fig, (ax1,ax2,ax3) = plt.subplots(ncols=3, figsize=(15,4))
-c1 = ax1.tricontourf(triang,data_u,11)
-c2 = ax2.tricontourf(triang,data_v,11)
-c3 = ax3.tricontourf(triang,data_eta,11)
+c1 = ax1.tricontourf(triang,data_u,21)
+c2 = ax2.tricontourf(triang,data_v,21)
+c3 = ax3.tricontourf(triang,data_eta,21)
 
 plt.colorbar(c1, ax = ax1, orientation="horizontal")
 plt.colorbar(c2, ax = ax2, orientation="horizontal")

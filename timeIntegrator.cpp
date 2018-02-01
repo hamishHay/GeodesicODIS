@@ -40,7 +40,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
     obliq = globals->theta.Value();
     h = globals->h.Value();
     node_num = globals->node_num;
-    visc = 1e4;
+    visc = 1e3;
 
     switch (globals->tide_type)
     {
@@ -402,7 +402,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
             // MARCH DISPLACEMENT FORWARD IN TIME
             integrateAB3scalar(globals, grid, *press_t0, *press_tm1, *dpress_dt_t0, *dpress_dt_tm1, *dpress_dt_tm2, iter);
 
-            //smoothingSH(globals, grid, *press_tm1);
+            // if (out_time >= out_frac*orbit_period) smoothingSH(globals, grid, *press_tm1);
         }
 
         else if (globals->surface_type == LID_INF)

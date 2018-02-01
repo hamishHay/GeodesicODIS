@@ -73,6 +73,7 @@ void membraneNuBeta(Array1D<double> & nu, Array1D<double> & beta, int l_max, Glo
     den_core = mass_core / vol_core;
     grav_core = G*mass_core/pow(radius_core, 2.0);
 
+    std::cout<<"ocean to bulk den ratio: "<<den_ocean/den_bulk<<std::endl;
 
     for (l = 0; l < l_max+1; l++)
     {

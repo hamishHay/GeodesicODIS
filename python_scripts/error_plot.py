@@ -26,10 +26,10 @@ plt.rc('lines', linewidth=0.6)
 
 plt.rc('figure', dpi=120)
 
-fname = "grid_error_g4_test.txt"
+fname = "error_g6_old.txt"
 
 
-grid = np.loadtxt("input_files/grid_l4.txt",skiprows=1,usecols=(1,2))
+grid = np.loadtxt("input_files/grid_l6.txt",skiprows=1,usecols=(1,2))
 x = np.radians(grid[:,1])[2:]
 y = np.radians(grid[:,0])[2:]
 triang = tri.Triangulation(x, y)

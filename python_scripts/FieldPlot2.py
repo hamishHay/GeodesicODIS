@@ -1,7 +1,7 @@
 import numpy as np
 import h5py
 import matplotlib as mpl
-mpl.use("Agg")
+# mpl.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.tri as tri
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
