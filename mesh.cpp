@@ -1001,8 +1001,8 @@ int Mesh::ReadMeshFile(void)
     std::string file_str;                  // string with path to mesh file.
     int i, node_id;
 
-    file_str = globals->path + SEP + "input_files" + SEP + "grid_l" + std::to_string(globals->geodesic_l.Value()) + "_test_new.txt";
-    // file_str = globals->path + SEP + "input_files" + SEP + "grid_l" + std::to_string(globals->geodesic_l.Value()) + ".txt";
+    // file_str = globals->path + SEP + "input_files" + SEP + "grid_l" + std::to_string(globals->geodesic_l.Value()) + "_test_new.txt";
+    file_str = globals->path + SEP + "input_files" + SEP + "grid_l" + std::to_string(globals->geodesic_l.Value()) + ".txt";
 
     // in stream for input.in file
     std::ifstream gridFile(file_str, std::ifstream::in);

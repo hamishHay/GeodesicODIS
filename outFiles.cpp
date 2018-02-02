@@ -150,12 +150,12 @@ void OutFiles::CreateHDF5Framework(Globals * globals)
   output_time = globals->outputTime.Value();
 
   #if _WIN32
-    mkdir(&(globals->path + SEP + "Grid" + SEP)[0], NULL);
+    // mkdir(&(globals->path + SEP + "Grid" + SEP)[0], NULL);
 
     mkdir(&(globals->path +  SEP + "DATA" + SEP)[0], NULL);
 
   #elif __linux__
-    mkdir(&(globals->path +  SEP + "Grid" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
+    // mkdir(&(globals->path +  SEP + "Grid" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
 
     mkdir(&(globals->path +  SEP + "DATA" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
 

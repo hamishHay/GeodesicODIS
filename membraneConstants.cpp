@@ -75,6 +75,12 @@ void membraneNuBeta(Array1D<double> & nu, Array1D<double> & beta, int l_max, Glo
 
     std::cout<<"ocean to bulk den ratio: "<<den_ocean/den_bulk<<std::endl;
 
+    // OVERWRITING THE ABOVE
+
+    grav_core = grav_surf;
+    radius_core = radius;
+    den_core = den_bulk;
+
     for (l = 0; l < l_max+1; l++)
     {
 
@@ -110,7 +116,7 @@ void membraneNuBeta(Array1D<double> & nu, Array1D<double> & beta, int l_max, Glo
         sprConst = sprMembrane + sprBending;
 
         // FIND dSpring and dGam^tide
-        xi = 3.0 / (2.*l + 1.0) * (den_ocean/den_core);
+        xi = 3.0 / (2.*l + 1.0) * (den_ocean/den_bulk); // CHANGED den_core to den bulk
 
         dsprConst = 1. - pow((1. + xi*hl),2.0)/(1. + xi*(ht - hl)*sprConst);
         dsprConst *= -sprConst;
@@ -125,8 +131,8 @@ void membraneNuBeta(Array1D<double> & nu, Array1D<double> & beta, int l_max, Glo
         std::cout<<std::fixed << std::setprecision(8)<<l<<'\t'<<beta(l)<<'\t'<<nu(l)<<std::endl;
 
         // Modify core radius and gravity values in globals
-        consts->g.SetValue(grav_core);
-        consts->radius.SetValue(radius_core);
+        // consts->g.SetValue(grav_core);
+        // consts->radius.SetValue(radius_core);
 
 
     }
