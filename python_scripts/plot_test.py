@@ -28,7 +28,7 @@ plt.rc('figure', dpi=120)
 # Creating a Triangulation without specifying the triangles results in the
 # Delaunay triangulation of the points.
 try:
-    grid = np.loadtxt("input_files/grid_l8_test_new.txt",skiprows=1,usecols=(1,2))
+    grid = np.loadtxt("input_files/grid_l6_test_new.txt",skiprows=1,usecols=(1,2))
 except:
     d = input("Grid mismatch! Which grid do you want?: ")
     grid = np.loadtxt("input_files/grid_l" + str(int(d)) + ".txt",skiprows=1,usecols=(1,2))
@@ -81,6 +81,10 @@ fig, (ax1,ax2,ax3) = plt.subplots(ncols=3, figsize=(15,4))
 c1 = ax1.tricontourf(triang,data_u,21)
 c2 = ax2.tricontourf(triang,data_v,21)
 c3 = ax3.tricontourf(triang,data_eta,21)
+
+# c1 = ax1.tripcolor(triang,data_u,21)
+# c2 = ax2.tripcolor(triang,data_v,21)
+# c3 = ax3.tripcolor(triang,data_eta,21)
 
 plt.colorbar(c1, ax = ax1, orientation="horizontal")
 plt.colorbar(c2, ax = ax2, orientation="horizontal")

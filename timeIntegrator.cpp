@@ -40,7 +40,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
     obliq = globals->theta.Value();
     h = globals->h.Value();
     node_num = globals->node_num;
-    visc = 1e3;
+    visc = 1e5;
 
     switch (globals->tide_type)
     {
@@ -115,12 +115,28 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
 
     velocityDiffusion(grid, dvdt, v_tm1, visc);
 
+    // avgAtPoles(grid, dvdt);
+
 };
 
-int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt, Array2D<double> & v_t0)
+int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt, Array2D<double> & v_t0, Array1D<double> & h_total)
 {
     double sum = -1.0;
-    velocityDivergence(grid, deta_dt, v_t0, sum, globals->h.Value());
+    int node_num = globals->node_num;
+
+    Array2D<double> * v_temp;
+    v_temp = new Array2D<double>(node_num, 2);
+
+    for (int i=0; i<node_num; i++)
+    {
+        (*v_temp)(i, 0) = v_t0(i, 0) * h_total(i);
+        (*v_temp)(i, 1) = v_t0(i, 1) * h_total(i);
+    }
+
+    // velocityDivergence(grid, deta_dt, v_t0, sum, globals->h.Value()); //ORIGINAL
+    velocityDivergence(grid, deta_dt, *v_temp, sum, 1.0);
+
+    delete v_temp;
 };
 
 // Function to implement the time loop to solve mass and momentum equations over
@@ -198,7 +214,7 @@ int eulerExplicit(Globals * globals, Mesh * grid)
             (*vel_tm1)(i,1) = (*vel_t0)(i,1);
         }
 
-        updateDisplacement(globals, grid, *dpress_dt_t0, *vel_t0);
+        // updateDisplacement(globals, grid, *dpress_dt_t0, *vel_t0);
 
         // INTEGRATE PRESSURE FORWARD IN TIME
         for (i = 0; i<node_num; i++)
@@ -271,6 +287,9 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
     Array2D<double> * vel_dummy;
 
+    Array1D<double> * hs_static;    // Undisturbed ocean thickness
+    Array1D<double> * hs_dynamic;   // hs_static + tidal displacement
+
     Array1D<double> * press_t0;      // displacement solution for current timestep
     Array1D<double> * press_tm1;     // displacement solution at previous timestep (t minus 1)
     Array1D<double> * press_tm2;
@@ -332,6 +351,9 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     vel_dummy = new Array2D<double>(node_num, 2);
     press_dummy = new Array1D<double>(node_num);
 
+    hs_static = new Array1D<double>(node_num);
+    hs_dynamic = new Array1D<double>(node_num);
+
     dpress_dt_t0 = new Array1D<double>(node_num);
     dpress_dt_tm1 = new Array1D<double>(node_num);
     dpress_dt_tm2 = new Array1D<double>(node_num);
@@ -357,6 +379,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
         (*press_tm1)(i) = 0.0;
         (*press_tm2)(i) = 0.0;
         (*cv_mass)(i) = grid->control_volume_mass(i);
+        (*hs_static)(i) = globals->h.Value();
     }
 
     // loadInitialConditions(globals, grid, *vel_tm1, *press_tm1);
@@ -397,10 +420,15 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
 
             // SOLVE THE CONTINUITY EQUATION
-            updateDisplacement(globals, grid, *dpress_dt_t0, *vel_t0);
+            updateDisplacement(globals, grid, *dpress_dt_t0, *vel_t0, *hs_dynamic);
 
             // MARCH DISPLACEMENT FORWARD IN TIME
             integrateAB3scalar(globals, grid, *press_t0, *press_tm1, *dpress_dt_t0, *dpress_dt_tm1, *dpress_dt_tm2, iter);
+
+            for (i=0; i<node_num; i++)
+            {
+                (*hs_dynamic)(i) = (*hs_static)(i) + (*press_t0)(i);
+            }
 
             // if (out_time >= out_frac*orbit_period) smoothingSH(globals, grid, *press_tm1);
         }
