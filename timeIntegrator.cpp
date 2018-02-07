@@ -265,10 +265,6 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     Array2D<double> * dvel_dt_tm1;  // velocity time derivative at current timestep
     Array2D<double> * dvel_dt_tm2;  // velocity time derivative at current timestep
 
-    Array2D<double> * G_terms_t1;
-    Array2D<double> * G_terms_t0;
-    Array2D<double> * G_terms_tm1;
-
     Array2D<double> * vel_dummy;
 
     Array1D<double> * press_t0;      // displacement solution for current timestep
@@ -290,6 +286,8 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     // double r, omega, e, obliq, drag_coeff, h;
     double lon, lat;
     double r = globals->radius.Value();
+
+    std::cout<<r<<std::endl;
 
     double * cosLon, * cosLat, * cos2Lon;
 
@@ -324,10 +322,6 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     dvel_dt_tm2 = new Array2D<double>(node_num, 2);
     vel_t0 = new Array2D<double>(node_num, 2);
     vel_tm1 = new Array2D<double>(node_num, 2);
-
-    G_terms_t1 = new Array2D<double>(node_num, 2);
-    G_terms_t0 = new Array2D<double>(node_num, 2);
-    G_terms_tm1 = new Array2D<double>(node_num, 2);
 
     vel_dummy = new Array2D<double>(node_num, 2);
     press_dummy = new Array1D<double>(node_num);
@@ -395,7 +389,6 @@ int ab3Explicit(Globals * globals, Mesh * grid)
             updateEnergy(globals, e_diss, *energy_diss, *vel_t0, *cv_mass);
             total_diss[0] = e_diss;
 
-
             // SOLVE THE CONTINUITY EQUATION
             updateDisplacement(globals, grid, *dpress_dt_t0, *vel_t0);
 
@@ -413,14 +406,6 @@ int ab3Explicit(Globals * globals, Mesh * grid)
             // SOLVE THE MOMENTUM EQUATION
             updateVelocity(globals, grid, *dvel_dt_t0, *vel_tm1, *press_t0, current_time);
 
-            // for (i=0; i<node_num; i++)
-            // {
-            //     (*G_terms_t0)(i,0) = (*dvel_dt_t0)(i,0);
-            //     (*G_terms_t0)(i,1) = (*dvel_dt_t0)(i,1);
-            //
-            //     (*G_terms_t1)(i,0) = (1.5 + 0.1) * (*G_terms_t0)(i, 0) - (0.5 + 0.1) * (*G_terms_tm1)(i, 0);
-            //     (*G_terms_t1)(i,1) = (1.5 + 0.1) * (*G_terms_t0)(i, 1) - (0.5 + 0.1) * (*G_terms_tm1)(i, 1);
-            // }
 
             // INTEGRATE VELOCITIES FORWARD IN TIME
             // for (i = 0; i<node_num; i++)

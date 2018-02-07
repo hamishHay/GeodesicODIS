@@ -106,7 +106,7 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
 
     CalcPressureFactor();
 
-    // ReadLatLonFile();
+    ReadLatLonFile();
 
 };
 
