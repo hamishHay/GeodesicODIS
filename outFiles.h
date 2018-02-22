@@ -48,12 +48,17 @@ public:
 
   //------------------------Objects for HDF5 Storage----------------------------
 
-  float * eta_1D;
   float * u_1D;
   float * v_1D;
+  float * eta_1D;
+  float * press_1D;
   float * diss_1D;
+  float * kinetic_1D;
   float * diss_avg_1D;
-  float * harm_coeff_1D;
+  float * kinetic_avg_1D;
+  float * dummy1_1D;
+  float * dummy2_2D;
+  // float * harm_coeff_1D;
 
   hsize_t rank_field;
   hsize_t rank_harm;
@@ -64,23 +69,38 @@ public:
   hid_t data_space_eta;
   hid_t data_space_u;
   hid_t data_space_v;
+  hid_t data_space_press;
   hid_t data_space_diss;
+  hid_t data_space_kinetic;
   hid_t data_space_1D_avg;
-  hid_t data_space_harm_coeff;
+  hid_t data_space_1D_kinetic_avg;
+  hid_t data_space_dummy1;
+  hid_t data_space_dummy2;
+  // hid_t data_space_harm_coeff;
 
   hid_t mem_space_eta;
   hid_t mem_space_u;
   hid_t mem_space_v;
+  hid_t mem_space_press;
   hid_t mem_space_diss;
+  hid_t mem_space_kinetic;
   hid_t mem_space_1D_avg;
-  hid_t mem_space_harm_coeff;
+  hid_t mem_space_1D_kinetic_avg;
+  hid_t mem_space_dummy1;
+  hid_t mem_space_dummy2;
+  // hid_t mem_space_harm_coeff;
 
   hid_t data_set_eta;
   hid_t data_set_u;
   hid_t data_set_v;
+  hid_t data_set_press;
   hid_t data_set_diss;
+  hid_t data_set_kinetic;
   hid_t data_set_1D_avg;
-  hid_t data_set_harm_coeff;
+  hid_t data_set_1D_kinetic_avg;
+  hid_t data_set_dummy1;
+  hid_t data_set_dummy2;
+  // hid_t data_set_harm_coeff;
 
   char * dataFilePath;
 

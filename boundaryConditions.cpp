@@ -37,12 +37,12 @@ int applySurfaceBCs(Globals * globals)
             loading_factor = globals->loading_factor;
 
             ocean_den = 1000.0;
-            bulk_den = 1610.0;              // Enceladus value
+            bulk_den = 1609.22;              // Enceladus value
             rig = 6.78e9;
+            rig = 40e9;
 
             g = globals->g.Value();
             r = globals->radius.Value();
-
 
             for (l = 0; l < l_max+1; l++)
             {
@@ -56,11 +56,15 @@ int applySurfaceBCs(Globals * globals)
                 loading_factor[l] = (1.0 + k_l - h_l);
                 loading_factor[l] *= 3.*ocean_den/((2.*(double)l + 1.0) * bulk_den);
                 loading_factor[l] = 1.0 - loading_factor[l];
-
             }
 
-            k2 = globals->loveK2.Value();
-            h2 = globals->loveH2.Value();
+            l = 2;
+            eff_rig = (double)(2*l*l + 4*l + 3);
+            eff_rig /= (double)l;
+            eff_rig *= rig / (bulk_den * g * r);
+
+            k2 = 1.5 / (1. + eff_rig); //globals->loveK2.Value();
+            h2 = 2.5 / (1. + eff_rig); //globals->loveH2.Value();
 
             globals->loveReduct.SetValue(1.0 + k2 - h2);
         }

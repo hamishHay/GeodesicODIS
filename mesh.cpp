@@ -705,12 +705,13 @@ int Mesh::CalcControlVolumeMass(void)
   avg_area /= node_num;
   for (i=0; i<node_num; i++)
   {
-      t_area = &control_volume_mass(i);
-      *t_area *= avg_area/(*t_area) * 1000.0 * globals->h.Value();
-    //   *t_area *= 1000.0 * globals->h.Value();
-    //   mass_sum += *t_area;
+     t_area = &control_volume_mass(i);
+    *t_area *= avg_area/(*t_area) * 1000.0 * globals->h.Value();
+    //*t_area *= 1000.0 * globals->h.Value();
+    //std::cout<<i<<", "<<*t_area<<std::endl;
+    mass_sum += *t_area;
   }
-  // std::cout<<"MASS: "<<mass_sum<<std::endl;
+  std::cout<<"MASS: "<<mass_sum<<", "<<4.*pi*r*r*50e3*1000.0<<std::endl;
   return 1;
 }
 
@@ -1001,8 +1002,8 @@ int Mesh::ReadMeshFile(void)
     std::string file_str;                  // string with path to mesh file.
     int i, node_id;
 
-    // file_str = globals->path + SEP + "input_files" + SEP + "grid_l" + std::to_string(globals->geodesic_l.Value()) + "_test_new.txt";
     file_str = globals->path + SEP + "input_files" + SEP + "grid_l" + std::to_string(globals->geodesic_l.Value()) + ".txt";
+    // file_str = globals->path + SEP + "input_files" + SEP + "grid_l" + std::to_string(globals->geodesic_l.Value()) + "_ordered.txt";
 
     // in stream for input.in file
     std::ifstream gridFile(file_str, std::ifstream::in);

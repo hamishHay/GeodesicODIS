@@ -142,11 +142,11 @@ Globals::Globals(int action) {
     init.SetStringID("initial conditions");
     allGlobals.push_back(&init);
 
-    diss.SetStringID("avg dissipation output");
-    allGlobals.push_back(&diss);
+    diss_avg.SetStringID("dissipation avg output");
+    allGlobals.push_back(&diss_avg);
 
-    kinetic.SetStringID("kinetic output");
-    allGlobals.push_back(&kinetic);
+    kinetic_avg.SetStringID("kinetic avg output");
+    allGlobals.push_back(&kinetic_avg);
 
     work.SetStringID("work flux output");
     allGlobals.push_back(&work);
@@ -157,8 +157,20 @@ Globals::Globals(int action) {
     field_velocity_output.SetStringID("velocity output");
     allGlobals.push_back(&field_velocity_output);
 
+    field_pressure_output.SetStringID("pressure output");
+    allGlobals.push_back(&field_pressure_output);
+
     field_diss_output.SetStringID("dissipation output");
     allGlobals.push_back(&field_diss_output);
+
+    field_kinetic_output.SetStringID("kinetic output");
+    allGlobals.push_back(&field_kinetic_output);
+
+    field_dummy1_output.SetStringID("dummy1 output");
+    allGlobals.push_back(&field_dummy1_output);
+
+    field_dummy2_output.SetStringID("dummy2 output");
+    allGlobals.push_back(&field_dummy2_output);
 
     sh_coeff_output.SetStringID("sh coefficient output");
     allGlobals.push_back(&sh_coeff_output);
@@ -337,18 +349,24 @@ int Globals::ReadGlobals(void)
     inputFile.close();
 
     // Set obliquity to radians
-
     theta.SetValue(theta.Value()*pi/180.);
+
+    // Overwrite period to match angular velocity
+    period.SetValue(2.*pi/angVel.Value());
 
 
     // Add all output tags to the string array out_tags
-    if (diss.Value()) out_tags.push_back(diss.StringID());
-    if (kinetic.Value()) out_tags.push_back(kinetic.StringID());
-    if (work.Value()) out_tags.push_back(work.StringID());
-    if (field_displacement_output.Value()) out_tags.push_back(field_displacement_output.StringID());
-    if (field_velocity_output.Value()) out_tags.push_back(field_velocity_output.StringID());
-    if (field_diss_output.Value()) out_tags.push_back(field_diss_output.StringID());
-    if (sh_coeff_output.Value()) out_tags.push_back(sh_coeff_output.StringID());
+    if (field_velocity_output.Value())      out_tags.push_back(field_velocity_output.StringID());
+    if (field_displacement_output.Value())  out_tags.push_back(field_displacement_output.StringID());
+    if (field_pressure_output.Value())      out_tags.push_back(field_pressure_output.StringID());
+    if (field_diss_output.Value())          out_tags.push_back(field_diss_output.StringID());
+    if (field_kinetic_output.Value())       out_tags.push_back(field_kinetic_output.StringID());
+    if (diss_avg.Value())                   out_tags.push_back(diss_avg.StringID());
+    if (kinetic_avg.Value())                out_tags.push_back(kinetic_avg.StringID());
+    if (field_dummy1_output.Value())        out_tags.push_back(field_dummy1_output.StringID());
+    if (field_dummy2_output.Value())        out_tags.push_back(field_dummy2_output.StringID());
+    // if (work.Value())                       out_tags.push_back(work.StringID());
+    // if (sh_coeff_output.Value())            out_tags.push_back(sh_coeff_output.StringID());
 
     // Check for any unassigned global variables
     for (unsigned int i = 0; i < allGlobals.size(); i++){
@@ -458,10 +476,10 @@ void Globals::SetDefault(void)
   init.SetValue(false);
 
   //Output dissipated energy?
-  diss.SetValue(true);
+  diss_avg.SetValue(true);
 
   //Output kinetic energy?
-  kinetic.SetValue(false);
+  kinetic_avg.SetValue(false);
 
   //Output work flux?
   work.SetValue(false);

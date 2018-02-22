@@ -28,7 +28,7 @@ plt.rc('figure', dpi=120)
 # Creating a Triangulation without specifying the triangles results in the
 # Delaunay triangulation of the points.
 try:
-    grid = np.loadtxt("input_files/grid_l5.txt",skiprows=1,usecols=(1,2))
+    grid = np.loadtxt("input_files/grid_l5_ordered.txt",skiprows=1,usecols=(1,2))
 except:
     d = input("Grid mismatch! Which grid do you want?: ")
     grid = np.loadtxt("input_files/grid_l" + str(int(d)) + ".txt",skiprows=1,usecols=(1,2))
@@ -42,9 +42,9 @@ in_file = h5py.File("DATA/data.h5", 'r')
 # in_file = h5py.File("DATA_G6_T1000/data.h5", 'r')
 
 s = 0
-data_u = np.array(in_file["east velocity"][:,s])
-data_v = np.array(in_file["north velocity"][:,s])
-data_eta = np.array(in_file["displacement"][:,s])
+data_u = in_file["east velocity"][:,s]
+data_v = in_file["north velocity"][:,s]
+data_eta = in_file["displacement"][:,s]
 
 
 # data_diss = np.array(in_file["avg dissipation output"][:])
@@ -66,11 +66,11 @@ ax1.plot(time, data_u)
 ax2.plot(time, data_v)
 ax3.plot(time, data_eta)
 #
-data_u = np.array(in_file["east velocity"][n])
-data_v = np.array(in_file["north velocity"][n])
+data_u = in_file["east velocity"][n]
+data_v = in_file["north velocity"][n]
 
-data_eta = np.array(in_file["displacement"][n])
-data_diss = np.array(in_file["dissipated energy"][n])
+data_eta = in_file["displacement"][n]
+data_diss = in_file["dissipated energy"][n]
 
 print(np.max(data_u), np.max(data_v), np.max(data_eta))
 print("TRIANGULATING POSITIONS")

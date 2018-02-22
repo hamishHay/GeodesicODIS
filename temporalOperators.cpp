@@ -33,6 +33,7 @@ int integrateAB3vector(Globals * globals,
      c = 5./12.;
 
      if (iter > 1) {
+
          for (i = 0; i<node_num; i++)
          {
              v_t0(i,0) = (a*dv_dt_t0(i,0)

@@ -6,7 +6,7 @@ HOME=/usr/local
 
 #-mavx2 -mfma
 
-CFLAGS = -O3 -c -Wall -Wno-unused-variable -Wno-sign-compare -Wunused-but-set-variable  -ffast-math -funroll-loops -finline-functions  -std=c++14 -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp
+CFLAGS = -O3 -c -Wall -Wno-unused-variable -Wno-sign-compare -Wunused-but-set-variable  -ffast-math -funroll-loops -finline-functions  -std=c++14 -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp -fopenmp
 
 CLINK = -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp
 
@@ -24,7 +24,7 @@ all: ODIS
 
 
 ODIS: legendre.o legendreDeriv.o extractSHCoeffGG.o extractSHCoeffLL.o main.o tidalPotentials.o outFiles.o globals.o mesh.o membraneConstants.o boundaryConditions.o initialConditions.o solver.o timeIntegrator.o drag.o coriolis.o spatialOperators.o temporalOperators.o energy.o sphericalHarmonics.o interpolation.o pressure.o tests.o
-	$(CC) $(FLINK) legendre.o legendreDeriv.o extractSHCoeffGG.o extractSHCoeffLL.o $(FLINK) main.o tidalPotentials.o outFiles.o globals.o mesh.o membraneConstants.o boundaryConditions.o initialConditions.o solver.o timeIntegrator.o drag.o coriolis.o spatialOperators.o temporalOperators.o energy.o sphericalHarmonics.o interpolation.o pressure.o tests.o -o ODIS -lgfortran $(CLINK)
+	$(CC) $(FLINK) legendre.o legendreDeriv.o extractSHCoeffGG.o extractSHCoeffLL.o $(FLINK) main.o tidalPotentials.o outFiles.o globals.o mesh.o membraneConstants.o boundaryConditions.o initialConditions.o solver.o timeIntegrator.o drag.o coriolis.o spatialOperators.o temporalOperators.o energy.o sphericalHarmonics.o interpolation.o pressure.o tests.o -o ODIS -lgfortran -fopenmp $(CLINK)
 
 legendre.o: legendre.f95
 	$(F) $(FFLAGS) legendre.f95

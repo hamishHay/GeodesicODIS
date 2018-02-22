@@ -8,6 +8,7 @@
 
 // static double dummy_sum = 0;
 
+// #pragma omp for
 void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pressure, double g = 1.0)
 {
     int node_num, friend_num;
@@ -47,6 +48,7 @@ void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pre
     {
         end_i = 2;
     }
+
 
     for (i=0; i<end_i; i++)
     {
@@ -136,6 +138,7 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
     double * cosLat;
 
     Array3D<double> * scalar_lm;
+    Array3D<double> * scalar_lm_dummy;
 
     Array1D<double> * scalar_dummy;
 
@@ -159,6 +162,7 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
     shell_factor_beta = globals->shell_factor_beta;
 
     scalar_lm = new Array3D<double>(2.*(l_max+1), 2.*(l_max+1), 2);
+    scalar_lm_dummy = new Array3D<double>(2.*(l_max+1), 2*(l_max+1), 2);
     ll_scalar = new Array2D<double>(180/N_ll, 360/N_ll);
     scalar_dummy = new Array1D<double>(node_num);
 
@@ -170,19 +174,32 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
 
     start_l = 2;
     if (globals->surface_type == LID_LOVE) start_l = 0;
+    if (globals->surface_type == FREE_LOADING) start_l = 2;
 
     // INTERPOLATE GEODESIC GRID DATA TO LAT-LON GRID
     interpolateGG2LL(globals,
-                        mesh,
-                        *ll_scalar,
-                        gg_scalar,
-                        mesh->ll_map_coords,
-                        mesh->V_inv,
-                        mesh->cell_ID);
+                       mesh,
+                       *ll_scalar,
+                       gg_scalar,
+                       mesh->ll_map_coords,
+                       mesh->V_inv,
+                       mesh->cell_ID);
 
     // FIND SPHERICAL HARMONIC EXPANSION COEFFICIENTS
     // OF THE PRESSURE FIELD
     getSHCoeffsLL(*ll_scalar, *scalar_lm, N_ll, l_max);
+
+    //getSHCoeffsGG((mesh->node_pos_sph), gg_scalar, *scalar_lm, node_num, l_max);
+
+    //for (l=0; l<l_max+1; l++)
+    //{
+    //    for (m=0; m<=l; m++)
+    //    {
+        //std::cout<<l<<' '<<m<<' '<<(*scalar_lm)(l, m, 1)<<'\t'<<(*scalar_lm_dummy)(l, m, 1)<<std::endl;
+    //    }
+    //}
+
+
 
     int method = 1;
     switch (method)
@@ -300,6 +317,7 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
     delete scalar_dummy;
     delete scalar_lm;
     delete ll_scalar;
+    delete scalar_lm_dummy;
 
 }
 
@@ -463,8 +481,6 @@ void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & v
 
     // std::cout<<std::scientific<<total_dmass<<std::endl;
 };
-
-
 
 // Function to calculate the Laplacian and diffusion for the velocity field.
 // The discretized operator used here is the second order accurate finite

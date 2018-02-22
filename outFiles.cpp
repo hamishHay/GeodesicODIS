@@ -165,8 +165,11 @@ void OutFiles::CreateHDF5Framework(Globals * globals)
     eta_1D = new float[node_num];
     v_1D = new float[node_num];
     u_1D = new float[node_num];
+    press_1D = new float[node_num];
     diss_1D = new float[node_num];
+    kinetic_1D = new float[node_num];
     diss_avg_1D = new float[1];
+    kinetic_avg_1D = new float[node_num];
     // harm_coeff_1D = new float[2*(l_max+1)*(l_max+1)];
 
     time_slices = (end_time/orbit_period)/output_time + 1;
@@ -211,13 +214,8 @@ void OutFiles::CreateHDF5Framework(Globals * globals)
     // max_dims_harm_coeff[2] = harm_rows;
     // max_dims_harm_coeff[3] = harm_cols;
     //
-    if (globals->field_displacement_output.Value()) {
-        data_space_eta = H5Screate_simple(rank_field, max_dims_field, NULL); // 2D data space
-        data_set_eta = H5Dcreate(file, "displacement", H5T_NATIVE_FLOAT, data_space_eta, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-        mem_space_eta = H5Screate_simple(rank_field, dims_field, NULL);
-    }
-    //
-    if (globals->field_velocity_output.Value()) {
+    if (globals->field_velocity_output.Value())
+    {
         data_space_u = H5Screate_simple(rank_field, max_dims_field, NULL);
         data_space_v = H5Screate_simple(rank_field, max_dims_field, NULL);
         data_set_u = H5Dcreate(file, "east velocity", H5T_NATIVE_FLOAT, data_space_u, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
@@ -225,18 +223,59 @@ void OutFiles::CreateHDF5Framework(Globals * globals)
         mem_space_u = H5Screate_simple(rank_field, dims_field, NULL);
         mem_space_v = H5Screate_simple(rank_field, dims_field, NULL);
     }
-    //
-    if (globals->field_diss_output.Value()) {
+    if (globals->field_displacement_output.Value())
+    {
+        data_space_eta = H5Screate_simple(rank_field, max_dims_field, NULL); // 2D data space
+        data_set_eta = H5Dcreate(file, "displacement", H5T_NATIVE_FLOAT, data_space_eta, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        mem_space_eta = H5Screate_simple(rank_field, dims_field, NULL);
+    }
+    if (globals->field_pressure_output.Value())
+    {
+        data_space_press = H5Screate_simple(rank_field, max_dims_field, NULL); // 2D data space
+        data_set_press = H5Dcreate(file, "displacement", H5T_NATIVE_FLOAT, data_space_press, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        mem_space_press = H5Screate_simple(rank_field, dims_field, NULL);
+    }
+    if (globals->field_pressure_output.Value())
+    {
+        data_space_press = H5Screate_simple(rank_field, max_dims_field, NULL); // 2D data space
+        data_set_press = H5Dcreate(file, "displacement", H5T_NATIVE_FLOAT, data_space_press, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        mem_space_press = H5Screate_simple(rank_field, dims_field, NULL);
+    }
+    if (globals->field_diss_output.Value())
+    {
         data_space_diss = H5Screate_simple(rank_field, max_dims_field, NULL);
         data_set_diss = H5Dcreate(file, "dissipated energy", H5T_NATIVE_FLOAT, data_space_diss, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         mem_space_diss = H5Screate_simple(rank_field, dims_field, NULL);
     }
-    //
-    if (globals->diss.Value()) {
-
+    if (globals->field_kinetic_output.Value())
+    {
+        data_space_kinetic = H5Screate_simple(rank_field, max_dims_field, NULL); // 2D data space
+        data_set_kinetic = H5Dcreate(file, "displacement", H5T_NATIVE_FLOAT, data_space_kinetic, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        mem_space_kinetic = H5Screate_simple(rank_field, dims_field, NULL);
+    }
+    if (globals->diss_avg.Value())
+    {
         data_space_1D_avg = H5Screate_simple(rank_1D, max_dims_1D_diss_avg, NULL);
-        data_set_1D_avg = H5Dcreate(file, globals->diss.StringID().c_str(), H5T_NATIVE_FLOAT, data_space_1D_avg, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        data_set_1D_avg = H5Dcreate(file, globals->diss_avg.StringID().c_str(), H5T_NATIVE_FLOAT, data_space_1D_avg, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         mem_space_1D_avg = H5Screate_simple(rank_1D, dims_1D_diss_avg, NULL);
+    }
+    if (globals->kinetic_avg.Value())
+    {
+        data_space_1D_kinetic_avg = H5Screate_simple(rank_1D, max_dims_1D_diss_avg, NULL);
+        data_set_1D_kinetic_avg = H5Dcreate(file, globals->kinetic_avg.StringID().c_str(), H5T_NATIVE_FLOAT, data_space_1D_kinetic_avg, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        mem_space_1D_kinetic_avg = H5Screate_simple(rank_1D, dims_1D_diss_avg, NULL);
+    }
+    if (globals->field_dummy1_output.Value())
+    {
+        data_space_dummy1 = H5Screate_simple(rank_field, max_dims_field, NULL); // 2D data space
+        data_set_dummy1 = H5Dcreate(file, "displacement", H5T_NATIVE_FLOAT, data_space_dummy1, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        mem_space_dummy1 = H5Screate_simple(rank_field, dims_field, NULL);
+    }
+    if (globals->field_dummy2_output.Value())
+    {
+        data_space_dummy2 = H5Screate_simple(rank_field, max_dims_field, NULL); // 2D data space
+        data_set_dummy2 = H5Dcreate(file, "displacement", H5T_NATIVE_FLOAT, data_space_dummy2, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        mem_space_dummy2 = H5Screate_simple(rank_field, dims_field, NULL);
     }
     //
     // if (consts->sh_coeff_output.Value()) {
@@ -352,7 +391,6 @@ void OutFiles::DumpData(Globals * globals, int time_level, double ** data)
     unsigned int i, j;
     double * p;
 
-
     start[0] = time_level-1;
     start[1] = 0;
 
@@ -361,34 +399,9 @@ void OutFiles::DumpData(Globals * globals, int time_level, double ** data)
     start_1D[0] = time_level - 1;
     count_1D[0] = 1;
 
-
-    // double factor = 0;
-    //
-    // switch (consts->fric_type) {
-    // case LINEAR:
-    //     factor = consts->alpha.Value();
-    //     break;
-    //
-    // case QUADRATIC:
-    //     factor = consts->alpha.Value()/consts->h.Value();
-    //     break;
-    // }
-    //
-    //
-    // //-----------------Unravel solutions into 1D arrays---------------------------
-    //
-    // for (int i=0; i<etaLatLen; i++) {
-    //     for (int j=0; j<etaLonLen; j++) {
-    //         eta_1D[i*etaLonLen + j] = (float)etaNewArray[i][j];
-    //         //eta_1D[i*etaLonLen + j] = (float)depthArray[i*2][j*2];
-    //         // std::cout<<eta_1D[i*etaLonLen + j]<<std::endl;
-    //     }
-    // }
-    //
-
-
     for (j=0; j<tags->size(); j++)
     {
+        //std::cout<<"HERE: "<<(*tags)[j]<<std::endl;
         p = data[j];
         if ((*tags)[j] == "velocity output")
         {
@@ -413,7 +426,6 @@ void OutFiles::DumpData(Globals * globals, int time_level, double ** data)
 
         else if ((*tags)[j] == "displacement output")
         {
-
             for (i=0; i<node_num; i++) {
                 eta_1D[i] = (float)(*p);
                 p++;
@@ -425,9 +437,34 @@ void OutFiles::DumpData(Globals * globals, int time_level, double ** data)
             H5Dwrite(data_set_eta, H5T_NATIVE_FLOAT, mem_space_eta, data_space_eta, H5P_DEFAULT, eta_1D);
         }
 
+        else if ((*tags)[j] == "pressure output")
+        {
+            for (i=0; i<node_num; i++) {
+                press_1D[i] = (float)(*p);
+                p++;
+            }
+
+            count[1] = node_num;
+
+            H5Sselect_hyperslab(data_space_press, H5S_SELECT_SET, start, NULL, count, NULL);
+            H5Dwrite(data_set_press, H5T_NATIVE_FLOAT, mem_space_press, data_space_press, H5P_DEFAULT, press_1D);
+        }
+
+        else if ((*tags)[j] == "kinetic output")
+        {
+            for (i=0; i<node_num; i++) {
+                kinetic_1D[i] = (float)(*p);
+                p++;
+            }
+
+            count[1] = node_num;
+
+            H5Sselect_hyperslab(data_space_kinetic, H5S_SELECT_SET, start, NULL, count, NULL);
+            H5Dwrite(data_set_kinetic, H5T_NATIVE_FLOAT, mem_space_kinetic, data_space_kinetic, H5P_DEFAULT, kinetic_1D);
+        }
+
         else if ((*tags)[j] == "dissipation output")
         {
-
             for (i=0; i<node_num; i++) {
                 diss_1D[i] = (float)(*p);
                 p++;
@@ -439,12 +476,20 @@ void OutFiles::DumpData(Globals * globals, int time_level, double ** data)
             H5Dwrite(data_set_diss, H5T_NATIVE_FLOAT, mem_space_diss, data_space_diss, H5P_DEFAULT, diss_1D);
         }
 
-        else if ((*tags)[j] == "avg dissipation output")
+        else if ((*tags)[j] == "dissipation avg output")
         {
             diss_avg_1D[0] = (float)(*p);
 
             H5Sselect_hyperslab(data_space_1D_avg, H5S_SELECT_SET, start_1D, NULL, count_1D, NULL);
             H5Dwrite(data_set_1D_avg, H5T_NATIVE_FLOAT, mem_space_1D_avg, data_space_1D_avg, H5P_DEFAULT, diss_avg_1D);
+        }
+
+        else if ((*tags)[j] == "kinetic avg output")
+        {
+            kinetic_avg_1D[0] = (float)(*p);
+
+            H5Sselect_hyperslab(data_space_1D_kinetic_avg, H5S_SELECT_SET, start_1D, NULL, count_1D, NULL);
+            H5Dwrite(data_set_1D_kinetic_avg, H5T_NATIVE_FLOAT, mem_space_1D_kinetic_avg, data_space_1D_kinetic_avg, H5P_DEFAULT, kinetic_avg_1D);
         }
     }
 
