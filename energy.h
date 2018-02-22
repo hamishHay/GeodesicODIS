@@ -8,5 +8,5 @@
 #include <iostream>
 
 void updateEnergy(Globals *, double &, Array1D<double> &, Array2D<double> &, Array1D<double> &);
-
+void updateEnergy2Layer(Globals *, double &, Array1D<double> &, Array1D<double> &, Array2D<double> &, Array1D<double> &);
 #endif

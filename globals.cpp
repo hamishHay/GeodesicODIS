@@ -91,11 +91,32 @@ Globals::Globals(int action) {
     g.SetStringID("surface gravity");
     allGlobals.push_back(&g);
 
+    g_reduced.SetStringID("reduced gravity");
+    allGlobals.push_back(&g_reduced);
+
     a.SetStringID("semimajor axis");
     allGlobals.push_back(&a);
 
     e.SetStringID("eccentricity");
     allGlobals.push_back(&e);
+
+    den1.SetStringID("density layer 1");
+    allGlobals.push_back(&den1);
+
+    den2.SetStringID("density layer 2");
+    allGlobals.push_back(&den2);
+
+    den_ratio.SetStringID("density ratio");
+    allGlobals.push_back(&den_ratio);
+
+    radius_bottom.SetStringID("radius bottom");
+    allGlobals.push_back(&radius_bottom);
+
+    radius_top.SetStringID("radius top");
+    allGlobals.push_back(&radius_top);
+
+    radius_ratio.SetStringID("radius ratio");
+    allGlobals.push_back(&radius_ratio);
 
     theta.SetStringID("obliquity");
     allGlobals.push_back(&theta);
@@ -175,6 +196,9 @@ Globals::Globals(int action) {
     sh_coeff_output.SetStringID("sh coefficient output");
     allGlobals.push_back(&sh_coeff_output);
 
+    layer_num.SetStringID("layer number");
+    allGlobals.push_back(&layer_num);
+
     outputTime.SetStringID("output time");
     allGlobals.push_back(&outputTime);
 
@@ -238,12 +262,24 @@ Globals::Globals(int action) {
         Output->TerminateODIS();
     }
 
+    if (layer_num.Value() == 2)
+    {
+        outstring << "Warning: two layer model selected. Switching to rigid lid boundary." << std::endl;
+        Output->Write(OUT_MESSAGE, &outstring);
+
+        surface_type = LID_INF_2L;
+        surface.SetValue("LID_INF_2L");
+        h.SetValue(radius_top.Value() - radius_bottom.Value());
+        radius_ratio.SetValue(radius_bottom.Value()/radius_top.Value());
+    }
+
     if (surface_type == FREE_LOADING) loading_factor = new double[l_max.Value() + 1];
     else if (surface_type == LID_LOVE ||
              surface_type == LID_MEMBR)
     {
         shell_factor_beta = new double[l_max.Value() + 1];
     }
+
 
     applySurfaceBCs(this);
 
@@ -483,6 +519,8 @@ void Globals::SetDefault(void)
 
   //Output work flux?
   work.SetValue(false);
+
+  layer_num.SetValue(1);
 
   //Output time in fraction of orbital period. Default is set to output
   //every period.

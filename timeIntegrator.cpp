@@ -283,11 +283,8 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     friend_list = &(grid->node_friends);
 
     double end_time, current_time, dt, out_frac, orbit_period, out_time;
-    // double r, omega, e, obliq, drag_coeff, h;
     double lon, lat;
     double r = globals->radius.Value();
-
-    std::cout<<r<<std::endl;
 
     double * cosLon, * cosLat, * cos2Lon;
 
@@ -322,9 +319,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     double e_diss;
     total_diss = new double[1];
 
-
-
-    outstring << "Defining arrays for Euler time integration..." << std::endl;
+    outstring << "Defining arrays for AB3 time integration..." << std::endl;
 
     dvel_dt_t0 = new Array2D<double>(node_num, 2);
     dvel_dt_tm1 = new Array2D<double>(node_num, 2);
@@ -413,22 +408,11 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
         else if (globals->surface_type == LID_INF)
         {
-
             // TEST VERSION!!!!!!!!!!!!!!!! STILL UNDER TESTING. DON'T TRUST!
 
             // SOLVE THE MOMENTUM EQUATION
             updateVelocity(globals, grid, *dvel_dt_t0, *vel_tm1, *press_t0, current_time);
 
-
-            // INTEGRATE VELOCITIES FORWARD IN TIME
-            // for (i = 0; i<node_num; i++)
-            // {
-            //    (*vel_t0)(i,0) = (*dvel_dt_t0)(i,0) * dt + (*vel_tm1)(i,0);
-            //    (*vel_tm1)(i,0) = (*vel_t0)(i,0);
-            //
-            //    (*vel_t0)(i,1) = (*dvel_dt_t0)(i,1) * dt + (*vel_tm1)(i,1);
-            //    (*vel_tm1)(i,1) = (*vel_t0)(i,1);
-            // }
             // MARCH FORWARD VELOCITY SOLUTION
             // integrateAB3vector(globals, grid, *vel_t0, *vel_tm1, *dvel_dt_t0, *dvel_dt_tm1, *dvel_dt_tm2, iter);
 
@@ -445,18 +429,17 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
                 (*vel_t0)(i,1) = (*dvel_dt_t0)(i,1) * dt + (*vel_tm1)(i,1);
                 (*vel_tm1)(i,1) = (*vel_t0)(i,1);
-
-                // (*G_terms_tm1)(i,0) = (*G_terms_t0)(i,0);
-                // (*G_terms_tm1)(i,1) = (*G_terms_t0)(i,1);
             }
 
             updateEnergy(globals, e_diss, *energy_diss, *vel_t0, *cv_mass);
 
             total_diss[0] = e_diss;
-
-
         }
 
+        else if (globals->surface_type == LID_INF_2L)
+        {
+            
+        }
         // Check for output
         iter ++;
 

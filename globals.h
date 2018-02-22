@@ -51,7 +51,8 @@ enum Surface { FREE,        // Free surface --> no ice lid
                LID_LOVE,    // Ice shell using love number theory
                LID_MEMBR,   // Ice shell using membrane theory Beuthe (2016)
                LID_NUM,     // Ice shell using numerical integration only
-               LID_INF};    // Ice shell --> immoveable (infite rigidity) lid
+               LID_INF,     // Ice shell --> immoveable (infite rigidity) lid
+               LID_INF_2L}; // Ice shell --> immoveable lid for a 2 layer model
 
 enum Solver { EULER,        // Explicit Euler time integration
               AB3,          // Adams-Bashforth 3rd order explicit time integration
@@ -115,8 +116,15 @@ public:
   GlobalVar<double> h;                  //Ocean thickness
   GlobalVar<double> shell_thickness;    //Ice shell thickness
   GlobalVar<double> g;                  //Surface Gravity
+  GlobalVar<double> g_reduced;          //Reduced gravity
   GlobalVar<double> a;                  //SemiMajor Axis
   GlobalVar<double> e;                  //Eccentricity
+  GlobalVar<double> den1;
+  GlobalVar<double> den2;
+  GlobalVar<double> den_ratio;
+  GlobalVar<double> radius_top;
+  GlobalVar<double> radius_bottom;
+  GlobalVar<double> radius_ratio;
   GlobalVar<double> theta;              //Obliquity in degrees
   GlobalVar<double> timeStep;           // Simulation timestep
   GlobalVar<double> alpha;              // drag coefficient
@@ -132,6 +140,7 @@ public:
   GlobalVar<std::string> solver;        // string for type of time sovler
   GlobalVar<bool> init;                 // boolean for using initial conditions
   GlobalVar<double> converge;           // convergence criteria for ODIS.
+  GlobalVar<int> layer_num;             // number of layers (1, 2). If 2, rigid lid applied.
 
   // Variables to switch on or off output of certain Variables
   // i.e., setting kinetic to true outputs global averaged kinetic energy

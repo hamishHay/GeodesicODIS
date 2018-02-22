@@ -9,5 +9,5 @@
 
 void linearDrag(int &, double &, Array2D<double> &, Array2D<double> &);
 void quadraticDrag(int &, double &, double &, Array2D<double> &, Array2D<double> &);
-
+void quadraticDrag2Layer(int &, double & drag_coeff, double &, double &, Array1D<double> &, Array1D<double> &, Array2D<double> &, Array2D<double> &);
 #endif
