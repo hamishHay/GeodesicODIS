@@ -85,6 +85,12 @@ Globals::Globals(int action) {
     h.SetStringID("ocean thickness");
     allGlobals.push_back(&h);
 
+    H1.SetStringID("layer 1 thickness");
+    allGlobals.push_back(&H1);
+
+    H2.SetStringID("layer 2 thickness");
+    allGlobals.push_back(&H2);
+
     shell_thickness.SetStringID("shell thickness");
     allGlobals.push_back(&shell_thickness);
 
@@ -262,6 +268,7 @@ Globals::Globals(int action) {
         Output->TerminateODIS();
     }
 
+    // IF TWO LAYER MODEL
     if (layer_num.Value() == 2)
     {
         outstring << "Warning: two layer model selected. Switching to rigid lid boundary." << std::endl;
@@ -269,8 +276,27 @@ Globals::Globals(int action) {
 
         surface_type = LID_INF_2L;
         surface.SetValue("LID_INF_2L");
+
+        // Set ocean thickness based on top and bottom ocean radii
         h.SetValue(radius_top.Value() - radius_bottom.Value());
+        H2.SetValue(h.Value() - H1.Value());    // ensure bottom layer thickness is consistent with h and H1
+
+        if (H1.Value() > h.Value() || H2.Value() > h.Value())
+        {
+            outstring << "ERROR: OCEAN LAYER THICKNESS GREATER THAN TOTAL OCEAN THICKNESS!" << std::endl;
+            Output->Write(ERR_MESSAGE, &outstring);
+            Output->TerminateODIS();
+        }
+
+
         radius_ratio.SetValue(radius_bottom.Value()/radius_top.Value());
+        radius.SetValue(radius_top.Value());    // set main radius to the ocean top
+
+        den_ratio.SetValue(den2.Value()/den1.Value());
+
+        g_reduced.SetValue( (den2.Value() - den1.Value())/den2.Value() * g.Value() );
+
+        loveReduct.SetValue(1. - den_ratio.Value() * pow(radius_ratio.Value(), 2.0));
     }
 
     if (surface_type == FREE_LOADING) loading_factor = new double[l_max.Value() + 1];

@@ -114,17 +114,19 @@ public:
   GlobalVar<double> loveH2;             // h_2 Love Number
   GlobalVar<double> loveReduct;         //Love's reduction factor
   GlobalVar<double> h;                  //Ocean thickness
+  GlobalVar<double> H1;                 //Layer 1 reference thickness
+  GlobalVar<double> H2;                 //Layer 2 reference thickness
   GlobalVar<double> shell_thickness;    //Ice shell thickness
   GlobalVar<double> g;                  //Surface Gravity
   GlobalVar<double> g_reduced;          //Reduced gravity
   GlobalVar<double> a;                  //SemiMajor Axis
   GlobalVar<double> e;                  //Eccentricity
-  GlobalVar<double> den1;
-  GlobalVar<double> den2;
-  GlobalVar<double> den_ratio;
-  GlobalVar<double> radius_top;
-  GlobalVar<double> radius_bottom;
-  GlobalVar<double> radius_ratio;
+  GlobalVar<double> den1;               //Density of the top layer
+  GlobalVar<double> den2;               //Density of the bottom layer
+  GlobalVar<double> den_ratio;          //Ratio of den2 to den1
+  GlobalVar<double> radius_top;         //Radius at the ocean top
+  GlobalVar<double> radius_bottom;      //Radius at the ocean bottom
+  GlobalVar<double> radius_ratio;       //Ratio of ocean bottom to top radius
   GlobalVar<double> theta;              //Obliquity in degrees
   GlobalVar<double> timeStep;           // Simulation timestep
   GlobalVar<double> alpha;              // drag coefficient

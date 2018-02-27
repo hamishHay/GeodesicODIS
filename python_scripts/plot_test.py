@@ -28,7 +28,7 @@ plt.rc('figure', dpi=120)
 # Creating a Triangulation without specifying the triangles results in the
 # Delaunay triangulation of the points.
 try:
-    grid = np.loadtxt("input_files/grid_l5_ordered.txt",skiprows=1,usecols=(1,2))
+    grid = np.loadtxt("input_files/grid_l6_ordered.txt",skiprows=1,usecols=(1,2))
 except:
     d = input("Grid mismatch! Which grid do you want?: ")
     grid = np.loadtxt("input_files/grid_l" + str(int(d)) + ".txt",skiprows=1,usecols=(1,2))

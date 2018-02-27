@@ -46,15 +46,16 @@ void quadraticDrag2Layer(int & node_num, double & drag_coeff, double & den_ratio
     double u, v, vv, uu, sq_uv;
 
     gam_x = den_ratio*radius_ratio;
-
+    // std::cout<<gam_x<<std::endl;
     for (i=0; i<node_num; i++)
     {
         h1 = h_l1(i);
         h2 = h_l2(i);
 
-        h_factor = gam_x * (h1*h1*h1) + (h2*h2*h2) /
-                   (h1*h2 * (gam_x*h1 + h2)*(gam_x*h1 + h2));
+        h_factor = (gam_x * (h1*h1*h1) + (h2*h2*h2)) /
+                    (h1*h2 * (gam_x*h1 + h2)*(gam_x*h1 + h2));
 
+    // std::cout<<h_factor<<'\t'<<h1<<'\t'<<h2<<std::endl;
        u = vel_shear(i,0);
        v = vel_shear(i,1);
        uu = u*u;

@@ -8,7 +8,6 @@
 
 // static double dummy_sum = 0;
 
-// #pragma omp for
 void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pressure, double g = 1.0)
 {
     int node_num, friend_num;

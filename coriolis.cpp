@@ -8,7 +8,7 @@ void coriolisForce(Mesh * mesh, Array2D<double> & dvdt, Array2D<double> &velocit
 {
     int node_num, friend_num;
     int i, j, i1, i2, j1, j2;
-    int method = 0;
+    int method = 1;
 
     Array2D<int> * friend_list;
     Array2D<double> * cent_map_factor;

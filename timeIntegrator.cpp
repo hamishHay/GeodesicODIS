@@ -26,6 +26,106 @@ void CatchExit(int sig) {
     flag = 1;
 }
 
+int updateVelocity2Layer(Globals * globals,
+                         Mesh * grid,
+                         Array2D<double> & dvdt,
+                         Array2D<double> & v_tm1,
+                         Array1D<double> & eta_tm1,
+                         Array1D<double> & h1_tm1,
+                         Array1D<double> & h2_tm1,
+                         double current_time)
+{
+    double r, omega, e, obliq, h, drag_coeff, visc, g_red, gam, x, dt;
+    int node_num;
+
+    r = globals->radius_top.Value();
+    g_red = globals->g_reduced.Value();
+    gam = globals->den_ratio.Value();
+    x = globals->radius_ratio.Value();
+    dt = globals->timeStep.Value();
+    omega = globals->angVel.Value();
+    e = globals->e.Value();
+    drag_coeff = globals->alpha.Value();
+    obliq = globals->theta.Value();
+    h = globals->h.Value();
+    node_num = globals->node_num;
+    visc = 1e2;
+
+    switch (globals->tide_type)
+    {
+        case ECC:
+            deg2Ecc(grid, dvdt, current_time, r, omega, e);
+            break;
+        case ECC_LIB:
+            deg2EccLib(grid, dvdt, current_time, r, omega, e);
+            break;
+        case ECC_WEST:
+            deg2EccWest(grid, dvdt, current_time, r, omega, e);
+            break;
+        case ECC_EAST:
+            deg2EccEast(grid, dvdt, current_time, r, omega, e);
+            break;
+        case ECC_RAD:
+            deg2EccRad(grid, dvdt, current_time, r, omega, e);
+            break;
+        case OBLIQ:
+            deg2Obliq(grid, dvdt, current_time, r, omega, obliq);
+            break;
+        case OBLIQ_WEST:
+            deg2ObliqWest(grid, dvdt, current_time, r, omega, obliq);
+            break;
+        case OBLIQ_EAST:
+            deg2ObliqEast(grid, dvdt, current_time, r, omega, obliq);
+            break;
+        case FULL:
+            deg2Full(grid, dvdt, current_time, r, omega, obliq, e);
+            break;
+    }
+
+    quadraticDrag2Layer(node_num,
+                        drag_coeff,
+                        gam,
+                        x,
+                        h1_tm1, h2_tm1, v_tm1, dvdt);
+
+
+    coriolisForce(grid, dvdt, v_tm1);
+
+    pressureGradient(grid, dvdt, eta_tm1, -g_red*gam);
+    // pressureGradientSH(globals, grid, dvdt, eta_tm1, g_red*gam);
+
+    velocityDiffusion(grid, dvdt, v_tm1, visc);
+
+};
+
+int updateDisplacement2Layer(Globals * globals, Mesh * grid, Array1D<double> & deta_dt, Array1D<double> & h_l1, Array1D<double> & h_l2, Array2D<double> & v_t0)
+{
+    double sum = -1.0;
+    double h1, h2, h_factor, gam_x;
+    int i, node_num;
+
+    node_num = globals->node_num;
+    gam_x = globals->den_ratio.Value() * globals->radius_ratio.Value();
+
+    Array2D<double> * vel_h;
+    vel_h = new Array2D<double>(globals->node_num, 2);
+
+    for (i=0; i<node_num; i++)
+    {
+        h1 = h_l1(i);
+        h2 = h_l2(i);
+
+        h_factor = h1*h2/(gam_x*h1 + h2);
+
+        (*vel_h)(i, 0) = v_t0(i, 0)*h_factor;
+        (*vel_h)(i, 1) = v_t0(i, 1)*h_factor;
+    }
+
+    velocityDivergence(grid, deta_dt, *vel_h, sum, -1.0);
+
+    delete vel_h;
+};
+
 int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array2D<double> & v_tm1, Array1D<double> & p_tm1, double current_time)
 {
     double r, omega, e, obliq, h, drag_coeff, visc, g, dt;
@@ -274,10 +374,25 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     Array1D<double> * dpress_dt_tm1;  // displacement time derivative at current timestep
     Array1D<double> * dpress_dt_tm2;  // displacement time derivative at current timestep
 
-    Array1D<double> * press_dummy;
-
     Array1D<double> * energy_diss;
     Array1D<double> * cv_mass;
+
+    Array1D<double> * press_dummy;
+
+    //--------------------------------------------------------------------------
+    //------------------------ 2 Layer model parameters ------------------------
+    //--------------------------------------------------------------------------
+    Array1D<double> * h2_t0;
+    Array1D<double> * h1_t0;
+
+    Array1D<double> * eta_t0;      // displacement solution for current timestep
+    Array1D<double> * eta_tm1;     // displacement solution at previous timestep (t minus 1)
+    Array1D<double> * eta_tm2;
+    Array1D<double> * deta_dt_t0;  // displacement time derivative at current timestep
+    Array1D<double> * deta_dt_tm1;  // displacement time derivative at current timestep
+    Array1D<double> * deta_dt_tm2;  // displacement time derivative at current timestep
+
+
 
     Array2D<int> * friend_list;
     friend_list = &(grid->node_friends);
@@ -285,6 +400,9 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     double end_time, current_time, dt, out_frac, orbit_period, out_time;
     double lon, lat;
     double r = globals->radius.Value();
+    double H = globals->h.Value();
+    double H1 = globals->H1.Value();
+    double H2 = globals->H2.Value();
 
     double * cosLon, * cosLat, * cos2Lon;
 
@@ -338,12 +456,35 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     press_tm2 = new Array1D<double>(node_num);
     cv_mass = new Array1D<double>(node_num);
 
+    if (globals->surface_type == LID_INF_2L)
+    {
+        h2_t0 = new Array1D<double>(node_num);
+        h1_t0 = new Array1D<double>(node_num);
+
+        deta_dt_t0 = new Array1D<double>(node_num);
+        deta_dt_tm1 = new Array1D<double>(node_num);
+        deta_dt_tm2 = new Array1D<double>(node_num);
+        eta_t0 = new Array1D<double>(node_num);
+        eta_tm1 = new Array1D<double>(node_num);
+        eta_tm2 = new Array1D<double>(node_num);
+
+        for (i=0; i<node_num; i++)
+        {
+            (*h2_t0)(i) = globals->H2.Value();
+            // (*h2_tm1)(i) = globals->H2.Value();
+            (*h1_t0)(i) = globals->H1.Value();
+            // (*h1_tm1)(i) = globals->H1.Value();
+            (*eta_t0)(i) = 0.0;
+            (*eta_tm1)(i) = 0.0;
+        }
+    }
+
     energy_diss = new Array1D<double>(node_num);
 
     for (i=0; i<globals->out_tags.size(); i++)
     {
         if ((*tags)[i] == "velocity output")             pp[i] = &(*vel_t0)(0,0);
-        else if ((*tags)[i] == "displacement output")    pp[i] = &(*press_t0)(0);
+        else if ((*tags)[i] == "displacement output")    pp[i] = &(*eta_t0)(0);
         else if ((*tags)[i] == "dissipation output")     pp[i] = &(*energy_diss)(0);
         else if ((*tags)[i] == "dissipation avg output") pp[i] = &total_diss[0];
     }
@@ -438,7 +579,27 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
         else if (globals->surface_type == LID_INF_2L)
         {
-            
+            updateVelocity2Layer(globals, grid, *dvel_dt_t0, *vel_tm1, *eta_tm1, *h1_t0, *h2_t0, current_time);
+
+            // MARCH VELOCITY FORWARD IN TIME
+            integrateAB3vector(globals, grid, *vel_t0, *vel_tm1, *dvel_dt_t0, *dvel_dt_tm1, *dvel_dt_tm2, iter);
+
+
+            // SOLVE THE CONTINUITY EQUATION
+            updateDisplacement2Layer(globals, grid, *deta_dt_t0, *h1_t0, *h2_t0, *vel_t0);
+
+            // MARCH DISPLACEMENT FORWARD IN TIME
+            integrateAB3scalar(globals, grid, *eta_t0, *eta_tm1, *deta_dt_t0, *deta_dt_tm1, *deta_dt_tm2, iter);
+            //
+            for (i=0; i<node_num; i++)
+            {
+                (*h1_t0)(i) = H1 - (*eta_t0)(i);
+                (*h2_t0)(i) = H2 + (*eta_t0)(i);
+            }
+
+            // UPDATE ENERGY DISSIPATION
+            updateEnergy2Layer(globals, e_diss, *energy_diss, *h1_t0, *vel_t0, *cv_mass);
+            total_diss[0] = e_diss;
         }
         // Check for output
         iter ++;
@@ -450,54 +611,6 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
             out_time -= out_frac*orbit_period;
 
-            // for (j=0; j<globals->out_tags.size(); j++)
-            // {
-            //     if ((*tags)[j] == "velocity output")
-            //     {
-            //         for (i=0; i<node_num; i++) {
-            //             u_1D[i] = (float)(*p);
-            //             p++;
-            //
-            //             v_1D[i] = (float)(*p);
-            //             p++;
-            //         }
-            //
-            //         count[1] = node_num;
-            //
-            //         H5Sselect_hyperslab(data_space_u, H5S_SELECT_SET, start, NULL, count, NULL);
-            //         H5Dwrite(data_set_u, H5T_NATIVE_FLOAT, mem_space_u, data_space_u, H5P_DEFAULT, u_1D);
-            //
-            //         count[1] = node_num;
-            //
-            //         H5Sselect_hyperslab(data_space_v, H5S_SELECT_SET, start, NULL, count, NULL);
-            //         H5Dwrite(data_set_v, H5T_NATIVE_FLOAT, mem_space_v, data_space_v, H5P_DEFAULT, v_1D);
-            //     }
-            //
-            //     else if ((*tags)[j] == "displacement output")
-            //     {
-            //
-            //         for (i=0; i<node_num; i++) {
-            //             eta_1D[i] = (float)(*p);
-            //             p++;
-            //         }
-            //
-            //         count[1] = node_num;
-            //
-            //         H5Sselect_hyperslab(data_space_eta, H5S_SELECT_SET, start, NULL, count, NULL);
-            //         H5Dwrite(data_set_eta, H5T_NATIVE_FLOAT, mem_space_eta, data_space_eta, H5P_DEFAULT, eta_1D);
-            //     }
-            //
-            //     else if ((*tags)[j] == "dissipation output")
-            //     {
-            //
-            //     }
-            //
-            //     else if ((*tags)[j] == "avg dissipation output")
-            //     {
-            //
-            //     }
-            // }
-            //
             // pp[3] = &(*energy_diss)(0);
             // pp[1] = &(*press_t0)(0);
             // // pp[3] = &(*press_dummy)(0);
