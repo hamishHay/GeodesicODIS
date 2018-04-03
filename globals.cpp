@@ -278,8 +278,16 @@ Globals::Globals(int action) {
         surface.SetValue("LID_INF_2L");
 
         // Set ocean thickness based on top and bottom ocean radii
-        h.SetValue(radius_top.Value() - radius_bottom.Value());
-        H2.SetValue(h.Value() - H1.Value());    // ensure bottom layer thickness is consistent with h and H1
+        // h.SetValue(radius_top.Value() - radius_bottom.Value());
+        // radius_bottom.SetValue(radius_top.Value() - h.Value()*0.5);
+
+
+        H1.SetValue(h.Value()*0.5);
+        H2.SetValue(h.Value()*0.5);
+        radius_top.SetValue(radius.Value() - shell_thickness.Value() - 0.25*h.Value());
+        radius_bottom.SetValue(radius.Value() - shell_thickness.Value() - 0.75*h.Value());
+
+        // H2.SetValue(h.Value() - H1.Value());    // ensure bottom layer thickness is consistent with h and H1
 
         if (H1.Value() > h.Value() || H2.Value() > h.Value())
         {
@@ -292,11 +300,20 @@ Globals::Globals(int action) {
         radius_ratio.SetValue(radius_bottom.Value()/radius_top.Value());
         radius.SetValue(radius_top.Value());    // set main radius to the ocean top
 
+        // std::cout<<radius_ratio.Value()<<std::endl;
+
         den_ratio.SetValue(den2.Value()/den1.Value());
 
         g_reduced.SetValue( (den2.Value() - den1.Value())/den2.Value() * g.Value() );
 
         loveReduct.SetValue(1. - den_ratio.Value() * pow(radius_ratio.Value(), 2.0));
+
+        if (loveReduct.Value() < 0.0)
+        {
+            outstring << "ERROR: TWO LAYER FORCING FACTOR IS NEGATIVE (UNPHYSICAL)" << std::endl;
+            Output->Write(ERR_MESSAGE, &outstring);
+            Output->TerminateODIS();
+        }
     }
 
     if (surface_type == FREE_LOADING) loading_factor = new double[l_max.Value() + 1];

@@ -140,7 +140,7 @@ class FieldPlot2:
 
         self.set_spatial_plot_defaults(slices,ax_ind)
 
-    def plot_avg_vs_time(self,data=None,data_name="avg dissipation output",lims=[0,-1], title=''):
+    def plot_avg_vs_time(self,data=None,data_name="dissipation avg output",lims=[0,-1], title=''):
 
         if data == None:
             data = self.load_data(data_name=data_name, slices=None)

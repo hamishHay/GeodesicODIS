@@ -644,10 +644,18 @@ int Mesh::CalcControlVolumeMass(void)
   double * vol;
   double vol1, vol2;
   double r_core, r_ocean;
+  double h1, h2, H;
 
   r = globals->radius.Value();
-  r_core = r;
+  r_core = globals->radius.Value() - globals->shell_thickness.Value() - globals->h.Value();//globals->radius_bottom.Value();
   r_ocean = r_core + globals->h.Value();
+
+  h1 = globals->H1.Value();
+  h2 = globals->H2.Value();
+  H = globals->h.Value();
+
+  if (globals->surface_type == LID_INF_2L) r = globals->radius_bottom.Value();
+
   double mass_sum = 0.0;
 
   avg_area = 0.0;
@@ -664,10 +672,10 @@ int Mesh::CalcControlVolumeMass(void)
       lat1 = &node_pos_sph(i,0);
       lon1 = &node_pos_sph(i,1);
 
-    //   vol = &control_volume_mass(i);     // set pointer to area of sub element
-    //   *vol = 0.0;
-      t_area = &control_volume_mass(i);
-      *t_area = 0.0;
+      vol = &control_volume_mass(i);     // set pointer to area of sub element
+      *vol = 0.0;
+      // t_area = &control_volume_mass(i);
+      // *t_area = 0.0;
       for (j=0; j<friend_num; j++)                       // Loop through all centroids in the control volume
       {
 
@@ -678,40 +686,48 @@ int Mesh::CalcControlVolumeMass(void)
           lon3 = &centroid_pos_sph(i,(j+1)%friend_num, 1);
 
 
-          triangularAreaSph(area, *lat1, *lat2, *lat3, *lon1, *lon2, *lon3, r);     // calculate subelement area
-          *t_area += area;
+          // triangularAreaSph(area, *lat1, *lat2, *lat3, *lon1, *lon2, *lon3, r);     // calculate subelement area
+          // *t_area += area;
 
-        //   sph2cart(ax, ay, az, r_ocean, radConv*0.5 - *lat1, *lon1);
-        //   sph2cart(bx, by, bz, r_ocean, radConv*0.5 - *lat2, *lon2);
-        //   sph2cart(cx, cy, cz, r_ocean, radConv*0.5 - *lat3, *lon3);
-        //
-        // //   vol = &control_volume_mass(i);
-        //   volumeSphericalTriangle(vol1, ax, bx, cx, ay, by, cy, az, bz, cz, r_ocean);
-        //
-        //   sph2cart(ax, ay, az, r_core, radConv*0.5 - *lat1, *lon1);
-        //   sph2cart(bx, by, bz, r_core, radConv*0.5 - *lat2, *lon2);
-        //   sph2cart(cx, cy, cz, r_core, radConv*0.5 - *lat3, *lon3);
-        //
-        // //   vol = &control_volume_mass(i);
-        //   volumeSphericalTriangle(vol2, ax, bx, cx, ay, by, cy, az, bz, cz, r_core);
-        //
-        //   *vol += fabs(vol1)-fabs(vol2);
-        //   std::cout<<vol1<<'\t'<<vol2<<std::endl;
+          sph2cart(ax, ay, az, r_ocean, radConv*0.5 - *lat1, *lon1);
+          sph2cart(bx, by, bz, r_ocean, radConv*0.5 - *lat2, *lon2);
+          sph2cart(cx, cy, cz, r_ocean, radConv*0.5 - *lat3, *lon3);
+
+        //   vol = &control_volume_mass(i);
+          volumeSphericalTriangle(vol1, ax, bx, cx, ay, by, cy, az, bz, cz, r_ocean);
+
+          sph2cart(ax, ay, az, r_core, radConv*0.5 - *lat1, *lon1);
+          sph2cart(bx, by, bz, r_core, radConv*0.5 - *lat2, *lon2);
+          sph2cart(cx, cy, cz, r_core, radConv*0.5 - *lat3, *lon3);
+
+        //   vol = &control_volume_mass(i);
+          volumeSphericalTriangle(vol2, ax, bx, cx, ay, by, cy, az, bz, cz, r_core);
+
+          *vol += fabs(vol1)-fabs(vol2);
+          // std::cout<<vol1<<'\t'<<vol2<<std::endl;
       }
-    //   *vol *= 1000.0;
-      avg_area += *t_area;
+
+
+      if (globals->surface_type == LID_INF_2L)
+      {
+          *vol = globals->den1.Value() * (*vol) * (h1/H)
+                +globals->den2.Value() * (*vol) * (h2/H);
+      }
+      else *vol *= globals->den1.Value();
+      // avg_area += *t_area;
     //   mass_sum += *t_area * 1000.0 * globals->h.Value();
   }
   avg_area /= node_num;
   for (i=0; i<node_num; i++)
   {
-     t_area = &control_volume_mass(i);
-    *t_area *= avg_area/(*t_area) * 1000.0 * globals->h.Value();
+    //  t_area = &control_volume_mass(i);
+    // *t_area *= avg_area/(*t_area) * globals->den1.Value() * globals->h.Value();
     //*t_area *= 1000.0 * globals->h.Value();
     //std::cout<<i<<", "<<*t_area<<std::endl;
-    mass_sum += *t_area;
+    // mass_sum += *t_area;
+    mass_sum += *vol;
   }
-  std::cout<<"MASS: "<<mass_sum<<", "<<4.*pi*r*r*50e3*1000.0<<std::endl;
+  std::cout<<"MASS: "<<mass_sum<<", "<<1003.*4.*pi*r_ocean*r_ocean*globals->h.Value()<<std::endl;
   return 1;
 }
 

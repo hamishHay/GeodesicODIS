@@ -378,6 +378,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     Array1D<double> * cv_mass;
 
     Array1D<double> * press_dummy;
+    Array1D<double> * press_dummy2;
 
     //--------------------------------------------------------------------------
     //------------------------ 2 Layer model parameters ------------------------
@@ -447,6 +448,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
     vel_dummy = new Array2D<double>(node_num, 2);
     press_dummy = new Array1D<double>(node_num);
+    press_dummy2 = new Array1D<double>(node_num);
 
     dpress_dt_t0 = new Array1D<double>(node_num);
     dpress_dt_tm1 = new Array1D<double>(node_num);
@@ -513,6 +515,8 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     current_time = 0.0;
     out_time = 0.0;
 
+
+    double gamx;
     int err;
     double sum_dummy = 1.0;
     double avg_val;
@@ -591,12 +595,38 @@ int ab3Explicit(Globals * globals, Mesh * grid)
             // MARCH DISPLACEMENT FORWARD IN TIME
             integrateAB3scalar(globals, grid, *eta_t0, *eta_tm1, *deta_dt_t0, *deta_dt_tm1, *deta_dt_tm2, iter);
             //
+
+            // gamx = globals->den_ratio.Value() * globals->radius_ratio.Value();
             for (i=0; i<node_num; i++)
             {
                 (*h1_t0)(i) = H1 - (*eta_t0)(i);
                 (*h2_t0)(i) = H2 + (*eta_t0)(i);
+                //
+                // (*press_dummy)(i) = 0.0;
+                // (*press_dummy2)(i) = 0.0;
+                //
+                // (*vel_dummy)(i, 0) = -(*h1_t0)(i)/(gamx * (*h1_t0)(i) + (*h2_t0)(i)) * (*vel_t0)(i,0);
+                // (*vel_dummy)(i, 1) = -(*h1_t0)(i)/(gamx * (*h1_t0)(i) + (*h2_t0)(i)) * (*vel_t0)(i,1);
             }
 
+
+            // velocityDivergence(grid, *press_dummy, *vel_dummy, sum_dummy, 1.0);
+            //
+            // for (i=0; i<node_num; i++)
+            // {
+            //     (*vel_dummy)(i, 0) = (*h2_t0)(i)/(gamx * (*h1_t0)(i) + (*h2_t0)(i)) * (*vel_t0)(i,0);
+            //     (*vel_dummy)(i, 1) = (*h2_t0)(i)/(gamx * (*h1_t0)(i) + (*h2_t0)(i)) * (*vel_t0)(i,1);
+            // }
+            //
+            // velocityDivergence(grid, *press_dummy2, *vel_dummy, sum_dummy, 1.0);
+            //
+            // sum_dummy = 0.0;
+            // for (i=0; i<node_num; i++)
+            // {
+            //     sum_dummy = fabs((*press_dummy)(i) + (*press_dummy2)(i));
+            // }
+            //
+            // std::cout<<sum_dummy<<std::endl;
             // UPDATE ENERGY DISSIPATION
             updateEnergy2Layer(globals, e_diss, *energy_diss, *h1_t0, *vel_t0, *cv_mass);
             total_diss[0] = e_diss;
@@ -607,7 +637,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
         if (out_time >= out_frac*orbit_period)
         {
             std::cout<<std::fixed << std::setprecision(8) <<"DUMPING DATA AT "<<current_time/orbit_period;
-            std::cout<<" AVG DISS: "<<*total_diss<<" W"<<std::endl;
+            std::cout<<" AVG DISS: "<<*total_diss*4*pi*r*r/1e9<<" GW"<<std::endl;
 
             out_time -= out_frac*orbit_period;
 

@@ -60,7 +60,7 @@ fig, ax = plt.subplots()
 axes = [ax]
 
 time = np.array([0, 12, 25, 37, 50, 62, 75, 87], dtype=np.int) + n
-time = np.array([0, 6, 12, 18, 25, 31, 37, 43], dtype=np.int) + n
+# time = np.array([0, 6, 12, 18, 25, 31, 37, 43], dtype=np.int) + n
 times = [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]
 
 time = np.array([0], dtype=np.int) + n
@@ -70,7 +70,7 @@ times = [0.0]
 in_file = h5py.File("DATA/data.h5", 'r')
 
 dmin = 0.0
-dmax = 0.0165
+dmax = 0.35
 
 norm = mpl.colors.Normalize(vmin=dmin,vmax=dmax)
 levels = np.linspace(dmin,dmax,11)
@@ -80,21 +80,21 @@ for i in range(len(time)):
     data_v = in_file["north velocity"][time[i]]
     data_eta = in_file["displacement"][time[i]]
 
-    H1 = 1e3
+    H1 = 10e3
     H = 38e3
 
     h1 = H1 - data_eta
     h2 = (H - H1) + data_eta
     r_ratio = 191.1e3/229.1e3
-    gamma = 1000.0/1020.0
+    gamma = 1003.0/1004.0
 
     # Get layer 1 velocities from shear vel
-    # data_u = (h2/(gamma*r_ratio*h1 + h2))*data_u
-    # data_v = (h2/(gamma*r_ratio*h1 + h2))*data_v
+    data_u = (h2/(gamma*r_ratio*h1 + h2))*data_u
+    data_v = (h2/(gamma*r_ratio*h1 + h2))*data_v
 
     # Get layer 2 velocities from shear vel
-    data_u = -(h1/(gamma*r_ratio*h1 + h2))*data_u
-    data_v = -(h1/(gamma*r_ratio*h1 + h2))*data_v
+    #data_u = -(h1/(gamma*r_ratio*h1 + h2))*data_u
+    #data_v = -(h1/(gamma*r_ratio*h1 + h2))*data_v
 
     interp_u = griddata(points,data_u,points2,method='cubic').reshape((nx,ny)).T
     interp_v = griddata(points,data_v,points2,method='cubic').reshape((nx,ny)).T
@@ -134,7 +134,7 @@ for i in range(len(time)):
                              linewidth=lw,
                              arrowsize=0.8,
                              arrowstyle='fancy',
-                             density=3.0)
+                             density=2.0)
 
 
     # ax.annotate("$t/T = \\num{0.5}$",[340,80])
