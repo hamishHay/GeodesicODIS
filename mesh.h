@@ -28,6 +28,7 @@ private:
   int CalcLand(void);
   int CalcPressureFactor();
   int CalcLegendreFuncs();
+  int CalcGradOperatorCoeffs();
 
 
 public:
@@ -88,6 +89,9 @@ public:
   // Array to store the midpoint normal vectors to each side of the control
   // volume surroinding the central node
   Array3D<double> control_vol_edge_normal_map;
+
+  // Array to store the gradient operator coefficients
+  Array3D<double> grad_coeffs;
 
   // Array to store the area of the control volume for each node
   Array1D<double> control_volume_surf_area_map;
