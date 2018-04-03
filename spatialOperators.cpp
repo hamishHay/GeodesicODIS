@@ -12,6 +12,7 @@
 void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pressure, double g = 1.0)
 {
     int node_num, friend_num;
+    // int i, j;
     int i, j, j1, j2;
     int end_i;
 
@@ -22,6 +23,10 @@ void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pre
     Array2D<double> * edge_lens;
     Array1D<double> * cv_areas;
     Array1D<int> * mask;
+    Array3D<double> * grad_coeffs;
+
+    // double x_grad, y_grad;
+    // double p0, p1;
 
     double m;                          // mapping factor at current cv edge
     double a0, a1, a2;
@@ -29,7 +34,6 @@ void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pre
     double x_grad, y_grad;
     double nx, ny;
     double edge_len;
-    // double g;
 
     node_num = mesh->node_num;
     friend_list = &(mesh->node_friends);
@@ -40,6 +44,7 @@ void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pre
     cv_areas = &(mesh->control_volume_surf_area_map);
     // g = mesh->globals->g.Value();
     mask = &(mesh->land_mask);
+    grad_coeffs = &(mesh->grad_coeffs);
 
     end_i = node_num;
     if (mesh->globals->surface_type == FREE_LOADING ||
@@ -48,7 +53,6 @@ void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pre
     {
         end_i = 2;
     }
-
 
     for (i=0; i<end_i; i++)
     {
@@ -60,66 +64,80 @@ void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pre
         x_grad = 0.0;
         y_grad = 0.0;
 
+        x_grad += p0 * (*grad_coeffs)(i, 0, 0);
+        y_grad += p0 * (*grad_coeffs)(i, 0, 1);
+
         for (j=0; j<friend_num; j++)
         {
-            // find avg pressure in element j
-            j1 = j%friend_num;
-            j2 = (j+1)%friend_num;
+            p1 = pressure( (*friend_list)(i, j) );
 
-            a0 = (*element_areas)(i,j1,0);
-            a1 = (*element_areas)(i,j1,1);
-            a2 = (*element_areas)(i,j1,2);
-
-            p1 = pressure((*friend_list)(i,j1));
-            p2 = pressure((*friend_list)(i,j2));
-
-            p0_cent = (p0 * a1 + p1 * a2 + p2 * a0) / (a0 + a1 + a2);
-
-            // find avg pressure in element j+1
-            j1 = j2;
-            j2 = (j+2)%friend_num;
-
-            a0 = (*element_areas)(i,j1,0);
-            a1 = (*element_areas)(i,j1,1);
-            a2 = (*element_areas)(i,j1,2);
-
-            p1 = pressure((*friend_list)(i,j1));
-            p2 = pressure((*friend_list)(i,j2));
-
-            p1_cent = (p0*a1 + p1*a2 + p2*a0) / (a0 + a1 + a2);
-
-            // Find average p at the center of the control volume edge
-            p_avg = 0.5*(p0_cent + p1_cent);
-
-
-            j1 = j%friend_num;
-
-            // get mapping factor for edge i,j2
-            m = (*cent_map_factor)(i, j1);
-
-            // get components of the edge normal vector
-            nx = (*normal_vecs)(i, j1, 0);
-            ny = (*normal_vecs)(i, j1, 1);
-
-            // get edge length of current edge
-            edge_len = (*edge_lens)(i, j1);
-
-            // calculate x gradient
-            x_grad += m * p_avg * nx * edge_len;
-
-            // calculate y gradient
-            y_grad += m * p_avg * ny * edge_len;
+            x_grad += p1 * (*grad_coeffs)(i, j+1, 0);
+            y_grad += p1 * (*grad_coeffs)(i, j+1, 1);
 
         }
 
-        x_grad = g * x_grad / (*cv_areas)(i);
-        y_grad = g * y_grad / (*cv_areas)(i);
+        dvdt(i,0) -= g*x_grad;
+        dvdt(i,1) -= g*y_grad;
 
-        dvdt(i,0) -= x_grad;
-        dvdt(i,1) -= y_grad;
+        // for (j=0; j<friend_num; j++)
+        // {
+        //     // find avg pressure in element j
+        //     j1 = j%friend_num;
+        //     j2 = (j+1)%friend_num;
+        //
+        //     a0 = (*element_areas)(i,j1,0);
+        //     a1 = (*element_areas)(i,j1,1);
+        //     a2 = (*element_areas)(i,j1,2);
+        //
+        //     p1 = pressure((*friend_list)(i,j1));
+        //     p2 = pressure((*friend_list)(i,j2));
+        //
+        //     p0_cent = (p0 * a1 + p1 * a2 + p2 * a0) / (a0 + a1 + a2);
+        //
+        //     // find avg pressure in element j+1
+        //     j1 = j2;
+        //     j2 = (j+2)%friend_num;
+        //
+        //     a0 = (*element_areas)(i,j1,0);
+        //     a1 = (*element_areas)(i,j1,1);
+        //     a2 = (*element_areas)(i,j1,2);
+        //
+        //     p1 = pressure((*friend_list)(i,j1));
+        //     p2 = pressure((*friend_list)(i,j2));
+        //
+        //     p1_cent = (p0*a1 + p1*a2 + p2*a0) / (a0 + a1 + a2);
+        //
+        //     // Find average p at the center of the control volume edge
+        //     p_avg = 0.5*(p0_cent + p1_cent);
+        //
+        //
+        //     j1 = j%friend_num;
+        //
+        //     // get mapping factor for edge i,j2
+        //     m = (*cent_map_factor)(i, j1);
+        //
+        //     // get components of the edge normal vector
+        //     nx = (*normal_vecs)(i, j1, 0);
+        //     ny = (*normal_vecs)(i, j1, 1);
+        //
+        //     // get edge length of current edge
+        //     edge_len = (*edge_lens)(i, j1);
+        //
+        //     // calculate x gradient
+        //     x_grad += m * p_avg * nx * edge_len;
+        //
+        //     // calculate y gradient
+        //     y_grad += m * p_avg * ny * edge_len;
+        //
+        // }
+        //
+        // x_grad = g * x_grad / (*cv_areas)(i);
+        // y_grad = g * y_grad / (*cv_areas)(i);
+        //
+        //
+        // dvdt(i,0) -= x_grad;
+        // dvdt(i,1) -= y_grad;
 
-        // dvdt(i,0) -= y_grad;
-        // dvdt(i,1) -= x_grad;
     }
 };
 
