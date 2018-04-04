@@ -29,6 +29,7 @@ private:
   int CalcPressureFactor();
   int CalcLegendreFuncs();
   int CalcGradOperatorCoeffs();
+  int CalcDivOperatorCoeffs();
 
 
 public:
@@ -90,8 +91,9 @@ public:
   // volume surroinding the central node
   Array3D<double> control_vol_edge_normal_map;
 
-  // Array to store the gradient operator coefficients
+  // Array to store the gradient, divergence, and Laplacian operator coefficients
   Array3D<double> grad_coeffs;
+  Array3D<double> div_coeffs;
 
   // Array to store the area of the control volume for each node
   Array1D<double> control_volume_surf_area_map;
