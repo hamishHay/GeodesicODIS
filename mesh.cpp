@@ -56,6 +56,16 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
 
     Pbar_lm(N, l_max+1, l_max+1),
     Pbar_lm_deriv(N, l_max+1, l_max+1),
+
+    Pbar_cosMLon(N, l_max+1, l_max+1),
+    Pbar_sinMLon(N, l_max+1, l_max+1),
+    Pbar_deriv_cosMLon(N, l_max+1, l_max+1),
+    Pbar_deriv_sinMLon(N, l_max+1, l_max+1),
+
+    sh_matrix(N, (l_max+1)*(l_max+2) - 6), //-6 is to ignore degrees 0 and 1
+    sh_matrix_fort(N*((l_max+1)*(l_max+2) - 6)),
+
+
     trigMLon(N, l_max+1, 2),
 
     V_inv(N, 6, 6),
@@ -855,6 +865,50 @@ int Mesh::CalcLegendreFuncs(void)
             trigMLon(i, m, 0) = cos( (double)m * node_pos_sph( i, 1 ) );
             trigMLon(i, m, 1) = sin( (double)m * node_pos_sph( i, 1 ) );
         }
+
+        // int count = 0;
+        for (l = 0; l < l_max+1; l++)
+        {
+            for (m = 0; m <= l; m++)
+            {
+                Pbar_cosMLon(i, l, m) = Pbar_lm(i, l, m)*trigMLon(i, m, 0);
+                Pbar_sinMLon(i, l, m) = Pbar_lm(i, l, m)*trigMLon(i, m, 1);
+
+                Pbar_deriv_cosMLon(i, l, m) = Pbar_lm_deriv(i, l, m)*trigMLon(i, m, 0);
+                Pbar_deriv_sinMLon(i, l, m) = Pbar_lm_deriv(i, l, m)*trigMLon(i, m, 1);
+
+            }
+        }
+
+        int count = 0;
+        for (l = 2; l < l_max+1; l++)
+        {
+            for (m = 0; m <= l; m++)
+            {
+                sh_matrix(i, count) = Pbar_cosMLon(i, l, m);
+                if (globals->surface_type == FREE_LOADING) sh_matrix(i, count) *= globals->loading_factor[l];
+                else if (globals->surface_type == LID_MEMBR) sh_matrix(i, count) *= globals->shell_factor_beta[l];
+
+
+                count++;
+
+                sh_matrix(i, count) = Pbar_sinMLon(i, l, m);
+                if (globals->surface_type == FREE_LOADING) sh_matrix(i, count) *= globals->loading_factor[l];
+                else if (globals->surface_type == LID_MEMBR) sh_matrix(i, count) *= globals->shell_factor_beta[l];
+
+                count++;
+            }
+        }
+    }
+
+    int count = 0;
+    for (m = 0; m <= (l_max+1)*(l_max+2) - 6; m++)
+    {
+        for (i=0; i<node_num; i++)
+        {
+            sh_matrix_fort(count) = sh_matrix(i, m);
+            count++;
+        }
     }
 
     // free up memory!
@@ -961,8 +1015,6 @@ int Mesh::CalcGradOperatorCoeffs(void)
 
     return 1;
 }
-
-
 
 int Mesh::CalcDivOperatorCoeffs(void)
 {
@@ -1206,8 +1258,8 @@ int Mesh::ReadMeshFile(void)
     std::string file_str;                  // string with path to mesh file.
     int i, node_id;
 
+    // file_str = globals->path + SEP + "input_files" + SEP + "grid_l" + std::to_string(globals->geodesic_l.Value()) + ".txt";
     file_str = globals->path + SEP + "input_files" + SEP + "grid_l" + std::to_string(globals->geodesic_l.Value()) + ".txt";
-    // file_str = globals->path + SEP + "input_files" + SEP + "grid_l" + std::to_string(globals->geodesic_l.Value()) + "_ordered.txt";
 
     // in stream for input.in file
     std::ifstream gridFile(file_str, std::ifstream::in);

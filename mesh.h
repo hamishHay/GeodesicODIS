@@ -115,9 +115,16 @@ public:
   Array2D<double> trigSqLat;
   Array2D<double> trigSqLon;
 
+
   Array3D<double> Pbar_lm;
   Array3D<double> Pbar_lm_deriv;
   Array3D<double> trigMLon;
+  Array3D<double> Pbar_cosMLon;
+  Array3D<double> Pbar_sinMLon;
+  Array3D<double> Pbar_deriv_cosMLon;
+  Array3D<double> Pbar_deriv_sinMLon;
+  Array2D<double> sh_matrix;
+  Array1D<double> sh_matrix_fort;
 
   Array3D<double> V_inv;
   // Array2D<double> ll_data;
