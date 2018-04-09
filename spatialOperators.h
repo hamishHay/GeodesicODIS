@@ -7,7 +7,7 @@
 #include "array2d.h"
 #include "array1d.h"
 
-void pressureGradient(Mesh *, Array2D<double> &, Array1D<double> &, double);
+void pressureGradient(Mesh *, Array2D<double> &, Array1D<double> &, int, double);
 
 void pressureGradientSH(Globals *, Mesh *, Array2D<double> &, Array1D<double> &, double);
 

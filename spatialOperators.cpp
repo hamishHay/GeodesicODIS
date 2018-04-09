@@ -6,120 +6,70 @@
 #include "sphericalHarmonics.h"
 #include "interpolation.h"
 
+extern "C"{
+// FORTRAN adds _ after all the function names
+// and all variables are called by reference
+double dgemv_( const char * TRANS,
+               const int * m,
+               const int * n,
+               const double * alpha,
+               const double * V,
+               const int * ldv,
+               const double * x,
+               const int * incx,
+               const double * beta,
+               const double * y,
+               const int * incy);
+}
+
 // static double dummy_sum = 0;
 
 // #pragma omp for
-void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pressure, double g = 1.0)
+void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pressure, int N, double g = 1.0)
 {
     int node_num, friend_num;
-    int i, j, j1, j2;
-    int end_i;
+    int i, j, end_i;
 
     Array2D<int> * friend_list;
-    Array2D<double> * cent_map_factor;
-    Array3D<double> * element_areas;
-    Array3D<double> * normal_vecs;
-    Array2D<double> * edge_lens;
-    Array1D<double> * cv_areas;
-    Array1D<int> * mask;
+    Array3D<double> * grad_coeffs;
 
-    double m;                          // mapping factor at current cv edge
-    double a0, a1, a2;
-    double p0, p1, p2, p0_cent, p1_cent, p_avg;
+    double p0, p1;
     double x_grad, y_grad;
-    double nx, ny;
-    double edge_len;
-    // double g;
 
     node_num = mesh->node_num;
     friend_list = &(mesh->node_friends);
-    cent_map_factor = &(mesh->control_vol_edge_centre_m);
-    element_areas = &(mesh->node_friend_element_areas_map);
-    normal_vecs = &(mesh->control_vol_edge_normal_map);
-    edge_lens = &(mesh->control_vol_edge_len);
-    cv_areas = &(mesh->control_volume_surf_area_map);
-    // g = mesh->globals->g.Value();
-    mask = &(mesh->land_mask);
+    grad_coeffs = &(mesh->grad_coeffs);
 
-    end_i = node_num;
-    if (mesh->globals->surface_type == FREE_LOADING ||
-        mesh->globals->surface_type == LID_MEMBR ||
-        mesh->globals->surface_type == LID_INF)
-    {
-        end_i = 2;
-    }
+    // end_i = node_num;
+    // if (mesh->globals->surface_type == FREE_LOADING ||
+    //     mesh->globals->surface_type == LID_MEMBR ||
+    //     mesh->globals->surface_type == LID_INF)
+    // {
+    //     end_i = 2;
+    // }
 
+    // end_i = node_num;
 
-    for (i=0; i<end_i; i++)
+    for (i=0; i<N; i++)
     {
         friend_num = 6;
         if ((*friend_list)(i, 5) == -1) friend_num = 5;
 
         p0 = pressure(i);
 
-        x_grad = 0.0;
-        y_grad = 0.0;
+        x_grad = p0 * (*grad_coeffs)(i, 0, 0);
+        y_grad = p0 * (*grad_coeffs)(i, 0, 1);
 
         for (j=0; j<friend_num; j++)
         {
-            // find avg pressure in element j
-            j1 = j%friend_num;
-            j2 = (j+1)%friend_num;
+            p1 = pressure( (*friend_list)(i, j) );
 
-            a0 = (*element_areas)(i,j1,0);
-            a1 = (*element_areas)(i,j1,1);
-            a2 = (*element_areas)(i,j1,2);
-
-            p1 = pressure((*friend_list)(i,j1));
-            p2 = pressure((*friend_list)(i,j2));
-
-            p0_cent = (p0 * a1 + p1 * a2 + p2 * a0) / (a0 + a1 + a2);
-
-            // find avg pressure in element j+1
-            j1 = j2;
-            j2 = (j+2)%friend_num;
-
-            a0 = (*element_areas)(i,j1,0);
-            a1 = (*element_areas)(i,j1,1);
-            a2 = (*element_areas)(i,j1,2);
-
-            p1 = pressure((*friend_list)(i,j1));
-            p2 = pressure((*friend_list)(i,j2));
-
-            p1_cent = (p0*a1 + p1*a2 + p2*a0) / (a0 + a1 + a2);
-
-            // Find average p at the center of the control volume edge
-            p_avg = 0.5*(p0_cent + p1_cent);
-
-
-            j1 = j%friend_num;
-
-            // get mapping factor for edge i,j2
-            m = (*cent_map_factor)(i, j1);
-
-            // get components of the edge normal vector
-            nx = (*normal_vecs)(i, j1, 0);
-            ny = (*normal_vecs)(i, j1, 1);
-
-            // get edge length of current edge
-            edge_len = (*edge_lens)(i, j1);
-
-            // calculate x gradient
-            x_grad += m * p_avg * nx * edge_len;
-
-            // calculate y gradient
-            y_grad += m * p_avg * ny * edge_len;
-
+            x_grad += p1 * (*grad_coeffs)(i, j+1, 0);
+            y_grad += p1 * (*grad_coeffs)(i, j+1, 1);
         }
 
-        x_grad = g * x_grad / (*cv_areas)(i);
-        y_grad = g * y_grad / (*cv_areas)(i);
-
-        dvdt(i,0) -= x_grad;
-        dvdt(i,1) -= y_grad;
-
-        // dvdt(i,0) -= y_grad;
-        // dvdt(i,1) -= x_grad;
+        dvdt(i,0) -= g*x_grad;
+        dvdt(i,1) -= g*y_grad;
     }
 };
 
@@ -136,6 +86,11 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
     double * loading_factor;
     double * shell_factor_beta;
     double * cosLat;
+    double scalar_lm_cos, scalar_lm_sin;
+    double cosMLon, sinMLon;
+    double * sh_coeffs;
+    double * soln_vec;
+
 
     Array3D<double> * scalar_lm;
     Array3D<double> * scalar_lm_dummy;
@@ -172,9 +127,15 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
     trigLat = &(mesh->trigLat);
     cosLat = &(mesh->trigLat(0,0));
 
+    double * sh_matrix;
+    sh_matrix = &(mesh->sh_matrix_fort(0));
+    soln_vec = &((*scalar_dummy)(0));
+
     start_l = 2;
-    if (globals->surface_type == LID_LOVE) start_l = 0;
+    if (globals->surface_type == LID_LOVE) start_l = 2;
     if (globals->surface_type == FREE_LOADING) start_l = 2;
+
+    sh_coeffs = new double[(l_max+1)*(l_max+2) - 6];
 
     // INTERPOLATE GEODESIC GRID DATA TO LAT-LON GRID
     interpolateGG2LL(globals,
@@ -191,17 +152,19 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
 
     // getSHCoeffsGG((mesh->node_pos_sph), gg_scalar, *scalar_lm, node_num, l_max);
 
-    //for (l=0; l<l_max+1; l++)
-    //{
-    //    for (m=0; m<=l; m++)
-    //    {
-        //std::cout<<l<<' '<<m<<' '<<(*scalar_lm)(l, m, 1)<<'\t'<<(*scalar_lm_dummy)(l, m, 1)<<std::endl;
-    //    }
-    //}
+    char trans = 'n';
+    int M = node_num;
+    int N = (l_max+1)*(l_max+2) - 6;
+    double alpha = 1.0;
+    int lda = M;
+    int incx = 1;
+    int incy = 1;
+    double beta = 0.0;
 
 
+    int count = 0;
 
-    int method = 1;
+    int method = 3;
     switch (method)
     {
     case 1:
@@ -224,19 +187,29 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
                 dvdt_y = 0.0;
                 dummy_val = 0.0;
                 for (m=0; m<=l; m++)
+                // for (m=0; ; m++)
                 {
+                    scalar_lm_cos = (*scalar_lm)(l, m, 0);
+                    scalar_lm_sin = (*scalar_lm)(l, m, 1);
+
+                    cosMLon = (*trigMLon)(i, m, 0);
+                    sinMLon = (*trigMLon)(i, m, 1);
+
                     dvdt_x += lon_factor * (*Pbar_lm)(i, l, m)
-                              * (-(*scalar_lm)(l, m, 0) * (double)m * (*trigMLon)(i, m, 1)
-                              + (*scalar_lm)(l, m, 1) * (double)m * (*trigMLon)(i, m, 0));
+                              * (-scalar_lm_cos * (double)m * sinMLon
+                              + scalar_lm_sin * (double)m * cosMLon);
 
                     dvdt_y += lat_factor * (*Pbar_lm_deriv)(i, l, m)
-                              * ((*scalar_lm)(l, m, 0) * (*trigMLon)(i, m, 0)
-                              + (*scalar_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
+                              * (scalar_lm_cos * cosMLon
+                              + scalar_lm_sin * sinMLon);
 
 
                     dummy_val += (*Pbar_lm)(i, l, m)
-                              * ((*scalar_lm)(l, m, 0) * (*trigMLon)(i, m, 0)
-                              + (*scalar_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
+                              * (scalar_lm_cos * cosMLon
+                              + scalar_lm_sin * sinMLon);
+
+                    // if (m==l) break;
+
                 }
 
                 if (globals->surface_type == FREE_LOADING)
@@ -267,7 +240,7 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
             }
         }
 
-        pressureGradient(mesh, dvdt, *scalar_dummy, -factor);
+        pressureGradient(mesh, dvdt, *scalar_dummy, 2, -factor);
 
         break;
 
@@ -276,12 +249,9 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
         // GRADIENT FROM SPHERICAL HARMONIC COEFFICIENTS
         for (i=0; i<node_num; i++)
         {
-            // lon_factor = factor * 1.0/(r*(*trigLat)(i,0));
-            // std::cout<<gg_scalar(i)<<'\t';
-            // gg_scalar(i) = 0.0;     // THIS IS CHEATING
             dvdt_x_total = 0.0;
 
-            for (l=0.0; l<l_max+1; l++)
+            for (l=0; l<l_max+1; l++)
             {
                 dvdt_x = 0.0;
                 for (m=0; m<=l; m++)
@@ -290,6 +260,7 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
                               * ((*scalar_lm)(l, m, 0) * (*trigMLon)(i, m, 0)
                               + (*scalar_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
                 }
+
 
                 if (globals->surface_type == FREE_LOADING)
                 {
@@ -304,63 +275,69 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
                 dvdt_x_total += dvdt_x;
             }
 
-            // std::cout<<gg_scalar(i)<<std::endl;
             (*scalar_dummy)(i) += dvdt_x_total;
 
         }
 
-        pressureGradient(mesh, dvdt, *scalar_dummy, -factor);
+        pressureGradient(mesh, dvdt, *scalar_dummy, node_num, -factor);
+
+        break;
+
+
+    case 3:
+        // Using blas to perform a large matrix-vector calculation
+
+        int count = 0;
+        for (l=2; l<l_max+1; l++)
+        {
+            for (m=0; m<=l; m++)
+            {
+                sh_coeffs[count] = (*scalar_lm)(l, m, 0);
+                count++;
+
+                sh_coeffs[count] = (*scalar_lm)(l, m, 1);
+                count++;
+            }
+        }
+
+        // Perform sh_matrix * sh_coeffs and write the solution to soln_vec
+        dgemv_(&trans, &M, &N, &alpha, sh_matrix, &lda, sh_coeffs, &incx, &beta, soln_vec, &incy);
+
+        pressureGradient(mesh, dvdt, *scalar_dummy, node_num, -factor);
 
         break;
 
     }
 
+
     delete scalar_dummy;
     delete scalar_lm;
     delete ll_scalar;
     delete scalar_lm_dummy;
+    delete[] sh_coeffs;
+    // delete[] soln_vec;
 
 }
 
 void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & velocity, double & sum, double h = 1.0)
 {
     int node_num, friend_num;
-    int i, j, j1, j2, i1, i2;
+    int i, j, j1;
 
     Array2D<int> * friend_list;
-    Array2D<double> * cent_map_factor;
-    Array3D<double> * element_areas;
-    Array3D<double> * normal_vecs;
-    Array2D<double> * edge_lens;
-    Array1D<double> * cv_areas;
     Array3D<double> * vel_transform;
-    // Array1D<double> * mass;
-    Array1D<int> * mask;
+    Array3D<double> * div_coeffs;
 
-    double m;                          // mapping factor at current cv edge
-    double a0, a1, a2;
-    double u0, u1, u2, u0_cent, u1_cent, u_avg, u_temp;
-    double v0, v1, v2, v0_cent, v1_cent, v_avg, v_temp;
-    double div;
-    double nx, ny;
-    double edge_len;
-    // double total_dmass, dmass, dt;
-    // double h;
+    double u0, u1, u_temp;
+    double v0, v1, v_temp;
+    double div_v;
     double cos_a, sin_a;
 
     node_num = mesh->node_num;
     friend_list = &(mesh->node_friends);
-    cent_map_factor = &(mesh->control_vol_edge_centre_m);
-    element_areas = &(mesh->node_friend_element_areas_map);
-    normal_vecs = &(mesh->control_vol_edge_normal_map);
-    edge_lens = &(mesh->control_vol_edge_len);
-    cv_areas = &(mesh->control_volume_surf_area_map);
-    // mass = &(mesh->control_volume_mass);
-    // dt = mesh->globals->timeStep.Value();
     vel_transform = &(mesh->node_vel_trans);
-    mask = &(mesh->land_mask);
+    div_coeffs = &(mesh->div_coeffs);
 
-    // total_dmass = 0.0;
     for (i=0; i<node_num; i++)
     {
         friend_num = 6;
@@ -369,118 +346,30 @@ void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & v
         u0 = velocity(i,0);
         v0 = velocity(i,1);
 
-        div = 0.0;
-        // dmass = 0.0;
+        div_v = (*div_coeffs)(i, 0, 0) * u0 + (*div_coeffs)(i, 0, 1) * v0;
 
         for (j=0; j<friend_num; j++)
         {
-            // find avg pressure in element j
-            j1 = j%friend_num;
-            j2 = (j+1)%friend_num;
-            i1 = (*friend_list)(i,j1);
-            i2 = (*friend_list)(i,j2);
+            j1 = (*friend_list)(i, j);
 
-
-            a0 = (*element_areas)(i,j1,0);
-            a1 = (*element_areas)(i,j1,1);
-            a2 = (*element_areas)(i,j1,2);
-
-            // FIND VELOCITY AT FIRST FRIEND
-            u_temp = velocity(i1,0);
-            v_temp = velocity(i1,1);
+            // FIND VELOCITY AT FRIEND j1
+            u_temp = velocity(j1, 0);
+            v_temp = velocity(j1, 1);
 
             // CONVERT TO MAPPED VELOCITIES
+            cos_a = (*vel_transform)(i, j+1, 0);
+            sin_a = (*vel_transform)(i, j+1, 1);
 
-            cos_a = (*vel_transform)(i, j1+1, 0);
-            sin_a = (*vel_transform)(i, j1+1, 1);
             u1 = u_temp * cos_a + v_temp * sin_a;
             v1 = -u_temp * sin_a + v_temp * cos_a;
 
-            // FIND VELOCITY AT SECOND FRIEND
-            u_temp = velocity(i2,0);
-            v_temp = velocity(i2,1);
-
-            // CONVERT TO MAPPED VELOCITIES
-
-            cos_a = (*vel_transform)(i, j2+1, 0);
-            sin_a = (*vel_transform)(i, j2+1, 1);
-            u2 = u_temp * cos_a + v_temp * sin_a;
-            v2 = -u_temp * sin_a + v_temp * cos_a;
-
-            // FIND AVERAGE VELOCITY AT FIRST ELEMENT CENTRE
-            u0_cent = (u0 * a1 + u1 * a2 + u2 * a0) / (a0 + a1 + a2);
-            v0_cent = (v0 * a1 + v1 * a2 + v2 * a0) / (a0 + a1 + a2);
-
-            // find avg pressure in element j+1
-            j1 = j2;
-            j2 = (j+2)%friend_num;
-            i1 = (*friend_list)(i,j1);
-            i2 = (*friend_list)(i,j2);
-
-            a0 = (*element_areas)(i,j1,0);
-            a1 = (*element_areas)(i,j1,1);
-            a2 = (*element_areas)(i,j1,2);
-
-            // FIND VELOCITY AT FIRST FRIEND
-            u_temp = velocity(i1,0);
-            v_temp = velocity(i1,1);
-
-            // CONVERT TO MAPPED VELOCITIES
-            cos_a = (*vel_transform)(i, j1+1, 0);
-            sin_a = (*vel_transform)(i, j1+1, 1);
-            u1 = u_temp * cos_a + v_temp * sin_a;
-            v1 = -u_temp * sin_a + v_temp * cos_a;
-
-            // FIND VELOCITY AT SECOND FREIND
-            u_temp = velocity(i2,0);
-            v_temp = velocity(i2,1);
-
-            // CONVERT TO MAPPED VELOCITIES
-            cos_a = (*vel_transform)(i, j2+1, 0);
-            sin_a = (*vel_transform)(i, j2+1, 1);
-            u2 = u_temp * cos_a + v_temp * sin_a;
-            v2 = -u_temp * sin_a + v_temp * cos_a;
-
-            // FIND AVERAGE VELOCITY AT FIRST ELEMENT CENTRE
-            u1_cent = (u0 * a1 + u1 * a2 + u2 * a0) / (a0 + a1 + a2);
-            v1_cent = (v0 * a1 + v1 * a2 + v2 * a0) / (a0 + a1 + a2);
-
-            // Find average p at the center of the control volume edge
-            v_avg = 0.5*(v0_cent + v1_cent);
-            u_avg = 0.5*(u0_cent + u1_cent);
-
-            j1 = j%friend_num;
-
-            // get mapping factor for edge i,j2
-            m = (*cent_map_factor)(i, j1);
-
-            // get components of the edge normal vector
-            nx = (*normal_vecs)(i, j1, 0);
-            ny = (*normal_vecs)(i, j1, 1);
-
-            // get edge length of current edge
-            edge_len = (*edge_lens)(i,j1);
-
-            // calculate control volume divergence
-            div += ((u_avg * nx) + (v_avg * ny)) * edge_len / m;
-
+            div_v += (*div_coeffs)(i, j+1, 0) * u1 + (*div_coeffs)(i, j+1, 1) * v1;
         }
 
-        // dmass = dt * div * 1000.0 * h;
+        dpdt(i) = -h*div_v;
 
-
-        div /= (*cv_areas)(i);
-
-        dpdt(i) = -h*div;
-
-
-        if (sum >= 0.0) {
-            sum += fabs(div);
-            // total_dmass += dmass/(*mass)(i);
-        }
+        if (sum >= 0.0) sum += fabs(div_v);
     }
-
-    // std::cout<<std::scientific<<total_dmass<<std::endl;
 };
 
 // Function to calculate the Laplacian and diffusion for the velocity field.

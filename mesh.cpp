@@ -43,6 +43,8 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
     node_friend_element_areas_map(N,6,3),
     centroid_node_dists_map(N,6),
     pressure_factor(N),
+    grad_coeffs(N, 7, 2),
+    div_coeffs(N, 7, 2),
     land_mask(N),
 
     trigLat(N,2),
@@ -54,6 +56,16 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
 
     Pbar_lm(N, l_max+1, l_max+1),
     Pbar_lm_deriv(N, l_max+1, l_max+1),
+
+    Pbar_cosMLon(N, l_max+1, l_max+1),
+    Pbar_sinMLon(N, l_max+1, l_max+1),
+    Pbar_deriv_cosMLon(N, l_max+1, l_max+1),
+    Pbar_deriv_sinMLon(N, l_max+1, l_max+1),
+
+    sh_matrix(N, (l_max+1)*(l_max+2) - 6), //-6 is to ignore degrees 0 and 1
+    sh_matrix_fort(N*((l_max+1)*(l_max+2) - 6)),
+
+
     trigMLon(N, l_max+1, 2),
 
     V_inv(N, 6, 6),
@@ -101,6 +113,10 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
     CalcMaxTimeStep();
 
     CalcLegendreFuncs();
+
+    CalcGradOperatorCoeffs();
+
+    CalcDivOperatorCoeffs();
 
     CalcLand();
 
@@ -797,11 +813,6 @@ int Mesh::CalcElementAreas(void)
                 x2 = &node_pos_map(i, ae, 0);   // set map coords for second vertex on the element
                 y2 = &node_pos_map(i, ae, 1);
 
-                // if (i==20) std::cout<<xc<<
-
-
-                // std::cout<<i<<'\t'<<'('<<*xc<<','<<*yc<<") ("<<*x1<<','<<*y1<<") ("<<*x2<<','<<*y2<<")"<<std::endl;
-
                 triangularArea(*t_area, *xc, *yc, *x1, *x2, *y1, *y2);     // calculate subelement area
 
             }
@@ -888,12 +899,257 @@ int Mesh::CalcLegendreFuncs(void)
             trigMLon(i, m, 0) = cos( (double)m * node_pos_sph( i, 1 ) );
             trigMLon(i, m, 1) = sin( (double)m * node_pos_sph( i, 1 ) );
         }
+
+        // int count = 0;
+        for (l = 0; l < l_max+1; l++)
+        {
+            for (m = 0; m <= l; m++)
+            {
+                Pbar_cosMLon(i, l, m) = Pbar_lm(i, l, m)*trigMLon(i, m, 0);
+                Pbar_sinMLon(i, l, m) = Pbar_lm(i, l, m)*trigMLon(i, m, 1);
+
+                Pbar_deriv_cosMLon(i, l, m) = Pbar_lm_deriv(i, l, m)*trigMLon(i, m, 0);
+                Pbar_deriv_sinMLon(i, l, m) = Pbar_lm_deriv(i, l, m)*trigMLon(i, m, 1);
+
+            }
+        }
+
+        int count = 0;
+        for (l = 2; l < l_max+1; l++)
+        {
+            for (m = 0; m <= l; m++)
+            {
+                sh_matrix(i, count) = Pbar_cosMLon(i, l, m);
+                if (globals->surface_type == FREE_LOADING) sh_matrix(i, count) *= globals->loading_factor[l];
+                else if (globals->surface_type == LID_MEMBR) sh_matrix(i, count) *= globals->shell_factor_beta[l];
+
+
+                count++;
+
+                sh_matrix(i, count) = Pbar_sinMLon(i, l, m);
+                if (globals->surface_type == FREE_LOADING) sh_matrix(i, count) *= globals->loading_factor[l];
+                else if (globals->surface_type == LID_MEMBR) sh_matrix(i, count) *= globals->shell_factor_beta[l];
+
+                count++;
+            }
+        }
+    }
+
+    int count = 0;
+    for (m = 0; m <= (l_max+1)*(l_max+2) - 6; m++)
+    {
+        for (i=0; i<node_num; i++)
+        {
+            sh_matrix_fort(count) = sh_matrix(i, m);
+            count++;
+        }
     }
 
     // free up memory!
     delete temp_legendre;
     delete temp_dlegendre;
 }
+
+
+int Mesh::CalcGradOperatorCoeffs(void)
+{
+    int i, j, j2, j3, f, f_num;
+    double areaCV, areaElement, *coeff_x, *coeff_y;
+    double alpha, beta, gamma, B_x, B_y;
+
+    for (i=0; i<node_num; i++)
+    {
+
+        f_num = 6;                                     // Assume hexagon (6 centroids)
+        f = node_friends(i,5);
+        if (f == -1) {
+            f_num = 5;                                   // Check if pentagon (5 centroids)
+        }
+
+        // Control volume area
+        areaCV = control_volume_surf_area_map(i);
+
+        // Calculate the central node coefficient first
+        coeff_x = &grad_coeffs(i, 0, 0);
+        coeff_y = &grad_coeffs(i, 0, 1);
+        *coeff_x = 0.0;
+        *coeff_y = 0.0;
+        for (j=0; j<f_num; j++)
+        {
+            j2 = (j-1)%f_num;
+            if (j2 < 0) j2 += f_num;
+
+            alpha = node_friend_element_areas_map(i, j, 1);
+
+            B_x = control_vol_edge_centre_m(i, j) * control_vol_edge_normal_map(i, j, 0) * control_vol_edge_len(i, j);
+            B_y = control_vol_edge_centre_m(i, j) * control_vol_edge_normal_map(i, j, 1) * control_vol_edge_len(i, j);
+
+            B_x += control_vol_edge_centre_m(i, j2) * control_vol_edge_normal_map(i, j2, 0) * control_vol_edge_len(i, j2);
+            B_y += control_vol_edge_centre_m(i, j2) * control_vol_edge_normal_map(i, j2, 1) * control_vol_edge_len(i, j2);
+
+            // Total element area = alpha + beta + gamma
+            areaElement = alpha + node_friend_element_areas_map(i, j, 0) + node_friend_element_areas_map(i, j, 2);
+
+            *coeff_x += B_x/areaElement * alpha;
+            *coeff_y += B_y/areaElement * alpha;
+
+        }
+        *coeff_x *= 0.5 * 1./areaCV;
+        *coeff_y *= 0.5 * 1./areaCV;
+
+        // Now calculate coeffs for neighbouring nodes (matrix diagonals)
+        for (j=0; j<f_num; j++)
+        {
+            // First term ------------------------------------------------------
+            coeff_x = &grad_coeffs(i, j+1, 0);
+            coeff_y = &grad_coeffs(i, j+1, 1);
+
+            j2 = (j-1)%f_num;
+            if (j2 < 0) j2 += f_num;
+
+            beta = node_friend_element_areas_map(i, j, 2);
+
+            B_x = control_vol_edge_centre_m(i, j) * control_vol_edge_normal_map(i, j, 0) * control_vol_edge_len(i, j);
+            B_y = control_vol_edge_centre_m(i, j) * control_vol_edge_normal_map(i, j, 1) * control_vol_edge_len(i, j);
+
+            B_x += control_vol_edge_centre_m(i, j2) * control_vol_edge_normal_map(i, j2, 0) * control_vol_edge_len(i, j2);
+            B_y += control_vol_edge_centre_m(i, j2) * control_vol_edge_normal_map(i, j2, 1) * control_vol_edge_len(i, j2);
+
+            // Total element area = alpha + beta + gamma
+            areaElement = node_friend_element_areas_map(i, j, 0) + beta + node_friend_element_areas_map(i, j, 1);
+
+            *coeff_x = B_x/areaElement * beta;
+            *coeff_y = B_y/areaElement * beta;
+
+            // Second term -----------------------------------------------------
+            gamma = node_friend_element_areas_map(i, j2, 0);
+
+            j3 = (j-2)%f_num;
+            if (j3 < 0) j3 += f_num;
+
+            B_x = control_vol_edge_centre_m(i, j2) * control_vol_edge_normal_map(i, j2, 0) * control_vol_edge_len(i, j2);
+            B_y = control_vol_edge_centre_m(i, j2) * control_vol_edge_normal_map(i, j2, 1) * control_vol_edge_len(i, j2);
+
+            B_x += control_vol_edge_centre_m(i, j3) * control_vol_edge_normal_map(i, j3, 0) * control_vol_edge_len(i, j3);
+            B_y += control_vol_edge_centre_m(i, j3) * control_vol_edge_normal_map(i, j3, 1) * control_vol_edge_len(i, j3);
+
+
+            // Total element area = alpha + beta + gamma
+            areaElement = node_friend_element_areas_map(i, j2, 2) + node_friend_element_areas_map(i, j2, 1) + gamma;
+
+            *coeff_x += B_x/areaElement * gamma;
+            *coeff_y += B_y/areaElement * gamma;
+
+            *coeff_x *= 0.5 * 1./areaCV;
+            *coeff_y *= 0.5 * 1./areaCV;
+        }
+
+
+    }
+
+    return 1;
+}
+
+int Mesh::CalcDivOperatorCoeffs(void)
+{
+    int i, j, j2, j3, f, f_num;
+    double areaCV, areaElement, *coeff_x, *coeff_y;
+    double alpha, beta, gamma, C_x, C_y;
+
+    for (i=0; i<node_num; i++)
+    {
+
+        f_num = 6;                                     // Assume hexagon (6 centroids)
+        f = node_friends(i,5);
+        if (f == -1) {
+            f_num = 5;                                   // Check if pentagon (5 centroids)
+        }
+
+        // Control volume area
+        areaCV = control_volume_surf_area_map(i);
+
+        // Calculate the central node coefficient first
+        coeff_x = &div_coeffs(i, 0, 0);
+        coeff_y = &div_coeffs(i, 0, 1);
+        *coeff_x = 0.0;
+        *coeff_y = 0.0;
+        for (j=0; j<f_num; j++)
+        {
+            j2 = (j-1)%f_num;
+            if (j2 < 0) j2 += f_num;
+
+            alpha = node_friend_element_areas_map(i, j, 1);
+
+            C_x = control_vol_edge_normal_map(i, j, 0) * control_vol_edge_len(i, j) /  control_vol_edge_centre_m(i, j);
+            C_y = control_vol_edge_normal_map(i, j, 1) * control_vol_edge_len(i, j) /  control_vol_edge_centre_m(i, j);
+
+            C_x += control_vol_edge_normal_map(i, j2, 0) * control_vol_edge_len(i, j2) / control_vol_edge_centre_m(i, j2);
+            C_y += control_vol_edge_normal_map(i, j2, 1) * control_vol_edge_len(i, j2) / control_vol_edge_centre_m(i, j2);
+
+            // Total element area = alpha + beta + gamma
+            areaElement = alpha + node_friend_element_areas_map(i, j, 0) + node_friend_element_areas_map(i, j, 2);
+
+            *coeff_x += C_x/areaElement * alpha;
+            *coeff_y += C_y/areaElement * alpha;
+
+        }
+        *coeff_x *= 0.5 * 1./areaCV;
+        *coeff_y *= 0.5 * 1./areaCV;
+
+        // Now calculate coeffs for neighbouring nodes (matrix diagonals)
+        for (j=0; j<f_num; j++)
+        {
+            // First term ------------------------------------------------------
+            coeff_x = &div_coeffs(i, j+1, 0);
+            coeff_y = &div_coeffs(i, j+1, 1);
+
+            j2 = (j-1)%f_num;
+            if (j2 < 0) j2 += f_num;
+
+            beta = node_friend_element_areas_map(i, j, 2);
+
+            C_x = control_vol_edge_normal_map(i, j, 0) * control_vol_edge_len(i, j) /  control_vol_edge_centre_m(i, j);
+            C_y = control_vol_edge_normal_map(i, j, 1) * control_vol_edge_len(i, j) /  control_vol_edge_centre_m(i, j);
+
+            C_x += control_vol_edge_normal_map(i, j2, 0) * control_vol_edge_len(i, j2) / control_vol_edge_centre_m(i, j2);
+            C_y += control_vol_edge_normal_map(i, j2, 1) * control_vol_edge_len(i, j2) / control_vol_edge_centre_m(i, j2);
+
+            // Total element area = alpha + beta + gamma
+            areaElement = node_friend_element_areas_map(i, j, 0) + beta + node_friend_element_areas_map(i, j, 1);
+
+            *coeff_x = C_x/areaElement * beta;
+            *coeff_y = C_y/areaElement * beta;
+
+            // Second term -----------------------------------------------------
+            gamma = node_friend_element_areas_map(i, j2, 0);
+
+            j3 = (j-2)%f_num;
+            if (j3 < 0) j3 += f_num;
+
+            C_x = control_vol_edge_normal_map(i, j2, 0) * control_vol_edge_len(i, j2) / control_vol_edge_centre_m(i, j2);
+            C_y = control_vol_edge_normal_map(i, j2, 1) * control_vol_edge_len(i, j2) / control_vol_edge_centre_m(i, j2);
+
+            C_x += control_vol_edge_normal_map(i, j3, 0) * control_vol_edge_len(i, j3) / control_vol_edge_centre_m(i, j3);
+            C_y += control_vol_edge_normal_map(i, j3, 1) * control_vol_edge_len(i, j3) / control_vol_edge_centre_m(i, j3);
+
+
+            // Total element area = alpha + beta + gamma
+            areaElement = node_friend_element_areas_map(i, j2, 2) + node_friend_element_areas_map(i, j2, 1) + gamma;
+
+            *coeff_x += C_x/areaElement * gamma;
+            *coeff_y += C_y/areaElement * gamma;
+
+            *coeff_x *= 0.5 * 1./areaCV;
+            *coeff_y *= 0.5 * 1./areaCV;
+        }
+
+
+    }
+
+    return 1;
+}
+
+
 
 int Mesh::CalcLand(void)
 {
@@ -1036,8 +1292,8 @@ int Mesh::ReadMeshFile(void)
     std::string file_str;                  // string with path to mesh file.
     int i, node_id;
 
+    // file_str = globals->path + SEP + "input_files" + SEP + "grid_l" + std::to_string(globals->geodesic_l.Value()) + ".txt";
     file_str = globals->path + SEP + "input_files" + SEP + "grid_l" + std::to_string(globals->geodesic_l.Value()) + ".txt";
-    // file_str = globals->path + SEP + "input_files" + SEP + "grid_l" + std::to_string(globals->geodesic_l.Value()) + "_ordered.txt";
 
     // in stream for input.in file
     std::ifstream gridFile(file_str, std::ifstream::in);
