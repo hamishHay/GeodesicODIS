@@ -33,6 +33,13 @@ void deg2Ecc(Mesh * grid, Array2D<double> & velocity, double simulationTime, dou
     // std::cout<<grid->globals->loveReduct.Value()<<std::endl;
 
     factor = grid->globals->loveReduct.Value() * pow(omega,2.0)*radius*ecc;
+
+    if (grid->globals->surface_type == LID_MEMBR)
+    {
+      factor *= 1./radius;
+      factor *= pow(radius + grid->globals->shell_thickness.Value(), 2)/radius;
+    }
+
     cosM = cos(omega*simulationTime);
     sinM = sin(omega*simulationTime);
 
@@ -296,6 +303,13 @@ void deg2Obliq(Mesh * grid, Array2D<double> & velocity, double simulationTime, d
     factor = -3. * grid->globals->loveReduct.Value() * pow(omega,2.0)*radius*theta;
     cosM = cos(omega*simulationTime);
     // sinM = sin(omega*simulationTime);
+
+    if (grid->globals->surface_type == LID_MEMBR)
+    {
+      factor *= 1./radius;
+      factor *= pow(radius + grid->globals->shell_thickness.Value(), 2)/radius;
+    }
+
 
     // Assign pointers to start of trig node arrays
     cosLat = &(grid->trigLat(0,0));
