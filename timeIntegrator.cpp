@@ -40,7 +40,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
     obliq = globals->theta.Value();
     h = globals->h.Value();
     node_num = globals->node_num;
-    visc = 1e1;
+    visc = 2e2;
 
     switch (globals->tide_type)
     {
@@ -90,12 +90,13 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
     switch (globals->surface_type)
     {
         case FREE:
-            pressureGradient(grid, dvdt, p_tm1, g);
+            pressureGradient(grid, dvdt, p_tm1, node_num, g);
             // pressureGradient(grid, dvdt, p_tm1, g);
             break;
 
         case FREE_LOADING:
-            pressureGradientSH(globals, grid, dvdt, p_tm1, -g);
+            pressureGradient(grid, dvdt, p_tm1, node_num, g);
+            pressureGradientSH(globals, grid, dvdt, p_tm1, g);
             break;
 
         case LID_LOVE:
@@ -113,7 +114,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
 
     }
 
-    // velocityDiffusion(grid, dvdt, v_tm1, visc);
+    velocityDiffusion(grid, dvdt, v_tm1, visc);
 
 };
 
@@ -408,7 +409,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
             // MARCH DISPLACEMENT FORWARD IN TIME
             integrateAB3scalar(globals, grid, *press_t0, *press_tm1, *dpress_dt_t0, *dpress_dt_tm1, *dpress_dt_tm2, iter);
 
-            if (out_time >= out_frac*orbit_period) smoothingSH(globals, grid, *press_tm1);
+            // if (out_time >= out_frac*orbit_period) smoothingSH(globals, grid, *press_tm1);
         }
 
         else if (globals->surface_type == LID_INF)
@@ -467,62 +468,6 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
             out_time -= out_frac*orbit_period;
 
-            // for (j=0; j<globals->out_tags.size(); j++)
-            // {
-            //     if ((*tags)[j] == "velocity output")
-            //     {
-            //         for (i=0; i<node_num; i++) {
-            //             u_1D[i] = (float)(*p);
-            //             p++;
-            //
-            //             v_1D[i] = (float)(*p);
-            //             p++;
-            //         }
-            //
-            //         count[1] = node_num;
-            //
-            //         H5Sselect_hyperslab(data_space_u, H5S_SELECT_SET, start, NULL, count, NULL);
-            //         H5Dwrite(data_set_u, H5T_NATIVE_FLOAT, mem_space_u, data_space_u, H5P_DEFAULT, u_1D);
-            //
-            //         count[1] = node_num;
-            //
-            //         H5Sselect_hyperslab(data_space_v, H5S_SELECT_SET, start, NULL, count, NULL);
-            //         H5Dwrite(data_set_v, H5T_NATIVE_FLOAT, mem_space_v, data_space_v, H5P_DEFAULT, v_1D);
-            //     }
-            //
-            //     else if ((*tags)[j] == "displacement output")
-            //     {
-            //
-            //         for (i=0; i<node_num; i++) {
-            //             eta_1D[i] = (float)(*p);
-            //             p++;
-            //         }
-            //
-            //         count[1] = node_num;
-            //
-            //         H5Sselect_hyperslab(data_space_eta, H5S_SELECT_SET, start, NULL, count, NULL);
-            //         H5Dwrite(data_set_eta, H5T_NATIVE_FLOAT, mem_space_eta, data_space_eta, H5P_DEFAULT, eta_1D);
-            //     }
-            //
-            //     else if ((*tags)[j] == "dissipation output")
-            //     {
-            //
-            //     }
-            //
-            //     else if ((*tags)[j] == "avg dissipation output")
-            //     {
-            //
-            //     }
-            // }
-            //
-            // pp[3] = &(*energy_diss)(0);
-            // pp[1] = &(*press_t0)(0);
-            // // pp[3] = &(*press_dummy)(0);
-            // // pp[1] = &(grid->land_mask(0));
-            // pp[2] = &(*vel_t0)(0,0);
-            // // pp[2] = &(*vel_dummy)(0,0);
-            // pp[0] = &total_diss[0];
-            //std::cout<<"HERE_FIRST"<<std::endl;
             Output->DumpData(globals, out_count, pp);
             out_count++;
 
