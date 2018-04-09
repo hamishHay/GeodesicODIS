@@ -143,7 +143,7 @@ void runOperatorTests(Globals * globals, Mesh * mesh)
 
             velocityDivergence(mesh, *divTest, *u, sum, -1.0);
 
-            pressureGradient(mesh, *gradTest, *beta, -1.0);
+            pressureGradient(mesh, *gradTest, *beta, node_num, -1.0);
 
             for (i = 0; i < node_num; i++)
             {
