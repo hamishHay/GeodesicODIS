@@ -55,7 +55,7 @@ int applySurfaceBCs(Globals * globals)
 
                 loading_factor[l] = (1.0 + k_l - h_l);
                 loading_factor[l] *= 3.*ocean_den/((2.*(double)l + 1.0) * bulk_den);
-                loading_factor[l] = 1.0 - loading_factor[l];
+                //loading_factor[l] = 1.0 - loading_factor[l];
             }
 
             l = 2;
