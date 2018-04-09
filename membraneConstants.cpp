@@ -41,6 +41,8 @@ void membraneNuBeta(Array1D<double> & nu, Array1D<double> & beta, int l_max, Glo
     // radius_core = radius - ocean_thickness;
     double radius_ocean = radius - (shell_thickness);
 
+    //radius = radius_ocean;
+
     double mass_total = 1.08e20;
     double mass_core;
     double mass_ocean;
@@ -73,6 +75,8 @@ void membraneNuBeta(Array1D<double> & nu, Array1D<double> & beta, int l_max, Glo
 
     den_core = mass_core / vol_core;
     grav_core = G*mass_core/pow(radius_core, 2.0);
+
+    double grav_ocean = G*(mass_core+mass_ocean)/pow(radius_ocean, 2.0);
 
     std::cout<<"ocean to bulk den ratio: "<<den_ocean/den_bulk<<std::endl;
 
@@ -133,14 +137,14 @@ void membraneNuBeta(Array1D<double> & nu, Array1D<double> & beta, int l_max, Glo
         beta(l) = 1. - xi*gam_load + sprConst + dsprConst;
         nu(l) = gam_tide + dgam_tide;
 
-        std::cout<<std::fixed << std::setprecision(8)<<l<<'\t'<<beta(l)<<'\t'<<nu(l)<<std::endl;
+        // std::cout<<std::fixed << std::setprecision(8)<<l<<'\t'<<beta(l)<<'\t'<<nu(l)<<std::endl;
 
         // Modify core radius and gravity values in globals
-        // consts->g.SetValue(grav_core);
-        // consts->radius.SetValue(radius_core);
+        consts->g.SetValue(grav_ocean);
+        consts->radius.SetValue(radius_ocean);
 
 
     }
 
-    std::cout<<"CORE GRAVITY: "<<grav_core<<std::endl;
+    std::cout<<"OCEAN GRAVITY: "<<grav_ocean<<std::endl;
 };
