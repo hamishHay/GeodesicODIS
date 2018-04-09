@@ -189,7 +189,7 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
     // OF THE PRESSURE FIELD
     getSHCoeffsLL(*ll_scalar, *scalar_lm, N_ll, l_max);
 
-    //getSHCoeffsGG((mesh->node_pos_sph), gg_scalar, *scalar_lm, node_num, l_max);
+    // getSHCoeffsGG((mesh->node_pos_sph), gg_scalar, *scalar_lm, node_num, l_max);
 
     //for (l=0; l<l_max+1; l++)
     //{
@@ -295,7 +295,8 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
                 {
                     dvdt_x *= loading_factor[l];
                 }
-                else if (globals->surface_type == LID_LOVE)
+                else if (globals->surface_type == LID_LOVE ||
+                         globals->surface_type == LID_MEMBR)
                 {
                     dvdt_x *= shell_factor_beta[l];
                 }
