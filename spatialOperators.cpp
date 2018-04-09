@@ -6,10 +6,26 @@
 #include "sphericalHarmonics.h"
 #include "interpolation.h"
 
+extern "C"{
+// FORTRAN adds _ after all the function names
+// and all variables are called by reference
+double dgemv_( const char * TRANS,
+               const int * m,
+               const int * n,
+               const double * alpha,
+               const double * V,
+               const int * ldv,
+               const double * x,
+               const int * incx,
+               const double * beta,
+               const double * y,
+               const int * incy);
+}
+
 // static double dummy_sum = 0;
 
 // #pragma omp for
-void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pressure, double g = 1.0)
+void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pressure, int N, double g = 1.0)
 {
     int node_num, friend_num;
     int i, j, end_i;
@@ -24,15 +40,17 @@ void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pre
     friend_list = &(mesh->node_friends);
     grad_coeffs = &(mesh->grad_coeffs);
 
-    end_i = node_num;
-    if (mesh->globals->surface_type == FREE_LOADING ||
-        mesh->globals->surface_type == LID_MEMBR ||
-        mesh->globals->surface_type == LID_INF)
-    {
-        end_i = 2;
-    }
+    // end_i = node_num;
+    // if (mesh->globals->surface_type == FREE_LOADING ||
+    //     mesh->globals->surface_type == LID_MEMBR ||
+    //     mesh->globals->surface_type == LID_INF)
+    // {
+    //     end_i = 2;
+    // }
 
-    for (i=0; i<end_i; i++)
+    // end_i = node_num;
+
+    for (i=0; i<N; i++)
     {
         friend_num = 6;
         if ((*friend_list)(i, 5) == -1) friend_num = 5;
@@ -68,6 +86,11 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
     double * loading_factor;
     double * shell_factor_beta;
     double * cosLat;
+    double scalar_lm_cos, scalar_lm_sin;
+    double cosMLon, sinMLon;
+    double * sh_coeffs;
+    double * soln_vec;
+
 
     Array3D<double> * scalar_lm;
     Array3D<double> * scalar_lm_dummy;
@@ -104,9 +127,15 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
     trigLat = &(mesh->trigLat);
     cosLat = &(mesh->trigLat(0,0));
 
+    double * sh_matrix;
+    sh_matrix = &(mesh->sh_matrix_fort(0));
+    soln_vec = &((*scalar_dummy)(0));
+
     start_l = 2;
-    if (globals->surface_type == LID_LOVE) start_l = 0;
+    if (globals->surface_type == LID_LOVE) start_l = 2;
     if (globals->surface_type == FREE_LOADING) start_l = 2;
+
+    sh_coeffs = new double[(l_max+1)*(l_max+2) - 6];
 
     // INTERPOLATE GEODESIC GRID DATA TO LAT-LON GRID
     interpolateGG2LL(globals,
@@ -123,17 +152,19 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
 
     //getSHCoeffsGG((mesh->node_pos_sph), gg_scalar, *scalar_lm, node_num, l_max);
 
-    //for (l=0; l<l_max+1; l++)
-    //{
-    //    for (m=0; m<=l; m++)
-    //    {
-        //std::cout<<l<<' '<<m<<' '<<(*scalar_lm)(l, m, 1)<<'\t'<<(*scalar_lm_dummy)(l, m, 1)<<std::endl;
-    //    }
-    //}
+    char trans = 'n';
+    int M = node_num;
+    int N = (l_max+1)*(l_max+2) - 6;
+    double alpha = 1.0;
+    int lda = M;
+    int incx = 1;
+    int incy = 1;
+    double beta = 0.0;
 
 
+    int count = 0;
 
-    int method = 1;
+    int method = 3;
     switch (method)
     {
     case 1:
@@ -156,19 +187,29 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
                 dvdt_y = 0.0;
                 dummy_val = 0.0;
                 for (m=0; m<=l; m++)
+                // for (m=0; ; m++)
                 {
+                    scalar_lm_cos = (*scalar_lm)(l, m, 0);
+                    scalar_lm_sin = (*scalar_lm)(l, m, 1);
+
+                    cosMLon = (*trigMLon)(i, m, 0);
+                    sinMLon = (*trigMLon)(i, m, 1);
+
                     dvdt_x += lon_factor * (*Pbar_lm)(i, l, m)
-                              * (-(*scalar_lm)(l, m, 0) * (double)m * (*trigMLon)(i, m, 1)
-                              + (*scalar_lm)(l, m, 1) * (double)m * (*trigMLon)(i, m, 0));
+                              * (-scalar_lm_cos * (double)m * sinMLon
+                              + scalar_lm_sin * (double)m * cosMLon);
 
                     dvdt_y += lat_factor * (*Pbar_lm_deriv)(i, l, m)
-                              * ((*scalar_lm)(l, m, 0) * (*trigMLon)(i, m, 0)
-                              + (*scalar_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
+                              * (scalar_lm_cos * cosMLon
+                              + scalar_lm_sin * sinMLon);
 
 
                     dummy_val += (*Pbar_lm)(i, l, m)
-                              * ((*scalar_lm)(l, m, 0) * (*trigMLon)(i, m, 0)
-                              + (*scalar_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
+                              * (scalar_lm_cos * cosMLon
+                              + scalar_lm_sin * sinMLon);
+
+                    // if (m==l) break;
+
                 }
 
                 if (globals->surface_type == FREE_LOADING)
@@ -199,7 +240,7 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
             }
         }
 
-        pressureGradient(mesh, dvdt, *scalar_dummy, -factor);
+        pressureGradient(mesh, dvdt, *scalar_dummy, 2, -factor);
 
         break;
 
@@ -208,12 +249,9 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
         // GRADIENT FROM SPHERICAL HARMONIC COEFFICIENTS
         for (i=0; i<node_num; i++)
         {
-            // lon_factor = factor * 1.0/(r*(*trigLat)(i,0));
-            // std::cout<<gg_scalar(i)<<'\t';
-            // gg_scalar(i) = 0.0;     // THIS IS CHEATING
             dvdt_x_total = 0.0;
 
-            for (l=0.0; l<l_max+1; l++)
+            for (l=0; l<l_max+1; l++)
             {
                 dvdt_x = 0.0;
                 for (m=0; m<=l; m++)
@@ -222,6 +260,7 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
                               * ((*scalar_lm)(l, m, 0) * (*trigMLon)(i, m, 0)
                               + (*scalar_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
                 }
+
 
                 if (globals->surface_type == FREE_LOADING)
                 {
@@ -235,21 +274,47 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
                 dvdt_x_total += dvdt_x;
             }
 
-            // std::cout<<gg_scalar(i)<<std::endl;
             (*scalar_dummy)(i) += dvdt_x_total;
 
         }
 
-        pressureGradient(mesh, dvdt, *scalar_dummy, -factor);
+        pressureGradient(mesh, dvdt, *scalar_dummy, node_num, -factor);
+
+        break;
+
+
+    case 3:
+        // Using blas to perform a large matrix-vector calculation
+
+        int count = 0;
+        for (l=2; l<l_max+1; l++)
+        {
+            for (m=0; m<=l; m++)
+            {
+                sh_coeffs[count] = (*scalar_lm)(l, m, 0);
+                count++;
+
+                sh_coeffs[count] = (*scalar_lm)(l, m, 1);
+                count++;
+            }
+        }
+
+        // Perform sh_matrix * sh_coeffs and write the solution to soln_vec
+        dgemv_(&trans, &M, &N, &alpha, sh_matrix, &lda, sh_coeffs, &incx, &beta, soln_vec, &incy);
+
+        pressureGradient(mesh, dvdt, *scalar_dummy, node_num, -factor);
 
         break;
 
     }
 
+
     delete scalar_dummy;
     delete scalar_lm;
     delete ll_scalar;
     delete scalar_lm_dummy;
+    delete[] sh_coeffs;
+    // delete[] soln_vec;
 
 }
 
