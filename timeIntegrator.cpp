@@ -40,7 +40,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
     obliq = globals->theta.Value();
     h = globals->h.Value();
     node_num = globals->node_num;
-    visc = 2e2;
+    visc = 1e3;
 
     switch (globals->tide_type)
     {
@@ -69,7 +69,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
             deg2ObliqEast(grid, dvdt, current_time, r, omega, obliq);
             break;
         case FULL:
-            deg2Full(grid, dvdt, current_time, r, omega, obliq, e);
+            deg2EccTotal(grid, dvdt, current_time, r, omega, obliq, e);
             break;
     }
 

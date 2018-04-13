@@ -643,4 +643,6 @@ void avgAtPoles(Mesh * mesh, Array2D<double> & velocity)
 
     }
 
+    // std::cout<<"HERE"<<std::endl;
+
 };

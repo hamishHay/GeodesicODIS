@@ -2,6 +2,7 @@
 #include "globals.h"
 #include "tidalPotentials.h"
 #include "array2d.h"
+#include "spatialOperators.h"
 #include <math.h>
 
 /* Degree 2 component of the eccentricity tide (see docs)
@@ -526,6 +527,68 @@ void deg2Full(Mesh * grid, Array2D<double> & velocity, double simulationTime, do
                         + 0.75 * ecc * sin2Lat[j] * (3. * cosM * (1 + cos2Lon[j])
                         + 4. * sin2Lon[j] * sinM));
     }
+};
+
+void deg2EccTotal(Mesh * grid, Array2D<double> & velocity, double simulationTime, double radius, double omega, double theta, double ecc)
+{
+    double cosM, sinM, factor_lon, factor_lat;              // cos(Mean anomaly), sin(Mean anomaly)
+    double * sinLon, * cosLon;
+    double * sinLat, * cosLat;
+    double * sin2Lat, * cos2Lat;
+    double * sin2Lon, * cos2Lon;
+    double * cosSqLat;
+    double * sinSqLon, * cosSqLon;
+
+    int i,j, node_num;
+    double * val;
+    double * m;
+
+    node_num = grid->node_num;
+
+    factor_lon = 0.5 * grid->globals->loveReduct.Value() * pow(omega,2.0)*radius;
+
+    if (grid->globals->surface_type == LID_LOVE || grid->globals->surface_type == LID_MEMBR)
+    {
+     factor_lon /= radius;
+     factor_lon *= pow(radius + grid->globals->shell_thickness.Value(), 2.0)/radius;
+    }
+
+    cosM = cos(omega*simulationTime);
+    sinM = sin(omega*simulationTime);
+
+    factor_lon *= (1. + 3.*ecc*cosM);
+    factor_lat = factor_lon;
+
+    // Assign pointers to start of trig node arrays
+    cosLon = &(grid->trigLon(0,0));
+    sinLon = &(grid->trigLon(0,1));
+    cosLat = &(grid->trigLat(0,0));
+    sinLat = &(grid->trigLat(0,1));
+
+    cos2Lat = &(grid->trig2Lat(0,0));
+    sin2Lat = &(grid->trig2Lat(0,1));
+    cos2Lon = &(grid->trig2Lon(0,0));
+    sin2Lon = &(grid->trig2Lon(0,1));
+
+    cosSqLat = &(grid->trigSqLat(0,0));
+    cosSqLon = &(grid->trigSqLon(0,0));
+    sinSqLon = &(grid->trigSqLon(0,1));
+
+    // Solve for dUdlon
+    for (i=2; i<node_num; i++) {
+        j = i*2;
+        // factor_lon = factor_lat/cosLat[j];
+        // if (i < 2) factor_lon = 0.0;
+        // calculate potential gradient in longitude
+        velocity(i,0) = factor_lon * (-3. * cosLat[j] * sin2Lon[j]
+                                      + 12. * ecc * cosLat[j] * cos2Lon[j] * sinM);
+
+        // calculate potential gradient in latitude
+        velocity(i,1) = factor_lat * (-3. * sin2Lat[j] * cosSqLon[j]
+                                      - 12. * ecc * sin2Lat[j] * sinLon[j] * cosLon[j] * sinM);
+    }
+
+    avgAtPoles(grid, velocity);
 };
 
 // OLD VERSION ----------------------------------------------------------------
