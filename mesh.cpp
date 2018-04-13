@@ -921,14 +921,16 @@ int Mesh::CalcLegendreFuncs(void)
             {
                 sh_matrix(i, count) = Pbar_cosMLon(i, l, m);
                 if (globals->surface_type == FREE_LOADING) sh_matrix(i, count) *= globals->loading_factor[l];
-                else if (globals->surface_type == LID_MEMBR) sh_matrix(i, count) *= globals->shell_factor_beta[l];
+                else if (globals->surface_type == LID_MEMBR ||
+                         globals->surface_type == LID_LOVE) sh_matrix(i, count) *= globals->shell_factor_beta[l];
 
 
                 count++;
 
                 sh_matrix(i, count) = Pbar_sinMLon(i, l, m);
                 if (globals->surface_type == FREE_LOADING) sh_matrix(i, count) *= globals->loading_factor[l];
-                else if (globals->surface_type == LID_MEMBR) sh_matrix(i, count) *= globals->shell_factor_beta[l];
+                else if (globals->surface_type == LID_MEMBR ||
+                         globals->surface_type == LID_LOVE) sh_matrix(i, count) *= globals->shell_factor_beta[l];
 
                 count++;
             }
