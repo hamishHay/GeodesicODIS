@@ -103,21 +103,23 @@ int applySurfaceBCs(Globals * globals)
         {
             double hs;
             double * beta_factor;
-            double nu_factor;
+            double upsilon_factor;
             std::string path;
 
             beta_factor = globals->shell_factor_beta;
             l_max = globals->l_max.Value();
 
+            globals->radius.SetValue(globals->radius.Value() - globals->shell_thickness.Value());
+
             // path = globals->path;
 
             // std::ifstream betaFile(path + SEP + "input_files" + SEP + "LOVE_SHELL_COEFFS" + SEP + "ENCELADUS" + SEP + "beta_hs1km_to_hs100km_lmax30.txt",std::ifstream::in);
-            // std::ifstream nuFile(path + SEP + "input_files" + SEP + "LOVE_SHELL_COEFFS" + SEP + "ENCELADUS" + SEP + "nu_hs1km_to_hs100km_l2.txt",std::ifstream::in);
+            // std::ifstream upsilonFile(path + SEP + "input_files" + SEP + "LOVE_SHELL_COEFFS" + SEP + "ENCELADUS" + SEP + "upsilon_hs_1km_to_50km_lmax2.txt",std::ifstream::in);
             hs = globals->shell_thickness.Value();
 
 
             // Check if ice shell value is within table range
-            if ((hs < 1e3) || (hs > 100e3)) {
+            if ((hs < 1e3) || (hs > 50e3)) {
                 outstring << "ERROR:\t\t User selected ice shell thickness of " << hs/1e3;
                 outstring << " km is outside of calculated shell thickness range. " << std::endl;
                 outstring << "\t\t Shell behaviour is therefore undefined. "<<std::endl;
@@ -146,7 +148,7 @@ int applySurfaceBCs(Globals * globals)
                 globals->Output->Write(ERR_MESSAGE, &outstring);
 
                 // in stream for input.in file
-                std::ifstream betaFile(path + SEP + "input_files" + SEP + "LOVE_SHELL_COEFFS" + SEP + "ENCELADUS" + SEP + "beta_hs1km_to_hs100km_lmax30.txt",std::ifstream::in);
+                std::ifstream betaFile(path + SEP + "input_files" + SEP + "LOVE_SHELL_COEFFS" + SEP + "ENCELADUS" + SEP + "beta_hs_1km_to_50km_lmax30.txt",std::ifstream::in);
 
                 dhs = fmod(hs/1e3,1.0);
 
@@ -193,17 +195,17 @@ int applySurfaceBCs(Globals * globals)
                 betaFile.close();
             }
 
-            std::ifstream nuFile(path + SEP + "input_files" + SEP + "LOVE_SHELL_COEFFS" + SEP + "ENCELADUS" + SEP + "nu_hs1km_to_hs100km_l2.txt",std::ifstream::in);
+            std::ifstream upsilonFile(path + SEP + "input_files" + SEP + "LOVE_SHELL_COEFFS" + SEP + "ENCELADUS" + SEP + "upsilon_hs_1km_to_50km_lmax2.txt",std::ifstream::in);
 
             count_col = 1;
             count_row = 1;
-            if (nuFile.is_open())
+            if (upsilonFile.is_open())
             {
 
                 outstring << "Nu coefficients found." << std::endl;
                 globals->Output->Write(OUT_MESSAGE, &outstring);
 
-                while (std::getline(nuFile, line) && count_row <= 2)
+                while (std::getline(upsilonFile, line) && count_row <= 2)
                 {
                     x_l = 0.0;
                     x_r = 0.0;
@@ -225,15 +227,15 @@ int applySurfaceBCs(Globals * globals)
                     }
 
                     x_interp = x_l + dhs * (x_r - x_l)/1.0;
-                    nu_factor = x_interp;
+                    upsilon_factor = x_interp;
 
                     count_row++;
                 };
 
-                nuFile.close();
+                upsilonFile.close();
             }
 
-            globals->loveReduct.SetValue(nu_factor);
+            globals->loveReduct.SetValue(upsilon_factor);
         }
         else
         {
@@ -245,7 +247,7 @@ int applySurfaceBCs(Globals * globals)
             path = globals->path;
 
 
-            std::ifstream betaFile(path + SEP + "input_files" + SEP + "LOVE_SHELL_COEFFS" + SEP + "ENCELADUS" + SEP + "beta_hs1km_to_hs100km_lmax30.txt",std::ifstream::in);
+            std::ifstream betaFile(path + SEP + "input_files" + SEP + "LOVE_SHELL_COEFFS" + SEP + "ENCELADUS" + SEP + "beta_hs_1km_to_50km_lmax30.txt",std::ifstream::in);
 
             count_col = 1;
             count_row = 1;
@@ -271,24 +273,23 @@ int applySurfaceBCs(Globals * globals)
                     }
 
                     beta_factor[count_row] = x;
-                    std::cout<<count_row<<'\t'<<x<<std::endl;
                     count_row++;
                 };
 
                 betaFile.close();
             }
 
-            std::ifstream nuFile(path + SEP + "input_files" + SEP + "LOVE_SHELL_COEFFS" + SEP + "ENCELADUS" + SEP + "nu_hs1km_to_hs100km_l2.txt",std::ifstream::in);
+            std::ifstream upsilonFile(path + SEP + "input_files" + SEP + "LOVE_SHELL_COEFFS" + SEP + "ENCELADUS" + SEP + "upsilon_hs_1km_to_50km_lmax2.txt",std::ifstream::in);
 
             count_col = 1;
             count_row = 1;
-            if (nuFile.is_open())
+            if (upsilonFile.is_open())
             {
 
                 outstring << "Nu coefficients found." << std::endl;
                 globals->Output->Write(OUT_MESSAGE, &outstring);
 
-                while (std::getline(nuFile, line) && count_row <= 2)
+                while (std::getline(upsilonFile, line) && count_row <= 2)
                 {
                     x = 0.0;
 
@@ -304,19 +305,29 @@ int applySurfaceBCs(Globals * globals)
                         }
                         count_col++;
                     }
-                    nu_factor = x;
+                    upsilon_factor = x;
 
                     count_row++;
                 };
 
-                nuFile.close();
+                upsilonFile.close();
             }
 
-            globals->loveReduct.SetValue(nu_factor);
+            globals->loveReduct.SetValue(upsilon_factor);
 
         }
 
+        int l = 0;
+        //
+        for (l=0; l<l_max+1; l++)
+        {
+            beta_factor[l] = 1.0 - beta_factor[l];
+            std::cout<<l<<'\t'<<beta_factor[l]<<std::endl;
         }
+
+        std::cout<<upsilon_factor<<std::endl;
+        }
+
 
         break;
 
