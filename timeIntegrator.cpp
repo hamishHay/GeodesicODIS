@@ -100,11 +100,13 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
             break;
 
         case LID_LOVE:
-            pressureGradientSH(globals, grid, dvdt, p_tm1, -g);
+            pressureGradient(grid, dvdt, p_tm1, node_num, g);
+            pressureGradientSH(globals, grid, dvdt, p_tm1, g);
             break;
 
         case LID_MEMBR:
-            pressureGradientSH(globals, grid, dvdt, p_tm1, -g);
+            pressureGradient(grid, dvdt, p_tm1, node_num, g);
+            pressureGradientSH(globals, grid, dvdt, p_tm1, g);
             break;
 
         case LID_INF:
@@ -288,8 +290,6 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     double lon, lat;
     double r = globals->radius.Value();
 
-    std::cout<<r<<std::endl;
-
     double * cosLon, * cosLat, * cos2Lon;
 
     cosLon = &(grid->trigLon(0,0));
@@ -464,7 +464,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
         if (out_time >= out_frac*orbit_period)
         {
             std::cout<<std::fixed << std::setprecision(8) <<"DUMPING DATA AT "<<current_time/orbit_period;
-            std::cout<<" AVG DISS: "<<*total_diss*4*pi*r*r/(2e-7)/1e9<<" GJ"<<std::endl;
+            std::cout<<" AVG DISS: "<<*total_diss*4*pi*r*r/1e9<<" GW"<<std::endl;
 
             out_time -= out_frac*orbit_period;
 
