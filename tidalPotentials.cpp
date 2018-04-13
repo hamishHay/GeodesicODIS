@@ -34,10 +34,10 @@ void deg2Ecc(Mesh * grid, Array2D<double> & velocity, double simulationTime, dou
 
     factor = grid->globals->loveReduct.Value() * pow(omega,2.0)*radius*ecc;
 
-    if (grid->globals->surface_type == LID_MEMBR)
+    if (grid->globals->surface_type == LID_LOVE || grid->globals->surface_type == LID_MEMBR)
     {
-      factor *= 1./radius;
-      factor *= pow(radius + grid->globals->shell_thickness.Value(), 2)/radius;
+     factor /= radius;
+     factor *= pow(radius + grid->globals->shell_thickness.Value(), 2.0)/radius;
     }
 
     cosM = cos(omega*simulationTime);
@@ -61,9 +61,6 @@ void deg2Ecc(Mesh * grid, Array2D<double> & velocity, double simulationTime, dou
         velocity(i,1) = -factor*0.75*sin2Lat[j]
                         *(3.*cosM*(1.+cos2Lon[j])
                         + 4.*sinM*sin2Lon[j]);
-
-        // velocity(i,0) = cosM * cosLat[i*2] * 1e-6;
-        // velocity(i,1) = 0;
 
     }
 
@@ -100,6 +97,12 @@ void deg2EccLib(Mesh * grid, Array2D<double> & velocity, double simulationTime, 
     factor = grid->globals->loveReduct.Value() * pow(omega,2.0)*radius*ecc;
     cosM = cos(omega*simulationTime);
     sinM = sin(omega*simulationTime);
+
+    if (grid->globals->surface_type == LID_LOVE || grid->globals->surface_type == LID_MEMBR)
+    {
+     factor /= radius;
+     factor *= pow(radius + grid->globals->shell_thickness.Value(), 2.0)/radius;
+    }
 
 
     // Assign pointers to start of trig node arrays
@@ -154,6 +157,12 @@ void deg2EccEast(Mesh * grid, Array2D<double> & velocity, double simulationTime,
     factor = grid->globals->loveReduct.Value() * pow(omega,2.0)*radius*ecc;
     cosM = cos(omega*simulationTime);
     sinM = sin(omega*simulationTime);
+
+    if (grid->globals->surface_type == LID_LOVE || grid->globals->surface_type == LID_MEMBR)
+    {
+     factor /= radius;
+     factor *= pow(radius + grid->globals->shell_thickness.Value(), 2.0)/radius;
+    }
 
 
     // Assign pointers to start of trig node arrays
@@ -210,6 +219,12 @@ void deg2EccWest(Mesh * grid, Array2D<double> & velocity, double simulationTime,
     cosM = cos(omega*simulationTime);
     sinM = sin(omega*simulationTime);
 
+    if (grid->globals->surface_type == LID_LOVE || grid->globals->surface_type == LID_MEMBR)
+    {
+     factor /= radius;
+     factor *= pow(radius + grid->globals->shell_thickness.Value(), 2.0)/radius;
+    }
+
 
     // Assign pointers to start of trig node arrays
     cosLat = &(grid->trigLat(0,0));
@@ -262,6 +277,12 @@ void deg2EccRad(Mesh * grid, Array2D<double> & velocity, double simulationTime, 
     cosM = cos(omega*simulationTime);
     factor = -2.25 * grid->globals->loveReduct.Value() *  cosM * pow(omega, 2.0) * radius * ecc;
 
+    if (grid->globals->surface_type == LID_LOVE || grid->globals->surface_type == LID_MEMBR)
+    {
+     factor /= radius;
+     factor *= pow(radius + grid->globals->shell_thickness.Value(), 2.0)/radius;
+    }
+
     sin2Lat = &(grid->trig2Lat(0,1));
 
     for (i=0; i<node_num; i++) {
@@ -304,12 +325,12 @@ void deg2Obliq(Mesh * grid, Array2D<double> & velocity, double simulationTime, d
     cosM = cos(omega*simulationTime);
     // sinM = sin(omega*simulationTime);
 
-    if (grid->globals->surface_type == LID_MEMBR)
-    {
-      factor *= 1./radius;
-      factor *= pow(radius + grid->globals->shell_thickness.Value(), 2)/radius;
-    }
 
+    if (grid->globals->surface_type == LID_LOVE || grid->globals->surface_type == LID_MEMBR)
+    {
+     factor /= radius;
+     factor *= pow(radius + grid->globals->shell_thickness.Value(), 2.0)/radius;
+    }
 
     // Assign pointers to start of trig node arrays
     cosLat = &(grid->trigLat(0,0));
@@ -361,6 +382,12 @@ void deg2ObliqWest(Mesh * grid, Array2D<double> & velocity, double simulationTim
     cosM = cos(omega*simulationTime);
     sinM = sin(omega*simulationTime);
 
+    if (grid->globals->surface_type == LID_LOVE || grid->globals->surface_type == LID_MEMBR)
+    {
+     factor /= radius;
+     factor *= pow(radius + grid->globals->shell_thickness.Value(), 2.0)/radius;
+    }
+
     // Assign pointers to start of trig node arrays
     cosLat = &(grid->trigLat(0,0));
     cos2Lat = &(grid->trig2Lat(0,0));
@@ -408,6 +435,13 @@ void deg2ObliqEast(Mesh * grid, Array2D<double> & velocity, double simulationTim
 
     // factor = pow(omega,2.0)*pow(radius,2.0)*ecc;
     factor = 1.5 * grid->globals->loveReduct.Value() * pow(omega,2.0)*radius*theta;
+
+    if (grid->globals->surface_type == LID_LOVE || grid->globals->surface_type == LID_MEMBR)
+    {
+     factor /= radius;
+     factor *= pow(radius + grid->globals->shell_thickness.Value(), 2.0)/radius;
+    }
+
     cosM = cos(omega*simulationTime);
     sinM = sin(omega*simulationTime);
 
@@ -449,7 +483,16 @@ void deg2Full(Mesh * grid, Array2D<double> & velocity, double simulationTime, do
     // factor = pow(omega,2.0)*pow(radius,2.0)*ecc;
 
     factor_lon = grid->globals->loveReduct.Value() * pow(omega,2.0)*radius;
+
+    if (grid->globals->surface_type == LID_LOVE || grid->globals->surface_type == LID_MEMBR)
+    {
+     factor_lon /= radius;
+     factor_lon *= pow(radius + grid->globals->shell_thickness.Value(), 2.0)/radius;
+    }
+
     factor_lat = factor_lon;
+
+
 
     cosM = cos(omega*simulationTime);
     sinM = sin(omega*simulationTime);
