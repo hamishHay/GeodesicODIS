@@ -110,7 +110,7 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
     node_num = globals->node_num;
     l_max = globals->l_max.Value();
     N_ll = (int)globals->dLat.Value();
-    r = globals->radius.Value();
+    r = globals->radius.Value();// - globals->shell_thickness.Value();
     lat_factor = factor * 1.0/r;
 
     loading_factor = globals->loading_factor;
@@ -164,7 +164,7 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
 
     int count = 0;
 
-    int method = 3;
+    int method = 1;
     switch (method)
     {
     case 1:
