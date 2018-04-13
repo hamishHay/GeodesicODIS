@@ -1,7 +1,11 @@
 import numpy as np
 import h5py
+import os
+
 import matplotlib as mpl
-# mpl.use("Agg")
+if "SSH_CONNECTION" in os.environ:
+    mpl.use('Agg')
+
 import matplotlib.pyplot as plt
 import matplotlib.tri as tri
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
@@ -146,9 +150,13 @@ class FieldPlot2:
             data = self.load_data(data_name=data_name, slices=None)
         # data *= 4*np.pi * (self.radius-)
 
-        # data *= 4. * np.pi * (self.radius-(self.h_ocean + self.h_shell))**2.0/1e9
-        data *= 4. * np.pi * (self.radius)**2.0/1e9 / (2. * self.drag_coeff)
-        print(np.mean(data[-100:]))
+        # data *= 4. * np.pi * (self.radius)**2.0/1e9
+        data *= 4. * np.pi * (self.radius)**2.0/1e9
+        # data *= (252.1e3 - self.h_shell + self.h_ocean)**2.0
+        # data *= (1./(252.1e3))**2.0
+        # data *= ((252.1e3-self.h_ocean)/(252.1e3))**3.
+        #data *= 4. * np.pi * (self.radius)**2.0/1e9 / (2. * self.drag_coeff)
+        print(np.mean(data[-20*2:]))
 
         ax_current = self.fig.add_subplot(111)
 

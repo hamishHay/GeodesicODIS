@@ -28,7 +28,7 @@ plt.rc('figure', dpi=120)
 # Creating a Triangulation without specifying the triangles results in the
 # Delaunay triangulation of the points.
 try:
-    grid = np.loadtxt("input_files/grid_l5_ordered.txt",skiprows=1,usecols=(1,2))
+    grid = np.loadtxt("input_files/grid_l5.txt",skiprows=1,usecols=(1,2))
 except:
     d = input("Grid mismatch! Which grid do you want?: ")
     grid = np.loadtxt("input_files/grid_l" + str(int(d)) + ".txt",skiprows=1,usecols=(1,2))
@@ -44,7 +44,7 @@ in_file = h5py.File("DATA/data.h5", 'r')
 s = 0
 data_u = in_file["east velocity"][:,s]
 data_v = in_file["north velocity"][:,s]
-data_eta = in_file["displacement"][:,s]
+# data_eta = in_file["displacement"][:,s]
 
 
 # data_diss = np.array(in_file["avg dissipation output"][:])
@@ -58,21 +58,21 @@ fig, (ax1, ax2, ax3) = plt.subplots(ncols=3, figsize=(15,4))
 
 t_max = 150
 t_min = 0
-time = np.linspace(t_min, t_max, len(data_eta))
+time = np.linspace(t_min, t_max, len(data_u))
 
 # print(time)
 
 ax1.plot(time, data_u)
 ax2.plot(time, data_v)
-ax3.plot(time, data_eta)
+# ax3.plot(time, data_eta)
 #
 data_u = in_file["east velocity"][n]
 data_v = in_file["north velocity"][n]
 
 data_eta = in_file["displacement"][n]
-data_diss = in_file["dissipated energy"][n]
+# data_diss = in_file["dissipated energy"][n]
 
-print(np.max(data_u), np.max(data_v), np.max(data_eta))
+print(np.max(data_u), np.max(data_v))#, np.max(data_eta))
 print("TRIANGULATING POSITIONS")
 # Create the Triangulation; no triangles so Delaunay triangulation created.
 triang = tri.Triangulation(x, y)
@@ -94,7 +94,7 @@ x, y = m(np.degrees(x), np.degrees(y))
 
 m.contourf(x, y, data_u, tri=True,ax=ax1)
 m.contourf(x, y, data_v, tri=True,ax=ax2)
-m.contourf(x, y, data_eta, tri=True,ax=ax3)
+# m.contourf(x, y, data_eta, tri=True,ax=ax3)
 
 
 plt.show()
