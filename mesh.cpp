@@ -107,6 +107,7 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
     CalcElementAreas();
 
     CalcCentNodeDists();
+
     // Evaluate trig functions at every node
     CalcTrigFunctions();
 
@@ -122,7 +123,7 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
 
     CalcPressureFactor();
 
-    ReadLatLonFile();
+    // ReadLatLonFile();
 
 };
 
@@ -333,40 +334,6 @@ int Mesh::CalcNodeDists(void)
             // std::cout<<*edge_len<<std::endl;
         }
     }
-
-    // int i, j, f, friend_num;
-    // double * x1, * y1, * x2, * y2, * edge_len;
-    //
-    // for (i=0; i<node_num; i++)
-    // {
-    //
-    //     f = node_friends(i,5);
-    //
-    //     friend_num = 6;                                     // Assume hexagon (6 centroids)
-    //     if (f == -1) {
-    //         friend_num = 5;                                   // Check if pentagon (5 centroids)
-    //         node_dists(i,5) = -1.0;
-    //     }
-    //
-    //     for (j=0; j<friend_num; j++)                        // Loop through all centroids in the control volume
-    //     {
-    //         f = node_friends(i,j);
-    //
-    //         edge_len = &node_dists(i,j);            // set pointer to edge length array
-    //
-    //         x1 = &node_pos_map(i, 0, 0);   // set map coords for second centroid
-    //         y1 = &node_pos_map(i, 0, 1);   // automatically loops around using %
-    //
-    //         x2 = &node_pos_map(i, j+1, 0);   // set map coords for second centroid
-    //         y2 = &node_pos_map(i, j+1, 1);   // automatically loops around using %
-    //
-    //
-    //         distanceBetween(*edge_len, *x1, *x2, *y1, *y2);   // calculate distance between the two centroids.
-    //         // Edge_len automatically assigned the length
-    //
-    //         std::cout<<*edge_len<<std::endl;
-    //     }
-    // }
 
 
     return 1;
