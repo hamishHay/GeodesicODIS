@@ -8,6 +8,7 @@ import math
 import h5py
 from mpl_toolkits.basemap import Basemap
 import sys
+import math
 
 plt.rcParams['mathtext.fontset'] = 'custom'
 plt.rcParams['mathtext.rm'] = 'Avante Garde'
@@ -27,49 +28,28 @@ plt.rc('figure', dpi=120)
 
 # Creating a Triangulation without specifying the triangles results in the
 # Delaunay triangulation of the points.
-try:
-    grid = np.loadtxt("input_files/grid_l6.txt",skiprows=1,usecols=(1,2))
-except:
-    d = input("Grid mismatch! Which grid do you want?: ")
-    grid = np.loadtxt("input_files/grid_l" + str(int(d)) + ".txt",skiprows=1,usecols=(1,2))
-
-x = np.radians(grid[:,1])
-y = np.radians(grid[:,0])
 
 n = int(sys.argv[1])
 
 in_file = h5py.File("DATA/data.h5", 'r')
 # in_file = h5py.File("DATA_G6_T1000/data.h5", 'r')
 
-s = 0
-data_u = in_file["east velocity"][:,s]
-data_v = in_file["north velocity"][:,s]
-# data_eta = in_file["displacement"][:,s]
-
-
-# data_diss = np.array(in_file["avg dissipation output"][:])
-#
-# print(np.mean(data_diss[-200:-1]))
-#
-# plt.semilogy(data_diss)
-# plt.show()
-
-fig, (ax1, ax2, ax3) = plt.subplots(ncols=3, figsize=(15,4))
-
-t_max = 150
-t_min = 0
-time = np.linspace(t_min, t_max, len(data_u))
-
-# print(time)
-
-ax1.plot(time, data_u)
-ax2.plot(time, data_v)
-# ax3.plot(time, data_eta)
-#
 data_u = in_file["east velocity"][n]
 data_v = in_file["north velocity"][n]
 
 data_eta = in_file["displacement"][n]
+
+N = int(1 + 0.5 * math.log((len(data_u)-2)/10, 2))
+
+try:
+    grid = np.loadtxt("input_files/grid_l" + str(N) + ".txt",skiprows=1,usecols=(1,2))
+except:
+    d = input("Can't find grid file for level " + str(N) +"!!!")
+    sys.exit()
+
+x = np.radians(grid[:,1])
+y = np.radians(grid[:,0])
+
 # data_diss = in_file["dissipated energy"][n]
 
 print(np.max(data_u), np.max(data_v))#, np.max(data_eta))
