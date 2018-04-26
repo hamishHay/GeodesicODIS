@@ -40,7 +40,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
     obliq = globals->theta.Value();
     h = globals->h.Value();
     node_num = globals->node_num;
-    visc = 1e3;
+    visc = 1e1;
 
     switch (globals->tide_type)
     {
@@ -123,6 +123,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
 int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt, Array2D<double> & v_t0)
 {
     double sum = -1.0;
+
     velocityDivergence(grid, deta_dt, v_t0, sum, globals->h.Value());
 };
 
