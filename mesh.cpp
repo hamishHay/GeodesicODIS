@@ -5,6 +5,12 @@
 #include "array2d.h"
 #include "array3d.h"
 #include "mathRoutines.h"
+
+#include <Eigen/Sparse>
+#include <Eigen/SparseCholesky>
+#include<Eigen/SparseQR>
+
+
 // #include "sphericalHarmonics.h"
 
 
@@ -65,6 +71,8 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
     sh_matrix(N, (l_max+1)*(l_max+2) - 6), //-6 is to ignore degrees 0 and 1
     sh_matrix_fort(N*((l_max+1)*(l_max+2) - 6)),
 
+    pressure_matrix(N, 7),
+    pressure_matrix_fort(N*N),
 
     trigMLon(N, l_max+1, 2),
 
@@ -123,7 +131,9 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
 
     CalcPressureFactor();
 
-    // ReadLatLonFile();
+    CalcLaplaceMatrixInverse();
+
+    ReadLatLonFile();
 
 };
 
@@ -330,8 +340,6 @@ int Mesh::CalcNodeDists(void)
 
             distanceBetweenSph(*edge_len, *lat1, *lat2, *lon1, *lon2, r);   // calculate distance between the two centroids.
             // Edge_len automatically assigned the length
-
-            // std::cout<<*edge_len<<std::endl;
         }
     }
 
@@ -1118,7 +1126,151 @@ int Mesh::CalcDivOperatorCoeffs(void)
     return 1;
 }
 
+int Mesh::CalcLaplaceMatrixInverse(void)
+{
+    int i, j, j2, j3, f, f_num;
+    double areaCV, *coeff;
+    double D;
 
+    Eigen::SparseMatrix<double> A(node_num, node_num);
+    Eigen::SparseMatrix<double> A_inv(node_num, node_num);
+    Eigen::SparseMatrix<double> Test(node_num, node_num);
+    Eigen::Triplet<double> sparse_ijv;
+    Eigen::SimplicialLDLT< Eigen::SparseMatrix<double> > solver;
+    // Eigen::SparseQR< Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int> > solver;
+
+
+    for (i=0; i<node_num; i++)
+    {
+
+        f_num = 6;                                     // Assume hexagon (6 centroids)
+        f = node_friends(i,5);
+        if (f == -1) {
+            f_num = 5;                                   // Check if pentagon (5 centroids)
+        }
+
+        // Control volume area
+        areaCV = control_volume_surf_area_map(i);
+
+        // Calculate the central node coefficient first
+        coeff = &pressure_matrix(i, 0);
+        *coeff = 0.0;
+        for (j=0; j<f_num; j++)
+        {
+            j2 = (j-1)%f_num;
+            if (j2 < 0) j2 += f_num;
+
+            D = control_vol_edge_len(i, j2) /  ( control_vol_edge_centre_m(i, j2) * node_dists(i, j) );
+
+            *coeff += D;
+
+        }
+        *coeff *= -0.5 * 1./areaCV; // Need the negative sign here!
+
+        // Now calculate coeffs for neighbouring nodes (matrix diagonals)
+        for (j=0; j<f_num; j++)
+        {
+            // First term ------------------------------------------------------
+            coeff = &pressure_matrix(i, j+1);
+
+            j2 = (j-1)%f_num;
+            if (j2 < 0) j2 += f_num;
+
+            D = control_vol_edge_len(i, j2) /  ( control_vol_edge_centre_m(i, j2) * node_dists(i, j) );
+
+            *coeff = D;
+
+            *coeff *= 0.5 * 1./areaCV; // No negative sign here!
+        }
+
+    }
+
+    std::vector< Eigen::Triplet<double> > tripletList;
+    tripletList.reserve((node_num-12)*7 + 12*6);
+
+    Eigen::SparseMatrix<double> I(node_num,node_num);
+    I.setIdentity();
+
+
+    // int count = 0;
+    // for (i=0; i<node_num; i++)
+    // {
+    //
+    //     f_num = 6;                                     // Assume hexagon (6 centroids)
+    //     f = node_friends(i,5);
+    //     if (f == -1) {
+    //         f_num = 5;                                   // Check if pentagon (5 centroids)
+    //     }
+    //
+    //     // std::cout<<i<<'\t'<<i<<'\t'<<pressure_matrix(i, 0)<<std::endl;
+    //     // tripletList[count] = Eigen::Triplet<double>(i, i, 1.0);//pressure_matrix(i, 0));
+    //     A.coeffRef(i,i) =  pressure_matrix(i, 0);
+    //     count++;
+    //     for (j=0; j<f_num; j++)
+    //     {
+    //         A.coeffRef(i, node_friends(i, j)) =  pressure_matrix(i, j+1);
+    //         // tripletList[count] = Eigen::Triplet<double>(i, node_friends(i, j), 1.0);//pressure_matrix(i, j+1));
+    //         // count++;
+    //         // std::cout<<i<<'\t'<<node_friends(i, j)<<'\t'<<pressure_matrix(i, j+1)<<std::endl;
+    //     }
+    // }
+    //
+    // // A.setFromTriplets(tripletList.begin(), tripletList.end());
+    // // A.coeffRef(node_num-1, node_num-1) = 10.0;
+    // // std::cout<<A<<std::endl;
+    //
+    // A.makeCompressed();
+    //
+    // solver.compute(A);
+    //
+    // if(solver.info()!=Eigen::Success) {
+    //     std::cout<<"Failed to decompose pressure matrix!"<<std::endl;
+    // return 1;
+    // }
+    //
+    // A_inv = solver.solve(I);
+    //
+    // if (solver.info()!=Eigen::Success) {
+    //     std::cout<<"Failed to invert pressure matrix!"<<std::endl;
+    // return 1;
+    // }
+    //
+    //
+    // // Test = A_inv * I;
+    //
+    // for (i=0; i<node_num; i++)
+    // {
+    //     //
+    //     // f_num = 6;                                     // Assume hexagon (6 centroids)
+    //     // f = node_friends(i,5);
+    //     // if (f == -1) {
+    //     //     f_num = 5;                                   // Check if pentagon (5 centroids)
+    //     // }
+    //
+    //     // std::cout<<i<<'\t'<<i<<'\t'<<pressure_matrix(i, 0)<<std::endl;
+    //     // tripletList[count] = Eigen::Triplet<double>(i, i, 1.0);//pressure_matrix(i, 0));
+    //     // A.coeffRef(i,i) =  pressure_matrix(i, 0);
+    //     count++;
+    //     for (j=0; j<node_num; j++)
+    //     {
+    //
+    //         pressure_matrix_fort(i*node_num + j) = A_inv.coeffRef(i, j);
+    //         // A.coeffRef(i, node_friends(i, j)) =  pressure_matrix(i, j+1);
+    //         // pressure_matrix(i, j+1) = A_inv(i, node_friends)
+    //         // tripletList[count] = Eigen::Triplet<double>(i, node_friends(i, j), 1.0);//pressure_matrix(i, j+1));
+    //         // count++;
+    //         // std::cout<<i<<'\t'<<j<<'\t'<<pressure_matrix_fort(i*node_num + j)<<std::endl;
+    //         // std::cout<<i<<'\t'<<node_friends(i, j)<<'\t'<<pressure_matrix(i, j+1)<<std::endl;
+    //     }
+    // }
+    //
+    // // std::cout<<Test<<std::endl;
+    //
+    // // Test = A_inv*A;
+    //
+    // // std::cout<<A_inv<<std::endl;
+    return 1;
+}
 
 int Mesh::CalcLand(void)
 {
@@ -1261,7 +1413,7 @@ int Mesh::ReadMeshFile(void)
     std::string file_str;                  // string with path to mesh file.
     int i, node_id;
 
-    // file_str = globals->path + SEP + "input_files" + SEP + "grid_l" + std::to_string(globals->geodesic_l.Value()) + ".txt";
+    // file_str = globals->path + SEP + "input_files" + SEP + "grid_l" + std::to_string(globals->geodesic_l.Value()) + "_order.txt";
     file_str = globals->path + SEP + "input_files" + SEP + "grid_l" + std::to_string(globals->geodesic_l.Value()) + ".txt";
 
     // in stream for input.in file

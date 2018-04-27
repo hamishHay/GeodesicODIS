@@ -30,6 +30,7 @@ private:
   int CalcLegendreFuncs();
   int CalcGradOperatorCoeffs();
   int CalcDivOperatorCoeffs();
+  int CalcLaplaceMatrixInverse();
 
 
 public:
@@ -125,6 +126,9 @@ public:
   Array3D<double> Pbar_deriv_sinMLon;
   Array2D<double> sh_matrix;
   Array1D<double> sh_matrix_fort;
+
+  Array2D<double> pressure_matrix;
+  Array1D<double> pressure_matrix_fort;
 
   Array3D<double> V_inv;
   // Array2D<double> ll_data;
