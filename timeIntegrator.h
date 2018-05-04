@@ -9,7 +9,6 @@
 #include <math.h>
 #include <iostream>
 
-int eulerExplicit(Globals *, Mesh *);
 int ab3Explicit(Globals *, Mesh *);
 
 int integrateAB3vector(Globals *, Mesh *, Array2D<double> &, Array2D<double> &, Array2D<double> &, Array2D<double> &, Array2D<double> &, int interation);

@@ -22,15 +22,6 @@ int solveODIS(Globals * globals, Mesh * mesh)
 
     switch (globals->solver_type)
     {
-    case EULER:
-        outstring << globals->solver.Value() << std::endl << std::endl;
-        outstring << "Entering time solver " << globals->solver.Value() << "...";
-        outstring << std::endl << std::endl;
-        Output->Write(OUT_MESSAGE, &outstring);
-
-        eulerExplicit(globals, mesh);
-        break;
-
     case AB3:
         outstring << globals->solver.Value() << std::endl << std::endl;
         outstring << "Entering time solver " << globals->solver.Value() << "...";

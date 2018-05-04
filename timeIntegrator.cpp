@@ -110,7 +110,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
             break;
 
         case LID_INF:
-            // pressureGradient(grid, dvdt, p_tm1, 1.0/1000.0);
+            // pressureGradient(grid, dvdt, p_tm1, node_num, 1.0/1000.0);
             // pressureGradientSH(globals, grid, dvdt, p_tm1, -1.0/1000.0);
             break;
 
@@ -125,130 +125,6 @@ int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt
     double sum = -1.0;
 
     velocityDivergence(grid, deta_dt, v_t0, sum, globals->h.Value());
-};
-
-// Function to implement the time loop to solve mass and momentum equations over
-// the geodesic grid. The time integration method is the explicit Euler method.
-int eulerExplicit(Globals * globals, Mesh * grid)
-{
-    std::ostringstream outstring;
-    int i,j,iter,out_count;
-    double ** pp;
-    double * sinLat;
-
-    Array2D<double> * vel_t0;      // velocity solution for current timestep
-    Array2D<double> * vel_tm1;     // velocity solution at previous timestep (t minus 1)
-    Array2D<double> * dvel_dt_t0;  // velocity time derivative at current timestep
-
-    Array1D<double> * press_t0;      // displacement solution for current timestep
-    Array1D<double> * press_tm1;     // displacement solution at previous timestep (t minus 1)
-    Array1D<double> * dpress_dt_t0;  // displacement time derivative at current timestep
-
-    double end_time, current_time, dt, out_frac, orbit_period, out_time;
-    // double r, omega, e, obliq, drag_coeff, h;
-
-    int node_num;
-
-    OutFiles * Output;
-
-    end_time = globals->endTime.Value();
-    dt = globals->timeStep.Value();
-    out_frac = globals->outputTime.Value();
-    orbit_period = globals->period.Value();
-
-    node_num = globals->node_num;
-
-    Output = globals->Output;
-    pp = new double *[globals->out_tags.size()-1];
-
-    std::cout<<globals->out_tags[0]<<std::endl;
-
-    sinLat = &(grid->trigLat(0,1));
-
-    outstring << "Defining arrays for Euler time integration..." << std::endl;
-
-    dvel_dt_t0 = new Array2D<double>(node_num, 2);
-    vel_t0 = new Array2D<double>(node_num, 2);
-    vel_tm1 = new Array2D<double>(node_num, 2);
-
-    press_t0 = new Array1D<double>(node_num);      // pressure solution for current timestep
-    press_tm1 = new Array1D<double>(node_num);     // pressure solution at previous timestep (t minus 1)
-    dpress_dt_t0 = new Array1D<double>(node_num);
-
-    for (i=0; i<node_num; i++)
-    {
-        (*press_tm1)(i) = 0.0;
-        (*vel_t0)(i,0) = 0.0;
-        (*vel_t0)(i,1) = 0.0;
-        (*press_t0)(i) = 0.0;
-        // (*cv_mass)(i) = grid->control_volume_mass(i);
-    }
-
-    iter = 0;
-    out_count = 1;
-    current_time = 0.0;
-    out_time = 0.0;
-    while (current_time <= end_time)
-    {
-        updateVelocity(globals, grid, *dvel_dt_t0, *vel_tm1, *press_tm1, current_time);
-
-        // INTEGRATE VELOCITIES FORWARD IN TIME
-        for (i = 0; i<node_num; i++)
-        {
-            (*vel_t0)(i,0) = (*dvel_dt_t0)(i,0) * dt + (*vel_tm1)(i,0);
-            (*vel_tm1)(i,0) = (*vel_t0)(i,0);
-
-            (*vel_t0)(i,1) = (*dvel_dt_t0)(i,1) * dt + (*vel_tm1)(i,1);
-            (*vel_tm1)(i,1) = (*vel_t0)(i,1);
-        }
-
-        updateDisplacement(globals, grid, *dpress_dt_t0, *vel_t0);
-
-        // INTEGRATE PRESSURE FORWARD IN TIME
-        for (i = 0; i<node_num; i++)
-        {
-            (*press_t0)(i) = (*dpress_dt_t0)(i) * dt + (*press_tm1)(i);
-            (*press_tm1)(i) = (*press_t0)(i);
-        }
-
-        current_time += dt;
-        out_time += dt;
-
-        // Check for output
-        iter ++;
-
-        if (out_time >= out_frac*orbit_period)
-        {
-            std::cout<<std::fixed << std::setprecision(8) <<"DUMPING DATA AT "<<current_time/orbit_period<<std::endl;
-            // std::cout<<" AVG DISS: "<<*total_diss<<" W"<<std::endl;
-
-            out_time -= out_frac*orbit_period;
-            // pp[3] = &(*energy_diss)(0);
-            pp[1] = &(*press_t0)(0);
-            // pp[3] = &(*press_dummy)(0);
-            // pp[1] = &(grid->land_mask(0));
-            pp[2] = &(*vel_t0)(0,0);
-            // pp[2] = &(*vel_dummy)(0,0);
-            // pp[0] = &total_diss[0];
-
-            Output->DumpData(globals, out_count, pp);
-            out_count++;
-
-        }
-    }
-
-    delete dvel_dt_t0;
-    delete vel_t0;
-    delete vel_tm1;
-
-    delete dpress_dt_t0;
-    delete press_t0;
-    delete press_tm1;
-
-
-    Output->Write(OUT_MESSAGE, &outstring);
-
-    return 1;
 };
 
 // Function to implement the time loop to solve mass and momentum equations over
@@ -292,6 +168,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     double r = globals->radius.Value();
 
     double * cosLon, * cosLat, * cos2Lon;
+    double * sinLat;
 
     cosLon = &(grid->trigLon(0,0));
     cosLat = &(grid->trigLat(0,0));
@@ -324,11 +201,16 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     double e_diss;
     total_diss = new double[1];
 
-
+    Array2D<double> * G_n;
+    Array2D<double> * G_m1;
+    Array2D<double> * G_nHalf;
 
     outstring << "Defining arrays for Euler time integration..." << std::endl;
 
     dvel_dt_t0 = new Array2D<double>(node_num, 2);
+    G_n = new Array2D<double>(node_num, 2);
+    G_m1 = new Array2D<double>(node_num, 2);
+    G_nHalf = new Array2D<double>(node_num, 2);
     dvel_dt_tm1 = new Array2D<double>(node_num, 2);
     dvel_dt_tm2 = new Array2D<double>(node_num, 2);
     vel_t0 = new Array2D<double>(node_num, 2);
@@ -360,7 +242,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
         (*press_tm1)(i) = 0.0;
         (*vel_t0)(i,0) = 0.0;
         (*vel_t0)(i,1) = 0.0;
-        (*vel_tm1)(i,0) = 0.0;//cosLat[i*2] * 1e-6;
+        // (*vel_tm1)(i,0) = sinLat[i*2] *;
         (*vel_tm1)(i,1) = 0.0;
         (*press_t0)(i) = 0.0;
         (*press_tm1)(i) = 0.0;
@@ -423,34 +305,74 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
 
             // INTEGRATE VELOCITIES FORWARD IN TIME
-            // for (i = 0; i<node_num; i++)
-            // {
-            //    (*vel_t0)(i,0) = (*dvel_dt_t0)(i,0) * dt + (*vel_tm1)(i,0);
-            //    (*vel_tm1)(i,0) = (*vel_t0)(i,0);
+            integrateAB3vector(globals, grid, *vel_t0, *vel_tm1, *dvel_dt_t0, *dvel_dt_tm1, *dvel_dt_tm2, iter);
             //
-            //    (*vel_t0)(i,1) = (*dvel_dt_t0)(i,1) * dt + (*vel_tm1)(i,1);
-            //    (*vel_tm1)(i,1) = (*vel_t0)(i,1);
-            // }
-            // MARCH FORWARD VELOCITY SOLUTION
-            // integrateAB3vector(globals, grid, *vel_t0, *vel_tm1, *dvel_dt_t0, *dvel_dt_tm1, *dvel_dt_tm2, iter);
-
-            // FORCE CONTINUITY EQUATION
+            // // for (i = 0; i<node_num; i++)
+            // // {
+            // //     (*vel_t0)(i,0) = (*dvel_dt_t0)(i,0) * dt + (*vel_tm1)(i,0);
+            // //     (*vel_tm1)(i,0) = (*vel_t0)(i,0);
+            // //
+            // //     (*vel_t0)(i,1) = (*dvel_dt_t0)(i,1) * dt + (*vel_tm1)(i,1);
+            // //     (*vel_tm1)(i,1) = (*vel_t0)(i,1);
+            // // }
+            //
+            // // FORCE CONTINUITY EQUATION
             err = updatePressure(globals, grid, *press_t0, *vel_t0, *dvel_dt_t0);
 
-            // pressureGradientSH(globals, grid, *dvel_dt_t0, *press_t0, -1.0/1000.0);
-
-            // INTEGRATE VELOCITIES FORWARD IN TIME
             for (i = 0; i<node_num; i++)
             {
-                (*vel_t0)(i,0) = (*dvel_dt_t0)(i,0) * dt + (*vel_tm1)(i,0);
                 (*vel_tm1)(i,0) = (*vel_t0)(i,0);
+                (*dvel_dt_tm1)(i,0) = (*dvel_dt_t0)(i,0);
 
-                (*vel_t0)(i,1) = (*dvel_dt_t0)(i,1) * dt + (*vel_tm1)(i,1);
                 (*vel_tm1)(i,1) = (*vel_t0)(i,1);
-
-                // (*G_terms_tm1)(i,0) = (*G_terms_t0)(i,0);
-                // (*G_terms_tm1)(i,1) = (*G_terms_t0)(i,1);
+                (*dvel_dt_tm1)(i,1) = (*dvel_dt_t0)(i,1);
             }
+
+
+            // updateVelocity(globals, grid, *G_n, *vel_tm1, *press_t0, current_time);
+            //
+            // for (i = 0; i<node_num; i++)
+            // {
+            //     if (iter > 0)
+            //     {
+            //         (*G_nHalf)(i,0) = (1.5 + 0.1)*(*G_n)(i, 0) - (0.5 + 0.1)*(*G_m1)(i, 0);
+            //         (*G_nHalf)(i,1) = (1.5 + 0.1)*(*G_n)(i, 1) - (0.5 + 0.1)*(*G_m1)(i, 1);
+            //     }
+            //     else {
+            //         (*G_nHalf)(i,0) = (*G_n)(i, 0);
+            //         (*G_nHalf)(i,1) = (*G_n)(i, 1);
+            //     }
+            //
+            //      (*G_m1)(i, 0) = (*G_n)(i,0);
+            //      (*G_m1)(i, 1) = (*G_n)(i,1);
+            // }
+            //
+            // // FORCE CONTINUITY EQUATION
+            // err = updatePressure(globals, grid, *press_t0, *vel_tm1, *G_nHalf);
+            //
+            // for (i = 0; i<node_num; i++)
+            // {
+            //     (*dvel_dt_t0)(i, 0) = (*G_nHalf)(i,0);
+            //     (*dvel_dt_t0)(i, 1) = (*G_nHalf)(i,1);
+            // }
+            //
+            // pressureGradient(grid, *dvel_dt_t0, *press_t0,  node_num, 1.0/1000.0);
+            // //
+            // // // integrateAB3vector(globals, grid, *vel_t0, *vel_tm1, *dvel_dt_t0, *dvel_dt_tm1, *dvel_dt_tm2, iter);
+            // for (i = 0; i<node_num; i++)
+            // {
+            //     (*vel_t0)(i,0) = (*dvel_dt_t0)(i,0) * dt + (*vel_tm1)(i,0);
+            //     (*vel_tm1)(i,0) = (*vel_t0)(i,0);
+            //     // (*dvel_dt_tm1)(i,0) = (*dvel_dt_t0)(i,0);
+            //
+            //     (*vel_t0)(i,1) = (*dvel_dt_t0)(i,1) * dt + (*vel_tm1)(i,1);
+            //     (*vel_tm1)(i,1) = (*vel_t0)(i,1);
+            //     // (*dvel_dt_tm1)(i,1) = (*dvel_dt_t0)(i,1);
+            // }
+
+
+
+
 
             updateEnergy(globals, e_diss, *energy_diss, *vel_t0, *cv_mass);
 
@@ -466,6 +388,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
         {
             std::cout<<std::fixed << std::setprecision(8) <<"DUMPING DATA AT "<<current_time/orbit_period;
             std::cout<<" AVG DISS: "<<*total_diss*4*pi*r*r/1e9<<" GW"<<std::endl;
+            // std::cout<<" POLE VELOCITY: "<<*total_diss*4*pi*r*r/1e9<<" GW"<<std::endl;
 
             out_time -= out_frac*orbit_period;
 
