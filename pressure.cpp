@@ -1,3 +1,4 @@
+
 #include "mesh.h"
 #include "globals.h"
 #include "outFiles.h"
@@ -15,15 +16,19 @@
 #include <iomanip>
 
 
+// #include <Eigen/Sparse>
+#include <mkl.h>
+
+// MKL_NUM_THREADS=1;
 /**
 *   @purpose    Function will iteratively compute the pressure and pressure
 *               gradient force that exists to force the velocity solution to
 *               conserve mass. The pressure is found by solving poission's
 *               equation using the SIMPLE algorithm. The pressure gradient
 *               is then applied to the velocity solution to update it. Three
-*               options are available for the pressure solver: 2. simple
-*               numerical algorithm, 1. spherical harmonic solver on the
-*               geodesic grid, and 0. spherical harmonic solver on an
+*               options are available for the pressure solver: 1. simple
+*               numerical algorithm, 2. spherical harmonic solver on the
+*               geodesic grid, and 3. spherical harmonic solver on an
 *               interpolated lat-lon grid.
 *
 *   @params
@@ -43,7 +48,7 @@
 *
 *   @history    01/07/2017  - created
 *               15/09/2017  - spherical harmonic lat-lon pressure solver added
-*               03/11/2017  - grad P applied directly in harmonics
+*               03/05/2018  - added pressure solution with linear equation solver
 *
 */
 int updatePressure(Globals * globals,
@@ -52,349 +57,232 @@ int updatePressure(Globals * globals,
                    Array2D<double> & v,
                    Array2D<double> & dvdt)
 {
-    int node_num, i, j, l, m, iter, max_iter, l_max, N_ll;
-    double h, r, rr, u_factor, v_factor, factor, epsilon, total_div_new, total_div_old, relax_f, dt, p_min;
-    double residual;
-    double div_diff;
+    int node_num, N_ll;             // node number on geodesic and lat-lon grid
+    int i, j, l, m;                 // counters: nodes (i,j), SH deg/order (l, m)
+    int iter, max_iter;             // no. of and max iterations
+    int l_max;                      // maximum SH degree
+    double r, rr, factor;           // radius, radius^2, and laplacian factor
+    double epsilon;                 // divergence tolerance
+    double total_div;               // sum of divergence field
+    double dt;                      // time-step
+    double u_factor, v_factor;      // 1/r factors for spherical coord gradients
+    double u_corr, v_corr;          // east-west and north-south velocity corrections
+    double ll_num;                  // double for SH degree factor
 
-    int method = 1;
+    node_num =  globals->node_num;
+    N_ll =      (int)globals->dLat.Value();
+    l_max =     globals->l_max.Value();
+    r =         globals->radius.Value();
+    rr =        pow(r, 2.0);
 
-    double ll_num;
-    double u_corr, v_corr;
+    iter =      0;
+    max_iter =  2;
+    epsilon =   1e-8;
+    dt =        globals->timeStep.Value();
 
-    Array1D<double> * v_div;
+    u_factor =  1.0/r;
+    v_factor =  1.0/r;
+
+
+    //-------------- Declare and allocate new arrays to be stored --------------
+    Array1D<double> * v_div;            // divergence of the velocity field
+    Array1D<double> * p_corr;           // pressure correction field
+    Array2D<double> * ll_v_div;         // divergence of the vel field on a lat-lon grid
     Array2D<double> * v_temp;
-    Array2D<double> * dvdt_dummy;
-    Array1D<double> * p_corr;
-    Array1D<double> * p_dummy;
-    Array1D<double> * p_factor;
-    Array2D<double> * coords;
 
-    Array3D<double> * p_lm;         // SH coeffs of the divergence field
-    Array3D<double> * div_lm;       // SH coeffs of the pressure field
+    Array3D<double> * p_lm;             // SH coeffs of the pressure field
+    Array3D<double> * div_lm;           // SH coeffs of the divergence field
 
-    Array3D<double> * Pbar_lm;
-    Array3D<double> * Pbar_lm_deriv;
-    Array3D<double> * trigMLon;
-    Array2D<double> * trigLat;
+    v_div =     new Array1D<double>(node_num);
+    v_temp =    new Array2D<double>(node_num,2);
+    ll_v_div =  new Array2D<double>(180/N_ll, 360/N_ll);
+    p_corr =    new Array1D<double>(node_num);
+    div_lm =    new Array3D<double>(2.*(l_max+1), 2.*(l_max+1), 2);
+    p_lm =      new Array3D<double>(2.*(l_max+1), 2.*(l_max+1), 2);
 
-    Array2D<double> * ll_v_div;
 
-    node_num = globals->node_num;
-    l_max = globals->l_max.Value();
-    h = globals->h.Value();
-    r = globals->radius.Value();
-    rr = pow(r, 2.0);
+    //-------------- Declare and point arrays to existing grid arrays ----------
+    Array3D<double> * Pbar_lm;          // Associated legendre functions at every node
+    Array3D<double> * Pbar_lm_deriv;    // Associated legendre function derivatives at every node
+    Array3D<double> * trigMLon;         // cos and sin of m*longitude at every node
+    Array2D<double> * trigLat;          // cos and sin of latitude at every node
 
-    u_factor = 1.0/r;
-    v_factor = 1.0/r;
+    Pbar_lm =       &(grid->Pbar_lm);
+    Pbar_lm_deriv = &(grid->Pbar_lm_deriv);
+    trigMLon =      &(grid->trigMLon);
+    trigLat =       &(grid->trigLat);
 
-    N_ll = (int)globals->dLat.Value();
+    //------------------------ Elliptical solver set up ------------------------
+    _MKL_DSS_HANDLE_t * solverHandle;   // handle to the linear equation solver
+    solverHandle = &(grid->handle);     // point to solver set up in mesh.cpp
 
-    iter = 0;
-    max_iter = 1;
-    epsilon = 1e-20;
-    relax_f = 1.0;
-    dt = globals->timeStep.Value();
 
-    v_div = new Array1D<double>(node_num);
-    ll_v_div = new Array2D<double>(180/N_ll, 360/N_ll);
-    p_corr = new Array1D<double>(node_num);
-    p_dummy = new Array1D<double>(node_num);
-    dvdt_dummy = new Array2D<double>(node_num, 2);
-
-    div_lm = new Array3D<double>(2.*(l_max+1), 2.*(l_max+1), 2);
-    p_lm = new Array3D<double>(2.*(l_max+1), 2.*(l_max+1), 2);
-
-    Pbar_lm = &(grid->Pbar_lm);             // 4-pi Normalised associated leg funcs
-    Pbar_lm_deriv = &(grid->Pbar_lm_deriv); // 4-pi Normalised associated leg funcs derivs
-    trigMLon = &(grid->trigMLon);           // cos and sin of m*longitude
-    trigLat = &(grid->trigLat);
-
-    p_factor = &(grid->pressure_factor);
-
+    // initialise key arrays to zero
     for (i=0; i<node_num; i++)
     {
         (*v_div)(i) = 0.0;
         (*p_corr)(i) = 0.0;
-        (*p_dummy)(i) = 0.0;
         p(i) = 0.0;
     }
 
-    total_div_old = 0.0;
+
+    //------------------------- BEGIN PRESSURE SOLVER --------------------------
+    // Below, ODIS attempts to correct the current velocity solution v to obey
+    // the continuity constraint (either div(v) = 0 or div(h*v) = 0). A pressure
+    // correction is found by solving an elliptical equation, either using
+    // Laplacian spherical harmonic identities or a direct numerical solution
+    // to A*p = d, where A is a stored coefficient matrix, p is the pressure
+    // correction vector, and d is the velocity field divergence vector.
+
+    int method = 1;
     switch (method) {
-        /* METHOD 0: Expand divergence in harmonics on a lat-lon grid to find
-        *            and apply the internal pressure gradient
-        */
-        case 0:
-            for (i=0; i<node_num; i++)
-            {
-                (*v_div)(i) = 0.0;
-
-            }
-
-            total_div_new = 0.0;
-            velocityDivergence(grid, *v_div, v, total_div_new, -1e3/(dt));
-
-            div_diff = total_div_new;
-            total_div_old = 0.0;
-
-            iter = 0;
-
-            do
-            {
-                // FIND AND STORE THE SPHERICAL HARMONIC COEFFICIENTS OF THE
-                // PRESSURE FIELD
-                interpolateGG2LL(globals,
-                                 grid,
-                                 *ll_v_div,
-                                 *v_div,
-                                 grid->ll_map_coords,
-                                 grid->V_inv,
-                                 grid->cell_ID);
-
-                getSHCoeffsLL(*ll_v_div, *div_lm, N_ll, l_max);
-
-                // SOLVE POISSON EQUATION FOR PRESSURE
-                for (l=1; l<l_max+1; l++)
-                {
-                    ll_num = (double)(l*(l+1));
-                    factor = -rr * relax_f * 1.0 / (1.0 * (ll_num));
-                    for (m=0; m<=l; m++)
-                    {
-                        (*p_lm)(l, m, 0) = factor * (*div_lm)(l, m, 0);  // C_lm    UNITS: Pressure * time
-                        (*p_lm)(l, m, 1) = factor * (*div_lm)(l, m, 1);  // S_lm
-                    }
-                }
-
-
-                u_corr = 0.0;
-                v_corr = 0.0;
-
-                // RECONSTRUCT PRESSURE CORRECTION FIELD USING SH COEFFICIENTS
-                for (i=0; i<node_num; i++)
-                {
-
-                    u_factor = 1.0/(r*(*trigLat)(i,0));
-                    (*p_corr)(i) = 0.0;
-                    u_corr = 0.0;
-                    v_corr = 0.0;
-                    for (l=2; l<l_max+1; l++)
-                    {
-                        for (m=0; m<=l; m++)
-                        {
-                            (*p_corr)(i) += (*Pbar_lm)(i, l, m) * ( (*p_lm)(l, m, 0) * (*trigMLon)(i, m, 0) +
-                                                            (*p_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
-
-                            u_corr += u_factor * (*Pbar_lm)(i, l, m)
-                                        * (-(*p_lm)(l, m, 0) * (double)m * (*trigMLon)(i, m, 1)
-                                           + (*p_lm)(l, m, 1) * (double)m * (*trigMLon)(i, m, 0));
-
-                            v_corr += v_factor * (*Pbar_lm_deriv)(i, l, m)
-                                       * ((*p_lm)(l, m, 0) * (*trigMLon)(i, m, 0)
-                                          + (*p_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
-
-                        }
-                    }
-
-                    v(i,0) = v(i,0) - 0.5*dt*u_corr/1e3;
-                    v(i,1) = v(i,1) - 0.5*dt*v_corr/1e3;
-
-                    p(i) += (*p_corr)(i);
-
-                    // std::cout<<i<<"\t\t"<<p(i)<<std::endl;
-                    // std::cout<<i<<"\t\t"<<v(i,0)<<"\t\t"<<v(i,1)<<std::endl;
-                    (*v_div)(i) = 0.0;
-
-                }
-
-                // globals->Output->TerminateODIS();
-
-                avgAtPoles(grid, v);
-
-                div_diff = total_div_new;
-                total_div_new = 0.0;
-                velocityDivergence(grid, *v_div, v, total_div_new, -1e3/(dt));
-
-                residual = fabs( total_div_new - total_div_old);
-                total_div_old = total_div_new;
-
-                iter++;
-            }
-            while ((iter < max_iter));
-
-
-            break;
-
-        /* METHOD 1: Expand divergence in harmonics on the geodesic grid to find
-        *            and apply the internal pressure gradient
-        */
         case 1:
-            for (i=0; i<node_num; i++)
             {
-                (*v_div)(i) = 0.0;
-                (*dvdt_dummy)(i,0) = dvdt(i,0);
-                (*dvdt_dummy)(i,1) = dvdt(i,1);
-            }
+            int nRhs = 1;       // number of rhs vectors in the
 
-            total_div_new = 0.0;
-            velocityDivergence(grid, *v_div, *dvdt_dummy, total_div_new, -1.0);
+            double * p_temp;    // pointer to pressure correction array
+            double * v_div_p;   // pointer to div(v) array
 
-            div_diff = total_div_new;
-            total_div_old = 0.0;
+            p_temp =    &((*p_corr)(0));
+            v_div_p =   &((*v_div)(0));
+
+            MKL_INT opt = MKL_DSS_REFINEMENT_ON;    // intel sovler options
+
+            total_div = 0.0;
+            velocityDivergence(grid, *v_div, v, total_div, -1.0);
 
             iter = 0;
-
             do
             {
-                // FIND AND STORE THE SPHERICAL HARMONIC COEFFICIENTS OF THE
-                // PRESSURE FIELD
-                interpolateGG2LL(globals,
-                                 grid,
-                                 *ll_v_div,
-                                 *v_div,
-                                 grid->ll_map_coords,
-                                 grid->V_inv,
-                                 grid->cell_ID);
+                // Solve A*p = d to find the pressure correction
+                dss_solve_real(*solverHandle, opt, v_div_p, nRhs, p_temp);
 
-                getSHCoeffsLL(*ll_v_div, *div_lm, N_ll, l_max);
-
-                // SOLVE POISSON EQUATION FOR PRESSURE
-                for (l=1; l<l_max+1; l++)
-                {
-                    ll_num = (double)(l*(l+1));
-                    factor = -rr * relax_f * 1.0 / (1.0 * (ll_num));
-                    for (m=0; m<=l; m++)
-                    {
-                        (*p_lm)(l, m, 0) = factor * (*div_lm)(l, m, 0);  // C_lm    UNITS: Pressure * time
-                        (*p_lm)(l, m, 1) = factor * (*div_lm)(l, m, 1);  // S_lm
-                    }
-                }
-
-
-                u_corr = 0.0;
-                v_corr = 0.0;
-
-                // RECONSTRUCT PRESSURE CORRECTION FIELD USING SH COEFFICIENTS
                 for (i=0; i<node_num; i++)
                 {
+                    p_temp[i] *= 0.5/dt;            // remember, p_temp points to p_corr
+                    p(i) += (*p_corr)(i)*1000.0;    // multiply by density
+                    (*v_div)(i) = 0.0;              // reset divergence array
+                }
 
-                    u_factor = 1.0/(r*(*trigLat)(i,0));
-                    (*p_corr)(i) = 0.0;
-                    u_corr = 0.0;
-                    v_corr = 0.0;
-                    for (l=2; l<l_max+1; l++)
+                // Apply pressure correction gradient to force div(v) = 0
+                pressureGradient(grid, v, *p_corr,  node_num, dt);
+                pressureGradient(grid, dvdt, *p_corr,  node_num, 1.0);
+
+                // avgAtPoles(grid, v);
+
+                // Re-evalute div(v)
+                total_div = 0.0;
+                // velocityDivergence(grid, *v_div, v, total_div, -1.0);
+
+                iter++;
+            }
+            while ((iter < max_iter)  && (total_div > epsilon));
+        }
+            break;
+
+        case 2:
+            {
+                int nRhs = 1;       // number of rhs vectors in the
+
+                double * p_temp;    // pointer to pressure correction array
+                double * v_div_p;   // pointer to div(v) array
+
+                p_temp =    &((*p_corr)(0));
+                v_div_p =   &((*v_div)(0));
+
+                total_div = 0.0;
+                velocityDivergence(grid, *v_div, v, total_div, -1.0);
+
+                iter = 0;
+                do
+                {
+                    // FIND AND STORE THE SPHERICAL HARMONIC COEFFICIENTS OF THE
+                    // PRESSURE FIELD
+
+                    interpolateGG2LL(globals,
+                                     grid,
+                                     *ll_v_div,
+                                     *v_div,
+                                     grid->ll_map_coords,
+                                     grid->V_inv,
+                                     grid->cell_ID);
+
+                    getSHCoeffsLL(*ll_v_div, *div_lm, N_ll, l_max);
+
+                    for (l=1; l<l_max+1; l++)
                     {
+                        ll_num = (double)(l*(l+1));
+                        factor = -rr / (ll_num);
                         for (m=0; m<=l; m++)
                         {
-                            (*p_corr)(i) += (*Pbar_lm)(i, l, m) * ( (*p_lm)(l, m, 0) * (*trigMLon)(i, m, 0) +
-                                                            (*p_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
-
-                            u_corr += u_factor * (*Pbar_lm)(i, l, m)
-                                        * (-(*p_lm)(l, m, 0) * (double)m * (*trigMLon)(i, m, 1)
-                                           + (*p_lm)(l, m, 1) * (double)m * (*trigMLon)(i, m, 0));
-
-                            v_corr += v_factor * (*Pbar_lm_deriv)(i, l, m)
-                                       * ((*p_lm)(l, m, 0) * (*trigMLon)(i, m, 0)
-                                          + (*p_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
-
+                            (*p_lm)(l, m, 0) = factor * (*div_lm)(l, m, 0);  // C_lm
+                            (*p_lm)(l, m, 1) = factor * (*div_lm)(l, m, 1);  // S_lm
                         }
                     }
 
-                    dvdt(i,0) -= u_corr;
-                    dvdt(i,1) -= v_corr;
+                    double u_corr, v_corr;
+                    u_corr = 0.0;
+                    v_corr = 0.0;
 
-                    (*dvdt_dummy)(i,0) = dvdt(i,0);
-                    (*dvdt_dummy)(i,1) = dvdt(i,1);
-                    //
-                    // v(i,0) += -1000.0 * dt * u_corr;
-                    // v(i,1) += -1000.0 * dt * v_corr;
+                    // RECONSTRUCT PRESSURE CORRECTION FIELD USING SH COEFFICIENTS
+                    for (i=0; i<node_num; i++)
+                    {
+                        u_factor     = 1.0/(r*(*trigLat)(i,0));
+                        (*p_corr)(i) = 0.0;
+                        u_corr       = 0.0;
+                        v_corr       = 0.0;
+                        for (l=1; l<l_max+1; l++)
+                        {
+                            for (m=0; m<=l; m++)
+                            {
+                                (*p_corr)(i) += (*Pbar_lm)(i, l, m) * ( (*p_lm)(l, m, 0) * (*trigMLon)(i, m, 0) +
+                                                                (*p_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
 
-                    p(i) += (*p_corr)(i)*1000.0;
+                                // u_corr += u_factor * (*Pbar_lm)(i, l, m)
+                                //             * (-(*p_lm)(l, m, 0) * (double)m * (*trigMLon)(i, m, 1)
+                                //                + (*p_lm)(l, m, 1) * (double)m * (*trigMLon)(i, m, 0));
+                                //
+                                // v_corr += v_factor * (*Pbar_lm_deriv)(i, l, m)
+                                //            * ((*p_lm)(l, m, 0) * (*trigMLon)(i, m, 0)
+                                //               + (*p_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
+                            }
+                        }
 
-                    (*v_div)(i) = 0.0;
+                        // v(i,0) -= dt*u_corr;
+                        // v(i,1) -= dt*v_corr;
 
+                        p(i) += (*p_corr)(i)*1000.0/dt;
+                    }
+
+                    // Apply pressure correction gradient to force div(v) = 0
+                    pressureGradient(grid, v, *p_corr,  node_num, 1.0);
+                    pressureGradient(grid, dvdt, *p_corr,  node_num, 1.0/dt);
+
+                    // avgAtPoles(grid, v);
+
+                    iter++;
                 }
-
-                avgAtPoles(grid, dvdt);
-
-                (*dvdt_dummy)(0,0) = dvdt(0,0);
-                (*dvdt_dummy)(0,1) = dvdt(0,1);
-                (*dvdt_dummy)(1,0) = dvdt(1,0);
-                (*dvdt_dummy)(1,1) = dvdt(1,1);
-
-                div_diff = total_div_new;
-                total_div_new = 0.0;
-                velocityDivergence(grid, *v_div, *dvdt_dummy, total_div_new, -1.0);
-
-                // std::cout<<"DIV: "<<total_div_new<<std::endl;
-
-                residual = fabs( total_div_new - total_div_old);
-                total_div_old = total_div_new;
-
-                iter++;
+                while ((iter < max_iter)  && (total_div > epsilon));
             }
-            while ((iter < max_iter));
-
-
-            break;
-
-        /* METHOD 2: Find pressure field using an iterative and approximate
-        *            finite volume solver for the pressre Poisson equation.
-        *            This method is extremely slow and requires many iterations
-        *            before convergence is reached.
-        */
-        case 2:
-
-            // The below commented section uses a simple iterative approach to pressure
-            // solving. It is very slow.
-
-            total_div_new = 0.0;
-            velocityDivergence(grid, *v_div, v, total_div_new, -1.0);
-
-
-            max_iter = 50;
-            iter = 0;
-            do {
-                p_min = 0.0;
-
-                for (i=0; i<node_num; i++)
-                {
-                    (*p_corr)(i) = (*p_factor)(i) * (*v_div)(i);
-                    p(i) += -1000.0 * (*p_corr)(i);
-                }
-
-                pressureGradient(grid, v, *p_corr, node_num, -dt);
-
-                iter++;
-
-                total_div_new = 0.0;
-                for (i=0; i<node_num; i++) (*v_div)(i) = 0.0;
-                velocityDivergence(grid, *v_div, v, total_div_new, -1.0);
-
-                residual = fabs( total_div_new - total_div_old);
-                total_div_old = total_div_new;
-            }
-            while ((iter < max_iter)  && (residual > epsilon));
-
             break;
     }
 
     delete v_div;
+    delete v_temp;
     delete ll_v_div;
     delete p_corr;
-    delete dvdt_dummy;
 
     delete div_lm;
     delete p_lm;
 
-    if (total_div_new > epsilon && residual > epsilon)
-    {
+    if (total_div > epsilon) {
+        // std::cout<<"PRESSURE FIELD DID NOT CONVERGE AFTER ITER="<<iter<<"! "<<std::endl;
         return 1;
     }
-    else
-    {
+    else {
+        // std::cout<<"PRESSURE FIELD CONVERGED AT ITER="<<iter<<"! "<<std::endl;
         return 0;
+
     }
 
 };
