@@ -7,12 +7,15 @@
 #include "array3d.h"
 #include "mathRoutines.h"
 #include "sphericalHarmonics.h"
+// #include <Eigen/Sparse>
+#include <mkl.h>
 
-//Class stores all coordinate information about the mesh
+//Class stores all information relevant to the mesh
 class Mesh {
 private:
   int ReadMeshFile(void);
   int ReadLatLonFile(void);
+  int ReadLaplaceMatrixFile(void);
   int CalcMappingCoords(void);
   int CalcVelocityTransformFactors(void);
   int CalcControlVolumeEdgeLengths(void);
@@ -26,11 +29,11 @@ private:
   int CalcNodeDists(void);
   int CalcMaxTimeStep(void);
   int CalcLand(void);
-  int CalcPressureFactor();
   int CalcLegendreFuncs();
   int CalcGradOperatorCoeffs();
   int CalcDivOperatorCoeffs();
-  int CalcLaplaceMatrixInverse();
+  // int CalcLaplacianOperatorCoeffs();
+  int GeneratePressureSolver();
 
 
 public:
@@ -104,8 +107,6 @@ public:
   // Array to store the triangular areas within each subelement.
   Array3D<double> node_friend_element_areas_map;
 
-  Array1D<double> pressure_factor;
-
   Array1D<int> land_mask;
 
   // Arrays to store trig functions evaluated at each node
@@ -128,10 +129,10 @@ public:
   Array1D<double> sh_matrix_fort;
 
   Array2D<double> pressure_matrix;
-  Array1D<double> pressure_matrix_fort;
+
+  _MKL_DSS_HANDLE_t handle;
 
   Array3D<double> V_inv;
-  // Array2D<double> ll_data;
   Array3D<double> ll_map_coords;
   Array2D<int> cell_ID;
 

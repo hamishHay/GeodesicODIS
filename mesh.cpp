@@ -6,9 +6,9 @@
 #include "array3d.h"
 #include "mathRoutines.h"
 
-#include <Eigen/Sparse>
-#include <Eigen/SparseCholesky>
-#include<Eigen/SparseQR>
+// #include <Eigen/Sparse>
+#include <mkl.h>
+#include <math.h>
 
 
 // #include "sphericalHarmonics.h"
@@ -72,7 +72,8 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
     sh_matrix_fort(N*((l_max+1)*(l_max+2) - 6)),
 
     pressure_matrix(N, 7),
-    pressure_matrix_fort(N*N),
+    // pressure_matrix_fort(N*N),
+    // pressure_matrix_inv(N, N),
 
     trigMLon(N, l_max+1, 2),
 
@@ -129,11 +130,11 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
 
     CalcLand();
 
-    CalcPressureFactor();
+    GeneratePressureSolver();
 
-    CalcLaplaceMatrixInverse();
+    // ReadLaplaceMatrixFile();
 
-    ReadLatLonFile();
+    // ReadLatLonFile();
 
 };
 
@@ -390,44 +391,6 @@ int Mesh::CalcMaxTimeStep(void)
   return 1;
 }
 
-int Mesh::CalcPressureFactor(void)
-{
-    int i, j, f, friend_num;
-    double * area, * edge_len, * node_dist;
-    double factor, relax_factor;
-
-    relax_factor = 1.7;
-
-    for (i=0; i<node_num; i++)
-    {
-
-        f = node_friends(i,5);
-
-        friend_num = 6;                                     // Assume hexagon (6 centroids)
-        if (f == -1) friend_num = 5;                                   // Check if pentagon (5 centroids)
-
-        area = &control_volume_surf_area_map(i);
-
-        factor = 0.0;
-
-        for (j=0; j<friend_num; j++)                        // Loop through all centroids in the control volume
-        {
-            f = node_friends(i,j);
-
-            edge_len = &control_vol_edge_len(i,j);            // set pointer to edge length array
-            node_dist = &node_dists(i, j);
-
-            factor += (*edge_len)/(*node_dist);
-        }
-
-        factor = relax_factor * (*area) / (globals->timeStep.Value() * factor);
-
-        pressure_factor(i) = factor;
-    }
-
-    return 1;
-}
-
 // Function to find the length of control volume edges for each node, in mapping
 // coordinates. Values are stored in control_vol_edge_len 2D array.
 int Mesh::CalcCentNodeDists(void)
@@ -572,6 +535,8 @@ int Mesh::CalcControlVolumeEdgeNormals(void)
 
             normalVectorBetween(*xn, *yn, *x1, *x2, *y1, *y2);    // calculate center coords between the two centroids.
             // xc and yc automatically assigned the coords
+
+            // std::cout<<i<<"   ("<<*x1<<", "<<*y1<<"), "<<'('<<*x2<<", "<<*y2<<"), "<<'('<<*xn<<", "<<*yn<<"), "<<std::endl;
 
         }
     }
@@ -840,7 +805,6 @@ int Mesh::CalcLegendreFuncs(void)
     Array2D<double> * temp_dlegendre;   // temp array for legendre polynomial derivs
 
     //-----------------------------
-
     l_max = globals->l_max.Value();
     n = (l_max + 1)*(l_max + 1)/2;
 
@@ -921,6 +885,7 @@ int Mesh::CalcLegendreFuncs(void)
             count++;
         }
     }
+
 
     // free up memory!
     delete temp_legendre;
@@ -1019,8 +984,9 @@ int Mesh::CalcGradOperatorCoeffs(void)
 
             *coeff_x *= 0.5 * 1./areaCV;
             *coeff_y *= 0.5 * 1./areaCV;
-        }
 
+
+        }
 
     }
 
@@ -1119,35 +1085,31 @@ int Mesh::CalcDivOperatorCoeffs(void)
             *coeff_x *= 0.5 * 1./areaCV;
             *coeff_y *= 0.5 * 1./areaCV;
         }
-
-
     }
 
     return 1;
 }
 
-int Mesh::CalcLaplaceMatrixInverse(void)
+// Function to generate a sparse matrix A for the Laplacian operator, convert it
+// to CSR format, and create a solver object that is capable of solving the
+// linear system A*p = d to find the pressure field, p, give a rhs vector d.
+int Mesh::GeneratePressureSolver(void)
 {
     int i, j, j2, j3, f, f_num;
     double areaCV, *coeff;
     double D;
 
-    Eigen::SparseMatrix<double> A(node_num, node_num);
-    Eigen::SparseMatrix<double> A_inv(node_num, node_num);
-    Eigen::SparseMatrix<double> Test(node_num, node_num);
-    Eigen::Triplet<double> sparse_ijv;
-    Eigen::SimplicialLDLT< Eigen::SparseMatrix<double> > solver;
-    // Eigen::SparseQR< Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int> > solver;
+    // why is this line here? Where would it be better placed?
+    mkl_set_num_threads(1);
 
+    //-------------- Calculate the laplacian matrix coefficients ---------------
 
     for (i=0; i<node_num; i++)
     {
 
-        f_num = 6;                                     // Assume hexagon (6 centroids)
+        f_num = 6;                  // Assume hexagon (6 centroids)
         f = node_friends(i,5);
-        if (f == -1) {
-            f_num = 5;                                   // Check if pentagon (5 centroids)
-        }
+        if (f == -1) f_num = 5;     // Check if pentagon (5 centroids)
 
         // Control volume area
         areaCV = control_volume_surf_area_map(i);
@@ -1163,14 +1125,12 @@ int Mesh::CalcLaplaceMatrixInverse(void)
             D = control_vol_edge_len(i, j2) /  ( control_vol_edge_centre_m(i, j2) * node_dists(i, j) );
 
             *coeff += D;
-
         }
         *coeff *= -0.5 * 1./areaCV; // Need the negative sign here!
 
         // Now calculate coeffs for neighbouring nodes (matrix diagonals)
         for (j=0; j<f_num; j++)
         {
-            // First term ------------------------------------------------------
             coeff = &pressure_matrix(i, j+1);
 
             j2 = (j-1)%f_num;
@@ -1179,96 +1139,103 @@ int Mesh::CalcLaplaceMatrixInverse(void)
             D = control_vol_edge_len(i, j2) /  ( control_vol_edge_centre_m(i, j2) * node_dists(i, j) );
 
             *coeff = D;
-
             *coeff *= 0.5 * 1./areaCV; // No negative sign here!
         }
-
     }
 
-    std::vector< Eigen::Triplet<double> > tripletList;
-    tripletList.reserve((node_num-12)*7 + 12*6);
 
-    Eigen::SparseMatrix<double> I(node_num,node_num);
-    I.setIdentity();
+    //--------------- Construct sparse matrix in CSR format --------------------
+
+    int nNonZero = (node_num-12)*7 + 12*6;  // number of non-zero matrix coefficients
+    int * colIndx;                          // column index for each non-zero element
+    int *rowIndx;                           // row indices for CSR matrix format
+    double * nzCoeffs;                      // array for each non-zero coefficient
+    int error;                              // error message from MKL
+
+    colIndx  = new int[nNonZero];
+    nzCoeffs = new double[nNonZero];
+    rowIndx  = new int[node_num + 1];
+
+    // assign the non-zero coefficients and their column indexes in CSR format
+
+    int count=0;
+    for (i=0; i<node_num; i++)
+    {
+        f_num = 6;               // Assume hexagon (6 neighbours)
+        f = node_friends(i,5);
+        if (f == -1) f_num = 5;  // Check if pentagon (5 neighbours)
+
+        nzCoeffs[count] = pressure_matrix(i, 0);    // assign diagonal element
+        colIndx[count] = i;
+        count++;
+        for (j=0; j<f_num; j++)                     // assign off-diagonals
+        {
+            nzCoeffs[count] = pressure_matrix(i, j+1);
+            colIndx[count]  = node_friends(i,j);
+            count++;
+        }
+    }
+
+    // assign the row indexes for the sparse matrix in CSR format
+
+    rowIndx[0] = 0;         // first element is always zero
+
+    // number of non-zero elements for pentagons
+    for (i=0; i<12; i++) rowIndx[i+1] = 6*(i+1);
+
+    // number of non-zero elements for hexagons
+    for (i=12; i<N; i++) rowIndx[i+1] = (12*6) + 7*(i-11);
+
+    rowIndx[N] = nNonZero;  // last element is always the number of non-zero coefficients
 
 
-    // int count = 0;
-    // for (i=0; i<node_num; i++)
-    // {
-    //
-    //     f_num = 6;                                     // Assume hexagon (6 centroids)
-    //     f = node_friends(i,5);
-    //     if (f == -1) {
-    //         f_num = 5;                                   // Check if pentagon (5 centroids)
-    //     }
-    //
-    //     // std::cout<<i<<'\t'<<i<<'\t'<<pressure_matrix(i, 0)<<std::endl;
-    //     // tripletList[count] = Eigen::Triplet<double>(i, i, 1.0);//pressure_matrix(i, 0));
-    //     A.coeffRef(i,i) =  pressure_matrix(i, 0);
-    //     count++;
-    //     for (j=0; j<f_num; j++)
-    //     {
-    //         A.coeffRef(i, node_friends(i, j)) =  pressure_matrix(i, j+1);
-    //         // tripletList[count] = Eigen::Triplet<double>(i, node_friends(i, j), 1.0);//pressure_matrix(i, j+1));
-    //         // count++;
-    //         // std::cout<<i<<'\t'<<node_friends(i, j)<<'\t'<<pressure_matrix(i, j+1)<<std::endl;
-    //     }
-    // }
-    //
-    // // A.setFromTriplets(tripletList.begin(), tripletList.end());
-    // // A.coeffRef(node_num-1, node_num-1) = 10.0;
-    // // std::cout<<A<<std::endl;
-    //
-    // A.makeCompressed();
-    //
-    // solver.compute(A);
-    //
-    // if(solver.info()!=Eigen::Success) {
-    //     std::cout<<"Failed to decompose pressure matrix!"<<std::endl;
-    // return 1;
-    // }
-    //
-    // A_inv = solver.solve(I);
-    //
-    // if (solver.info()!=Eigen::Success) {
-    //     std::cout<<"Failed to invert pressure matrix!"<<std::endl;
-    // return 1;
-    // }
-    //
-    //
-    // // Test = A_inv * I;
-    //
-    // for (i=0; i<node_num; i++)
-    // {
-    //     //
-    //     // f_num = 6;                                     // Assume hexagon (6 centroids)
-    //     // f = node_friends(i,5);
-    //     // if (f == -1) {
-    //     //     f_num = 5;                                   // Check if pentagon (5 centroids)
-    //     // }
-    //
-    //     // std::cout<<i<<'\t'<<i<<'\t'<<pressure_matrix(i, 0)<<std::endl;
-    //     // tripletList[count] = Eigen::Triplet<double>(i, i, 1.0);//pressure_matrix(i, 0));
-    //     // A.coeffRef(i,i) =  pressure_matrix(i, 0);
-    //     count++;
-    //     for (j=0; j<node_num; j++)
-    //     {
-    //
-    //         pressure_matrix_fort(i*node_num + j) = A_inv.coeffRef(i, j);
-    //         // A.coeffRef(i, node_friends(i, j)) =  pressure_matrix(i, j+1);
-    //         // pressure_matrix(i, j+1) = A_inv(i, node_friends)
-    //         // tripletList[count] = Eigen::Triplet<double>(i, node_friends(i, j), 1.0);//pressure_matrix(i, j+1));
-    //         // count++;
-    //         // std::cout<<i<<'\t'<<j<<'\t'<<pressure_matrix_fort(i*node_num + j)<<std::endl;
-    //         // std::cout<<i<<'\t'<<node_friends(i, j)<<'\t'<<pressure_matrix(i, j+1)<<std::endl;
-    //     }
-    // }
-    //
-    // // std::cout<<Test<<std::endl;
-    //
-    // // Test = A_inv*A;
-    //
-    // // std::cout<<A_inv<<std::endl;
+
+    //----------------- Set up the intel MKL solver for A*p = d ----------------
+
+    // create the solver object and assign it to a handle
+    MKL_INT opt = MKL_DSS_ZERO_BASED_INDEXING;
+    error = dss_create(handle, opt);
+
+    if (error != MKL_DSS_SUCCESS)
+    {
+        outstring << "ERROR: MKL couldn't create the solver object and exited with error code "<<error<< std::endl;
+        globals->Output->Write(ERR_MESSAGE, &outstring);
+        globals->Output->TerminateODIS();
+    }
+
+    // define the structure of the sparse matrix of size N*N with nNonZero elements
+    opt = MKL_DSS_SYMMETRIC_STRUCTURE;
+    error = dss_define_structure(handle, opt, rowIndx, N, N, colIndx, nNonZero);
+
+    if (error != MKL_DSS_SUCCESS)
+    {
+        outstring << "ERROR: MKL couldn't create the laplacian matrix structure and exited with error code "<<error<< std::endl;
+        globals->Output->Write(ERR_MESSAGE, &outstring);
+        globals->Output->TerminateODIS();
+    }
+
+    // reorder the matrix to optimize the permutation order
+    opt = MKL_DSS_AUTO_ORDER;
+    error = dss_reorder(handle, opt, 0);
+
+    if (error != MKL_DSS_SUCCESS)
+    {
+        outstring << "ERROR: MKL couldn't reorder the laplacian matrix and exited with error code "<<error<< std::endl;
+        globals->Output->Write(ERR_MESSAGE, &outstring);
+        globals->Output->TerminateODIS();
+    }
+
+    // LU factorize the matrix using the nzCoeffs for direct solution
+    opt = MKL_DSS_POSITIVE_DEFINITE;
+    error = dss_factor_real(handle, opt, nzCoeffs);
+
+    if (error != MKL_DSS_SUCCESS)
+    {
+        outstring << "ERROR: MKL couldn't factorize the laplacian matrix and exited with error code "<<error<< std::endl;
+        globals->Output->Write(ERR_MESSAGE, &outstring);
+        globals->Output->TerminateODIS();
+    }
+
     return 1;
 }
 
@@ -1493,6 +1460,65 @@ int Mesh::ReadMeshFile(void)
 
     return 1;
 };
+
+// int Mesh::ReadLaplaceMatrixFile(void)
+// {
+//     int i, j;
+//
+//     const H5std_string DSET_PInv("pressure matrix inverse");
+//
+//     std::string file_str;
+//     file_str = globals->path + SEP
+//                + "input_files" + SEP
+//                + "grid_l" + std::to_string(globals->geodesic_l.Value())
+//                + "_pinv"
+//                + ".h5";
+//
+//     // Define file name and open file
+//     H5std_string FILE_NAME(file_str);
+//     H5File file(FILE_NAME, H5F_ACC_RDONLY);
+//
+//     // Access dataspaces in latlon file
+//     DataSet dset_pInv = file.openDataSet(DSET_PInv);
+//
+//     // Create filespaces for the correct rank and dimensions
+//     DataSpace fspace_pInv = dset_pInv.getSpace();
+//
+//     // Get number of dimensions in the files dataspace
+//     int rank_pInv = fspace_pInv.getSimpleExtentNdims();
+//
+//     hsize_t dims_pInv[2];
+//
+//     // Get size of each dimension
+//     rank_pInv = fspace_pInv.getSimpleExtentDims( dims_pInv );
+//
+//     // Create memoryspace to read the datasets
+//     DataSpace mspace_pInv(2, dims_pInv);
+//
+//     // Create 1D arrays to store file data
+//     double * pInv_1D;
+//
+//     pInv_1D = new double[node_num * node_num];
+//
+//     // Read in the data
+//     dset_pInv.read( pInv_1D, PredType::NATIVE_DOUBLE, mspace_pInv, fspace_pInv );
+//
+//     // Load Array classes with 1D dynamic arrays
+//     int count = 0;
+//     for (i=0; i<node_num; i++)
+//     {
+//         for (j=0; j<node_num; j++)
+//         {
+//             pressure_matrix_fort(j*node_num + i) = pInv_1D[count];
+//             pressure_matrix_inv(i, j) = pInv_1D[count];
+//             std::cout<<i<<'\t'<<j<<'\t'<<pInv_1D[count]<<std::endl;
+//             count++;
+//         }
+//     }
+//
+//     delete[] pInv_1D;
+//
+// };
 
 int Mesh::ReadLatLonFile(void)
 {
