@@ -152,13 +152,8 @@ void runOperatorTests(Globals * globals, Mesh * mesh)
                 // std::cout<<(*u)(i,a)/(r*(*trigLon)(i,1))<<'\t';
                 std::cout<<(*gradTest)(i,0)<<'\t';
                 std::cout<<(*gradTest)(i,1)<<'\t';
-                // std::cout<<fabs((*gradBeta)(i,a) - (*gradTest)(i,a))/(*gradBeta)(i,a)*100.0<<std::endl;
-
-
                 std::cout<<(*divU)(i)<<'\t';
                 std::cout<<(*divTest)(i)<<std::endl;
-                // std::cout<<(*divU)(i) - (*divTest)(i)<<std::endl;
-
 
                 (*gradTest)(i,0) = 0.0;
                 (*gradTest)(i,1) = 0.0;
@@ -171,9 +166,4 @@ void runOperatorTests(Globals * globals, Mesh * mesh)
                 // set grad solution
         }
     }
-
-
-    // Define vector u
-
-    // Define analytical solutions to grad beta, laplacian beta, and div u
 };
