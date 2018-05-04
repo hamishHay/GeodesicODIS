@@ -303,22 +303,13 @@ int ab3Explicit(Globals * globals, Mesh * grid)
             // SOLVE THE MOMENTUM EQUATION
             updateVelocity(globals, grid, *dvel_dt_t0, *vel_tm1, *press_t0, current_time);
 
-
             // INTEGRATE VELOCITIES FORWARD IN TIME
             integrateAB3vector(globals, grid, *vel_t0, *vel_tm1, *dvel_dt_t0, *dvel_dt_tm1, *dvel_dt_tm2, iter);
-            //
-            // // for (i = 0; i<node_num; i++)
-            // // {
-            // //     (*vel_t0)(i,0) = (*dvel_dt_t0)(i,0) * dt + (*vel_tm1)(i,0);
-            // //     (*vel_tm1)(i,0) = (*vel_t0)(i,0);
-            // //
-            // //     (*vel_t0)(i,1) = (*dvel_dt_t0)(i,1) * dt + (*vel_tm1)(i,1);
-            // //     (*vel_tm1)(i,1) = (*vel_t0)(i,1);
-            // // }
-            //
-            // // FORCE CONTINUITY EQUATION
+
+            // FORCE CONTINUITY EQUATION
             err = updatePressure(globals, grid, *press_t0, *vel_t0, *dvel_dt_t0);
 
+            // UPDATE ALL VELOCITIES *AND* THEIR DERIVATIVES
             for (i = 0; i<node_num; i++)
             {
                 (*vel_tm1)(i,0) = (*vel_t0)(i,0);
@@ -328,56 +319,9 @@ int ab3Explicit(Globals * globals, Mesh * grid)
                 (*dvel_dt_tm1)(i,1) = (*dvel_dt_t0)(i,1);
             }
 
-
-            // updateVelocity(globals, grid, *G_n, *vel_tm1, *press_t0, current_time);
-            //
-            // for (i = 0; i<node_num; i++)
-            // {
-            //     if (iter > 0)
-            //     {
-            //         (*G_nHalf)(i,0) = (1.5 + 0.1)*(*G_n)(i, 0) - (0.5 + 0.1)*(*G_m1)(i, 0);
-            //         (*G_nHalf)(i,1) = (1.5 + 0.1)*(*G_n)(i, 1) - (0.5 + 0.1)*(*G_m1)(i, 1);
-            //     }
-            //     else {
-            //         (*G_nHalf)(i,0) = (*G_n)(i, 0);
-            //         (*G_nHalf)(i,1) = (*G_n)(i, 1);
-            //     }
-            //
-            //      (*G_m1)(i, 0) = (*G_n)(i,0);
-            //      (*G_m1)(i, 1) = (*G_n)(i,1);
-            // }
-            //
-            // // FORCE CONTINUITY EQUATION
-            // err = updatePressure(globals, grid, *press_t0, *vel_tm1, *G_nHalf);
-            //
-            // for (i = 0; i<node_num; i++)
-            // {
-            //     (*dvel_dt_t0)(i, 0) = (*G_nHalf)(i,0);
-            //     (*dvel_dt_t0)(i, 1) = (*G_nHalf)(i,1);
-            // }
-            //
-            // pressureGradient(grid, *dvel_dt_t0, *press_t0,  node_num, 1.0/1000.0);
-            // //
-            // // // integrateAB3vector(globals, grid, *vel_t0, *vel_tm1, *dvel_dt_t0, *dvel_dt_tm1, *dvel_dt_tm2, iter);
-            // for (i = 0; i<node_num; i++)
-            // {
-            //     (*vel_t0)(i,0) = (*dvel_dt_t0)(i,0) * dt + (*vel_tm1)(i,0);
-            //     (*vel_tm1)(i,0) = (*vel_t0)(i,0);
-            //     // (*dvel_dt_tm1)(i,0) = (*dvel_dt_t0)(i,0);
-            //
-            //     (*vel_t0)(i,1) = (*dvel_dt_t0)(i,1) * dt + (*vel_tm1)(i,1);
-            //     (*vel_tm1)(i,1) = (*vel_t0)(i,1);
-            //     // (*dvel_dt_tm1)(i,1) = (*dvel_dt_t0)(i,1);
-            // }
-
-
-
-
-
             updateEnergy(globals, e_diss, *energy_diss, *vel_t0, *cv_mass);
 
             total_diss[0] = e_diss;
-
 
         }
 
@@ -388,7 +332,6 @@ int ab3Explicit(Globals * globals, Mesh * grid)
         {
             std::cout<<std::fixed << std::setprecision(8) <<"DUMPING DATA AT "<<current_time/orbit_period;
             std::cout<<" AVG DISS: "<<*total_diss*4*pi*r*r/1e9<<" GW"<<std::endl;
-            // std::cout<<" POLE VELOCITY: "<<*total_diss*4*pi*r*r/1e9<<" GW"<<std::endl;
 
             out_time -= out_frac*orbit_period;
 
