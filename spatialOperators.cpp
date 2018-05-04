@@ -388,6 +388,8 @@ void velocityDiffusion(Mesh * mesh, Array2D<double> & dvdt, Array2D<double> & ve
     Array2D<double> * node_friend_dists;
     Array1D<int> * mask;
 
+    Array1D<double> * div_array;
+
     double m;                          // mapping factor at current cv edge
     double u0, u1, u_temp;
     double v0, v1, v_temp;
@@ -405,51 +407,106 @@ void velocityDiffusion(Mesh * mesh, Array2D<double> & dvdt, Array2D<double> & ve
     node_friend_dists = &(mesh->node_dists);
     mask = &(mesh->land_mask);
 
-    for (i=0; i<node_num; i++)
-    {
-        friend_num = 6;
-        if ((*friend_list)(i, 5) == -1) friend_num = 5;
+    // for (i=0; i<node_num; i++)
+    // {
+    //     friend_num = 6;
+    //     if ((*friend_list)(i, 5) == -1) friend_num = 5;
+    //
+    //     u0 = velocity(i,0);
+    //     v0 = velocity(i,1);
+    //
+    //     lap_u = 0.0;
+    //     lap_v = 0.0;
+    //
+    //     for (j=0; j<friend_num; j++)
+    //     {
+    //           i1 = (*friend_list)(i,j);
+    //
+    //           j1 = (j-1)%friend_num;
+    //           if (j1 < 0) j1 += friend_num;
+    //
+    //           u_temp = velocity(i1,0);
+    //           v_temp = velocity(i1,1);
+    //
+    //           cos_a = (*vel_transform)(i, j+1, 0);
+    //           sin_a = (*vel_transform)(i, j+1, 1);
+    //
+    //           u1 = u_temp * cos_a + v_temp * sin_a;
+    //           v1 = -u_temp * sin_a + v_temp * cos_a;
+    //
+    //           // CHANGED - index of j is now less by 1. The distance between node
+    //           //           and friend is stored in the same index system as the
+    //           //           friends themselves. The control volume edge lengths are
+    //           //           stored in the j-1 index system (i.e., edge s6 lines up
+    //           //           with node-friend length l1)
+    //
+    //           node_friend_dist = (*node_friend_dists)(i, j);  // same j index as the friend node
+    //           edge_len = (*edge_lens)(i, j1);                 // index j-1 due to clockwise storage
+    //
+    //           lap_u += (u1 - u0)/node_friend_dist * edge_len;
+    //           lap_v += (v1 - v0)/node_friend_dist * edge_len;
+    //
+    //     }
+    //
+    //     dvdt(i,0) += viscosity * lap_u/(*cv_areas)(i);
+    //     dvdt(i,1) += viscosity * lap_v/(*cv_areas)(i);
+    //
+    // }
 
-        u0 = velocity(i,0);
-        v0 = velocity(i,1);
+    double sum = -1.0;
+    div_array = new Array1D<double>(node_num);
+    velocityDivergence(mesh, *div_array, velocity, sum, -1.0);
+    pressureGradient(mesh, dvdt, *div_array, node_num, -viscosity);
 
-        lap_u = 0.0;
-        lap_v = 0.0;
 
-        for (j=0; j<friend_num; j++)
-        {
-              i1 = (*friend_list)(i,j);
+    // for (i=0; i<node_num; i++)
+    // {
+    //     friend_num = 6;
+    //     if ((*friend_list)(i, 5) == -1) friend_num = 5;
+    //
+    //     u0 = velocity(i,0);
+    //     v0 = velocity(i,1);
+    //
+    //     lap_u = 0.0;
+    //     lap_v = 0.0;
+    //
+    //     for (j=0; j<friend_num; j++)
+    //     {
+    //           i1 = (*friend_list)(i,j);
+    //
+    //           j1 = (j-1)%friend_num;
+    //           if (j1 < 0) j1 += friend_num;
+    //
+    //           u_temp = velocity(i1,0);
+    //           v_temp = velocity(i1,1);
+    //
+    //           cos_a = (*vel_transform)(i, j+1, 0);
+    //           sin_a = (*vel_transform)(i, j+1, 1);
+    //
+    //           u1 = u_temp * cos_a + v_temp * sin_a;
+    //           v1 = -u_temp * sin_a + v_temp * cos_a;
+    //
+    //           // CHANGED - index of j is now less by 1. The distance between node
+    //           //           and friend is stored in the same index system as the
+    //           //           friends themselves. The control volume edge lengths are
+    //           //           stored in the j-1 index system (i.e., edge s6 lines up
+    //           //           with node-friend length l1)
+    //
+    //           node_friend_dist = (*node_friend_dists)(i, j);  // same j index as the friend node
+    //           edge_len = (*edge_lens)(i, j1);                 // index j-1 due to clockwise storage
+    //
+    //           lap_u += (u1 - u0)/node_friend_dist * edge_len;
+    //           lap_v += (v1 - v0)/node_friend_dist * edge_len;
+    //
+    //     }
+    //
+    //     dvdt(i,0) += viscosity * lap_u/(*cv_areas)(i);
+    //     dvdt(i,1) += viscosity * lap_v/(*cv_areas)(i);
+    //
+    // }
 
-              j1 = (j-1)%friend_num;
-              if (j1 < 0) j1 += friend_num;
 
-              u_temp = velocity(i1,0);
-              v_temp = velocity(i1,1);
-
-              cos_a = (*vel_transform)(i, j+1, 0);
-              sin_a = (*vel_transform)(i, j+1, 1);
-
-              u1 = u_temp * cos_a + v_temp * sin_a;
-              v1 = -u_temp * sin_a + v_temp * cos_a;
-
-              // CHANGED - index of j is now less by 1. The distance between node
-              //           and friend is stored in the same index system as the
-              //           friends themselves. The control volume edge lengths are
-              //           stored in the j-1 index system (i.e., edge s6 lines up
-              //           with node-friend length l1)
-
-              node_friend_dist = (*node_friend_dists)(i, j);  // same j index as the friend node
-              edge_len = (*edge_lens)(i, j1);                 // index j-1 due to clockwise storage
-
-              lap_u += (u1 - u0)/node_friend_dist * edge_len;
-              lap_v += (v1 - v0)/node_friend_dist * edge_len;
-
-        }
-
-        dvdt(i,0) += viscosity * lap_u/(*cv_areas)(i);
-        dvdt(i,1) += viscosity * lap_v/(*cv_areas)(i);
-
-    }
+    delete div_array;
 };
 
 // Function to calculate the Laplacian and diffusion for the velocity field.
@@ -650,7 +707,5 @@ void avgAtPoles(Mesh * mesh, Array2D<double> & velocity)
         velocity(i,1) = v_avg;
 
     }
-
-    // std::cout<<"HERE"<<std::endl;
 
 };
