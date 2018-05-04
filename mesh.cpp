@@ -48,7 +48,6 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
     control_volume_mass(N),
     node_friend_element_areas_map(N,6,3),
     centroid_node_dists_map(N,6),
-    pressure_factor(N),
     grad_coeffs(N, 7, 2),
     div_coeffs(N, 7, 2),
     land_mask(N),
@@ -72,8 +71,6 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
     sh_matrix_fort(N*((l_max+1)*(l_max+2) - 6)),
 
     pressure_matrix(N, 7),
-    // pressure_matrix_fort(N*N),
-    // pressure_matrix_inv(N, N),
 
     trigMLon(N, l_max+1, 2),
 
@@ -1184,9 +1181,9 @@ int Mesh::GeneratePressureSolver(void)
     for (i=0; i<12; i++) rowIndx[i+1] = 6*(i+1);
 
     // number of non-zero elements for hexagons
-    for (i=12; i<N; i++) rowIndx[i+1] = (12*6) + 7*(i-11);
+    for (i=12; i<node_num; i++) rowIndx[i+1] = (12*6) + 7*(i-11);
 
-    rowIndx[N] = nNonZero;  // last element is always the number of non-zero coefficients
+    rowIndx[node_num] = nNonZero;  // last element is always the number of non-zero coefficients
 
 
 
@@ -1205,7 +1202,7 @@ int Mesh::GeneratePressureSolver(void)
 
     // define the structure of the sparse matrix of size N*N with nNonZero elements
     opt = MKL_DSS_SYMMETRIC_STRUCTURE;
-    error = dss_define_structure(handle, opt, rowIndx, N, N, colIndx, nNonZero);
+    error = dss_define_structure(handle, opt, rowIndx, node_num, node_num, colIndx, nNonZero);
 
     if (error != MKL_DSS_SUCCESS)
     {
