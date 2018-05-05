@@ -201,16 +201,9 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     double e_diss;
     total_diss = new double[1];
 
-    Array2D<double> * G_n;
-    Array2D<double> * G_m1;
-    Array2D<double> * G_nHalf;
-
     outstring << "Defining arrays for Euler time integration..." << std::endl;
 
     dvel_dt_t0 = new Array2D<double>(node_num, 2);
-    G_n = new Array2D<double>(node_num, 2);
-    G_m1 = new Array2D<double>(node_num, 2);
-    G_nHalf = new Array2D<double>(node_num, 2);
     dvel_dt_tm1 = new Array2D<double>(node_num, 2);
     dvel_dt_tm2 = new Array2D<double>(node_num, 2);
     vel_t0 = new Array2D<double>(node_num, 2);
