@@ -131,7 +131,7 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
 
     // ReadLaplaceMatrixFile();
 
-    // ReadLatLonFile();
+    ReadLatLonFile();
 
 };
 

@@ -135,52 +135,9 @@ int updatePressure(Globals * globals,
     // correction vector, and d is the velocity field divergence vector.
 
     int method = 1;
-    switch (method) {
+    switch (method)
+    {
         case 1:
-            {
-            int nRhs = 1;       // number of rhs vectors in the
-
-            double * p_temp;    // pointer to pressure correction array
-            double * v_div_p;   // pointer to div(v) array
-
-            p_temp =    &((*p_corr)(0));
-            v_div_p =   &((*v_div)(0));
-
-            MKL_INT opt = MKL_DSS_REFINEMENT_ON;    // intel sovler options
-
-            total_div = 0.0;
-            velocityDivergence(grid, *v_div, v, total_div, -1.0);
-
-            iter = 0;
-            do
-            {
-                // Solve A*p = d to find the pressure correction
-                dss_solve_real(*solverHandle, opt, v_div_p, nRhs, p_temp);
-
-                for (i=0; i<node_num; i++)
-                {
-                    p_temp[i] *= 0.5/dt;            // remember, p_temp points to p_corr
-                    p(i) += (*p_corr)(i)*1000.0;    // multiply by density
-                    (*v_div)(i) = 0.0;              // reset divergence array
-                }
-
-                // Apply pressure correction gradient to force div(v) = 0
-                pressureGradient(grid, v, *p_corr,  node_num, dt);
-                pressureGradient(grid, dvdt, *p_corr,  node_num, 1.0);
-
-                // avgAtPoles(grid, v);
-
-                // Re-evalute div(v)
-                total_div = 0.0;
-                // velocityDivergence(grid, *v_div, v, total_div, -1.0);
-
-                iter++;
-            }
-            while ((iter < max_iter)  && (total_div > epsilon));
-        }
-            break;
-
-        case 2:
             {
                 int nRhs = 1;       // number of rhs vectors in the
 
@@ -190,6 +147,42 @@ int updatePressure(Globals * globals,
                 p_temp =    &((*p_corr)(0));
                 v_div_p =   &((*v_div)(0));
 
+                MKL_INT opt = MKL_DSS_REFINEMENT_ON;    // intel sovler options
+
+                total_div = 0.0;
+                velocityDivergence(grid, *v_div, v, total_div, -1.0);
+
+                iter = 0;
+                do
+                {
+                    // Solve A*p = d to find the pressure correction
+                    dss_solve_real(*solverHandle, opt, v_div_p, nRhs, p_temp);
+
+                    for (i=0; i<node_num; i++)
+                    {
+                        p_temp[i] *= 0.5/dt;            // remember, p_temp points to p_corr
+                        p(i) += (*p_corr)(i)*1000.0;    // multiply by density
+                        (*v_div)(i) = 0.0;              // reset divergence array
+                    }
+
+                    // Apply pressure correction gradient to force div(v) = 0
+                    pressureGradient(grid, v, *p_corr,  node_num, dt);
+                    // pressureGradient(grid, dvdt, *p_corr,  node_num, 1.0);
+
+                    // avgAtPoles(grid, v);
+
+                    // Re-evalute div(v)
+                    total_div = 0.0;
+                    velocityDivergence(grid, *v_div, v, total_div, -1.0);
+
+                    iter++;
+                }
+                while ((iter < max_iter)  && (total_div > epsilon));
+            }
+            break;
+
+        case 2:
+            {
                 total_div = 0.0;
                 velocityDivergence(grid, *v_div, v, total_div, -1.0);
 
@@ -212,7 +205,7 @@ int updatePressure(Globals * globals,
                     for (l=1; l<l_max+1; l++)
                     {
                         ll_num = (double)(l*(l+1));
-                        factor = -rr / (ll_num);
+                        factor = -rr / (dt*ll_num);
                         for (m=0; m<=l; m++)
                         {
                             (*p_lm)(l, m, 0) = factor * (*div_lm)(l, m, 0);  // C_lm
@@ -251,14 +244,17 @@ int updatePressure(Globals * globals,
                         // v(i,0) -= dt*u_corr;
                         // v(i,1) -= dt*v_corr;
 
-                        p(i) += (*p_corr)(i)*1000.0/dt;
+                        p(i) += (*p_corr)(i)*1000.0;
                     }
 
                     // Apply pressure correction gradient to force div(v) = 0
-                    pressureGradient(grid, v, *p_corr,  node_num, 1.0);
-                    pressureGradient(grid, dvdt, *p_corr,  node_num, 1.0/dt);
+                    pressureGradient(grid, v, *p_corr,  node_num, dt);
+                    // pressureGradient(grid, dvdt, *p_corr,  node_num, 1.0);
 
                     // avgAtPoles(grid, v);
+
+                    total_div = 0.0;
+                    velocityDivergence(grid, *v_div, v, total_div, -1.0);
 
                     iter++;
                 }
