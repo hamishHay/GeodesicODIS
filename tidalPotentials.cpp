@@ -538,28 +538,29 @@ void deg2EccTotal(Mesh * grid, Array2D<double> & velocity, double simulationTime
     double * sin2Lon, * cos2Lon;
     double * cosSqLat;
     double * sinSqLon, * cosSqLon;
+    double factor;
 
     int i,j, node_num;
     double * val;
     double * m;
 
     node_num = grid->node_num;
-
-    factor_lon = 0.5 * grid->globals->loveReduct.Value() * pow(omega,2.0)*radius;
-
-    if (grid->globals->surface_type == LID_LOVE || grid->globals->surface_type == LID_MEMBR)
-    {
-     factor_lon /= radius;
-     factor_lon *= pow(radius + grid->globals->shell_thickness.Value(), 2.0)/radius;
-    }
+    //
+    // factor_lon = 0.5 * grid->globals->loveReduct.Value() * pow(omega,2.0)*radius;
+    //
+    // if (grid->globals->surface_type == LID_LOVE || grid->globals->surface_type == LID_MEMBR)
+    // {
+    //  factor_lon /= radius;
+    //  factor_lon *= pow(radius + grid->globals->shell_thickness.Value(), 2.0)/radius;
+    // }
 
     cosM = cos(omega*simulationTime);
     sinM = sin(omega*simulationTime);
-
-    factor_lon *= (1. + 3.*ecc*cosM);
-    factor_lat = factor_lon;
-
-    // Assign pointers to start of trig node arrays
+    //
+    // factor_lon *= (1. + 3.*ecc*cosM);
+    // factor_lat = factor_lon;
+    //
+    // // Assign pointers to start of trig node arrays
     cosLon = &(grid->trigLon(0,0));
     sinLon = &(grid->trigLon(0,1));
     cosLat = &(grid->trigLat(0,0));
@@ -575,20 +576,45 @@ void deg2EccTotal(Mesh * grid, Array2D<double> & velocity, double simulationTime
     sinSqLon = &(grid->trigSqLon(0,1));
 
     // Solve for dUdlon
-    for (i=2; i<node_num; i++) {
-        j = i*2;
-        // factor_lon = factor_lat/cosLat[j];
-        // if (i < 2) factor_lon = 0.0;
-        // calculate potential gradient in longitude
-        velocity(i,0) = factor_lon * (-3. * cosLat[j] * sin2Lon[j]
-                                      + 12. * ecc * cosLat[j] * cos2Lon[j] * sinM);
+    // for (i=0; i<node_num; i++) {
+    //     j = i*2;
+    //     // factor_lon = factor_lat/cosLat[j];
+    //     // if (i < 2) factor_lon = 0.0;
+    //     // calculate potential gradient in longitude
+    //     velocity(i,0) = factor_lon * (-3. * cosLat[j] * sin2Lon[j]
+    //                                   + 12. * ecc * cosLat[j] * cos2Lon[j] * sinM);
+    //
+    //     // calculate potential gradient in latitude
+    //     velocity(i,1) = factor_lat * (-3. * sin2Lat[j] * cosSqLon[j]
+    //                                   - 12. * ecc * sin2Lat[j] * sinLon[j] * cosLon[j] * sinM);
+    // }
 
-        // calculate potential gradient in latitude
-        velocity(i,1) = factor_lat * (-3. * sin2Lat[j] * cosSqLon[j]
-                                      - 12. * ecc * sin2Lat[j] * sinLon[j] * cosLon[j] * sinM);
+    factor = grid->globals->loveReduct.Value() * pow(omega,2.0)*radius*ecc;
+
+    if (grid->globals->surface_type == LID_LOVE || grid->globals->surface_type == LID_MEMBR)
+    {
+     factor /= radius;
+     factor *= pow(radius + grid->globals->shell_thickness.Value(), 2.0)/radius;
     }
 
-    avgAtPoles(grid, velocity);
+    for (i=0; i<node_num; i++) {
+        j = i*2;
+
+        velocity(i,0) = factor * 1.5 * cosLat[j]   // cosLat here as cos^2(lat)/cos(lat)
+                        * (4.*sinM * cos2Lon[j]
+                        - 3.*cosM * sin2Lon[j]);
+
+        velocity(i,0) += factor * 1.5 * cosLat[j]* sin2Lon[j];
+
+        velocity(i,1) = -factor*0.75*sin2Lat[j]
+                        *(3.*cosM*(1.+cos2Lon[j])
+                        + 4.*sinM*sin2Lon[j]);
+
+        velocity(i,1) += factor * 0.75 * sin2Lat[j] * ( 1. + cos2Lon[j]);
+
+    }
+
+    // avgAtPoles(grid, velocity);
 };
 
 // OLD VERSION ----------------------------------------------------------------
