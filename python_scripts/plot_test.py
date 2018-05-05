@@ -34,6 +34,10 @@ n = int(sys.argv[1])
 in_file = h5py.File("DATA/data.h5", 'r')
 # in_file = h5py.File("DATA_G6_T1000/data.h5", 'r')
 
+fig, ax = plt.subplots()
+ax.plot(in_file["east velocity"][:, 0])
+ax.plot(in_file["north velocity"][:, 0])
+
 data_u = in_file["east velocity"][n]
 data_v = in_file["north velocity"][n]
 
@@ -51,6 +55,8 @@ x = np.radians(grid[:,1])
 y = np.radians(grid[:,0])
 
 # data_diss = in_file["dissipated energy"][n]
+
+
 
 print(np.max(data_u), np.max(data_v))#, np.max(data_eta))
 print("TRIANGULATING POSITIONS")

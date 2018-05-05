@@ -13,12 +13,12 @@ shell thickness;                       23e3;           global ice shell thicknes
 friction type;                    QUADRATIC;                               drag model;
 friction coefficient;                 0.000;                     drag coefficient [?];
 surface type;                       LID_INF;                   ocean surface boundary;
-potential;                            OBLIQ;                     tidal potential type;
-sh degree;                                2;            max spherical harmonic degree;
+potential;                           ECC;                     tidal potential type;
+sh degree;                                8;            max spherical harmonic degree;
 latitude spacing;                       2.0;             space between ll grid points;
-geodesic grid level;                      7;            geodesic recursion grid level;
-time step;                              100;                                time step;
-simulation end time;                    100;                   end time [# of orbits];
+geodesic grid level;                      5;            geodesic recursion grid level;
+time step;                             100;                                time step;
+simulation end time;                    400;                   end time [# of orbits];
 output time;                            0.1;     dump time [fraction of orbit period];
 solver type;                            AB3;                              time solver;
 displacement output;                   true;                              output \eta;
