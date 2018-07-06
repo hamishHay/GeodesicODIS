@@ -76,7 +76,7 @@ if p_type == "velocity":
     DATA_MAG = np.sqrt(DATA_U**2 + DATA_V**2)
 elif p_type == "dissipation":
     DATA_MAG = 1e3 * h * 1e-6 * (DATA_U**2 + DATA_V**2)
-elif p_type = 'displacement':
+elif p_type == 'displacement':
     DATA_MAG = np.array(in_file["displacement"])[start:stop+1,:,:]
 
 frames = stop-start
@@ -133,7 +133,7 @@ def animate(i):
     if p_type == "velocity":
         ct.set_array(DATA_MAG[i,:,:])
         qv.set_UVC(DATA_U[i,::3,::3],DATA_V[i,::3,::3])
-    elif p_type == "dissipation" or p_type = "displacement":
+    elif p_type == "dissipation" or p_type == "displacement":
         global ct2
         ct.set_array(DATA_MAG[i,:,:])
         for contour in ct2.collections:

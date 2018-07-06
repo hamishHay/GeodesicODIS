@@ -8,11 +8,14 @@
 #include "mathRoutines.h"
 #include "sphericalHarmonics.h"
 
+#include <mkl_spblas.h>
+
 //Class stores all coordinate information about the mesh
 class Mesh {
 private:
   int ReadMeshFile(void);
   int ReadLatLonFile(void);
+  int ReadWeightingFile(void);
   int CalcMappingCoords(void);
   int CalcVelocityTransformFactors(void);
   int CalcControlVolumeEdgeLengths(void);
@@ -130,6 +133,16 @@ public:
   // Array2D<double> ll_data;
   Array3D<double> ll_map_coords;
   Array2D<int> cell_ID;
+
+  Array3D<double> LU_V;
+  Array3D<double> V_MAT;
+  Array2D<int> IPIV_V;
+
+  int * interpRows;
+  int * interpCols;
+  double * interpWeights;
+
+  sparse_matrix_t * interpMatrix;
 
   Globals * globals;
 

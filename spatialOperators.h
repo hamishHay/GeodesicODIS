@@ -19,6 +19,8 @@ void scalarDiffusion(Mesh *, Array1D<double> &, Array1D<double> &, double);
 
 void smoothingSH(Globals *, Mesh *, Array1D<double> &);
 
+void smoothingSHVector(Globals *, Mesh *, Array2D<double> &);
+
 void avgAtPoles(Mesh *, Array2D<double> &);
 
 #endif
