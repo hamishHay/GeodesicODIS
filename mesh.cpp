@@ -128,8 +128,6 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
 
     CalcPressureFactor();
 
-    // ReadLatLonFile();
-
     ReadWeightingFile();
 
 };
@@ -1351,140 +1349,140 @@ int Mesh::ReadMeshFile(void)
     return 1;
 };
 
-int Mesh::ReadLatLonFile(void)
-{
-    int i, j, k, N_ll;
-
-    N_ll = (int)globals->dLat.Value();
-
-    const H5std_string DSET_CellID("cell_ID");
-    const H5std_string DSET_VInv("vandermonde_inv");
-    const H5std_string DSET_Rot("rotation");
-
-    std::string file_str;
-    file_str = globals->path + SEP
-               + "input_files" + SEP
-               + "grid_l" + std::to_string(globals->geodesic_l.Value())
-               + '_' + std::to_string(N_ll)
-               + 'x' + std::to_string(N_ll)
-               + "_test.h5";
-
-    // Define file name and open file
-    H5std_string FILE_NAME(file_str);
-    H5File file(FILE_NAME, H5F_ACC_RDONLY);
-
-    // Access dataspaces in latlon file
-    DataSet dset_cellID = file.openDataSet(DSET_CellID);
-    DataSet dset_vInv = file.openDataSet(DSET_VInv);
-    DataSet dset_rot = file.openDataSet(DSET_Rot);
-
-    // Create filespaces for the correct rank and dimensions
-    DataSpace fspace_cellID = dset_cellID.getSpace();
-    DataSpace fspace_vInv = dset_vInv.getSpace();
-    DataSpace fspace_rot = dset_rot.getSpace();
-
-    // Get number of dimensions in the files dataspace
-    int rank_cellID = fspace_cellID.getSimpleExtentNdims();
-    int rank_vInv = fspace_vInv.getSimpleExtentNdims();
-    int rank_rot = fspace_rot.getSimpleExtentNdims();
-
-    hsize_t dims_cellID[2];
-    hsize_t dims_vInv[3];
-    hsize_t dims_rot[1];
-
-    // Get size of each dimension
-    rank_cellID = fspace_cellID.getSimpleExtentDims( dims_cellID );
-    rank_vInv = fspace_vInv.getSimpleExtentDims( dims_vInv );
-    rank_rot = fspace_rot.getSimpleExtentDims( dims_rot );
-
-    // Create memoryspace to read the datasets
-    DataSpace mspace_cellID(2, dims_cellID);
-    DataSpace mspace_vInv(3, dims_vInv);
-    DataSpace mspace_rot(1, dims_rot);
-
-    // Create 1D arrays to store file data
-    int * cellID_1D;
-    double * vInv_1D;
-    double * rot_1D;
-
-    cellID_1D = new int[180/N_ll * 360/N_ll];
-    vInv_1D = new double[node_num * 6 * 6];
-    rot_1D = new double[node_num];
-
-    // Read in the data
-    dset_cellID.read( cellID_1D, PredType::NATIVE_INT, mspace_cellID, fspace_cellID );
-    dset_vInv.read( vInv_1D, PredType::NATIVE_DOUBLE, mspace_vInv, fspace_vInv );
-
-    // Load Array classes with 1D dynamic arrays
-    int count = 0;
-    for (i=0; i<node_num; i++)
-    {
-        for (j=0; j<6; j++)
-        {
-            for (k=0; k<6; k++)
-            {
-                V_inv(i, j, k) = vInv_1D[count];
-                count++;
-            }
-        }
-    }
-
-    count = 0;
-
-    int ID;
-    double lat1, lat2, lon1, lon2;
-    double *m, *x, *y;
-    double r;
-
-    m = new double;
-
-    double test_solution_gg[node_num];
-    double test_solution_ll[180/N_ll][360/N_ll];
-    r = 1.0;//globals->radius.Value();
-
-    for (i=0; i<180/N_ll; i++)
-    {
-        for (j=0; j<360/N_ll; j++)
-        {
-            cell_ID(i, j) = cellID_1D[count];
-            count++;
-
-            // get cell ID which contains current lat-lon grid point
-            ID = cell_ID(i, j);
-
-            // get sph coords of cell with current lat-lon node
-            lat1 = node_pos_sph(ID,0);
-            lon1 = node_pos_sph(ID,1);
-
-            // calculate regular lat-lon position in radians
-            lat2 = (90.0 - (double)(i*N_ll))*radConv;
-            lon2 = (double)(j*N_ll)*radConv;
-
-            // std::cout<<lat2/radConv<<' '<<lat1/radConv<<std::endl;
-            // std::cout<<lat1/radConv<<' '<<lon2/radConv<<' '<<lon1/radConv<<std::endl;
-
-            test_solution_ll[i][j] = cos(3. * lat2) * sin(5 * lon2);
-
-            // std::cout<<lon2<<' '<<lat2<<' '<<test_solution_ll[i][j]<<std::endl;
-
-            // set pointers to mapped coords of lat-lon node
-            x = &ll_map_coords(i, j, 0);
-            y = &ll_map_coords(i, j, 1);
-            // *m = 0.0;
-
-            // call mapping function to find x y of current lat-lon node
-            mapAtPoint(*m, *x, *y, lat1, lat2, lon1, lon2, r);
-        }
-    }
-
-    delete m;
-
-
-    delete[] cellID_1D;
-    delete[] vInv_1D;
-    delete[] rot_1D;
-
-};
+// int Mesh::ReadLatLonFile(void)
+// {
+//     int i, j, k, N_ll;
+//
+//     N_ll = (int)globals->dLat.Value();
+//
+//     const H5std_string DSET_CellID("cell_ID");
+//     const H5std_string DSET_VInv("vandermonde_inv");
+//     const H5std_string DSET_Rot("rotation");
+//
+//     std::string file_str;
+//     file_str = globals->path + SEP
+//                + "input_files" + SEP
+//                + "grid_l" + std::to_string(globals->geodesic_l.Value())
+//                + '_' + std::to_string(N_ll)
+//                + 'x' + std::to_string(N_ll)
+//                + "_test.h5";
+//
+//     // Define file name and open file
+//     H5std_string FILE_NAME(file_str);
+//     H5File file(FILE_NAME, H5F_ACC_RDONLY);
+//
+//     // Access dataspaces in latlon file
+//     DataSet dset_cellID = file.openDataSet(DSET_CellID);
+//     DataSet dset_vInv = file.openDataSet(DSET_VInv);
+//     DataSet dset_rot = file.openDataSet(DSET_Rot);
+//
+//     // Create filespaces for the correct rank and dimensions
+//     DataSpace fspace_cellID = dset_cellID.getSpace();
+//     DataSpace fspace_vInv = dset_vInv.getSpace();
+//     DataSpace fspace_rot = dset_rot.getSpace();
+//
+//     // Get number of dimensions in the files dataspace
+//     int rank_cellID = fspace_cellID.getSimpleExtentNdims();
+//     int rank_vInv = fspace_vInv.getSimpleExtentNdims();
+//     int rank_rot = fspace_rot.getSimpleExtentNdims();
+//
+//     hsize_t dims_cellID[2];
+//     hsize_t dims_vInv[3];
+//     hsize_t dims_rot[1];
+//
+//     // Get size of each dimension
+//     rank_cellID = fspace_cellID.getSimpleExtentDims( dims_cellID );
+//     rank_vInv = fspace_vInv.getSimpleExtentDims( dims_vInv );
+//     rank_rot = fspace_rot.getSimpleExtentDims( dims_rot );
+//
+//     // Create memoryspace to read the datasets
+//     DataSpace mspace_cellID(2, dims_cellID);
+//     DataSpace mspace_vInv(3, dims_vInv);
+//     DataSpace mspace_rot(1, dims_rot);
+//
+//     // Create 1D arrays to store file data
+//     int * cellID_1D;
+//     double * vInv_1D;
+//     double * rot_1D;
+//
+//     cellID_1D = new int[180/N_ll * 360/N_ll];
+//     vInv_1D = new double[node_num * 6 * 6];
+//     rot_1D = new double[node_num];
+//
+//     // Read in the data
+//     dset_cellID.read( cellID_1D, PredType::NATIVE_INT, mspace_cellID, fspace_cellID );
+//     dset_vInv.read( vInv_1D, PredType::NATIVE_DOUBLE, mspace_vInv, fspace_vInv );
+//
+//     // Load Array classes with 1D dynamic arrays
+//     int count = 0;
+//     for (i=0; i<node_num; i++)
+//     {
+//         for (j=0; j<6; j++)
+//         {
+//             for (k=0; k<6; k++)
+//             {
+//                 V_inv(i, j, k) = vInv_1D[count];
+//                 count++;
+//             }
+//         }
+//     }
+//
+//     count = 0;
+//
+//     int ID;
+//     double lat1, lat2, lon1, lon2;
+//     double *m, *x, *y;
+//     double r;
+//
+//     m = new double;
+//
+//     double test_solution_gg[node_num];
+//     double test_solution_ll[180/N_ll][360/N_ll];
+//     r = 1.0;//globals->radius.Value();
+//
+//     for (i=0; i<180/N_ll; i++)
+//     {
+//         for (j=0; j<360/N_ll; j++)
+//         {
+//             cell_ID(i, j) = cellID_1D[count];
+//             count++;
+//
+//             // get cell ID which contains current lat-lon grid point
+//             ID = cell_ID(i, j);
+//
+//             // get sph coords of cell with current lat-lon node
+//             lat1 = node_pos_sph(ID,0);
+//             lon1 = node_pos_sph(ID,1);
+//
+//             // calculate regular lat-lon position in radians
+//             lat2 = (90.0 - (double)(i*N_ll))*radConv;
+//             lon2 = (double)(j*N_ll)*radConv;
+//
+//             // std::cout<<lat2/radConv<<' '<<lat1/radConv<<std::endl;
+//             // std::cout<<lat1/radConv<<' '<<lon2/radConv<<' '<<lon1/radConv<<std::endl;
+//
+//             test_solution_ll[i][j] = cos(3. * lat2) * sin(5 * lon2);
+//
+//             // std::cout<<lon2<<' '<<lat2<<' '<<test_solution_ll[i][j]<<std::endl;
+//
+//             // set pointers to mapped coords of lat-lon node
+//             x = &ll_map_coords(i, j, 0);
+//             y = &ll_map_coords(i, j, 1);
+//             // *m = 0.0;
+//
+//             // call mapping function to find x y of current lat-lon node
+//             mapAtPoint(*m, *x, *y, lat1, lat2, lon1, lon2, r);
+//         }
+//     }
+//
+//     delete m;
+//
+//
+//     delete[] cellID_1D;
+//     delete[] vInv_1D;
+//     delete[] rot_1D;
+//
+// };
 
 int Mesh::ReadWeightingFile(void)
 {
