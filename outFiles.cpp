@@ -137,11 +137,10 @@ void OutFiles::ClearSStream(std::ostringstream * sstream) {
 void OutFiles::CreateHDF5Framework(Globals * globals)
 {
 
-  unsigned int i, size, l_max;
+  unsigned int i, l_max;
   double end_time, orbit_period, output_time;
 
   tags = &globals->out_tags;
-  size = tags->size();
   node_num = globals->node_num;
   l_max = globals->l_max.Value();
 
