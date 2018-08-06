@@ -145,13 +145,18 @@ int updatePressure(Globals * globals,
             {
                 // FIND AND STORE THE SPHERICAL HARMONIC COEFFICIENTS OF THE
                 // PRESSURE FIELD
-                interpolateGG2LL(globals,
-                                 grid,
-                                 *ll_v_div,
-                                 *v_div,
-                                 grid->ll_map_coords,
-                                 grid->V_inv,
-                                 grid->cell_ID);
+                // interpolateGG2LL(globals,
+                //                  grid,
+                //                  *ll_v_div,
+                //                  *v_div,
+                //                  grid->ll_map_coords,
+                //                  grid->V_inv,
+                //                  grid->cell_ID);
+
+                interpolateGG2LLConservative(globals,
+                                         grid,
+                                         *ll_v_div,
+                                         *v_div);
 
                 getSHCoeffsLL(*ll_v_div, *div_lm, N_ll, l_max);
 
@@ -249,13 +254,18 @@ int updatePressure(Globals * globals,
             {
                 // FIND AND STORE THE SPHERICAL HARMONIC COEFFICIENTS OF THE
                 // PRESSURE FIELD
-                interpolateGG2LL(globals,
-                                 grid,
-                                 *ll_v_div,
-                                 *v_div,
-                                 grid->ll_map_coords,
-                                 grid->V_inv,
-                                 grid->cell_ID);
+                // interpolateGG2LL(globals,
+                //                  grid,
+                //                  *ll_v_div,
+                //                  *v_div,
+                //                  grid->ll_map_coords,
+                //                  grid->V_inv,
+                //                  grid->cell_ID);
+
+                interpolateGG2LLConservative(globals,
+                                         grid,
+                                         *ll_v_div,
+                                         *v_div);
 
                 getSHCoeffsLL(*ll_v_div, *div_lm, N_ll, l_max);
 

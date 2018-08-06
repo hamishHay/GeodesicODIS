@@ -538,149 +538,149 @@ void scalarDiffusion(Mesh * mesh, Array1D<double> & d2s, Array1D<double> & s, do
     }
 };
 
-void smoothingSH(Globals * globals, Mesh * mesh, Array1D<double> & gg_scalar)
-{
-    int node_num, l_max, N_ll;
-    int i, j, f, l, m;
-    double r;
-    double interp_val;
-    double * cosLat;
+// void smoothingSH(Globals * globals, Mesh * mesh, Array1D<double> & gg_scalar)
+// {
+//     int node_num, l_max, N_ll;
+//     int i, j, f, l, m;
+//     double r;
+//     double interp_val;
+//     double * cosLat;
+//
+//     Array3D<double> * scalar_lm;
+//
+//     Array3D<double> * Pbar_lm;
+//     Array3D<double> * Pbar_lm_deriv;
+//     Array3D<double> * trigMLon;
+//     Array2D<double> * trigLat;
+//
+//     Array2D<double> * ll_scalar;
+//
+//     node_num = globals->node_num;
+//     l_max = globals->l_max.Value();
+//     N_ll = (int)globals->dLat.Value();
+//     r = globals->radius.Value();
+//
+//     scalar_lm = new Array3D<double>(2.*(l_max+1), 2.*(l_max+1), 2);
+//     ll_scalar = new Array2D<double>(180/N_ll, 360/N_ll);
+//     // scalar_dummy = new Array1D<double>(node_num);
+//
+//     Pbar_lm = &(mesh->Pbar_lm);             // 4-pi Normalised associated leg funcs
+//     Pbar_lm_deriv = &(mesh->Pbar_lm_deriv); // 4-pi Normalised associated leg funcs derivs
+//     trigMLon = &(mesh->trigMLon);           // cos and sin of m*longitude
+//     trigLat = &(mesh->trigLat);
+//     cosLat = &(mesh->trigLat(0,0));
+//
+//     // INTERPOLATE GEODESIC GRID DATA TO LAT-LON GRID
+//     interpolateGG2LL(globals,
+//                         mesh,
+//                         *ll_scalar,
+//                         gg_scalar,
+//                         mesh->ll_map_coords,
+//                         mesh->V_inv,
+//                         mesh->cell_ID);
+//
+//     // FIND SPHERICAL HARMONIC EXPANSION COEFFICIENTS
+//     // OF THE PRESSURE FIELD
+//     getSHCoeffsLL(*ll_scalar, *scalar_lm, N_ll, l_max);
+//
+//     for (i=0; i<node_num; i++)
+//     {
+//         interp_val = 0.0;
+//         for (l=0; l<l_max+1; l++)
+//         {
+//             for (m=0; m<=l; m++)
+//             {
+//                 interp_val += (*Pbar_lm)(i, l, m)
+//                           * ((*scalar_lm)(l, m, 0) * (*trigMLon)(i, m, 0)
+//                           + (*scalar_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
+//             }
+//         }
+//
+//         gg_scalar(i) = interp_val;
+//     }
+//
+//     delete scalar_lm;
+//     delete ll_scalar;
+//
+// };
 
-    Array3D<double> * scalar_lm;
-
-    Array3D<double> * Pbar_lm;
-    Array3D<double> * Pbar_lm_deriv;
-    Array3D<double> * trigMLon;
-    Array2D<double> * trigLat;
-
-    Array2D<double> * ll_scalar;
-
-    node_num = globals->node_num;
-    l_max = globals->l_max.Value();
-    N_ll = (int)globals->dLat.Value();
-    r = globals->radius.Value();
-
-    scalar_lm = new Array3D<double>(2.*(l_max+1), 2.*(l_max+1), 2);
-    ll_scalar = new Array2D<double>(180/N_ll, 360/N_ll);
-    // scalar_dummy = new Array1D<double>(node_num);
-
-    Pbar_lm = &(mesh->Pbar_lm);             // 4-pi Normalised associated leg funcs
-    Pbar_lm_deriv = &(mesh->Pbar_lm_deriv); // 4-pi Normalised associated leg funcs derivs
-    trigMLon = &(mesh->trigMLon);           // cos and sin of m*longitude
-    trigLat = &(mesh->trigLat);
-    cosLat = &(mesh->trigLat(0,0));
-
-    // INTERPOLATE GEODESIC GRID DATA TO LAT-LON GRID
-    interpolateGG2LL(globals,
-                        mesh,
-                        *ll_scalar,
-                        gg_scalar,
-                        mesh->ll_map_coords,
-                        mesh->V_inv,
-                        mesh->cell_ID);
-
-    // FIND SPHERICAL HARMONIC EXPANSION COEFFICIENTS
-    // OF THE PRESSURE FIELD
-    getSHCoeffsLL(*ll_scalar, *scalar_lm, N_ll, l_max);
-
-    for (i=0; i<node_num; i++)
-    {
-        interp_val = 0.0;
-        for (l=0; l<l_max+1; l++)
-        {
-            for (m=0; m<=l; m++)
-            {
-                interp_val += (*Pbar_lm)(i, l, m)
-                          * ((*scalar_lm)(l, m, 0) * (*trigMLon)(i, m, 0)
-                          + (*scalar_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
-            }
-        }
-
-        gg_scalar(i) = interp_val;
-    }
-
-    delete scalar_lm;
-    delete ll_scalar;
-
-};
-
-void smoothingSHVector(Globals * globals, Mesh * mesh, Array2D<double> & gg_vector)
-{
-    int node_num, l_max, N_ll;
-    int i, j, f, l, m;
-    double r;
-    double interp_val;
-    double * cosLat;
-
-    Array3D<double> * scalar_lm;
-
-    Array3D<double> * Pbar_lm;
-    Array3D<double> * Pbar_lm_deriv;
-    Array3D<double> * trigMLon;
-    Array2D<double> * trigLat;
-
-    Array2D<double> * ll_scalar;
-    Array1D<double> * gg_scalar;
-
-
-    node_num = globals->node_num;
-    l_max = globals->l_max.Value();
-    N_ll = (int)globals->dLat.Value();
-    r = globals->radius.Value();
-
-    scalar_lm = new Array3D<double>(2.*(l_max+1), 2.*(l_max+1), 2);
-    ll_scalar = new Array2D<double>(180/N_ll, 360/N_ll);
-    gg_scalar = new Array1D<double>(node_num);
-
-    Pbar_lm = &(mesh->Pbar_lm);             // 4-pi Normalised associated leg funcs
-    Pbar_lm_deriv = &(mesh->Pbar_lm_deriv); // 4-pi Normalised associated leg funcs derivs
-    trigMLon = &(mesh->trigMLon);           // cos and sin of m*longitude
-    trigLat = &(mesh->trigLat);
-    cosLat = &(mesh->trigLat(0,0));
-
-    for (j=0; j<2; j++)
-    {
-        for (i=0; i<node_num; i++)
-        {
-            (*gg_scalar)(i) = gg_vector(i, j);
-        }
-
-        // INTERPOLATE GEODESIC GRID DATA TO LAT-LON GRID
-        interpolateGG2LL(globals,
-                        mesh,
-                        *ll_scalar,
-                        *gg_scalar,
-                        mesh->ll_map_coords,
-                        mesh->V_inv,
-                        mesh->cell_ID);
-
-        // FIND SPHERICAL HARMONIC EXPANSION COEFFICIENTS
-        // OF THE PRESSURE FIELD
-        getSHCoeffsLL(*ll_scalar, *scalar_lm, N_ll, l_max);
-
-        for (i=0; i<node_num; i++)
-        {
-            interp_val = 0.0;
-            for (l=0; l<l_max+1; l++)
-            {
-                for (m=0; m<=l; m++)
-                {
-                    interp_val += (*Pbar_lm)(i, l, m)
-                    * ((*scalar_lm)(l, m, 0) * (*trigMLon)(i, m, 0)
-                    + (*scalar_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
-                }
-            }
-
-            gg_vector(i, j) = interp_val;
-        }
-    }
-
-
-    delete scalar_lm;
-    delete ll_scalar;
-    delete gg_scalar;
-
-};
+// void smoothingSHVector(Globals * globals, Mesh * mesh, Array2D<double> & gg_vector)
+// {
+//     int node_num, l_max, N_ll;
+//     int i, j, f, l, m;
+//     double r;
+//     double interp_val;
+//     double * cosLat;
+//
+//     Array3D<double> * scalar_lm;
+//
+//     Array3D<double> * Pbar_lm;
+//     Array3D<double> * Pbar_lm_deriv;
+//     Array3D<double> * trigMLon;
+//     Array2D<double> * trigLat;
+//
+//     Array2D<double> * ll_scalar;
+//     Array1D<double> * gg_scalar;
+//
+//
+//     node_num = globals->node_num;
+//     l_max = globals->l_max.Value();
+//     N_ll = (int)globals->dLat.Value();
+//     r = globals->radius.Value();
+//
+//     scalar_lm = new Array3D<double>(2.*(l_max+1), 2.*(l_max+1), 2);
+//     ll_scalar = new Array2D<double>(180/N_ll, 360/N_ll);
+//     gg_scalar = new Array1D<double>(node_num);
+//
+//     Pbar_lm = &(mesh->Pbar_lm);             // 4-pi Normalised associated leg funcs
+//     Pbar_lm_deriv = &(mesh->Pbar_lm_deriv); // 4-pi Normalised associated leg funcs derivs
+//     trigMLon = &(mesh->trigMLon);           // cos and sin of m*longitude
+//     trigLat = &(mesh->trigLat);
+//     cosLat = &(mesh->trigLat(0,0));
+//
+//     for (j=0; j<2; j++)
+//     {
+//         for (i=0; i<node_num; i++)
+//         {
+//             (*gg_scalar)(i) = gg_vector(i, j);
+//         }
+//
+//         // INTERPOLATE GEODESIC GRID DATA TO LAT-LON GRID
+//         interpolateGG2LL(globals,
+//                         mesh,
+//                         *ll_scalar,
+//                         *gg_scalar,
+//                         mesh->ll_map_coords,
+//                         mesh->V_inv,
+//                         mesh->cell_ID);
+//
+//         // FIND SPHERICAL HARMONIC EXPANSION COEFFICIENTS
+//         // OF THE PRESSURE FIELD
+//         getSHCoeffsLL(*ll_scalar, *scalar_lm, N_ll, l_max);
+//
+//         for (i=0; i<node_num; i++)
+//         {
+//             interp_val = 0.0;
+//             for (l=0; l<l_max+1; l++)
+//             {
+//                 for (m=0; m<=l; m++)
+//                 {
+//                     interp_val += (*Pbar_lm)(i, l, m)
+//                     * ((*scalar_lm)(l, m, 0) * (*trigMLon)(i, m, 0)
+//                     + (*scalar_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
+//                 }
+//             }
+//
+//             gg_vector(i, j) = interp_val;
+//         }
+//     }
+//
+//
+//     delete scalar_lm;
+//     delete ll_scalar;
+//     delete gg_scalar;
+//
+// };
 
 void avgAtPoles(Mesh * mesh, Array2D<double> & velocity)
 {

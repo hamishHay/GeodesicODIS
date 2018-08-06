@@ -10,7 +10,7 @@ obliquity;                          0.00045;                                obli
 orbital period;                 118327.4069;                         orbit period [s];
 ocean thickness;                       38e3;               global ocean thickness [m];
 shell thickness;                       23e3;           global ice shell thickness [m];
-friction type;                       QUADRATIC;                               drag model;
+friction type;                    QUADRATIC;                               drag model;
 friction coefficient;                  4e-3;                     drag coefficient [?];
 surface type;                      LID_LOVE;                   ocean surface boundary;
 potential;                              ECC;                     tidal potential type;
