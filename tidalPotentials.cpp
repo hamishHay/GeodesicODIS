@@ -1,3 +1,18 @@
+/* File: tidalPotentials.cpp
+ *
+ * All functions calculate the lateral tidal force (potential gradient) at the
+ * surface of a spherical body, using analytical expressions. In general:
+ *
+ *      inputs: Mesh  * grid              mesh object for all spatial info on the grid.
+ *              Array2D<double> velocity  Solution array for the calculated forcing
+ *              double simulationTime     Current time in the simulation
+ *              double radius             body radius
+ *              double omega              body rotational angular speed
+ *              double ecc                body eccentricity (must be << 1)
+ *              double obl                body obliquity (in radians)
+ *
+*/
+
 #include "mesh.h"
 #include "globals.h"
 #include "tidalPotentials.h"
@@ -5,22 +20,9 @@
 #include "spatialOperators.h"
 #include <math.h>
 
-/* Degree 2 component of the eccentricity tide (see docs)
- *
- * Finds the gradient components of the degree-3 eccentricity tide for Fields
- * DUlat and DUlon. Only current simulation required is absolute simulation
- * time. The function directly writes the solution arrays in both Field
- * classes. The eccentricity tide contains terms for both P_20 and P_22
- * associated Legendre polynomials.
- *
- *      inputs: Field * DUlat           Field for latitude gradient of potential
- *              Field * DUlon           Field for longitude gradient of potential
- *              double simulationTime   Current time in the simulation
- *              double radius           Satellite radius
- *              double omega            Satellite rotational angular speed
- *              double ecc              Satellite eccentricity (must be << 1)
- *
-*/
+// -----------------------------------------------------------------------------
+// Full eccentricity tidal forcing, degree-2 (e.g., Matsuyama (2014)) ----------
+// -----------------------------------------------------------------------------
 void deg2Ecc(Mesh * grid, Array2D<double> & velocity, double simulationTime, double radius, double omega, double ecc)
 {
     double cosM, sinM, factor;              // cos(Mean anomaly), sin(Mean anomaly)
@@ -64,22 +66,10 @@ void deg2Ecc(Mesh * grid, Array2D<double> & velocity, double simulationTime, dou
 
 };
 
-/* Degree 2 component of the eccentricity tide (see docs)
- *
- * Finds the gradient components of the degree-3 eccentricity tide for Fields
- * DUlat and DUlon. Only current simulation required is absolute simulation
- * time. The function directly writes the solution arrays in both Field
- * classes. The eccentricity tide contains terms for both P_20 and P_22
- * associated Legendre polynomials.
- *
- *      inputs: Field * DUlat           Field for latitude gradient of potential
- *              Field * DUlon           Field for longitude gradient of potential
- *              double simulationTime   Current time in the simulation
- *              double radius           Satellite radius
- *              double omega            Satellite rotational angular speed
- *              double ecc              Satellite eccentricity (must be << 1)
- *
-*/
+
+// -----------------------------------------------------------------------------
+// Full eccentricity libration tidal forcing, degree-2 (e.g., Matsuyama (2014))
+// -----------------------------------------------------------------------------
 void deg2EccLib(Mesh * grid, Array2D<double> & velocity, double simulationTime, double radius, double omega, double ecc)
 {
     double cosM, sinM, factor;              // cos(Mean anomaly), sin(Mean anomaly)
@@ -125,22 +115,10 @@ void deg2EccLib(Mesh * grid, Array2D<double> & velocity, double simulationTime, 
 
 };
 
-/* Degree 2 component of the eccentricity tide (see docs)
- *
- * Finds the gradient components of the degree-3 eccentricity tide for Fields
- * DUlat and DUlon. Only current simulation required is absolute simulation
- * time. The function directly writes the solution arrays in both Field
- * classes. The eccentricity tide contains terms for both P_20 and P_22
- * associated Legendre polynomials.
- *
- *      inputs: Field * DUlat           Field for latitude gradient of potential
- *              Field * DUlon           Field for longitude gradient of potential
- *              double simulationTime   Current time in the simulation
- *              double radius           Satellite radius
- *              double omega            Satellite rotational angular speed
- *              double ecc              Satellite eccentricity (must be << 1)
- *
-*/
+
+// -----------------------------------------------------------------------------
+// Eastward travelling eccentricity tidal forcing, degree-2 (Matsuyama, 2014) --
+// -----------------------------------------------------------------------------
 void deg2EccEast(Mesh * grid, Array2D<double> & velocity, double simulationTime, double radius, double omega, double ecc)
 {
     double cosM, sinM, factor;              // cos(Mean anomaly), sin(Mean anomaly)
@@ -186,22 +164,10 @@ void deg2EccEast(Mesh * grid, Array2D<double> & velocity, double simulationTime,
 
 };
 
-/* Degree 2 component of the eccentricity tide (see docs)
- *
- * Finds the gradient components of the degree-3 eccentricity tide for Fields
- * DUlat and DUlon. Only current simulation required is absolute simulation
- * time. The function directly writes the solution arrays in both Field
- * classes. The eccentricity tide contains terms for both P_20 and P_22
- * associated Legendre polynomials.
- *
- *      inputs: Field * DUlat           Field for latitude gradient of potential
- *              Field * DUlon           Field for longitude gradient of potential
- *              double simulationTime   Current time in the simulation
- *              double radius           Satellite radius
- *              double omega            Satellite rotational angular speed
- *              double ecc              Satellite eccentricity (must be << 1)
- *
-*/
+
+// -----------------------------------------------------------------------------
+// Westward travelling eccentricity tidal forcing, degree-2 (Matsuyama, 2014) --
+// -----------------------------------------------------------------------------
 void deg2EccWest(Mesh * grid, Array2D<double> & velocity, double simulationTime, double radius, double omega, double ecc)
 {
     double cosM, sinM, factor;              // cos(Mean anomaly), sin(Mean anomaly)
@@ -247,23 +213,10 @@ void deg2EccWest(Mesh * grid, Array2D<double> & velocity, double simulationTime,
 
 };
 
-/* Degree 2 component of the eccentricity-radial tide (see docs)
- *
- * Finds the gradient components of the degree-3 ecc-radial tide for Fields
- * DUlat and DUlon. Only current simulation required is absolute simulation
- * time. The function directly writes the solution arrays in both Field
- * classes. The radial time contains only the P_20 term of eccentricity tide. As
- * the order of potential expansion is zero (m=0), this potential only depends
- * on latitude.
- *
- *      inputs: Field * DUlat           Field for latitude gradient of potential
- *              Field * DUlon           Field for longitude gradient of potential
- *              double simulationTime   Current time in the simulation
- *              double radius           Satellite radius
- *              double omega            Satellite rotational angular speed
- *              double ecc              Satellite eccentricity (must be << 1)
- *
-*/
+
+// -----------------------------------------------------------------------------
+// Radial eccentricity tidal forcing, degree-2 (e.g., Matsuyama 2014, Tyler 2011)
+// -----------------------------------------------------------------------------
 void deg2EccRad(Mesh * grid, Array2D<double> & velocity, double simulationTime, double radius, double omega, double ecc)
 {
     double cosM, factor;              // cos(Mean anomaly), sin(Mean anomaly)
@@ -293,21 +246,9 @@ void deg2EccRad(Mesh * grid, Array2D<double> & velocity, double simulationTime, 
 };
 
 
-/* Degree 2 component of the obliquity tide (see Tyler 2011, Matsuyama 2014)
- *
- * Finds the gradient components of the degree-2 obliquity tide for Fields
- * DUlat and DUlon. Only current simulation required is absolute simulation
- * time. The function directly writes the solution arrays in both Field
- * classes.
- *
- *      inputs: Field * DUlat           Field for latitude gradient of potential
- *              Field * DUlon           Field for longitude gradient of potential
- *              double simulationTime   Current time in the simulation
- *              double radius           Satellite radius
- *              double omega            Satellite rotational angular speed
- *              double theta            Satellite obliquity in radians
- *
-*/
+// -----------------------------------------------------------------------------
+// Full obliquity tidal forcing, degree-2 (e.g., Matsuyama 2014, Tyler 2011)
+// -----------------------------------------------------------------------------
 void deg2Obliq(Mesh * grid, Array2D<double> & velocity, double simulationTime, double radius, double omega, double theta)
 {
     double * sinLat, * sinLon, *cosLon, * cos2Lat;
@@ -349,21 +290,10 @@ void deg2Obliq(Mesh * grid, Array2D<double> & velocity, double simulationTime, d
     }
 };
 
-/* Degree 2 component of the obliquity tide (see Tyler 2011, Matsuyama 2014)
- *
- * Finds the gradient components of the degree-2 obliquity tide for Fields
- * DUlat and DUlon. Only current simulation required is absolute simulation
- * time. The function directly writes the solution arrays in both Field
- * classes.
- *
- *      inputs: Field * DUlat           Field for latitude gradient of potential
- *              Field * DUlon           Field for longitude gradient of potential
- *              double simulationTime   Current time in the simulation
- *              double radius           Satellite radius
- *              double omega            Satellite rotational angular speed
- *              double theta            Satellite obliquity in radians
- *
-*/
+
+// -----------------------------------------------------------------------------
+// Westward travelling obliquity tidal forcing, degree-2 (e.g., Matsuyama 2014)
+// -----------------------------------------------------------------------------
 void deg2ObliqWest(Mesh * grid, Array2D<double> & velocity, double simulationTime, double radius, double omega, double theta)
 {
     double * sinLat, * sinLon, *cosLon, * cos2Lat;
@@ -404,21 +334,10 @@ void deg2ObliqWest(Mesh * grid, Array2D<double> & velocity, double simulationTim
     }
 };
 
-/* Degree 2 component of the obliquity tide (see Tyler 2011, Matsuyama 2014)
- *
- * Finds the gradient components of the degree-2 obliquity tide for Fields
- * DUlat and DUlon. Only current simulation required is absolute simulation
- * time. The function directly writes the solution arrays in both Field
- * classes.
- *
- *      inputs: Field * DUlat           Field for latitude gradient of potential
- *              Field * DUlon           Field for longitude gradient of potential
- *              double simulationTime   Current time in the simulation
- *              double radius           Satellite radius
- *              double omega            Satellite rotational angular speed
- *              double theta            Satellite obliquity in radians
- *
-*/
+
+// -----------------------------------------------------------------------------
+// Eastward travelling obliquity tidal forcing, degree-2 (e.g., Matsuyama 2014)
+// -----------------------------------------------------------------------------
 void deg2ObliqEast(Mesh * grid, Array2D<double> & velocity, double simulationTime, double radius, double omega, double theta)
 {
     double * sinLat, * sinLon, *cosLon, * cos2Lat;
@@ -460,6 +379,10 @@ void deg2ObliqEast(Mesh * grid, Array2D<double> & velocity, double simulationTim
     }
 };
 
+
+// -----------------------------------------------------------------------------
+// Full time-varying tidal forcing (ecc + obliq), degree-2 (e.g., Matsuyama 2014)
+// -----------------------------------------------------------------------------
 void deg2Full(Mesh * grid, Array2D<double> & velocity, double simulationTime, double radius, double omega, double theta, double ecc)
 {
     double cosM, sinM, factor_lon, factor_lat;              // cos(Mean anomaly), sin(Mean anomaly)
@@ -517,6 +440,10 @@ void deg2Full(Mesh * grid, Array2D<double> & velocity, double simulationTime, do
     }
 };
 
+
+// -----------------------------------------------------------------------------
+// Static + time-varying eccentricity tidal forcing, degree-2 (e.g., Matsuyama 2014)
+// -----------------------------------------------------------------------------
 void deg2EccTotal(Mesh * grid, Array2D<double> & velocity, double simulationTime, double radius, double omega, double theta, double ecc)
 {
     double cosM, sinM, factor_lon, factor_lat;              // cos(Mean anomaly), sin(Mean anomaly)
