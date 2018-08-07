@@ -25,9 +25,9 @@ double dgemv_( const char * TRANS,
 // static double dummy_sum = 0;
 
 // #pragma omp for
-void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pressure, int N, double g = 1.0)
+void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pressure, int nodeNum, double g = 1.0)
 {
-    int node_num, friend_num;
+    int friend_num;
     int i, j, end_i;
 
     Array2D<int> * friend_list;
@@ -36,11 +36,10 @@ void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pre
     double p0, p1;
     double x_grad, y_grad;
 
-    node_num = mesh->node_num;
     friend_list = &(mesh->node_friends);
     grad_coeffs = &(mesh->grad_coeffs);
 
-    for (i=0; i<N; i++)
+    for (i=0; i<nodeNum; i++)
     {
         friend_num = 6;
         if ((*friend_list)(i, 5) == -1) friend_num = 5;
@@ -90,12 +89,8 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
     Array3D<double> * Pbar_lm;
     Array3D<double> * Pbar_lm_deriv;
     Array3D<double> * trigMLon;
-    Array2D<double> * trigLat;
 
     Array2D<double> * ll_scalar;
-
-    Array2D<int> * friend_list;
-    friend_list = &(mesh->node_friends);
 
     node_num = globals->node_num;
     l_max = globals->l_max.Value();
@@ -114,7 +109,6 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
     Pbar_lm = &(mesh->Pbar_lm);             // 4-pi Normalised associated leg funcs
     Pbar_lm_deriv = &(mesh->Pbar_lm_deriv); // 4-pi Normalised associated leg funcs derivs
     trigMLon = &(mesh->trigMLon);           // cos and sin of m*longitude
-    trigLat = &(mesh->trigLat);
     cosLat = &(mesh->trigLat(0,0));
 
     double * sh_matrix;
@@ -407,12 +401,10 @@ void velocityDiffusion(Mesh * mesh, Array2D<double> & dvdt, Array2D<double> & ve
     int i, j, i1, j1, j2;
 
     Array2D<int> * friend_list;
-    Array2D<double> * cent_map_factor;
     Array2D<double> * edge_lens;
     Array1D<double> * cv_areas;
     Array3D<double> * vel_transform;
     Array2D<double> * node_friend_dists;
-    Array1D<int> * mask;
 
     double m;                          // mapping factor at current cv edge
     double u0, u1, u_temp;
@@ -424,12 +416,10 @@ void velocityDiffusion(Mesh * mesh, Array2D<double> & dvdt, Array2D<double> & ve
 
     node_num = mesh->node_num;
     friend_list = &(mesh->node_friends);
-    cent_map_factor = &(mesh->control_vol_edge_centre_m);
     edge_lens = &(mesh->control_vol_edge_len);
     cv_areas = &(mesh->control_volume_surf_area_map);
     vel_transform = &(mesh->node_vel_trans);
     node_friend_dists = &(mesh->node_dists);
-    mask = &(mesh->land_mask);
 
     for (i=0; i<node_num; i++)
     {
@@ -487,12 +477,9 @@ void scalarDiffusion(Mesh * mesh, Array1D<double> & d2s, Array1D<double> & s, do
     int i, j, i1, j1;
 
     Array2D<int> * friend_list;
-    Array2D<double> * cent_map_factor;
     Array2D<double> * edge_lens;
     Array1D<double> * cv_areas;
-    Array3D<double> * vel_transform;
     Array2D<double> * node_friend_dists;
-    Array1D<int> * mask;
 
     double m;                          // mapping factor at current cv edge
     double s0, s1, s_temp;
@@ -503,12 +490,9 @@ void scalarDiffusion(Mesh * mesh, Array1D<double> & d2s, Array1D<double> & s, do
 
     node_num = mesh->node_num;
     friend_list = &(mesh->node_friends);
-    cent_map_factor = &(mesh->control_vol_edge_centre_m);
     edge_lens = &(mesh->control_vol_edge_len);
     cv_areas = &(mesh->control_volume_surf_area_map);
-    vel_transform = &(mesh->node_vel_trans);
     node_friend_dists = &(mesh->node_dists);
-    mask = &(mesh->land_mask);
 
     for (i=0; i<node_num; i++)
     {
@@ -682,20 +666,14 @@ void scalarDiffusion(Mesh * mesh, Array1D<double> & d2s, Array1D<double> & s, do
 //
 // };
 
+// TODO - move function to interpolation.cpp
 void avgAtPoles(Mesh * mesh, Array2D<double> & velocity)
 {
-    int node_num, friend_num;
+    int friend_num;
     int i, j, j1, j2, i1, i2;
 
     Array2D<int> * friend_list;
-    Array2D<double> * cent_map_factor;
-    Array3D<double> * element_areas;
-    Array3D<double> * normal_vecs;
-    Array2D<double> * edge_lens;
-    Array1D<double> * cv_areas;
     Array3D<double> * vel_transform;
-    // Array1D<double> * mass;
-    Array1D<int> * mask;
 
     double m;                          // mapping factor at current cv edge
     double a0, a1, a2;
@@ -704,23 +682,13 @@ void avgAtPoles(Mesh * mesh, Array2D<double> & velocity)
     double div;
     double nx, ny;
     double edge_len;
-    // double total_dmass, dmass, dt;
-    // double h;
+
     double cos_a, sin_a;
 
-    node_num = mesh->node_num;
     friend_list = &(mesh->node_friends);
-    cent_map_factor = &(mesh->control_vol_edge_centre_m);
-    element_areas = &(mesh->node_friend_element_areas_map);
-    normal_vecs = &(mesh->control_vol_edge_normal_map);
-    edge_lens = &(mesh->control_vol_edge_len);
-    cv_areas = &(mesh->control_volume_surf_area_map);
-    // mass = &(mesh->control_volume_mass);
-    // dt = mesh->globals->timeStep.Value();
-    vel_transform = &(mesh->node_vel_trans);
-    mask = &(mesh->land_mask);
 
-    // total_dmass = 0.0;
+    vel_transform = &(mesh->node_vel_trans);
+
     for (i=0; i<2; i++)
     {
         friend_num = 5;
@@ -730,10 +698,10 @@ void avgAtPoles(Mesh * mesh, Array2D<double> & velocity)
         for (j=0; j<friend_num; j++)
         {
             // FIND VELOCITY AT FRIEND
-            i1 = (*friend_list)(i,j);
+            i1 = (*friend_list)(i, j);
 
-            u_temp = velocity(i1,0);
-            v_temp = velocity(i1,1);
+            u_temp = velocity(i1, 0);
+            v_temp = velocity(i1, 1);
 
             // CONVERT TO MAPPED VELOCITIES
             cos_a = (*vel_transform)(i, j+1, 0);
@@ -754,7 +722,5 @@ void avgAtPoles(Mesh * mesh, Array2D<double> & velocity)
         velocity(i,1) = v_avg;
 
     }
-
-    // std::cout<<"HERE"<<std::endl;
 
 };

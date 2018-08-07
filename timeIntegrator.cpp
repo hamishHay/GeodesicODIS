@@ -127,6 +127,8 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
 
     velocityDiffusion(grid, dvdt, v_tm1, visc);
 
+    return 1;
+
 };
 
 int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt, Array2D<double> & v_t0)
@@ -134,6 +136,8 @@ int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt
     double sum = -1.0;
 
     velocityDivergence(grid, deta_dt, v_t0, sum, globals->h.Value());
+
+    return 1;
 };
 
 // Function to implement the time loop to solve mass and momentum equations over
@@ -143,7 +147,6 @@ int eulerExplicit(Globals * globals, Mesh * grid)
     std::ostringstream outstring;
     int i,j,iter,out_count;
     double ** pp;
-    double * sinLat;
 
     Array2D<double> * vel_t0;      // velocity solution for current timestep
     Array2D<double> * vel_tm1;     // velocity solution at previous timestep (t minus 1)
@@ -171,8 +174,6 @@ int eulerExplicit(Globals * globals, Mesh * grid)
     pp = new double *[globals->out_tags.size()-1];
 
     std::cout<<globals->out_tags[0]<<std::endl;
-
-    sinLat = &(grid->trigLat(0,1));
 
     outstring << "Defining arrays for Euler time integration..." << std::endl;
 
@@ -278,7 +279,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     Array2D<double> * dvel_dt_tm1;  // velocity time derivative at current timestep
     Array2D<double> * dvel_dt_tm2;  // velocity time derivative at current timestep
 
-    Array2D<double> * vel_dummy;
+    // Array2D<double> * vel_dummy;
 
     Array1D<double> * press_t0;      // displacement solution for current timestep
     Array1D<double> * press_tm1;     // displacement solution at previous timestep (t minus 1)
@@ -287,7 +288,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     Array1D<double> * dpress_dt_tm1;  // displacement time derivative at current timestep
     Array1D<double> * dpress_dt_tm2;  // displacement time derivative at current timestep
 
-    Array1D<double> * press_dummy;
+    // Array1D<double> * press_dummy;
 
     Array1D<double> * energy_diss;
     Array1D<double> * cv_mass;
@@ -301,15 +302,6 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     double r = globals->radius.Value();
     double omega = globals->radius.Value();
     double obl = globals->theta.Value();
-
-    // double * cosLon, * cosLat, * cos2Lon;
-    // double * sinLon, * sinLat;
-    //
-    // cosLon = &(grid->trigLon(0,0));
-    // cosLat = &(grid->trigLat(0,0));
-    // cos2Lon = &(grid->trig2Lon(0,0));
-    // sinLon = &(grid->trigLon(0,1));
-    // sinLat = &(grid->trigLat(0,1));
 
     int node_num;
 
@@ -348,8 +340,8 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     vel_t0 = new Array2D<double>(node_num, 2);
     vel_tm1 = new Array2D<double>(node_num, 2);
 
-    vel_dummy = new Array2D<double>(node_num, 2);
-    press_dummy = new Array1D<double>(node_num);
+    // vel_dummy = new Array2D<double>(node_num, 2);
+    // press_dummy = new Array1D<double>(node_num);
 
     dpress_dt_t0 = new Array1D<double>(node_num);
     dpress_dt_tm1 = new Array1D<double>(node_num);

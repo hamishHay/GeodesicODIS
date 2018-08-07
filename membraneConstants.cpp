@@ -4,7 +4,7 @@
 #include "array1d.h"
 #include <iomanip>
 
-
+// TODO - generalise for other bodies
 void membraneNuBeta(Array1D<double> & nu, Array1D<double> & beta, int l_max, Globals * consts)
 {
     int l;
@@ -38,10 +38,8 @@ void membraneNuBeta(Array1D<double> & nu, Array1D<double> & beta, int l_max, Glo
 
     double radius = consts->radius.Value();
     double radius_core = radius - (shell_thickness + ocean_thickness);
-    // radius_core = radius - ocean_thickness;
     double radius_ocean = radius - (shell_thickness);
 
-    //radius = radius_ocean;
 
     double mass_total = 1.08e20;
     double mass_core;
@@ -69,7 +67,7 @@ void membraneNuBeta(Array1D<double> & nu, Array1D<double> & beta, int l_max, Glo
     den_bulk = mass_total/vol_total;
 
     mass_ocean = vol_ocean * den_ocean;
-    std::cout<<"MASS2: "<<mass_ocean<<std::endl;
+
     mass_shell = vol_shell * den_shell;
     mass_core = mass_total - (mass_ocean + mass_shell);
 
@@ -85,16 +83,12 @@ void membraneNuBeta(Array1D<double> & nu, Array1D<double> & beta, int l_max, Glo
     //grav_core = grav_surf;
     //radius_core = radius;
     //den_core = den_bulk;
-    double rigid_eff2;
 
     for (l = 0; l < l_max+1; l++)
     {
 
         rigid_eff = (double)(2*l*l + 4*l + 3)/((double)l)
                     * rigid_core / (den_core * grav_core * radius_core);
-
-        rigid_eff2 = (double)(2*l*l + 4*l + 3)/((double)l)
-                    * rigid_core / (den_bulk * grav_surf * radius);
 
         rigid_factor = 1. / (1. + rigid_eff);
 

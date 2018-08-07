@@ -47,7 +47,6 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
     pressure_factor(N),
     grad_coeffs(N, 7, 2),
     div_coeffs(N, 7, 2),
-    land_mask(N),
 
     trigLat(N,2),
     trigLon(N,2),
@@ -124,7 +123,7 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
 
     CalcDivOperatorCoeffs();
 
-    CalcLand();
+    // CalcLand();
 
     CalcPressureFactor();
 
@@ -633,7 +632,6 @@ int Mesh::CalcControlVolumeMass(void)
   double cx, cy, cz;
   double * vol;
   double vol1, vol2;
-  double r_core, r_ocean;
 
   // r = globals->radius.Value();//# + globals->shell_thickness.Value();
   // r_core = r - globals->h.Value();
@@ -691,8 +689,7 @@ int Mesh::CalcControlVolumeMass(void)
   // return 1;
 
   r = globals->radius.Value();//# + globals->shell_thickness.Value();
-  r_core = r;
-  r_ocean = r_core + globals->h.Value();
+
   double mass_sum = 0.0;
 
   avg_area = 0.0;
@@ -735,7 +732,7 @@ int Mesh::CalcControlVolumeMass(void)
 
     mass_sum += *t_area;
   }
-  std::cout<<"MASS: "<<mass_sum<<", "<<4.*pi*r*r*50e3*1000.0<<std::endl;
+
   return 1;
 }
 
@@ -832,7 +829,7 @@ int Mesh::CalcTrigFunctions(void)
 
 int Mesh::CalcLegendreFuncs(void)
 {
-    int i, l, m, n, l_max;
+    int i, l, m, l_max;
     double cosCoLat;
 
     Array2D<double> * temp_legendre;    // temp array for legendre polynomials
@@ -841,7 +838,6 @@ int Mesh::CalcLegendreFuncs(void)
     //-----------------------------
 
     l_max = globals->l_max.Value();
-    n = (l_max + 1)*(l_max + 1)/2;
 
     temp_legendre = new Array2D<double>(2 * (l_max+1), 2 * (l_max+1));
     temp_dlegendre = new Array2D<double>(2 * (l_max+1), 2 * (l_max+1));
@@ -924,6 +920,8 @@ int Mesh::CalcLegendreFuncs(void)
     // free up memory!
     delete temp_legendre;
     delete temp_dlegendre;
+
+    return 1;
 }
 
 
@@ -1124,137 +1122,6 @@ int Mesh::CalcDivOperatorCoeffs(void)
 
     return 1;
 }
-
-
-
-int Mesh::CalcLand(void)
-{
-    int i, j, f, friend_num, b_friend;
-    double lat, lon, lat0, lon0, r;
-    double xc, yc, x1, y1, x2, y2;
-    double angl;
-
-    lat0 = 0.0;
-    lon0 = 180.0 * radConv;
-    r = 1.0;// globals->radius.Value();
-
-    // Step 1: define dry (0) or wet (1) regions
-    for (i=0; i<node_num; i++)
-    {
-        lat = node_pos_sph(i, 0);
-        lon = node_pos_sph(i, 1);
-
-        // land_mask(i) = 1;
-
-        distanceBetweenSph(angl, lat0, lat, lon0, lon, r);
-        // angl *= 252.1e3;
-
-        if (fabs(angl)*1.0/radConv < 60.0)
-        {
-            land_mask(i) = 1;
-        }
-        else
-        {
-            land_mask(i) = 0;
-        }
-    }
-
-    // Step 2: define boundaries between dry and wet regions (2)
-    for (i=0; i<node_num; i++)
-    {
-      lat = node_pos_sph(i, 0);
-      lon = node_pos_sph(i, 1);
-
-      f = node_friends(i,5);
-
-      friend_num = 6;                    // Assume hexagon (6 centroids)
-      if (f == -1) {
-          friend_num = 5;                // Check if pentagon (5 centroids)
-      }
-
-      for (j=0; j<friend_num; j++)
-      {
-          f = node_friends(i,j);
-
-          // check if node is water and connected to land
-          if ((land_mask(i) == 1) && (land_mask(f) == 0))
-          {
-              land_mask(i) = 2;              // node *must* be a boundary node
-              break;
-          }
-      }
-    }
-
-    // Step 3: Find normal and tangential unit vectors at each local boundary
-    for (i=0; i<node_num; i++)
-    {
-      xc = node_pos_map(i, 0, 0);
-      yc = node_pos_map(i, 0, 1);
-
-      f = node_friends(i,5);
-
-      friend_num = 6;                    // Assume hexagon (6 centroids)
-      if (f == -1) {
-          friend_num = 5;                // Check if pentagon (5 centroids)
-      }
-
-      x1 = 0.0;
-      y1 = 0.0;
-      x2 = 0.0;
-      y2 = 0.0;
-      b_friend = 0;
-      if (land_mask(i) == 2)
-      {
-          for (j=0; j<friend_num; j++)
-          {
-              f = node_friends(i,j);
-
-              if (land_mask(f) == 2)
-              {
-                  if (b_friend == 0)
-                  {
-                      x1 = node_pos_map(i, f, 0);
-                      y1 = node_pos_map(i, f, 1);
-                      b_friend++;
-                  }
-                  else if (b_friend == 1)
-                  {
-                      x2 = node_pos_map(i, f, 0);
-                      y2 = node_pos_map(i, f, 1);
-                      break;
-                  }
-              }
-          }
-
-
-          // fit a function to coords for p1, pc, and p2
-
-          // at pc, find the normal vector and tangential unit vectors of the fitted function
-
-      }
-      else
-      {
-          //Treat non-boundaries
-      }
-
-
-      land_mask(i) = 1;
-    }
-
-
-
-
-  //
-  // for (i=0; i<node_num; i++)
-  // {
-  //     lat = node_pos_sph(i, 0);
-  //     lon = node_pos_sph(i, 1);
-  //
-  //     std::cout<<lat<<' '<<lon<<' '<<land_mask(i)<<std::endl;
-  //
-  // }
-  //   globals->Output->TerminateODIS();
-};
 
 // Function to read in text file containing mesh information
 // The four pieces of information read and stored are:
@@ -1517,18 +1384,18 @@ int Mesh::ReadWeightingFile(void)
     DataSpace fspace_data = dset_data.getSpace();
 
     // Get number of dimensions in the files dataspace
-    int rank_cols = fspace_cols.getSimpleExtentNdims();
-    int rank_rows = fspace_rows.getSimpleExtentNdims();
-    int rank_data = fspace_data.getSimpleExtentNdims();
+    // int rank_cols = fspace_cols.getSimpleExtentNdims();
+    // int rank_rows = fspace_rows.getSimpleExtentNdims();
+    // int rank_data = fspace_data.getSimpleExtentNdims();
 
     hsize_t dims_cols[1];    // length no of non-zero elements
     hsize_t dims_rows[1];
     hsize_t dims_data[1];    // length no of non-zero elements
 
     // Get size of each dimension
-    rank_cols = fspace_cols.getSimpleExtentDims( dims_cols );
-    rank_rows = fspace_rows.getSimpleExtentDims( dims_rows );
-    rank_data = fspace_data.getSimpleExtentDims( dims_data );
+    // rank_cols = fspace_cols.getSimpleExtentDims( dims_cols );
+    // rank_rows = fspace_rows.getSimpleExtentDims( dims_rows );
+    // rank_data = fspace_data.getSimpleExtentDims( dims_data );
 
     // Create memoryspace to read the datasets
     DataSpace mspace_cols(1, dims_cols);
@@ -1538,7 +1405,7 @@ int Mesh::ReadWeightingFile(void)
     // Create 1D arrays to store file data
 
     interpCols =    new    int[ dims_cols[0] ];
-    interpRows =       new    int[ dims_rows[0] ];
+    interpRows =    new    int[ dims_rows[0] ];
     interpWeights = new double[ dims_data[0] ];
 
     // Read in the data
@@ -1581,5 +1448,7 @@ int Mesh::ReadWeightingFile(void)
     err = mkl_sparse_optimize(*interpMatrix);
 
     // globals->Output->TerminateODIS();
+
+    return 1;
 
 };

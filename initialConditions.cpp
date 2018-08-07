@@ -8,11 +8,9 @@ int loadInitialConditions(Globals * globals, Mesh * mesh,
                           Array2D<double> & v, Array2D<double> & dvdt1, Array2D<double> & dvdt2, Array2D<double> & dvdt3,
                           Array1D<double> & p, Array1D<double> & dpdt1, Array1D<double> & dpdt2, Array1D<double> & dpdt3)
 {
-    int node_num;
     int i, j;
     std::ostringstream outstring;
 
-    node_num = mesh->node_num;
     std::string line, val;                 // strings for column and individual number
     std::string file_str;                  // string with path to mesh file.
 

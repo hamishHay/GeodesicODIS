@@ -138,4 +138,6 @@ int interpolateGG2LLConservative(Globals * globals,
     delete[] ll_data_1D;
     delete[] gg_data_1D;
     delete gradient;
+
+    return 1;
 }
