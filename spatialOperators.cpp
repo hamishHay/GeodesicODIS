@@ -165,17 +165,7 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
 
       l_max_total+=1;
     }
-
-    char trans = 'n';
-    int M = node_num;
-    int N = (l_max+1)*(l_max+2) - 6;
-    double alpha = 1.0;
-    int lda = M;
-    int incx = 1;
-    int incy = 1;
-    double beta = 0.0;
-
-
+    
     int count = 0;
 
     int method = 1;
@@ -306,27 +296,40 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
 
 
     case 3:
-        // Using blas to perform a large matrix-vector calculation
 
-        int count = 0;
-        for (l=2; l<l_max+1; l++)
         {
-            for (m=0; m<=l; m++)
+            // Using blas to perform a large matrix-vector calculation
+
+            char trans = 'n';
+            int M = node_num;
+            int N = (l_max+1)*(l_max+2) - 6;
+            double alpha = 1.0;
+            int lda = M;
+            int incx = 1;
+            int incy = 1;
+            double beta = 0.0;
+
+            int count = 0;
+            for (l=2; l<l_max+1; l++)
             {
-                sh_coeffs[count] = (*scalar_lm)(l, m, 0);
-                count++;
+                for (m=0; m<=l; m++)
+                {
+                    sh_coeffs[count] = (*scalar_lm)(l, m, 0);
+                    count++;
 
-                sh_coeffs[count] = (*scalar_lm)(l, m, 1);
-                count++;
+                    sh_coeffs[count] = (*scalar_lm)(l, m, 1);
+                    count++;
+                }
             }
+
+            // Perform sh_matrix * sh_coeffs and write the solution to soln_vec
+            dgemv_(&trans, &M, &N, &alpha, sh_matrix, &lda, sh_coeffs, &incx, &beta, soln_vec, &incy);
+
+            pressureGradient(mesh, dvdt, *scalar_dummy, node_num, -factor);
+
+            break;
+
         }
-
-        // Perform sh_matrix * sh_coeffs and write the solution to soln_vec
-        dgemv_(&trans, &M, &N, &alpha, sh_matrix, &lda, sh_coeffs, &incx, &beta, soln_vec, &incy);
-
-        pressureGradient(mesh, dvdt, *scalar_dummy, node_num, -factor);
-
-        break;
 
     }
     // globals->Output->TerminateODIS();
