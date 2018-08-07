@@ -129,11 +129,7 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
 
     CalcDivOperatorCoeffs();
 
-    // CalcLand();
-
     GeneratePressureSolver();
-
-    // ReadLaplaceMatrixFile();
 
     ReadWeightingFile();
 
@@ -1241,135 +1237,6 @@ int Mesh::GeneratePressureSolver(void)
     return 1;
 }
 
-int Mesh::CalcLand(void)
-{
-    int i, j, f, friend_num, b_friend;
-    double lat, lon, lat0, lon0, r;
-    double xc, yc, x1, y1, x2, y2;
-    double angl;
-
-    lat0 = 0.0;
-    lon0 = 180.0 * radConv;
-    r = 1.0;// globals->radius.Value();
-
-    // Step 1: define dry (0) or wet (1) regions
-    for (i=0; i<node_num; i++)
-    {
-        lat = node_pos_sph(i, 0);
-        lon = node_pos_sph(i, 1);
-
-        // land_mask(i) = 1;
-
-        distanceBetweenSph(angl, lat0, lat, lon0, lon, r);
-        // angl *= 252.1e3;
-
-        if (fabs(angl)*1.0/radConv < 60.0)
-        {
-            land_mask(i) = 1;
-        }
-        else
-        {
-            land_mask(i) = 0;
-        }
-    }
-
-    // Step 2: define boundaries between dry and wet regions (2)
-    for (i=0; i<node_num; i++)
-    {
-      lat = node_pos_sph(i, 0);
-      lon = node_pos_sph(i, 1);
-
-      f = node_friends(i,5);
-
-      friend_num = 6;                    // Assume hexagon (6 centroids)
-      if (f == -1) {
-          friend_num = 5;                // Check if pentagon (5 centroids)
-      }
-
-      for (j=0; j<friend_num; j++)
-      {
-          f = node_friends(i,j);
-
-          // check if node is water and connected to land
-          if ((land_mask(i) == 1) && (land_mask(f) == 0))
-          {
-              land_mask(i) = 2;              // node *must* be a boundary node
-              break;
-          }
-      }
-    }
-
-    // Step 3: Find normal and tangential unit vectors at each local boundary
-    for (i=0; i<node_num; i++)
-    {
-      xc = node_pos_map(i, 0, 0);
-      yc = node_pos_map(i, 0, 1);
-
-      f = node_friends(i,5);
-
-      friend_num = 6;                    // Assume hexagon (6 centroids)
-      if (f == -1) {
-          friend_num = 5;                // Check if pentagon (5 centroids)
-      }
-
-      x1 = 0.0;
-      y1 = 0.0;
-      x2 = 0.0;
-      y2 = 0.0;
-      b_friend = 0;
-      if (land_mask(i) == 2)
-      {
-          for (j=0; j<friend_num; j++)
-          {
-              f = node_friends(i,j);
-
-              if (land_mask(f) == 2)
-              {
-                  if (b_friend == 0)
-                  {
-                      x1 = node_pos_map(i, f, 0);
-                      y1 = node_pos_map(i, f, 1);
-                      b_friend++;
-                  }
-                  else if (b_friend == 1)
-                  {
-                      x2 = node_pos_map(i, f, 0);
-                      y2 = node_pos_map(i, f, 1);
-                      break;
-                  }
-              }
-          }
-
-
-          // fit a function to coords for p1, pc, and p2
-
-          // at pc, find the normal vector and tangential unit vectors of the fitted function
-
-      }
-      else
-      {
-          //Treat non-boundaries
-      }
-
-
-      land_mask(i) = 1;
-    }
-
-
-
-
-  //
-  // for (i=0; i<node_num; i++)
-  // {
-  //     lat = node_pos_sph(i, 0);
-  //     lon = node_pos_sph(i, 1);
-  //
-  //     std::cout<<lat<<' '<<lon<<' '<<land_mask(i)<<std::endl;
-  //
-  // }
-  //   globals->Output->TerminateODIS();
-};
-
 // Function to read in text file containing mesh information
 // The four pieces of information read and stored are:
 //      1. Node ID numbers
@@ -1631,18 +1498,18 @@ int Mesh::ReadWeightingFile(void)
     DataSpace fspace_data = dset_data.getSpace();
 
     // Get number of dimensions in the files dataspace
-    // int rank_cols = fspace_cols.getSimpleExtentNdims();
-    // int rank_rows = fspace_rows.getSimpleExtentNdims();
-    // int rank_data = fspace_data.getSimpleExtentNdims();
+    int rank_cols = fspace_cols.getSimpleExtentNdims();
+    int rank_rows = fspace_rows.getSimpleExtentNdims();
+    int rank_data = fspace_data.getSimpleExtentNdims();
 
     hsize_t dims_cols[1];    // length no of non-zero elements
     hsize_t dims_rows[1];
     hsize_t dims_data[1];    // length no of non-zero elements
 
     // Get size of each dimension
-    // rank_cols = fspace_cols.getSimpleExtentDims( dims_cols );
-    // rank_rows = fspace_rows.getSimpleExtentDims( dims_rows );
-    // rank_data = fspace_data.getSimpleExtentDims( dims_data );
+    rank_cols = fspace_cols.getSimpleExtentDims( dims_cols );
+    rank_rows = fspace_rows.getSimpleExtentDims( dims_rows );
+    rank_data = fspace_data.getSimpleExtentDims( dims_data );
 
     // Create memoryspace to read the datasets
     DataSpace mspace_cols(1, dims_cols);

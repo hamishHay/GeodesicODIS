@@ -14,7 +14,6 @@
 class Mesh {
 private:
   int ReadMeshFile(void);
-  int ReadLatLonFile(void);
   int ReadWeightingFile(void);
   int CalcMappingCoords(void);
   int CalcVelocityTransformFactors(void);
@@ -28,7 +27,6 @@ private:
   int CalcTrigFunctions(void);
   int CalcNodeDists(void);
   int CalcMaxTimeStep(void);
-  int CalcPressureFactor();
   int CalcLegendreFuncs();
   int CalcGradOperatorCoeffs();
   int CalcDivOperatorCoeffs();
@@ -106,8 +104,6 @@ public:
 
   // Array to store the triangular areas within each subelement.
   Array3D<double> node_friend_element_areas_map;
-
-  Array1D<double> pressure_factor;
 
   // Arrays to store trig functions evaluated at each node
   Array2D<double> trigLat;

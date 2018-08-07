@@ -26,7 +26,7 @@
 void deg2Ecc(Mesh * grid, Array2D<double> & soln, double simulationTime, double radius, double omega, double ecc)
 {
     double cosM, sinM, factor;              // cos(Mean anomaly), sin(Mean anomaly)
-    double *sinLat, * sin2Lat, * sin2Lon, *cos2Lon, *cosLat;
+    double * sin2Lat, * sin2Lon, *cos2Lon, *cosLat;
     int i,j, node_num;
     double * val;
     double * m;
@@ -46,13 +46,10 @@ void deg2Ecc(Mesh * grid, Array2D<double> & soln, double simulationTime, double 
 
     // Assign pointers to start of trig node arrays
     cosLat = &(grid->trigLat(0,0));
-    sinLat = &(grid->trigLat(0,1));
     cos2Lon = &(grid->trig2Lon(0,0));
     sin2Lon = &(grid->trig2Lon(0,1));
     sin2Lat = &(grid->trig2Lat(0,1));
 
-    Array1D<double> * potential;
-    potential = new Array1D<double>(node_num);
     for (i=0; i<node_num; i++) {
         j = i*2;
 
@@ -272,7 +269,6 @@ void deg2Obliq(Mesh * grid, Array2D<double> & soln, double simulationTime, doubl
 
     // Assign pointers to start of trig node arrays
     cos2Lat = &(grid->trig2Lat(0,0));
-    sin2Lat = &(grid->trig2Lat(0,1));
     cosLon = &(grid->trigLon(0,0));
     sinLon = &(grid->trigLon(0,1));
     sinLat = &(grid->trigLat(0,1));
