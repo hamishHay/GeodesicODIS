@@ -15,7 +15,7 @@ class Mesh {
 private:
   int ReadMeshFile(void);
   int ReadLatLonFile(void);
-  int ReadLaplaceMatrixFile(void);
+  int ReadWeightingFile(void);
   int CalcMappingCoords(void);
   int CalcVelocityTransformFactors(void);
   int CalcControlVolumeEdgeLengths(void);
@@ -28,7 +28,7 @@ private:
   int CalcTrigFunctions(void);
   int CalcNodeDists(void);
   int CalcMaxTimeStep(void);
-  int CalcLand(void);
+  int CalcPressureFactor();
   int CalcLegendreFuncs();
   int CalcGradOperatorCoeffs();
   int CalcDivOperatorCoeffs();
@@ -107,7 +107,7 @@ public:
   // Array to store the triangular areas within each subelement.
   Array3D<double> node_friend_element_areas_map;
 
-  Array1D<int> land_mask;
+  Array1D<double> pressure_factor;
 
   // Arrays to store trig functions evaluated at each node
   Array2D<double> trigLat;
@@ -135,6 +135,16 @@ public:
   Array3D<double> V_inv;
   Array3D<double> ll_map_coords;
   Array2D<int> cell_ID;
+
+  Array3D<double> LU_V;
+  Array3D<double> V_MAT;
+  Array2D<int> IPIV_V;
+
+  int * interpRows;
+  int * interpCols;
+  double * interpWeights;
+
+  sparse_matrix_t * interpMatrix;
 
   Globals * globals;
 

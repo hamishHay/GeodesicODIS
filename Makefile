@@ -4,7 +4,7 @@ F = gfortran-6
 
 HOME=/usr/local
 
-#-mavx2 -mfma
+# CFLAGS = -O2 -c -mkl -Wall -Wno-unused-variable -Wno-sign-compare -Wunused-but-set-variable  -ffast-math -funroll-loops -march=native -finline-functions  -std=c++14 -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp
 
 # CFLAGS = -O2 -c -Wall -Wno-unused-variable -Wno-sign-compare -Wunused-but-set-variable  -ffast-math -funroll-loops -march=native -finline-functions  -std=c++14 -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp
 CFLAGS = -O3 -DNDEBUG -mkl -c -Wall -Wno-unused-variable -Wno-sign-compare -Wunused-but-set-variable -funroll-loops -finline-functions  -std=c++14 -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp

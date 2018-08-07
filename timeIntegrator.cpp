@@ -31,16 +31,23 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
     double r, omega, e, obliq, h, drag_coeff, visc, g, dt;
     int node_num;
 
-    r = globals->radius.Value();
-    g = globals->g.Value();
-    dt = globals->timeStep.Value();
-    omega = globals->angVel.Value();
-    e = globals->e.Value();
+    r =       globals->radius.Value();
+    g =       globals->g.Value();
+    dt =      globals->timeStep.Value();
+    omega =   globals->angVel.Value();
+    e =       globals->e.Value();
     drag_coeff = globals->alpha.Value();
-    obliq = globals->theta.Value();
-    h = globals->h.Value();
+    obliq =   globals->theta.Value();
+    h =       globals->h.Value();
     node_num = globals->node_num;
-    visc = 1e1;
+
+    visc = 5e3;
+
+    for (int i=0; i <node_num; i++)
+    {
+        dvdt(i, 0) = 0.0;
+        dvdt(i, 1) = 0.0;
+    }
 
     switch (globals->tide_type)
     {
@@ -69,7 +76,9 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
             deg2ObliqEast(grid, dvdt, current_time, r, omega, obliq);
             break;
         case FULL:
-            deg2EccTotal(grid, dvdt, current_time, r, omega, obliq, e);
+            // deg2Full(grid, dvdt, current_time, r, omega, obliq, e);
+            deg2Ecc(grid, dvdt, current_time, r, omega, e);
+            deg2Obliq(grid, dvdt, current_time, r, omega, obliq);
             break;
     }
 
@@ -118,6 +127,8 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
 
     velocityDiffusion(grid, dvdt, v_tm1, visc);
 
+    return 1;
+
 };
 
 int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt, Array2D<double> & v_t0)
@@ -125,10 +136,10 @@ int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt
     double sum = -1.0;
 
     velocityDivergence(grid, deta_dt, v_t0, sum, globals->h.Value());
+
+    return 1;
 };
 
-// Function to implement the time loop to solve mass and momentum equations over
-// the geodesic grid. The time integration method is the explicit Euler method.
 int ab3Explicit(Globals * globals, Mesh * grid)
 {
     //--------------------------------------------------------------------------
@@ -145,7 +156,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     Array2D<double> * dvel_dt_tm1;  // velocity time derivative at current timestep
     Array2D<double> * dvel_dt_tm2;  // velocity time derivative at current timestep
 
-    Array2D<double> * vel_dummy;
+    // Array2D<double> * vel_dummy;
 
     Array1D<double> * press_t0;      // displacement solution for current timestep
     Array1D<double> * press_tm1;     // displacement solution at previous timestep (t minus 1)
@@ -154,25 +165,21 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     Array1D<double> * dpress_dt_tm1;  // displacement time derivative at current timestep
     Array1D<double> * dpress_dt_tm2;  // displacement time derivative at current timestep
 
-    Array1D<double> * press_dummy;
+    // Array1D<double> * press_dummy;
 
     Array1D<double> * energy_diss;
     Array1D<double> * cv_mass;
 
-    Array2D<int> * friend_list;
-    friend_list = &(grid->node_friends);
+    // Array2D<int> * friend_list;
+    // friend_list = &(grid->node_friends);
 
     double end_time, current_time, dt, out_frac, orbit_period, out_time;
     // double r, omega, e, obliq, drag_coeff, h;
     double lon, lat;
     double r = globals->radius.Value();
 
-    double * cosLon, * cosLat, * cos2Lon;
-    double * sinLat;
-
-    cosLon = &(grid->trigLon(0,0));
-    cosLat = &(grid->trigLat(0,0));
-    cos2Lon = &(grid->trig2Lon(0,0));
+    double omega = globals->radius.Value();
+    double obl = globals->theta.Value();
 
     int node_num;
 
@@ -201,7 +208,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     double e_diss;
     total_diss = new double[1];
 
-    outstring << "Defining arrays for Euler time integration..." << std::endl;
+    outstring << "Defining arrays for Adams-Bashforth time integration..." << std::endl;
 
     dvel_dt_t0 = new Array2D<double>(node_num, 2);
     dvel_dt_tm1 = new Array2D<double>(node_num, 2);
@@ -209,8 +216,8 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     vel_t0 = new Array2D<double>(node_num, 2);
     vel_tm1 = new Array2D<double>(node_num, 2);
 
-    vel_dummy = new Array2D<double>(node_num, 2);
-    press_dummy = new Array1D<double>(node_num);
+    // vel_dummy = new Array2D<double>(node_num, 2);
+    // press_dummy = new Array1D<double>(node_num);
 
     dpress_dt_t0 = new Array1D<double>(node_num);
     dpress_dt_tm1 = new Array1D<double>(node_num);
@@ -228,6 +235,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
         else if ((*tags)[i] == "displacement output")    pp[i] = &(*press_t0)(0);
         else if ((*tags)[i] == "dissipation output")     pp[i] = &(*energy_diss)(0);
         else if ((*tags)[i] == "dissipation avg output") pp[i] = &total_diss[0];
+        else if ((*tags)[i] == "kinetic avg output")     pp[i] = &current_time;
     }
 
     for (i=0; i<node_num; i++)
@@ -243,13 +251,23 @@ int ab3Explicit(Globals * globals, Mesh * grid)
         (*cv_mass)(i) = grid->control_volume_mass(i);
     }
 
-    // loadInitialConditions(globals, grid, *vel_tm1, *press_tm1);
+
+    if (globals->init.Value())
+    {
+       std::cout<<"Using initial conditions"<<std::endl;
+       loadInitialConditions(globals, grid,
+                             *vel_tm1,   *dvel_dt_t0,   *dvel_dt_tm1,   *dvel_dt_tm2,
+                             *press_tm1, *dpress_dt_t0, *dpress_dt_tm1, *dpress_dt_tm2);
+
+       iter = 3;
+    }
+    else iter = 0;
+
 
     //--------------------------------------------------------------------------
     //------------------------- BEGIN TIME LOOP --------------------------------
     //--------------------------------------------------------------------------
 
-    iter = 0;
     out_count = 1;
     current_time = 0.0;
     out_time = 0.0;
@@ -286,6 +304,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
             integrateAB3scalar(globals, grid, *press_t0, *press_tm1, *dpress_dt_t0, *dpress_dt_tm1, *dpress_dt_tm2, iter);
 
             // if (out_time >= out_frac*orbit_period) smoothingSH(globals, grid, *press_tm1);
+            // if (out_time >= out_frac*orbit_period) smoothingSHVector(globals, grid, *vel_tm1);
         }
 
         else if (globals->surface_type == LID_INF)
@@ -323,8 +342,10 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
         if (out_time >= out_frac*orbit_period)
         {
-            std::cout<<std::fixed << std::setprecision(8) <<"DUMPING DATA AT "<<current_time/orbit_period;
-            std::cout<<" AVG DISS: "<<*total_diss*4*pi*r*r/1e9<<" GW"<<std::endl;
+            outstring << std::fixed << std::setprecision(8) <<"DUMPING DATA AT "<<current_time/orbit_period;
+            outstring << " AVG DISS: "<<*total_diss*4*pi*r*r<<' '<<out_count;
+
+            Output->Write(OUT_MESSAGE, &outstring);
 
             out_time -= out_frac*orbit_period;
 
@@ -333,31 +354,33 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
         }
 
-        if (flag) return 0;
+        if (flag) {
+            outstring << "Terminate signal caught..."<<std::endl;
+            Output->Write(OUT_MESSAGE, &outstring);
+
+
+            break;
+            // return 0;
+
+        }
     }
 
-    // delete dvel_dt_t0;
-    // std::cout<<"DONE"<<std::endl;
-    // delete dvel_dt_tm1;
-    // delete dvel_dt_tm2;
-    // delete vel_t0;
-    // delete vel_tm1;
-    // delete vel_dummy;
-    //
-    // delete dpress_dt_t0;
-    // delete dpress_dt_tm1;
-    // delete dpress_dt_tm2;
-    // delete press_t0;
-    // delete press_tm1;
-    // delete press_dummy;
-    //
-    // delete cv_mass;
-    //
-    // delete energy_diss;
-    //
-    // delete[] total_diss;
-    // delete pp;
+    // Save initial conditions!
+    // TODO - move the below code to a function in initialConditions.cpp
 
+
+    FILE * outFile;
+    outFile = fopen("init_new.txt", "w");
+
+    for (i=0; i<node_num; i++)
+    {                   //   u    dudt0  dudt1  dudt2    v    dvdt0  dvdt1  dvdt2    p    dpdt0  dpdt1  dpdt2
+        fprintf (outFile, "%1.6E, %1.6E, %1.6E, %1.6E, %1.6E, %1.6E, %1.6E, %1.6E, %1.6E, %1.6E, %1.6E, %1.6E\n",
+                 (*vel_t0)(i,0), (*dvel_dt_t0)(i, 0), (*dvel_dt_tm1)(i, 0), (*dvel_dt_tm2)(i, 0),
+                 (*vel_t0)(i,1), (*dvel_dt_t0)(i, 1), (*dvel_dt_tm1)(i, 1), (*dvel_dt_tm2)(i, 1),
+                 (*press_t0)(i), (*dpress_dt_t0)(i),  (*dpress_dt_tm1)(i),  (*dpress_dt_tm2)(i) );
+    }
+
+    fclose(outFile);
 
     Output->Write(OUT_MESSAGE, &outstring);
 

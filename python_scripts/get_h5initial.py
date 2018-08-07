@@ -18,9 +18,11 @@ sg1 = "displacement"
 sg2 = "east velocity"
 sg3 = "north velocity"
 
-data_eta = np.array(in_file[sg1][-2])
-data_u = np.array(in_file[sg2][-2])
-data_v = np.array(in_file[sg3][-2])
+n = int(sys.argv[1])
+
+data_eta = np.array(in_file[sg1][n])
+data_u = np.array(in_file[sg2][n])
+data_v = np.array(in_file[sg3][n])
 
 in_file.close()
 

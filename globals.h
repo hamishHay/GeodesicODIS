@@ -9,7 +9,7 @@
 //
 //   Version              Date                   Programmer
 //     0.1      |        13/09/2016        |        H. Hay        |
-// ---- Initial version of ODIS, described in Hay and Matsuyama (2016)
+// ---- Initial version of ODIS, described in Hay and Matsuyama (2017)
 
 
 #ifndef GLOBALS_H

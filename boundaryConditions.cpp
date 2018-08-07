@@ -10,9 +10,11 @@ int applySurfaceBCs(Globals * globals)
     int l_max;
     std::ostringstream outstring;
 
-
     switch (globals->surface_type)
     {
+
+    // Apply Free-surface boundary condition that accounts for only the
+    // deformation of the satellite.
     case FREE:
         {
             k2 = globals->loveK2.Value();
@@ -22,6 +24,8 @@ int applySurfaceBCs(Globals * globals)
         }
         break;
 
+    // Apply free-surface boundary condition that accounts for the effects of
+    // deformation of the core, self-gravity, and ocean loading.
     case FREE_LOADING:
         {
             double k_l, h_l;                // Loading love numbers for degree l
@@ -56,6 +60,8 @@ int applySurfaceBCs(Globals * globals)
                 loading_factor[l] = (1.0 + k_l - h_l);
                 loading_factor[l] *= 3.*ocean_den/((2.*(double)l + 1.0) * bulk_den);
                 //loading_factor[l] = 1.0 - loading_factor[l];
+
+                std::cout<<l<<'\t'<<1.0 - loading_factor[l]<<std::endl;
             }
 
             l = 2;
@@ -70,6 +76,8 @@ int applySurfaceBCs(Globals * globals)
         }
         break;
 
+    // Apply ice shell boundary conditions using the Beuthe (2016) membrane
+    // approximation
     case LID_MEMBR:
         {
             int l;
@@ -99,6 +107,9 @@ int applySurfaceBCs(Globals * globals)
         }
         break;
 
+    // Apply ice shell boundary conditions using the Matsuyama et al. (2018)
+    // thick shell theory. This BC requires a data file to be read, which is
+    // currently only for Enceladus. This will be generalised in the future.
     case LID_LOVE:
         {
             double hs;
@@ -317,20 +328,20 @@ int applySurfaceBCs(Globals * globals)
 
         }
 
-        int l = 0;
-        //
+        int l;
         for (l=0; l<l_max+1; l++)
         {
             beta_factor[l] = 1.0 - beta_factor[l];
-            std::cout<<l<<'\t'<<beta_factor[l]<<std::endl;
+            // std::cout<<l<<'\t'<<1. - beta_factor[l]<<std::endl;
         }
 
-        std::cout<<upsilon_factor<<std::endl;
+        // std::cout<<upsilon_factor<<std::endl;
         }
 
 
         break;
 
+    // Apply infinitely rigid lid boundary condition
     case LID_INF:
 
         break;

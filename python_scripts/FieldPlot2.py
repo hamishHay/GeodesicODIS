@@ -148,25 +148,26 @@ class FieldPlot2:
 
         if data == None:
             data = self.load_data(data_name=data_name, slices=None)
+            time = self.load_data(data_name="kinetic avg output", slices=None)/self.period
         # data *= 4*np.pi * (self.radius-)
 
         # data *= 4. * np.pi * (self.radius)**2.0/1e9
-        data *= 4. * np.pi * (self.radius)**2.0/1e9
+        data *= 4. * np.pi * (self.radius - self.h_shell)**2.0/1e9
         # data *= (252.1e3 - self.h_shell + self.h_ocean)**2.0
         # data *= (1./(252.1e3))**2.0
         # data *= ((252.1e3-self.h_ocean)/(252.1e3))**3.
         #data *= 4. * np.pi * (self.radius)**2.0/1e9 / (2. * self.drag_coeff)
-        print(np.mean(data[-20*2:]))
+        print(np.mean(data[-20*5:]))
 
         ax_current = self.fig.add_subplot(111)
 
-        time = np.arange(self.out_inc,self.t_end+self.out_inc,self.out_inc)
-        # time = time[1:]
-        dt = 20
-        # time = time[-16*dt:]
-        # data = data[-16*dt:]
-        if len(time) != len(data):
-            data = data[:-1]
+        # time = np.arange(self.out_inc,self.t_end+self.out_inc,self.out_inc)
+        # # time = time[1:]
+        # dt = 20
+        # # time = time[-16*dt:]
+        # # data = data[-16*dt:]
+        # if len(time) != len(data):
+        #     data = data[:-1]
 
 
         # time = time[-70000*dt:-69800*dt]
@@ -362,6 +363,11 @@ class FieldPlot2:
 
             elif var_name == 'output time':
                 self.out_inc = float(var_val)
+
+            elif var_name == 'angular velocity':
+                self.omega = float(var_val)
+
+        self.period = 2.*np.pi/self.omega
 
 
 

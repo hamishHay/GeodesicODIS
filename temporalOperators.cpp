@@ -85,6 +85,8 @@ int integrateAB3vector(Globals * globals,
          }
 
      }
+
+     return 1;
  };
 
  int integrateAB3scalar(Globals * globals,
@@ -142,4 +144,6 @@ int integrateAB3vector(Globals * globals,
               ds_dt_tm1(i) = ds_dt_t0(i);
           }
       }
+
+      return 1;
   };

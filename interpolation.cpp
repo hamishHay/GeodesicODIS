@@ -5,22 +5,10 @@
 #include "array3d.h"
 #include <math.h>
 #include <iostream>
+#include "spatialOperators.h"
 
-// extern "C"{
-// // FORTRAN adds _ after all the function names
-// // and all variables are called by reference
-// double dgemv_( const char * TRANS,
-//                const int * m,
-//                const int * n,
-//                const double * alpha,
-//                const double * V,
-//                const int * ldv,
-//                const double * x,
-//                const int * incx,
-//                const double * beta,
-//                const double * y,
-//                const int * incy);
-// }
+#include <mkl_spblas.h>
+#include <mkl.h>
 
 /**
 *   @purpose    Function interpolates data from the geodesic grid to the regular
@@ -49,187 +37,107 @@
 *   @author         Hamish Hay
 *
 *   @history        15/09/2017 - created
+*                   05/01/2018 - switched to conservative interpolation
 *
 */
-int interpolateGG2LL(Globals * globals,
-                     Mesh * mesh,
-                     Array2D<double> & ll_data,
-                     Array1D<double> & gg_data,
-                     Array3D<double> & ll_map_coords,
-                     Array3D<double> & V_inv,
-                     Array2D<int> & cell_ID)
 
+int interpolateGG2LLConservative(Globals * globals,
+                                 Mesh * mesh,
+                                 Array2D<double> & ll_data,
+                                 Array1D<double> & gg_data)
 {
-    int i, j, k, l, f, N_ll, gg_ID, f_num;
-    double x, y;
-    double d_vec[6];            // static data vector
-    double c_vec[6];            // static coefficient vector
-    double V_inv_mat[6][6];     // static Vandermonde inverse matrix
-    double c_vec2[6];
+    double * gg_data_1D;
+    double * ll_data_1D;
 
-    double V_inv_mat2[6*6];
+    int dLat;
+    dLat = globals->dLat.Value();
 
-    double val;
-    double v0, v1, v2, v3, v4, v5;
+    double r;
+    r = globals->radius.Value();
 
-    Array2D<int> * friend_list;
-    friend_list = &(mesh->node_friends);
+    // No. of nodes on the geodesic and lat-lon grids.
+    int node_num_gg = mesh->node_num;
+    int node_num_ll = (int)(360/dLat)*(int)(180/dLat);
 
-    N_ll = globals->dLat.Value();
+    // geodesic grid data (0: val, 1: lat gradient, 2: lon gradient)
+    gg_data_1D = new double[node_num_gg * 3];
 
-    for (i = 0; i < 180/N_ll; i++)
+    // lat-lon interpolated solution
+    ll_data_1D = new double[node_num_ll] (); // <--- initialize to zero!!!!
+
+
+    // -------------------------------------------------------------------------
+    // Compute gradient of the solution to be interpolated
+    // -------------------------------------------------------------------------
+
+    Array2D<double> * gradient;
+    gradient = new Array2D<double>(node_num_gg, 2);
+
+    pressureGradient(mesh, *gradient, gg_data, node_num_gg, -1.0);
+
+
+    // -------------------------------------------------------------------------
+    // Fill the data vector with the geodesic grid solution and its gradients
+    // -------------------------------------------------------------------------
+
+    double * cosLat = &(mesh->trigLat(0,0));
+    for (int i=0; i<node_num_gg; i++)
     {
-        for (j = 0; j < 360/N_ll; j++)
+        gg_data_1D[3*i]     = gg_data(i);
+        gg_data_1D[3*i + 1] = r*(*gradient)(i, 1);
+        gg_data_1D[3*i + 2] = r*(*gradient)(i, 0);
+    }
+
+
+    // -------------------------------------------------------------------------
+    // Define variables for matrix-vector multiplication
+    // -------------------------------------------------------------------------
+
+    double alpha = 1.0;
+    double beta = 1.0;
+
+    matrix_descr descrp;
+    descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
+
+    sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
+
+    sparse_status_t err;
+
+    sparse_matrix_t dest;
+    sparse_index_base_t index_type = SPARSE_INDEX_BASE_ZERO;
+    int nrows = (360/dLat)*(180/dLat);
+    int ncols = 3*node_num_gg;
+
+    // -------------------------------------------------------------------------
+    // Multiply the sparse interpolation matrix by the geodesic grid data vector
+    // and return the interpolated solution in ll_data_1D
+    // -------------------------------------------------------------------------
+
+    err = mkl_sparse_d_mv (operation, alpha, *(mesh->interpMatrix), descrp, gg_data_1D, beta, ll_data_1D);
+
+
+    // -------------------------------------------------------------------------
+    // Convert the 1D interpolated array to 2D. This is actually not necessary,
+    // and could be avoided in the future if the SH routines are modified.
+    // -------------------------------------------------------------------------
+
+    int count = 0;
+    // double lat, lon;
+    for (int i=0; i<(int)(180/dLat); i++)
+    {
+        for (int j=0; j<(int)(360/dLat); j++)
         {
-            /*------------------------------------------------------------------
-            * STEP 1: FIND THE GEODESIC CELL THAT LAT-LON NODE i,j BELONGS TO
-            * ------------------------------------------------------------------
-            */
+            ll_data(i, j) = ll_data_1D[count];
 
-            // get geodesic cell ID of lat-lon node i,j
-            gg_ID = cell_ID( i, j );
-
-
-            /*------------------------------------------------------------------
-            * STEP 2: FILL DATA VECTOR WITH DATA FROM THE GEODESIC GRID NODES
-            * ------------------------------------------------------------------
-            */
-
-            // find number of friends
-            // f_num = 6;
-            // if ((*friend_list)(gg_ID, 5) == -1)
-            // {
-            //     f_num = 5;
-            //
-            //     // If cell is pentagon, use middle node for interpolation
-            //     d_vec[5] = gg_data(gg_ID);
-            // }
-            //
-            // // loop through friend nodes,
-            // for (k = 0; k < f_num; k++)
-            // {
-            //     // get friend ID
-            //     f = (*friend_list)(gg_ID, k);
-            //
-            //     // assign data vector to values of surrounding friends
-            //     d_vec[k] = gg_data(f);
-            // }
-            //
-            //
-            // /*------------------------------------------------------------------
-            // * STEP 3: FILL VANDERMONDE INVERSE MATRIX
-            // * ------------------------------------------------------------------
-            // */
-            //
-            // for (k = 0; k < 6; k++)
-            // {
-            //     // Unrolling inner loop. Potential speed benefit?
-            //     V_inv_mat[k][0] = V_inv(gg_ID, k, 0);
-            //     V_inv_mat[k][1] = V_inv(gg_ID, k, 1);
-            //     V_inv_mat[k][2] = V_inv(gg_ID, k, 2);
-            //     V_inv_mat[k][3] = V_inv(gg_ID, k, 3);
-            //     V_inv_mat[k][4] = V_inv(gg_ID, k, 4);
-            //     V_inv_mat[k][5] = V_inv(gg_ID, k, 5);
-            // }
-            //
-            // /*------------------------------------------------------------------
-            // * STEP 4: PERFORM MATRIX VECTOR DOT PRODUCT
-            // * ------------------------------------------------------------------
-            // */
-            //
-            // // This naive implementation of matrix multiplication may be
-            // // sufficiently fast for the small 6x6 matricies used here
-            //
-            // for (k = 0; k < 6; k++)
-            // {
-            //     c_vec[k] = 0.0;
-            //     for (l = 0; l < 6; l++)
-            //     {
-            //         c_vec[k] += V_inv_mat[k][l];// * d_vec[l];
-            //     }
-            // }
-
-            // f_num = 6;
-            // if ((*friend_list)(gg_ID, 5) == -1)
-            // {
-            //     f_num = 5;
-            //
-            //     // If cell is pentagon, use middle node for interpolation
-            //     // d_vec[5] = gg_data(gg_ID);
-            // }
-
-            // f = (*friend_list)(gg_ID, 0);
-            // d_vec[0] = gg_data(f);
-            //
-            // f = (*friend_list)(gg_ID, 1);
-            // d_vec[1] = gg_data(f);
-            //
-            // f = (*friend_list)(gg_ID, 2);
-            // d_vec[2] = gg_data(f);
-            //
-            // f = (*friend_list)(gg_ID, 3);
-            // d_vec[3] = gg_data(f);
-            //
-            // f = (*friend_list)(gg_ID, 4);
-            // d_vec[4] = gg_data(f);
-            //
-            // f = (*friend_list)(gg_ID, 5);
-            // if (f == -1) d_vec[5] = gg_data(gg_ID);
-            // else d_vec[5] = gg_data(f);
-            //
-            // // loop through friend nodes,
-            // for (k = 0; k < 6; k++)
-            // {
-            //     c_vec[k] = V_inv(gg_ID, k, 0) * d_vec[0] + V_inv(gg_ID, k, 1) * d_vec[1]
-            //                +V_inv(gg_ID, k, 2) * d_vec[2] + V_inv(gg_ID, k, 3) * d_vec[3]
-            //                +V_inv(gg_ID, k, 4) * d_vec[4] + V_inv(gg_ID, k, 5) * d_vec[5];
-            // }
-
-            f = (*friend_list)(gg_ID, 0);
-            v0 = gg_data(f);
-
-            f = (*friend_list)(gg_ID, 1);
-            v1 = gg_data(f);
-
-            f = (*friend_list)(gg_ID, 2);
-            v2 = gg_data(f);
-
-            f = (*friend_list)(gg_ID, 3);
-            v3 = gg_data(f);
-
-            f = (*friend_list)(gg_ID, 4);
-            v4 = gg_data(f);
-
-            f = (*friend_list)(gg_ID, 5);
-            if (f == -1) v5 = gg_data(gg_ID);
-            else v5 = gg_data(f);
-
-            // loop through friend nodes,
-            for (k = 0; k < 6; k++)
-            {
-                c_vec[k] = V_inv(gg_ID, k, 0) * v0 + V_inv(gg_ID, k, 1) * v1
-                           +V_inv(gg_ID, k, 2) * v2 + V_inv(gg_ID, k, 3) * v3
-                           +V_inv(gg_ID, k, 4) * v4 + V_inv(gg_ID, k, 5) * v5;
-            }
-
-            /*------------------------------------------------------------------
-            * STEP 5: ASSEMBLE THE INTERPOLATED DATA FROM C_VEC
-            * ------------------------------------------------------------------
-            */
-
-            // get map coords of current lat-lon node relative to geodesic cell
-            x = ll_map_coords(i, j, 0);
-            y = ll_map_coords(i, j, 1);
-
-            ll_data(i, j) = c_vec[0]
-                            + c_vec[1]*x
-                            + c_vec[2]*x*x
-                            + c_vec[3]*y
-                            + c_vec[4]*x*y
-                            + c_vec[5]*y*y;
-
+            count++;
         }
     }
 
+    // globals->Output->TerminateODIS();
+
+    delete[] ll_data_1D;
+    delete[] gg_data_1D;
+    delete gradient;
+
     return 1;
-};
+}
