@@ -293,8 +293,8 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     Array1D<double> * energy_diss;
     Array1D<double> * cv_mass;
 
-    Array2D<int> * friend_list;
-    friend_list = &(grid->node_friends);
+    // Array2D<int> * friend_list;
+    // friend_list = &(grid->node_friends);
 
     double end_time, current_time, dt, out_frac, orbit_period, out_time;
     // double r, omega, e, obliq, drag_coeff, h;
