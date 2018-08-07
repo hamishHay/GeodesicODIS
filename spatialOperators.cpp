@@ -9,6 +9,8 @@
 extern "C"{
 // FORTRAN adds _ after all the function names
 // and all variables are called by reference
+
+// define FORTRAN matrix-vector multiplication function
 double dgemv_( const char * TRANS,
                const int * m,
                const int * n,
@@ -22,9 +24,6 @@ double dgemv_( const char * TRANS,
                const int * incy);
 }
 
-// static double dummy_sum = 0;
-
-// #pragma omp for
 void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pressure, int nodeNum, double g = 1.0)
 {
     int friend_num;
@@ -78,7 +77,6 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
     double scalar_lm_cos, scalar_lm_sin;
     double cosMLon, sinMLon;
     double * sh_coeffs;
-    double * soln_vec;
 
 
     Array3D<double> * scalar_lm;
@@ -103,6 +101,7 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
 
     scalar_lm = new Array3D<double>(2.*(l_max+1), 2.*(l_max+1), 2);
     scalar_lm_dummy = new Array3D<double>(2.*(l_max+1), 2*(l_max+1), 2);
+
     ll_scalar = new Array2D<double>(180/N_ll, 360/N_ll);
     scalar_dummy = new Array1D<double>(node_num);
 
@@ -110,10 +109,6 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
     Pbar_lm_deriv = &(mesh->Pbar_lm_deriv); // 4-pi Normalised associated leg funcs derivs
     trigMLon = &(mesh->trigMLon);           // cos and sin of m*longitude
     cosLat = &(mesh->trigLat(0,0));
-
-    double * sh_matrix;
-    sh_matrix = &(mesh->sh_matrix_fort(0));
-    soln_vec = &((*scalar_dummy)(0));
 
     if (globals->surface_type == LID_LOVE) start_l = 2;
     if (globals->surface_type == FREE_LOADING) start_l = 2;
@@ -165,7 +160,7 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
 
       l_max_total+=1;
     }
-    
+
     int count = 0;
 
     int method = 1;
@@ -173,7 +168,7 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
     {
     case 1:
         // LOOP THROUGH EVERY GRID POINT, REBUILDING SCALAR
-        // GRADIENT FROM SPHERICAL HARMONIC COEFFICIENTS
+        // GRADIENT DIRECTLY FROM SPHERICAL HARMONIC COEFFICIENTS
         for (i=0; i<node_num; i++)
         {
             // lon_factor = factor * 1.0/(r*(*trigLat)(i,0));
@@ -193,13 +188,9 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
                 dummy_val = 0.0;
 
                 for (m=0; m<=l; m++)
-                // for (m=0; ; m++)
                 {
-                    // scalar_lm_cos = (*scalar_lm)(l, m, 0);
-                    // scalar_lm_sin = (*scalar_lm)(l, m, 1);
-
-                    scalar_lm_cos = (*scalar_lm)(l,m,0);
-                    scalar_lm_sin = (*scalar_lm)(l,m,1);
+                    scalar_lm_cos = (*scalar_lm)(l, m, 0);
+                    scalar_lm_sin = (*scalar_lm)(l, m, 1);
 
                     cosMLon = (*trigMLon)(i, m, 0);
                     sinMLon = (*trigMLon)(i, m, 1);
@@ -249,6 +240,8 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
             }
         }
 
+        // Numerically calc gradient for the first two grid points,
+        // i.e., the north and south pole.
         pressureGradient(mesh, dvdt, *scalar_dummy, 2, -factor);
 
         break;
@@ -300,6 +293,11 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
         {
             // Using blas to perform a large matrix-vector calculation
 
+            double * sh_matrix;
+            double * soln_vec;
+            sh_matrix = &(mesh->sh_matrix_fort(0));
+            soln_vec = &((*scalar_dummy)(0));
+
             char trans = 'n';
             int M = node_num;
             int N = (l_max+1)*(l_max+2) - 6;
@@ -332,7 +330,6 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
         }
 
     }
-    // globals->Output->TerminateODIS();
 
     delete scalar_dummy;
     delete scalar_lm;
@@ -340,7 +337,7 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
     delete scalar_lm_dummy;
     delete[] sh_coeffs;
 
-}
+};
 
 void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & velocity, double & sum, double h = 1.0)
 {
