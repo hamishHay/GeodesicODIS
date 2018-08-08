@@ -15,6 +15,7 @@ class Mesh {
 private:
   int ReadMeshFile(void);
   int ReadWeightingFile(void);
+
   int CalcMappingCoords(void);
   int CalcVelocityTransformFactors(void);
   int CalcControlVolumeEdgeLengths(void);
@@ -24,14 +25,17 @@ private:
   int CalcControlVolumeMass(void);
   int CalcElementAreas(void);
   int CalcCentNodeDists(void);
-  int CalcTrigFunctions(void);
   int CalcNodeDists(void);
+
   int CalcMaxTimeStep(void);
-  int CalcLegendreFuncs();
-  int CalcGradOperatorCoeffs();
-  int CalcDivOperatorCoeffs();
-  // int CalcLaplacianOperatorCoeffs();
-  int GeneratePressureSolver();
+
+  int CalcLegendreFuncs(void);
+  int CalcTrigFunctions(void);
+
+  int CalcGradOperatorCoeffs(void);
+  int CalcDivOperatorCoeffs(void);
+  // int CalcLaplacianOperatorCoeffs(void);
+  int GeneratePressureSolver(void);
 
 
 public:

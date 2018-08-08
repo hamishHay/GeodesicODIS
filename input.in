@@ -16,7 +16,7 @@ surface type;                       LID_INF;                   ocean surface bou
 potential;                              ECC;                     tidal potential type;
 sh degree;                                4;            max spherical harmonic degree;
 latitude spacing;                         1;             space between ll grid points;
-geodesic grid level;                      5;            geodesic recursion grid level;
+geodesic grid level;                      7;            geodesic recursion grid level;
 time step;                             50.0;                                time step;
 simulation end time;                     50;                   end time [# of orbits];
 output time;                           0.01;     dump time [fraction of orbit period];
