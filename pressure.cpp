@@ -207,78 +207,62 @@ int updatePressure(Globals * globals,
 
                     getSHCoeffsLL(*ll_v_div, *div_lm, N_ll, l_max);
 
-                    // SOLVE POISSON EQUATION FOR PRESSURE
                     for (l=1; l<l_max+1; l++)
                     {
-                        // FIND AND STORE THE SPHERICAL HARMONIC COEFFICIENTS OF THE
-                        // PRESSURE FIELD
+                        ll_num = (double)(l*(l+1));
+                        factor = -rr / (dt*ll_num);
+                        for (m=0; m<=l; m++)
+                        {
+                            (*p_lm)(l, m, 0) = factor * (*div_lm)(l, m, 0);  // C_lm
+                            (*p_lm)(l, m, 1) = factor * (*div_lm)(l, m, 1);  // S_lm
+                        }
+                    }
 
-                        interpolateGG2LL(globals,
-                                         grid,
-                                         *ll_v_div,
-                                         *v_div,
-                                         grid->ll_map_coords,
-                                         grid->V_inv,
-                                         grid->cell_ID);
+                    double u_corr, v_corr;
+                    u_corr = 0.0;
+                    v_corr = 0.0;
 
-                        getSHCoeffsLL(*ll_v_div, *div_lm, N_ll, l_max);
-
+                    // RECONSTRUCT PRESSURE CORRECTION FIELD USING SH COEFFICIENTS
+                    for (i=0; i<node_num; i++)
+                    {
+                        u_factor     = 1.0/(r*(*trigLat)(i,0));
+                        (*p_corr)(i) = 0.0;
+                        u_corr       = 0.0;
+                        v_corr       = 0.0;
                         for (l=1; l<l_max+1; l++)
                         {
-                            ll_num = (double)(l*(l+1));
-                            factor = -rr / (dt*ll_num);
                             for (m=0; m<=l; m++)
                             {
-                                (*p_lm)(l, m, 0) = factor * (*div_lm)(l, m, 0);  // C_lm
-                                (*p_lm)(l, m, 1) = factor * (*div_lm)(l, m, 1);  // S_lm
+                                (*p_corr)(i) += (*Pbar_lm)(i, l, m) * ( (*p_lm)(l, m, 0) * (*trigMLon)(i, m, 0) +
+                                                                (*p_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
+
+                                // u_corr += u_factor * (*Pbar_lm)(i, l, m)
+                                //             * (-(*p_lm)(l, m, 0) * (double)m * (*trigMLon)(i, m, 1)
+                                //                + (*p_lm)(l, m, 1) * (double)m * (*trigMLon)(i, m, 0));
+                                //
+                                // v_corr += v_factor * (*Pbar_lm_deriv)(i, l, m)
+                                //            * ((*p_lm)(l, m, 0) * (*trigMLon)(i, m, 0)
+                                //               + (*p_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
                             }
                         }
 
-                        double u_corr, v_corr;
-                        u_corr = 0.0;
-                        v_corr = 0.0;
+                        // v(i,0) -= dt*u_corr;
+                        // v(i,1) -= dt*v_corr;
 
-                        // RECONSTRUCT PRESSURE CORRECTION FIELD USING SH COEFFICIENTS
-                        for (i=0; i<node_num; i++)
-                        {
-                            u_factor     = 1.0/(r*(*trigLat)(i,0));
-                            (*p_corr)(i) = 0.0;
-                            u_corr       = 0.0;
-                            v_corr       = 0.0;
-                            for (l=1; l<l_max+1; l++)
-                            {
-                                for (m=0; m<=l; m++)
-                                {
-                                    (*p_corr)(i) += (*Pbar_lm)(i, l, m) * ( (*p_lm)(l, m, 0) * (*trigMLon)(i, m, 0) +
-                                                                    (*p_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
-
-                                    // u_corr += u_factor * (*Pbar_lm)(i, l, m)
-                                    //             * (-(*p_lm)(l, m, 0) * (double)m * (*trigMLon)(i, m, 1)
-                                    //                + (*p_lm)(l, m, 1) * (double)m * (*trigMLon)(i, m, 0));
-                                    //
-                                    // v_corr += v_factor * (*Pbar_lm_deriv)(i, l, m)
-                                    //            * ((*p_lm)(l, m, 0) * (*trigMLon)(i, m, 0)
-                                    //               + (*p_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
-                                }
-                            }
-
-                            // v(i,0) -= dt*u_corr;
-                            // v(i,1) -= dt*v_corr;
-
-                            p(i) += (*p_corr)(i)*1000.0;
-                        }
-
-                        // Apply pressure correction gradient to force div(v) = 0
-                        pressureGradient(grid, v, *p_corr,  node_num, dt);
-                        // pressureGradient(grid, dvdt, *p_corr,  node_num, 1.0);
-
-                        // avgAtPoles(grid, v);
-
-                        total_div = 0.0;
-                        velocityDivergence(grid, *v_div, v, total_div, -1.0);
-
-                        iter++;
+                        p(i) += (*p_corr)(i)*1000.0;
                     }
+
+                    // Apply pressure correction gradient to force div(v) = 0
+                    pressureGradient(grid, v, *p_corr,  node_num, dt);
+                    // pressureGradient(grid, dvdt, *p_corr,  node_num, 1.0);
+
+                    // avgAtPoles(grid, v);
+
+                    total_div = 0.0;
+                    velocityDivergence(grid, *v_div, v, total_div, -1.0);
+
+                    iter++;
+
                 }
                 while ((iter < max_iter)  && (total_div > epsilon));
 
