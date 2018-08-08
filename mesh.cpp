@@ -1512,6 +1512,9 @@ int Mesh::ReadWeightingFile(void)
     DataSpace mspace_data(1, dims_data);
 
     // Create 1D arrays to store file data
+    int     * interpRows;
+    int     * interpCols;
+    double  * interpWeights;
 
     interpCols =    new    int[ dims_cols[0] ];
     interpRows =    new    int[ dims_rows[0] ];
@@ -1556,6 +1559,10 @@ int Mesh::ReadWeightingFile(void)
 
     // Now optimize matrix
     err = mkl_sparse_optimize(*interpMatrix);
+
+    delete[] interpRows;
+    delete[] interpCols;
+    delete[] interpWeights;
 
     return 1;
 

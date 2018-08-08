@@ -113,6 +113,7 @@ public:
   Array2D<double> trigSqLat;
   Array2D<double> trigSqLon;
 
+  // Arrays to store spherical harmonic Legendre functions
   Array3D<double> Pbar_lm;
   Array3D<double> Pbar_lm_deriv;
   Array3D<double> trigMLon;
@@ -123,11 +124,8 @@ public:
   Array2D<double> sh_matrix;
   Array1D<double> sh_matrix_fort;
 
-  int     * interpRows;
-  int     * interpCols;
-  double  * interpWeights;
-
   _MKL_DSS_HANDLE_t handle;
+
   sparse_matrix_t * interpMatrix;
 
   Globals * globals;
