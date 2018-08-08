@@ -150,18 +150,18 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     int i,j,k,iter,out_count;
     double ** pp;
 
-    Array2D<double> * vel_t0;      // velocity solution for current timestep
-    Array2D<double> * vel_tm1;     // velocity solution at previous timestep (t minus 1)
-    Array2D<double> * dvel_dt_t0;  // velocity time derivative at current timestep
-    Array2D<double> * dvel_dt_tm1;  // velocity time derivative at current timestep
-    Array2D<double> * dvel_dt_tm2;  // velocity time derivative at current timestep
+    Array2D<double> * vel_t0;         // velocity solution for current timestep
+    Array2D<double> * vel_tm1;        // velocity solution at previous timestep (t minus 1)
+    Array2D<double> * dvel_dt_t0;     // velocity time derivative at current timestep
+    Array2D<double> * dvel_dt_tm1;    // velocity time derivative at current timestep
+    Array2D<double> * dvel_dt_tm2;    // velocity time derivative at current timestep
 
     // Array2D<double> * vel_dummy;
 
-    Array1D<double> * press_t0;      // displacement solution for current timestep
-    Array1D<double> * press_tm1;     // displacement solution at previous timestep (t minus 1)
+    Array1D<double> * press_t0;       // displacement solution for current timestep
+    Array1D<double> * press_tm1;      // displacement solution at previous timestep (t minus 1)
     Array1D<double> * press_tm2;
-    Array1D<double> * dpress_dt_t0;  // displacement time derivative at current timestep
+    Array1D<double> * dpress_dt_t0;   // displacement time derivative at current timestep
     Array1D<double> * dpress_dt_tm1;  // displacement time derivative at current timestep
     Array1D<double> * dpress_dt_tm2;  // displacement time derivative at current timestep
 
