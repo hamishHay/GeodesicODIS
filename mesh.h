@@ -124,8 +124,11 @@ public:
   Array2D<double> sh_matrix;
   Array1D<double> sh_matrix_fort;
 
-  _MKL_DSS_HANDLE_t handle;
+  // Handle to the Intel MKL direct sparse matrix solver to solve an elliptical
+  // equation in pressure correction
+  _MKL_DSS_HANDLE_t pressureSolverHandle;
 
+  // Intel MKL sparse matrix for interpolating from the geodesic to lat-lon grid
   sparse_matrix_t * interpMatrix;
 
   Globals * globals;

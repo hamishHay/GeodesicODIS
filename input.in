@@ -12,7 +12,7 @@ ocean thickness;                       38e3;               global ocean thicknes
 shell thickness;                       23e3;           global ice shell thickness [m];
 friction type;                    QUADRATIC;                               drag model;
 friction coefficient;                  4e-3;                     drag coefficient [?];
-surface type;                      LID_LOVE;                   ocean surface boundary;
+surface type;                       LID_INF;                   ocean surface boundary;
 potential;                              ECC;                     tidal potential type;
 sh degree;                                4;            max spherical harmonic degree;
 latitude spacing;                         1;             space between ll grid points;

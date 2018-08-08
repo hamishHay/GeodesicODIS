@@ -114,7 +114,7 @@ int updatePressure(Globals * globals,
 
     //------------------------ Elliptical solver set up ------------------------
     _MKL_DSS_HANDLE_t * solverHandle;   // handle to the linear equation solver
-    solverHandle = &(grid->handle);     // point to solver set up in mesh.cpp
+    solverHandle = &(grid->pressureSolverHandle); // point to solver set up in mesh.cpp
 
 
     // initialise key arrays to zero
