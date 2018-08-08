@@ -71,15 +71,7 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
     sh_matrix(N, (l_max+1)*(l_max+2) - 6), //-6 is to ignore degrees 0 and 1
     sh_matrix_fort(N*((l_max+1)*(l_max+2) - 6)),
 
-    trigMLon(N, l_max+1, 2),
-
-    V_inv(N, 6, 6),
-    V_MAT(N, 6, 6),
-    LU_V(N, 6, 6),
-    IPIV_V(N, 6),
-    ll_map_coords(180/N_ll, 360/N_ll, 2),
-    cell_ID(180/N_ll, 360/N_ll)
-
+    trigMLon(N, l_max+1, 2)
 {
 
     globals = Globals;                   // define reference to all constants
@@ -1557,14 +1549,13 @@ int Mesh::ReadWeightingFile(void)
 
     int numberOfExpectedCalls = 100000000;  // Expect a big number!
     err = mkl_sparse_set_dotmv_hint(*interpMatrix, operation, descrp, numberOfExpectedCalls);
+
     if (err>0) {
         std::cout<<"Intel matrix optimization error!"<<std::endl;
     }
 
     // Now optimize matrix
     err = mkl_sparse_optimize(*interpMatrix);
-
-    // globals->Output->TerminateODIS();
 
     return 1;
 

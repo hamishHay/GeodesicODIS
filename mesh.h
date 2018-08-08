@@ -113,7 +113,6 @@ public:
   Array2D<double> trigSqLat;
   Array2D<double> trigSqLon;
 
-
   Array3D<double> Pbar_lm;
   Array3D<double> Pbar_lm_deriv;
   Array3D<double> trigMLon;
@@ -124,20 +123,11 @@ public:
   Array2D<double> sh_matrix;
   Array1D<double> sh_matrix_fort;
 
+  int     * interpRows;
+  int     * interpCols;
+  double  * interpWeights;
+
   _MKL_DSS_HANDLE_t handle;
-
-  Array3D<double> V_inv;
-  Array3D<double> ll_map_coords;
-  Array2D<int> cell_ID;
-
-  Array3D<double> LU_V;
-  Array3D<double> V_MAT;
-  Array2D<int> IPIV_V;
-
-  int * interpRows;
-  int * interpCols;
-  double * interpWeights;
-
   sparse_matrix_t * interpMatrix;
 
   Globals * globals;
