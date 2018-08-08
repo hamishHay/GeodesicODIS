@@ -124,8 +124,6 @@ public:
   Array2D<double> sh_matrix;
   Array1D<double> sh_matrix_fort;
 
-  Array2D<double> pressure_matrix;
-
   _MKL_DSS_HANDLE_t handle;
 
   Array3D<double> V_inv;

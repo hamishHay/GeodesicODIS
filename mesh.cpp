@@ -71,8 +71,6 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
     sh_matrix(N, (l_max+1)*(l_max+2) - 6), //-6 is to ignore degrees 0 and 1
     sh_matrix_fort(N*((l_max+1)*(l_max+2) - 6)),
 
-    pressure_matrix(N, 7),
-
     trigMLon(N, l_max+1, 2),
 
     V_inv(N, 6, 6),
@@ -1097,6 +1095,9 @@ int Mesh::GeneratePressureSolver(void)
     double areaCV, *coeff;
     double D;
 
+    Array2D<double> * pressure_matrix;
+    pressure_matrix = new Array2D<double>(node_num, 7);
+
     // why is this line here? Where would it be better placed?
     mkl_set_num_threads(1);
 
@@ -1113,7 +1114,7 @@ int Mesh::GeneratePressureSolver(void)
         areaCV = control_volume_surf_area_map(i);
 
         // Calculate the central node coefficient first
-        coeff = &pressure_matrix(i, 0);
+        coeff = &(*pressure_matrix)(i, 0);
         *coeff = 0.0;
         for (j=0; j<f_num; j++)
         {
@@ -1129,7 +1130,7 @@ int Mesh::GeneratePressureSolver(void)
         // Now calculate coeffs for neighbouring nodes (matrix diagonals)
         for (j=0; j<f_num; j++)
         {
-            coeff = &pressure_matrix(i, j+1);
+            coeff = &(*pressure_matrix)(i, j+1);
 
             j2 = (j-1)%f_num;
             if (j2 < 0) j2 += f_num;
@@ -1163,12 +1164,12 @@ int Mesh::GeneratePressureSolver(void)
         f = node_friends(i,5);
         if (f == -1) f_num = 5;  // Check if pentagon (5 neighbours)
 
-        nzCoeffs[count] = pressure_matrix(i, 0);    // assign diagonal element
+        nzCoeffs[count] = (*pressure_matrix)(i, 0);  // assign diagonal element
         colIndx[count] = i;
         count++;
-        for (j=0; j<f_num; j++)                     // assign off-diagonals
+        for (j=0; j<f_num; j++)                       // assign off-diagonals
         {
-            nzCoeffs[count] = pressure_matrix(i, j+1);
+            nzCoeffs[count] = (*pressure_matrix)(i, j+1);
             colIndx[count]  = node_friends(i,j);
             count++;
         }
@@ -1233,6 +1234,8 @@ int Mesh::GeneratePressureSolver(void)
         globals->Output->Write(ERR_MESSAGE, &outstring);
         globals->Output->TerminateODIS();
     }
+
+    delete pressure_matrix;
 
     return 1;
 }
