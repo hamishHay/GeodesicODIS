@@ -1185,7 +1185,7 @@ int Mesh::GeneratePressureSolver(void)
 
     // create the solver object and assign it to a handle
     MKL_INT opt = MKL_DSS_ZERO_BASED_INDEXING;
-    error = dss_create(handle, opt);
+    error = dss_create(pressureSolverHandle, opt);
 
     if (error != MKL_DSS_SUCCESS)
     {
@@ -1196,7 +1196,7 @@ int Mesh::GeneratePressureSolver(void)
 
     // define the structure of the sparse matrix of size N*N with nNonZero elements
     opt = MKL_DSS_SYMMETRIC_STRUCTURE;
-    error = dss_define_structure(handle, opt, rowIndx, node_num, node_num, colIndx, nNonZero);
+    error = dss_define_structure(pressureSolverHandle, opt, rowIndx, node_num, node_num, colIndx, nNonZero);
 
     if (error != MKL_DSS_SUCCESS)
     {
@@ -1207,7 +1207,7 @@ int Mesh::GeneratePressureSolver(void)
 
     // reorder the matrix to optimize the permutation order
     opt = MKL_DSS_AUTO_ORDER;
-    error = dss_reorder(handle, opt, 0);
+    error = dss_reorder(pressureSolverHandle, opt, 0);
 
     if (error != MKL_DSS_SUCCESS)
     {
@@ -1218,7 +1218,7 @@ int Mesh::GeneratePressureSolver(void)
 
     // LU factorize the matrix using the nzCoeffs for direct solution
     opt = MKL_DSS_POSITIVE_DEFINITE;
-    error = dss_factor_real(handle, opt, nzCoeffs);
+    error = dss_factor_real(pressureSolverHandle, opt, nzCoeffs);
 
     if (error != MKL_DSS_SUCCESS)
     {
