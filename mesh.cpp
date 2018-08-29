@@ -66,7 +66,6 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
     sh_matrix(N, (l_max+1)*(l_max+2) - 6), //-6 is to ignore degrees 0 and 1
     sh_matrix_fort(N*((l_max+1)*(l_max+2) - 6)),
 
-
     trigMLon(N, l_max+1, 2),
 
     V_inv(N, 6, 6),
@@ -122,10 +121,6 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
     CalcGradOperatorCoeffs();
 
     CalcDivOperatorCoeffs();
-
-    // CalcLand();
-
-    CalcPressureFactor();
 
     ReadWeightingFile();
 
@@ -1357,6 +1352,7 @@ int Mesh::ReadWeightingFile(void)
 
     N_ll = (int)globals->dLat.Value();
 
+
     const H5std_string DSET_cols("column index");
     const H5std_string DSET_rows("row index");
     const H5std_string DSET_data("weights");
@@ -1384,18 +1380,18 @@ int Mesh::ReadWeightingFile(void)
     DataSpace fspace_data = dset_data.getSpace();
 
     // Get number of dimensions in the files dataspace
-    // int rank_cols = fspace_cols.getSimpleExtentNdims();
-    // int rank_rows = fspace_rows.getSimpleExtentNdims();
-    // int rank_data = fspace_data.getSimpleExtentNdims();
+    int rank_cols = fspace_cols.getSimpleExtentNdims();
+    int rank_rows = fspace_rows.getSimpleExtentNdims();
+    int rank_data = fspace_data.getSimpleExtentNdims();
 
     hsize_t dims_cols[1];    // length no of non-zero elements
     hsize_t dims_rows[1];
     hsize_t dims_data[1];    // length no of non-zero elements
 
     // Get size of each dimension
-    // rank_cols = fspace_cols.getSimpleExtentDims( dims_cols );
-    // rank_rows = fspace_rows.getSimpleExtentDims( dims_rows );
-    // rank_data = fspace_data.getSimpleExtentDims( dims_data );
+    rank_cols = fspace_cols.getSimpleExtentDims( dims_cols );
+    rank_rows = fspace_rows.getSimpleExtentDims( dims_rows );
+    rank_data = fspace_data.getSimpleExtentDims( dims_data );
 
     // Create memoryspace to read the datasets
     DataSpace mspace_cols(1, dims_cols);
@@ -1421,6 +1417,8 @@ int Mesh::ReadWeightingFile(void)
 
     int nrows = (360/N_ll)*(180/N_ll);
     int ncols = 3*node_num;
+
+
 
     interpMatrix = new sparse_matrix_t;
     err = mkl_sparse_d_create_csr(interpMatrix, index_type, nrows, ncols, interpRows, interpRows+1, interpCols, interpWeights);
@@ -1448,6 +1446,7 @@ int Mesh::ReadWeightingFile(void)
     err = mkl_sparse_optimize(*interpMatrix);
 
     // globals->Output->TerminateODIS();
+
 
     return 1;
 
