@@ -1,3 +1,15 @@
+/* File: mesh.cpp
+
+   Contains all member functions for the Mesh class. Mesh exists to store and
+   calculate information about the numerical grid. Primarily, quantities relevant
+   to the spatial operators (gradient, divergence, laplacian, and curl) are
+   calculated here based on the grid that is loaded into memory. Other useful
+   properties that are stored are the node map, i.e., which nodes are linked to
+   each other. Additionally, analytical functions that vary with space are also
+   calculated and stored here, such as cos, sin, and Legendre functions.
+
+*/
+
 #include "mesh.h"
 #include "globals.h"
 #include "math.h"
@@ -6,15 +18,9 @@
 #include "array3d.h"
 #include "mathRoutines.h"
 
-// #include <Eigen/Sparse>
-#include <mkl.h>
-#include <math.h>
-
-
-// #include "sphericalHarmonics.h"
-
 #include <mkl.h>
 #include <mkl_spblas.h>
+#include <math.h>
 
 #include <string>
 #include <fstream>
@@ -29,8 +35,6 @@
 #ifndef H5_NO_NAMESPACE
 using namespace H5;
 #endif
-
-//Mesh::Mesh():Mesh(2., 2.) {}; //default constructor
 
 Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
    :node_pos_sph(N,2),

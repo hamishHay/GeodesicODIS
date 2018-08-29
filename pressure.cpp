@@ -21,35 +21,35 @@
 
 // MKL_NUM_THREADS=1;
 /**
-*   @purpose    Function will iteratively compute the pressure and pressure
-*               gradient force that exists to force the velocity solution to
-*               conserve mass. The pressure is found by solving poission's
-*               equation using the SIMPLE algorithm. The pressure gradient
-*               is then applied to the velocity solution to update it. Three
-*               options are available for the pressure solver: 1. simple
-*               numerical algorithm, 2. spherical harmonic solver on the
-*               geodesic grid, and 3. spherical harmonic solver on an
-*               interpolated lat-lon grid.
-*
-*   @params
-*
-*   globals     pointer to the Globals object in ODIS
-*   mesh        pointer to the Mesh object in ODIS
-*   p           reference to the initialised pressure field on the geodesic grid
-*   v           reference to the initialised velocity field on the geodesic grid
-*
-*   @returns
-*
-*   p           pressure array is updated based on mass conservation
-*   v           velocity array is also updated such that the flow is divergence-free
-*   int         if convergence is achieved, returns 0
-*
-*   @author     Hamish Hay
-*
-*   @history    01/07/2017  - created
-*               15/09/2017  - spherical harmonic lat-lon pressure solver added
-*               03/05/2018  - added pressure solution with linear equation solver
-*
+    @purpose    Function will iteratively compute the pressure and pressure
+                gradient force that exists to force the velocity solution to
+                conserve mass. The pressure is found by solving poission's
+                equation using the SIMPLE algorithm. The pressure gradient
+                is then applied to the velocity solution to update it. Three
+                options are available for the pressure solver: 1. simple
+                numerical algorithm, 2. spherical harmonic solver on the
+                geodesic grid, and 3. spherical harmonic solver on an
+                interpolated lat-lon grid.
+
+    @params
+
+    globals     pointer to the Globals object in ODIS
+    mesh        pointer to the Mesh object in ODIS
+    p           reference to the initialised pressure field on the geodesic grid
+    v           reference to the initialised velocity field on the geodesic grid
+
+    @returns
+
+    p           pressure array is updated based on mass conservation
+    v           velocity array is also updated such that the flow is divergence-free
+    int         if convergence is achieved, returns 0
+
+    @author     Hamish Hay
+
+    @history    01/07/2017  - created
+                15/09/2017  - spherical harmonic lat-lon pressure solver added
+                03/05/2018  - added pressure solution with linear equation solver
+
 */
 int updatePressure(Globals * globals,
                    Mesh * grid,

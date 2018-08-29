@@ -1,16 +1,16 @@
 /* File: tidalPotentials.cpp
- *
- * All functions calculate the lateral tidal force (potential gradient) at the
- * surface of a spherical body, using analytical expressions. In general:
- *
- *      inputs: Mesh  * grid              mesh object for all spatial info on the grid.
- *              Array2D<double> soln  Solution array for the calculated forcing
- *              double simulationTime     Current time in the simulation
- *              double radius             body radius
- *              double omega              body rotational angular speed
- *              double ecc                body eccentricity (must be << 1)
- *              double obl                body obliquity (in radians)
- *
+
+   All functions calculate the lateral tidal force (potential gradient) at the
+   surface of a spherical body, using analytical expressions. In general:
+
+        inputs: Mesh    grid              mesh object for all spatial info on the grid.
+                Array2D<double> soln  Solution array for the calculated forcing
+                double simulationTime     Current time in the simulation
+                double radius             body radius
+                double omega              body rotational angular speed
+                double ecc                body eccentricity (must be << 1)
+                double obl                body obliquity (in radians)
+
 */
 
 #include "mesh.h"
