@@ -28,3 +28,6 @@ to begin subsurface ocean simulations on Enceladus.
 ## Authors
 * **Hamish Hay** - *Lead Developer* [Lunar and Planetary 
 Lab](https://www.lpl.arizona.edu/graduate/students/hamish-hay)
+
+## Version History
+GeodesicODIS 1.0: Recorded in branch HayMatsuyama2018.
