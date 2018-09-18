@@ -13,7 +13,7 @@ To get started with ODIS, copy the repository to your local machine and run make
 
 ### Prerequisites
 Three prerequisites are required for ODIS: the Fortran-95 SHTOOLS library, Intel's 
-c++ compiler with MKL, and the HDF5.
+c++ compiler with MKL, and the HDF5 library.
 
 [SHTools](https://shtools.oca.eu/shtools/) is a high-performance spherical harmonics library used in ODIS to decompose the tidal displacement at the ocean surface into spherical harmonics, which is required for subsurface ocean calculations and free-surface calculations that include ocean self-gravity.
 
