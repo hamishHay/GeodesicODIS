@@ -55,9 +55,9 @@ int main(void)
 
   Mesh * grid = new Mesh(constants, constants->node_num, (int)constants->dLat.Value(), constants->l_max.Value());
 
-  // runOperatorTests(constants, grid);
+  runOperatorTests(constants, grid);
 
-  solveODIS(constants, grid);
+  // solveODIS(constants, grid);
 
 
 

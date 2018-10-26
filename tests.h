@@ -19,4 +19,6 @@ void setDivU(Array1D<double> &, int, int, int, double, Array3D<double> &, Array3
 
 void setGradBeta(Array2D<double> &, int, int, int, double, Array3D<double> &, Array3D<double> &, Array2D<double> &);
 
+void setLaplaceBeta(Array1D<double> &, int, int, int, double, Array3D<double> &, Array3D<double> &, Array2D<double> &, Array2D<double> &);
+
 #endif
