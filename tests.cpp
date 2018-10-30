@@ -76,26 +76,10 @@ void setLaplaceBeta(Array1D<double> & lapBeta, int m, int n, int node_num, doubl
         sinMLon = trigMLon(i,m,1);
         tanNLat = sinNLat/cosNLat;
 
-        // lapBeta(i)  = trigNLat(i, 1, 0)*(dn - 2*dn * trigNLat(i, 2*n, 0));
-        // lapBeta(i) += trigNLat(i, 1, 1)*trigNLat(i, n, 1)*trigNLat(i, n, 0);
-        // lapBeta(i) *= 4*dn*trigNLat(i, n, 0)*trigNLat(i, n, 0)*trigMLon(i, m, 0);
-        // lapBeta(i) *= 1e12/(r*r*trigNLat(i, 1, 0));
-
-        // lapBeta(i)  = dn*cosLat*pow(cosNLat, 4.0) - sinLat*sinNLat*pow(cosNLat, 3.0);
-        // lapBeta(i) -= 3*dn*cosLat*pow(sinNLat, 2.0)*pow(cosNLat, 2.0);
-        //
-        // lapBeta(i) *= -1e6*4*n*cosMLon/(r*r*cosLat);
 
         lapBeta(i)  = dm*dm/cosLat + 4.*dn*dn*cosLat - 12.*dn*dn*cosLat*pow(tanNLat, 2.0) - 4.*dn*sinLat*tanNLat;
         lapBeta(i) *= -1e6*cosMLon*pow(cosNLat, 4.0)/(r*r*cosLat);
 
-        // lapBeta(i) = trigNLat(i, 1, 1)*trigNLat(i, n, 1)*trigNLat(i, n, 0);
-        // lapBeta(i) -= n*trigNLat(i, 1, 0)*(pow(trigNLat(i, n, 0), 2.0) - 3*pow(trigNLat(i, n, 1), 2.0));
-        // lapBeta(i) *= 4 * n * pow(trigNLat(i, n, 0), 2.0) * trigMLon(i, m, 0);
-
-
-        // lapBeta(i) += -1e12/(r*r*trigNLat(i, 1, 0)*trigNLat(i, 1, 0)) * (dm*dm*trigMLon(i, m, 0)*trigMLon(i, m, 0)*pow(trigNLat(i, n, 0), 4.0));
-        // lapBeta(i) *= -1e6/(r*r*trigNLat(i, 1, 0)*trigNLat(i, 1, 0));
     }
 };
 
@@ -229,19 +213,7 @@ void runOperatorTests(Globals * globals, Mesh * mesh)
             double alpham = 1.0;
             double betam = 0.0;
             error = mkl_sparse_d_mv(operation, alpham, *(mesh->operatorLaplacian), descript, beta2, betam, laplace2);
-            // error = mkl_sparse_d_mv(operation, alpham, *(mesh->operatorTest), descript, ux, betam, laplacex);
-            // error = mkl_sparse_d_mv(operation, alpham, *(mesh->operatorLaplacian), descript, uy, betam, laplacey);
-            std::cout<<"AND THE ERROR IS.... "<<error<<std::endl;
 
-            // pressureGradient(mesh, *gradTest, *beta, node_num, -1.0);
-            //
-            // for (i=0; i < node_num; i++) {
-            //         (*gradTest)(i, 0) *= (*trigMLon)(i, 1, 1);
-            //         (*gradTest)(i, 1) *= (*trigMLon)(i, 1, 1);
-            // }
-            //
-            // velocityDivergence(mesh, *laplaceTest, *u, sum, -1.0);
-            double mean_err = 0.0;
             for (i = 0; i < node_num; i++)
             {
                 // std::cout<<(*gradBeta)(i,0)<<'\t';
@@ -262,18 +234,13 @@ void runOperatorTests(Globals * globals, Mesh * mesh)
                 // mean_err += fabs((*divU)(i) - (*divTest)(i));
 
                 std::cout<<i<<'\t'<<(*laplaceBeta)(i)<<'\t';
-                std::cout<<laplace2[i]<<'\t'<<(*laplaceBeta)(i) - laplace2[i]<<std::endl;
+                std::cout<<laplace2[i]<<std::endl;
                 // mean_err += fabs((*laplaceBeta)(i) - laplace2[i]);
                 (*gradTest)(i,0) = 0.0;
                 (*gradTest)(i,1) = 0.0;
                 (*divTest)(i) = 0.0;
             }
-            // std::cout<<mean_err/node_num<<std::endl;
 
-                // set u vector
-                // set laplacian solution
-                // set div solution
-                // set grad solution
         }
     }
 };
