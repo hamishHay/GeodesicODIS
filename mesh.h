@@ -137,7 +137,6 @@ public:
 
   // Intel MKL sparse matrix for the Laplacian operator
   sparse_matrix_t * operatorLaplacian;
-  sparse_matrix_t * operatorTest;
 
   Globals * globals;
 
