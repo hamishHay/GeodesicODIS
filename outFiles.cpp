@@ -107,7 +107,7 @@ void OutFiles::WelcomeMessage(void) {
 	sstream << "        |               \\___/|___/  \\___/\\____/                  |" << std::endl;
 	sstream << "        |                                                        |" << std::endl;
 	sstream << "        |--------------------------------------------------------|" << std::endl;
-	sstream << "        | ODIS is a numerical finite difference ocean dynamics   |" << std::endl;
+	sstream << "        | ODIS is a numerical finite volume ocean dynamics       |" << std::endl;
 	sstream << "        | code for simulating ocean tides on icy satellites and  |" << std::endl;
 	sstream << "        | other bodies.                                          |" << std::endl;
 	sstream << "        |                                                        |" << std::endl;
