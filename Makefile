@@ -1,4 +1,4 @@
-CC = icpc # g++-6
+CC = icpc #g++-6 #icpc # 
 
 F = gfortran-6
 

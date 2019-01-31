@@ -1355,6 +1355,7 @@ int Mesh::ReadWeightingFile(void)
 {
     int i, N_ll;
 
+
     N_ll = (int)globals->dLat.Value();
 
     const H5std_string DSET_cols("column index");
@@ -1384,18 +1385,18 @@ int Mesh::ReadWeightingFile(void)
     DataSpace fspace_data = dset_data.getSpace();
 
     // Get number of dimensions in the files dataspace
-    // int rank_cols = fspace_cols.getSimpleExtentNdims();
-    // int rank_rows = fspace_rows.getSimpleExtentNdims();
-    // int rank_data = fspace_data.getSimpleExtentNdims();
+    int rank_cols = fspace_cols.getSimpleExtentNdims();
+    int rank_rows = fspace_rows.getSimpleExtentNdims();
+    int rank_data = fspace_data.getSimpleExtentNdims();
 
     hsize_t dims_cols[1];    // length no of non-zero elements
     hsize_t dims_rows[1];
     hsize_t dims_data[1];    // length no of non-zero elements
 
     // Get size of each dimension
-    // rank_cols = fspace_cols.getSimpleExtentDims( dims_cols );
-    // rank_rows = fspace_rows.getSimpleExtentDims( dims_rows );
-    // rank_data = fspace_data.getSimpleExtentDims( dims_data );
+    rank_cols = fspace_cols.getSimpleExtentDims( dims_cols );
+    rank_rows = fspace_rows.getSimpleExtentDims( dims_rows );
+    rank_data = fspace_data.getSimpleExtentDims( dims_data );
 
     // Create memoryspace to read the datasets
     DataSpace mspace_cols(1, dims_cols);
@@ -1403,7 +1404,6 @@ int Mesh::ReadWeightingFile(void)
     DataSpace mspace_data(1, dims_data);
 
     // Create 1D arrays to store file data
-
     interpCols =    new    int[ dims_cols[0] ];
     interpRows =    new    int[ dims_rows[0] ];
     interpWeights = new double[ dims_data[0] ];
@@ -1446,8 +1446,6 @@ int Mesh::ReadWeightingFile(void)
 
     // Now optimize matrix
     err = mkl_sparse_optimize(*interpMatrix);
-
-    // globals->Output->TerminateODIS();
 
     return 1;
 
