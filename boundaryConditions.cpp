@@ -117,6 +117,8 @@ int applySurfaceBCs(Globals * globals)
             double upsilon_factor;
             std::string path;
 
+            // TODO - tidy up this terrible code
+
             beta_factor = globals->shell_factor_beta;
             l_max = globals->l_max.Value();
 
@@ -129,7 +131,7 @@ int applySurfaceBCs(Globals * globals)
             hs = globals->shell_thickness.Value();
 
 
-            // Check if ice shell value is within table range
+            // Check if ice shell value is within table range. TODO - define where this range comes from!
             if ((hs < 1e3) || (hs > 50e3)) {
                 outstring << "ERROR:\t\t User selected ice shell thickness of " << hs/1e3;
                 outstring << " km is outside of calculated shell thickness range. " << std::endl;
@@ -159,7 +161,7 @@ int applySurfaceBCs(Globals * globals)
                 globals->Output->Write(ERR_MESSAGE, &outstring);
 
                 // in stream for input.in file
-                std::ifstream betaFile(path + SEP + "input_files" + SEP + "LOVE_SHELL_COEFFS" + SEP + "ENCELADUS" + SEP + "beta_hs_1km_to_50km_lmax30.txt",std::ifstream::in);
+                std::ifstream betaFile( globals->grav_coeff_file.Value(), std::ifstream::in);
 
                 dhs = fmod(hs/1e3,1.0);
 
@@ -206,7 +208,7 @@ int applySurfaceBCs(Globals * globals)
                 betaFile.close();
             }
 
-            std::ifstream upsilonFile(path + SEP + "input_files" + SEP + "LOVE_SHELL_COEFFS" + SEP + "ENCELADUS" + SEP + "upsilon_hs_1km_to_50km_lmax2.txt",std::ifstream::in);
+            std::ifstream upsilonFile( globals->forcing_coeff_file.Value() , std::ifstream::in);
 
             count_col = 1;
             count_row = 1;
@@ -257,9 +259,9 @@ int applySurfaceBCs(Globals * globals)
 
             path = globals->path;
 
+            std::ifstream betaFile( globals->grav_coeff_file.Value(), std::ifstream::in);
 
-            std::ifstream betaFile(path + SEP + "input_files" + SEP + "LOVE_SHELL_COEFFS" + SEP + "ENCELADUS" + SEP + "beta_hs_1km_to_50km_lmax30.txt",std::ifstream::in);
-
+            std::cout<<globals->grav_coeff_file.Value()<<std::endl;
             count_col = 1;
             count_row = 1;
             if (betaFile.is_open())
@@ -289,8 +291,14 @@ int applySurfaceBCs(Globals * globals)
 
                 betaFile.close();
             }
+            else
+            {
+                outstring << "Gravity coefficient file could not be read: "<< globals->grav_coeff_file.Value() << std::endl;
+                globals->Output->Write(ERR_MESSAGE, &outstring);
+                globals->Output->TerminateODIS();
+            }
 
-            std::ifstream upsilonFile(path + SEP + "input_files" + SEP + "LOVE_SHELL_COEFFS" + SEP + "ENCELADUS" + SEP + "upsilon_hs_1km_to_50km_lmax2.txt",std::ifstream::in);
+            std::ifstream upsilonFile( globals->forcing_coeff_file.Value(), std::ifstream::in);
 
             count_col = 1;
             count_row = 1;

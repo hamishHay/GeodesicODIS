@@ -163,7 +163,7 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
 
     int count = 0;
 
-    int method = 1;
+    int method = 3;
     switch (method)
     {
     case 1:

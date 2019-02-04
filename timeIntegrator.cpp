@@ -41,7 +41,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
     h =       globals->h.Value();
     node_num = globals->node_num;
 
-    visc = 5e3;
+    visc = 1e4;
 
     for (int i=0; i <node_num; i++)
     {
@@ -76,9 +76,9 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
             deg2ObliqEast(grid, dvdt, current_time, r, omega, obliq);
             break;
         case FULL:
-            // deg2Full(grid, dvdt, current_time, r, omega, obliq, e);
-            deg2Ecc(grid, dvdt, current_time, r, omega, e);
-            deg2Obliq(grid, dvdt, current_time, r, omega, obliq);
+            deg2Full(grid, dvdt, current_time, r, omega, obliq, e);
+            // deg2Ecc(grid, dvdt, current_time, r, omega, e);
+            // deg2Obliq(grid, dvdt, current_time, r, omega, obliq);
             break;
     }
 

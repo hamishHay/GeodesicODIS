@@ -151,6 +151,9 @@ public:
   // Time in fraction of orbital period for output of all parameters
   GlobalVar<double> outputTime;
 
+  GlobalVar<std::string> grav_coeff_file;      // file name containing beta coeffs
+  GlobalVar<std::string> forcing_coeff_file;   // file name containing upsilon coeffs
+
   // GlobalVar<double> nu_shell;
   // GlobalVar< Array1D<double> > beta_shell;
 

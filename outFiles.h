@@ -33,7 +33,7 @@ public:
 	std::string path;
 	std::string dataPath;
 
-    std::vector<std::string> * tags;
+  std::vector<std::string> * tags;
 
 	OutFiles();
 

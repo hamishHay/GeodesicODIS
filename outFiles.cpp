@@ -20,6 +20,8 @@
 #include <cstring>
 #include <sstream>
 #include <vector>
+#include <unistd.h>
+#include <libgen.h>
 
 #include <sys/stat.h>
 
@@ -36,13 +38,33 @@ OutFiles::OutFiles() {
 	readlink("/proc/self/exe", buffer, sizeof(buffer)-1);
 #endif
 
-	std::string::size_type pos = std::string(buffer).find_last_of(SEP);
-	path = std::string(buffer).substr(0, pos);
+  char buff[PATH];
+  memset(buff, 0, sizeof(buff));
 
+  /* Note we use sizeof(buf)-1 since we may need an extra char for NUL. */
+  if (readlink("/proc/self/exe", buff, sizeof(buff)-1) < 0)
+  {
+    // TODO - add some clever error checks in here
+   /* There was an error...  Perhaps the path does not exist
+    * or the buffer is not big enough.  errno has the details. */
+   perror("readlink");
+  }
+
+  // char *buff_copy;
+  // buff_copy = strdup(buff);
+
+  // dirname(buff_copy);
+  std::cout<<buff<<std::endl;
+  // getcwd( buff, PATH );
+
+  path = buff; // set char array to std::string
+  path = path.substr(0, path.find_last_of("\\/"));
 
 	outName = path + SEP + "OUTPUT.txt";
 	errName = path + SEP + "ERROR.txt";
 	dataPath = path + SEP + "DATA" + SEP + "data.h5";
+
+  std::cout<<path + SEP + "OUTPUT.txt"<<std::endl;
 
 	remove(&outName[0]); //Converts std::string to char array
 	output.open(&outName[0], std::ofstream::out | std::ofstream::app);

@@ -360,8 +360,8 @@ int Mesh::CalcMaxTimeStep(void)
       globals->surface_type == FREE_LOADING ||
       globals->surface_type == LID_LOVE)
   {
-      if (globals->surface_type == LID_LOVE) g *= -globals->shell_factor_beta[globals->l_max.Value()];
-      std::cout<<g<<std::endl;
+      // if (globals->surface_type == LID_LOVE) g *= -(globals->shell_factor_beta[globals->l_max.Value()]-1.0);
+      // std::cout<<g<<std::endl;
       for (i=0; i<node_num; i++)
       {
           f = node_friends(i,5);
@@ -373,10 +373,12 @@ int Mesh::CalcMaxTimeStep(void)
           {
               dist = node_dists(i,j) * 0.5;                 // consider half node-node distance
               dt = std::min(dt, dist/sqrt(g*h_max));
+
+              if (i == 0) std::cout<<dt<<'\t'<<dist/sqrt(g*h_max)<<std::endl;
           }
       }
 
-      dt *= 1.0;         // take some caution
+      dt *= 0.85;         // take some caution
   }
 
   std::cout<<"DT: "<<dt<<std::endl;

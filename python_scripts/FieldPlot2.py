@@ -148,7 +148,7 @@ class FieldPlot2:
 
         if data == None:
             data = self.load_data(data_name=data_name, slices=None)
-            time = self.load_data(data_name="kinetic avg output", slices=None)/self.period
+            #time = self.load_data(data_name="kinetic avg output", slices=None)/self.period
         # data *= 4*np.pi * (self.radius-)
 
         # data *= 4. * np.pi * (self.radius)**2.0/1e9
@@ -173,7 +173,7 @@ class FieldPlot2:
         # time = time[-70000*dt:-69800*dt]
         # data = data[-70000*dt:-69800*dt]
         # t2 = np.linspace(0,dt*2,len(data))
-        ax_current.semilogy(time, data, lw=2.0)
+        ax_current.semilogy(data, lw=2.0)
 
         # ax_current.set_xticks(np.arange(0, t2[-1]+1, 0.5))
         # ax_current.set_xticks(np.arange(0, t2[-1], 0.25), minor=True)
@@ -453,4 +453,4 @@ if __name__=='__main__':
 
     plt.show()
 
-    Plotter.save_fig(name='/home/hamish/Dropbox/diss_eng.pdf')
+    Plotter.save_fig(name='/home/hamish/Dropbox/Tests/diss_eng.pdf')

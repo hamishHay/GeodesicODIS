@@ -178,6 +178,13 @@ Globals::Globals(int action) {
     outputTime.SetStringID("output time");
     allGlobals.push_back(&outputTime);
 
+    grav_coeff_file.SetStringID("grav coeff file");
+    allGlobals.push_back(&grav_coeff_file);
+
+    forcing_coeff_file.SetStringID("forcing coeff file");
+    allGlobals.push_back(&forcing_coeff_file);
+
+
     ReadGlobals(); //Read globals from input.in file
   }
 
@@ -258,6 +265,7 @@ int Globals::ReadGlobals(void)
   // Avoids the need to recompile for each different model setup.
 
   // in stream for input.in file
+  std::cout<<path + SEP + "input.in"<<std::endl;
   std::ifstream inputFile(path + SEP + "input.in",std::ifstream::in);
 
   // varID: string to contain the variable ID from input.in.
