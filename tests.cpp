@@ -16,7 +16,7 @@ void setBeta(Array1D<double> & beta, int m, int n, int node_num, Array3D<double>
 
     for (i = 0 ; i < node_num; i++)
     {
-        beta(i) = 1e6*trigMLon(i, m, 0) * pow(trigNLat(i, n, 0), 4.0);
+        beta(i) = trigMLon(i, m, 0) * pow(trigNLat(i, n, 0), 4.0);
     }
 };
 
@@ -48,7 +48,7 @@ void setDivU(Array1D<double> & divU, int m, int n, int node_num, double r, Array
         divU(i) -= trigLon(i, 0)*trigMLon(i, m, 0);
         divU(i) *= trigNLat(i, n, 1);
         divU(i) *= trigNLat(i, n, 0)*trigNLat(i, n, 0)*trigNLat(i, n, 0);
-        divU(i) *= 1e6*4.*n/(r * trigLat(i, 0));
+        divU(i) *= 4.*n/(r * trigLat(i, 0));
     }
 };
 
@@ -69,7 +69,7 @@ void setLaplaceBeta(Array1D<double> & lapBeta, int m, int n, int node_num, doubl
     {
         cosNLat = trigNLat(i,n,0);
         sinNLat = trigNLat(i,n,1);
-        sinNLat = trigNLat(i,2*n,1);
+        // sinNLat = trigNLat(i,2*n,1);
         cosLat  = trigNLat(i,1,0);
         sinLat  = trigNLat(i,1,1);
         cosMLon = trigMLon(i,m,0);
@@ -78,9 +78,65 @@ void setLaplaceBeta(Array1D<double> & lapBeta, int m, int n, int node_num, doubl
 
 
         lapBeta(i)  = dm*dm/cosLat + 4.*dn*dn*cosLat - 12.*dn*dn*cosLat*pow(tanNLat, 2.0) - 4.*dn*sinLat*tanNLat;
-        lapBeta(i) *= -1e6*cosMLon*pow(cosNLat, 4.0)/(r*r*cosLat);
+        lapBeta(i) *= -cosMLon*pow(cosNLat, 4.0)/(r*r*cosLat);
 
     }
+};
+
+void setDivHGradBeta(Array1D<double> & divHGradBeta, int m, int n, int node_num, double r, Array3D<double> & trigMLon, Array3D<double> & trigNLat, Array2D<double> & trigLon, Array2D<double> & trigLat)
+{
+    int i;
+
+    double dn = (double)n;
+    double dm = (double)m;
+    double sinNLat, sinLat;
+    double sin2NLat, cos2NLat;
+    double cosNLat, cosLat;
+    double cosMLon, sinMLon, cos2Lon, sin2Lon;
+    double cosLon, sinLon;
+
+    double h = 1e3;
+    double alpha = 0.6;
+
+    Array1D<double> * lapBeta = new Array1D<double>(node_num);
+
+    setLaplaceBeta(*lapBeta, m, n, node_num, r, trigMLon, trigNLat, trigLon, trigLat);
+
+    double t1, t2, t3, t4, t5;
+    for (i = 0 ; i < node_num; i++)
+    {
+        cosNLat = trigNLat(i,n,0);
+        sinNLat = trigNLat(i,n,1);
+        cos2NLat = cosNLat*cosNLat - sinNLat*sinNLat;
+        sin2NLat = 2.*sinNLat*cosNLat;
+        cosLat  = trigNLat(i,1,0);
+        sinLat  = trigNLat(i,1,1);
+        cosMLon = trigMLon(i,m,0);
+        sinMLon = trigMLon(i,m,1);
+        cosLon = trigMLon(i,1,0);
+        sinLon = trigMLon(i,1,1);
+
+        cos2Lon = cosLon*cosLon - sinLon*sinLon;
+        sin2Lon = 2.*sinLon*cosLon;
+
+        // t1 = dm*dm*cos2Lon*cosMLon;
+        // t2 = 4*dn*dn*cos2Lon*cosLat*cosMLon*cosNLat;
+        // t3 = -8*dn*dn*cos2Lon*cosLat*cosMLon*cosNLat*cos2NLat;
+        // t4 = 4.*dn*cos2Lon*sinLat*cosMLon*sin2NLat*cosNLat;
+        // t5 = -2*dm*sin2Lon*sinMLon;
+
+
+        t1 = dn*cosLat*(1. - 2.*cos2NLat) + sinLat*sin2NLat;
+        t1 *= 4*dn*cos2Lon*cosMLon*pow(cosNLat, 2.0);
+
+        t2 = dm*cos2Lon*cosMLon - 2*sin2Lon*sinMLon;
+        t2 *= -dm*pow(cosNLat, 4.0)/cosLat;
+
+        divHGradBeta(i) = h *((*lapBeta)(i) + alpha*(t1 + t2)/(r*r));
+    }
+
+
+    delete lapBeta;
 };
 
 void setGradBeta(Array2D<double> & gradBeta, int m, int n, int node_num, double r, Array3D<double> & trigMLon, Array3D<double> & trigNLat, Array2D<double> & trigLat)
@@ -175,7 +231,11 @@ void runOperatorTests(Globals * globals, Mesh * mesh)
         }
     }
 
+    _MKL_DSS_HANDLE_t * solverHandle;   // handle to the linear equation solver
+    solverHandle = &(mesh->pressureSolverHandle); // point to solver set up in mesh.cpp
+
     int a = 0;
+    double a_ratio = 0.8;
     int error;
     double sum = -1.0;
     for (n=nMin; n < nMax + 1; n++)
@@ -198,11 +258,23 @@ void runOperatorTests(Globals * globals, Mesh * mesh)
 
             setGradBeta(*gradBeta, m, n, node_num, r, *trigMLon, *trigNLat, *trigLat);
 
-            setLaplaceBeta(*laplaceBeta, m, n, node_num, r, *trigMLon, *trigNLat, *trigLon, *trigLat);
+            // setLaplaceBeta(*laplaceBeta, m, n, node_num, r, *trigMLon, *trigNLat, *trigLon, *trigLat);
 
-            // velocityDivergence(mesh, *divTest, *u, sum, -1.0);
-            //
-            // pressureGradient(mesh, *gradTest, *beta, node_num, -1.0);
+            setDivHGradBeta(*laplaceBeta, m, n, node_num, r, *trigMLon, *trigNLat, *trigLon, *trigLat);
+            // for (i=0; i < node_num; i++) (*laplaceBeta)(i) *= 1.01;
+
+
+            pressureGradient(mesh, *gradTest, *beta, node_num, -1.0);
+            for (i=0; i < node_num; i++) {
+                    (*gradTest)(i, 0) *= 1e3*(1. + a_ratio*(*trigLat)(i,0)*(*trigMLon)(i,2,0));
+                    (*gradTest)(i, 1) *= 1e3*(1. + a_ratio*(*trigLat)(i,0)*(*trigMLon)(i,2,0));
+            }
+
+
+            velocityDivergence(mesh, *divTest, *gradTest, sum, -1.0);
+
+
+            // for (i=0; i < node_num; i++) (*divU)(i) *= 1e3*a_ratio;
 
             sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
             matrix_descr descript;
@@ -212,7 +284,14 @@ void runOperatorTests(Globals * globals, Mesh * mesh)
             descript.type = SPARSE_MATRIX_TYPE_GENERAL;
             double alpham = 1.0;
             double betam = 0.0;
-            error = mkl_sparse_d_mv(operation, alpham, *(mesh->operatorLaplacian), descript, beta2, betam, laplace2);
+            // error = mkl_sparse_d_mv(operation, alpham, *(mesh->operatorLaplacian), descript, beta2, betam, laplace2);
+            // error = mkl_sparse_d_mv(operation, alpham, *(mesh->operatorLaplacian), descript, ux, betam, laplacex);
+            // error = mkl_sparse_d_mv(operation, alpham, *(mesh->operatorLaplacian2), descript, uy, betam, laplacey);
+
+            MKL_INT opt = MKL_DSS_DEFAULTS;
+            int nRhs = 1;
+            dss_solve_real(*solverHandle, opt, &(*laplaceBeta)(0), nRhs, laplace2);
+
 
             for (i = 0; i < node_num; i++)
             {
@@ -229,12 +308,15 @@ void runOperatorTests(Globals * globals, Mesh * mesh)
                 // mean_err += fabs((*gradBeta)(i,1) - (*gradTest)(i,1));
 
                 // std::cout<<i<<'\t'<<(*divU)(i)<<'\t';
-                // std::cout<<laplacex[i]+laplacey[i]<<std::endl;
+                // std::cout<<laplacex[i]+laplacey[i]<<'\t'<<(*divU)(i)/(laplacex[i]+laplacey[i])<<std::endl;
                 // std::cout<<(*laplaceTest)(i)<<std::endl;
                 // mean_err += fabs((*divU)(i) - (*divTest)(i));
 
-                std::cout<<i<<'\t'<<(*laplaceBeta)(i)<<'\t';
-                std::cout<<laplace2[i]<<std::endl;
+                std::cout<<i<<'\t'<<(*beta)(i)<<'\t';
+                std::cout<<laplace2[i]<<'\t'<<(*beta)(i)/laplace2[i]<<std::endl;
+
+                // std::cout<<i<<'\t'<<(*laplaceBeta)(i)<<'\t';
+                // std::cout<<laplace2[i]<<'\t'<<(*laplaceBeta)(i)/laplace2[i]<<std::endl;
                 // mean_err += fabs((*laplaceBeta)(i) - laplace2[i]);
                 (*gradTest)(i,0) = 0.0;
                 (*gradTest)(i,1) = 0.0;

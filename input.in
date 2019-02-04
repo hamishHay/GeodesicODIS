@@ -14,7 +14,7 @@ friction type;                    QUADRATIC;                               drag 
 friction coefficient;                  4e-3;                     drag coefficient [?];
 surface type;                       LID_INF;                   ocean surface boundary;
 potential;                              ECC;                     tidal potential type;
-sh degree;                                4;            max spherical harmonic degree;
+sh degree;                                8;            max spherical harmonic degree;
 latitude spacing;                         1;             space between ll grid points;
 geodesic grid level;                      9;            geodesic recursion grid level;
 time step;                             50.0;                                time step;

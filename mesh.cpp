@@ -1091,6 +1091,12 @@ int Mesh::GeneratePressureSolver(void)
     double areaCV, *coeff;
     double D;
 
+
+    double * hVar = new double[node_num];
+    double a_ratio = 0.6;
+    for (i=0; i<node_num; i++) hVar[i] = 1e3*(1. + a_ratio*trigLat(i,0)*trig2Lon(i,0));
+
+
     Array2D<double> * pressure_matrix;
     pressure_matrix = new Array2D<double>(node_num, 7);
 
@@ -1122,7 +1128,7 @@ int Mesh::GeneratePressureSolver(void)
             //          varying scalar, TODO change
             //          to ocean thickness!!!!!
             //        -----------------------------
-            D =   control_vol_edge_len(i, j2) /  ( control_vol_edge_centre_m(i, j2) * node_dists(i, j) );
+            D =  0.5*(hVar[i] + hVar[f]) * control_vol_edge_len(i, j2) /  ( control_vol_edge_centre_m(i, j2) * node_dists(i, j) );
             // 0.5*(trigLon(i, 1) + trigLon(f, 1)) *
             *coeff += D;
         }
@@ -1138,7 +1144,7 @@ int Mesh::GeneratePressureSolver(void)
             f = node_friends(i,j);
 
 
-            D =  control_vol_edge_len(i, j2) /  ( control_vol_edge_centre_m(i, j2) * node_dists(i, j) );
+            D = 0.5*(hVar[i] + hVar[f]) * control_vol_edge_len(i, j2) /  ( control_vol_edge_centre_m(i, j2) * node_dists(i, j) );
             // 0.5*(trigLon(i, 1) + trigLon(f, 1)) *
 
             *coeff = D;
@@ -1194,13 +1200,13 @@ int Mesh::GeneratePressureSolver(void)
         f = node_friends(i,5);
         if (f == -1) f_num = 5;  // Check if pentagon (5 neighbours)
 
-        // nzCoeffs[count] = (*pressure_matrix)(i, 0);  // assign diagonal element
+        nzCoeffs[count] = (*pressure_matrix)(i, 0);  // assign diagonal element
 
         nzCoeffs_grad_x[count] = grad_coeffs(i, 0, 0);
         nzCoeffs_grad_y[count] = grad_coeffs(i, 0, 1);
 
-        nzCoeffs_div_x[count]  = div_coeffs(i, 0, 0);
-        nzCoeffs_div_y[count]  = div_coeffs(i, 0, 1);
+        nzCoeffs_div_x[count]  = hVar[i] * div_coeffs(i, 0, 0);
+        nzCoeffs_div_y[count]  = hVar[i] * div_coeffs(i, 0, 1);
 
         colIndx[count] = i;
 
@@ -1208,7 +1214,7 @@ int Mesh::GeneratePressureSolver(void)
         double cos_a, sin_a;
         for (j=0; j<f_num; j++)                       // assign off-diagonals
         {
-            // nzCoeffs[count] = (*pressure_matrix)(i, j+1);
+            nzCoeffs[count] = (*pressure_matrix)(i, j+1);
             colIndx[count]  = node_friends(i, j);
 
             cos_a = node_vel_trans(i, j+1, 0);
@@ -1217,15 +1223,22 @@ int Mesh::GeneratePressureSolver(void)
             nzCoeffs_grad_x[count] = grad_coeffs(i, j+1, 0);
             nzCoeffs_grad_y[count] = grad_coeffs(i, j+1, 1);
 
+            f = node_friends(i,j);
+
             // Because the gradient operator returns a vector, we have to transform
             // the vector into mapped coordinates. We do this here by premultiplying
             // the components of the divergence operator by the transpose of the
             // the transform matrix defined in node_vel_trans.
-            nzCoeffs_div_x[count]  =  cos_a*div_coeffs(i, j+1, 0) - sin_a*div_coeffs(i,  j+1, 1);
-            nzCoeffs_div_y[count]  =  sin_a*div_coeffs(i, j+1, 0) + cos_a*div_coeffs(i,  j+1, 1);
+            // nzCoeffs_div_x[count]  =  cos_a*div_coeffs(i, j+1, 0) - sin_a*div_coeffs(i,  j+1, 1);
+            // nzCoeffs_div_y[count]  =  sin_a*div_coeffs(i, j+1, 0) + cos_a*div_coeffs(i,  j+1, 1);
+
+            nzCoeffs_div_x[count]  =  hVar[f] * (cos_a*div_coeffs(i, j+1, 0) - sin_a*div_coeffs(i,  j+1, 1));
+            nzCoeffs_div_y[count]  =  hVar[f] * (sin_a*div_coeffs(i, j+1, 0) + cos_a*div_coeffs(i,  j+1, 1));
 
             count++;
         }
+
+
     }
 
     // assign the row indexes for the sparse matrix in CSR format
@@ -1264,6 +1277,7 @@ int Mesh::GeneratePressureSolver(void)
 
     // Assing memory to the handle for the Laplacian operator matrix
     operatorLaplacian = new sparse_matrix_t;  // defined in mesh.h
+    // operatorLaplacian2 = new sparse_matrix_t;
 
     // Define c (0) based indexing
     sparse_index_base_t indexing = SPARSE_INDEX_BASE_ZERO;
@@ -1285,6 +1299,12 @@ int Mesh::GeneratePressureSolver(void)
     // Sum each component to give the total Grad^2 operator (Laplacian)
     // This is equivalent to (div_x * grad_x) + (div_y + grad_y)
     error = mkl_sparse_d_add(operation, *LAP_X, 1.0, *LAP_Y, operatorLaplacian);
+
+    // error = mkl_sparse_d_create_csr(operatorLaplacian, indexing, node_num, node_num, rowStart, rowEnd, colIndx, nzCoeffs);
+
+    // error = mkl_sparse_d_create_csr(operatorLaplacian,  indexing, node_num, node_num, rowStart, rowEnd, colIndx, nzCoeffs_div_x);
+    // error = mkl_sparse_d_create_csr(operatorLaplacian2,  indexing, node_num, node_num, rowStart, rowEnd, colIndx, nzCoeffs_div_y);
+
 
     // Remove uneeded matrices from memory
     delete DIV_X, DIV_Y, GRAD_X, GRAD_Y, LAP_Y, LAP_X;
@@ -1316,7 +1336,15 @@ int Mesh::GeneratePressureSolver(void)
 
     nNonZeroLap = rowEndLap[nr - 1];
 
-    // std::cout<<nNonZeroLap<<'\t'<<rowIndx[node_num]<<std::endl;
+    for (i=0; i<node_num; i++)
+    {
+      rowIndx[i] = rowStartLap[i];
+    }
+    rowIndx[node_num] = nNonZeroLap;
+
+
+
+    // std::cout<<rowStartLap[node_num]<<std::endl;
 
     //----------------- Set up the intel MKL solver for L*p = d ----------------
 
@@ -1332,8 +1360,9 @@ int Mesh::GeneratePressureSolver(void)
     }
 
     // define the structure of the sparse matrix of size N*N with nNonZero elements
-    opt = MKL_DSS_SYMMETRIC_STRUCTURE;
-    error = dss_define_structure(pressureSolverHandle, opt, rowIndx, node_num, node_num, colIndx, nNonZero);
+    opt =  MKL_DSS_SYMMETRIC_STRUCTURE;//MKL_DSS_SYMMETRIC_STRUCTURE;
+    // error = dss_define_structure(pressureSolverHandle, opt, rowIndx, node_num, node_num, colIndx, nNonZero);
+    error = dss_define_structure(pressureSolverHandle, opt, rowIndx, node_num, node_num, colIndxLap, nNonZeroLap);
 
     if (error != MKL_DSS_SUCCESS)
     {
@@ -1355,7 +1384,8 @@ int Mesh::GeneratePressureSolver(void)
 
     // LU factorize the matrix using the nzCoeffs for direct solution
     opt = MKL_DSS_POSITIVE_DEFINITE;
-    error = dss_factor_real(pressureSolverHandle, opt, nzCoeffs);
+    // error = dss_factor_real(pressureSolverHandle, opt, nzCoeffs);
+    error = dss_factor_real(pressureSolverHandle, opt, nzCoeffsLap);
 
     if (error != MKL_DSS_SUCCESS)
     {
