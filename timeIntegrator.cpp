@@ -41,7 +41,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
     h =       globals->h.Value();
     node_num = globals->node_num;
 
-    visc = 1e4;
+    visc = 1e2;
 
     for (int i=0; i <node_num; i++)
     {
@@ -79,6 +79,9 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
             deg2Full(grid, dvdt, current_time, r, omega, obliq, e);
             // deg2Ecc(grid, dvdt, current_time, r, omega, e);
             // deg2Obliq(grid, dvdt, current_time, r, omega, obliq);
+            break;
+        case PLANET:
+            deg2Planet(grid, dvdt, current_time, r);
             break;
     }
 

@@ -152,7 +152,7 @@ class FieldPlot2:
         # data *= 4*np.pi * (self.radius-)
 
         # data *= 4. * np.pi * (self.radius)**2.0/1e9
-        data *= 4. * np.pi * (self.radius - self.h_shell)**2.0/1e9
+        data *= 4. * np.pi * (self.radius)**2.0/1e9
         # data *= (252.1e3 - self.h_shell + self.h_ocean)**2.0
         # data *= (1./(252.1e3))**2.0
         # data *= ((252.1e3-self.h_ocean)/(252.1e3))**3.

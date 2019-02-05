@@ -597,3 +597,78 @@ void deg2EccTotal(Mesh * grid, Array2D<double> & soln, double simulationTime, do
 
     // avgAtPoles(grid, soln);
 };
+
+void deg2Planet(Mesh * grid, Array2D<double> & soln, double simulationTime, double radius)
+{
+    double factor;              // cos(Mean anomaly), sin(Mean anomaly)
+    double * sinLon, * cosLon;
+    double * cosLat;
+
+    int i,j, node_num;
+    double * val;
+    double * m;
+
+    node_num = grid->node_num;
+
+    Array1D<double> * scalar_dummy;
+    scalar_dummy = new Array1D<double>(node_num);
+
+    double a1, a2;  //semimajor axes
+    double n1, n2;  //mean motions
+    double m2;
+    double cosnt, sinnt;
+    double cosphi, sinphi;
+    double dist;
+
+    // m2 = 8.931938e+22;  // Io
+    // m2 = 1.4815e23;   // Ganymede
+    m2 = 4.799e22;  //Europa
+
+
+    // a2 = 421800000.0; // Io
+    a1 = 1.074e9;   // Ganymede
+    a2 = 671100000.0; // Europa
+
+    // n2 = 4.11e-5;   // Io
+    // n2 = 1.016e-5;     // Ganymede
+    n2 = 2.05e-5;     // Europa
+    n1 = grid->globals->angVel.Value();
+
+
+    cosnt = cos((n1-n2)*simulationTime);
+    sinnt = sin((n1-n2)*simulationTime);
+
+    dist = sqrt(pow(a1, 2.0) + pow(a2, 2.0) - 2.*a1*a2*cosnt);
+
+    cosphi = (a1 - a2*cosnt)/dist;
+    sinphi = a2*sinnt/dist;
+
+    factor = 0.5 * 6.67e-11 * m2 * pow(radius/dist, 2.0)/dist;
+    //
+    // factor_lon = grid->globals->loveReduct.Value() * pow(omega,2.0)*radius;
+    //
+    // if (grid->globals->surface_type == LID_LOVE || grid->globals->surface_type == LID_MEMBR)
+    // {
+    //  factor_lon /= radius;
+    //  factor_lon *= pow(radius + grid->globals->shell_thickness.Value(), 2.0)/radius;
+    // }
+    //
+
+    // Assign pointers to start of trig node arrays
+    cosLon = &(grid->trigLon(0,0));
+    sinLon = &(grid->trigLon(0,1));
+
+    cosLat = &(grid->trigLat(0,0));
+
+    double cosgam;
+    for (i=0; i<node_num; i++) {
+        j = i*2;
+        // Calculate obliquity tidal potential
+        cosgam = cosLat[j] * (cosLon[j]*cosphi + sinLon[j]*sinphi);
+        (*scalar_dummy)(i) = factor * (3. * cosgam*cosgam - 1.0);
+    }
+
+    pressureGradient(grid, soln, *scalar_dummy, node_num, -1.0);
+
+    delete scalar_dummy;
+};
