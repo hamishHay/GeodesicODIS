@@ -27,11 +27,16 @@ void deg2Ecc(Mesh * grid, Array2D<double> & soln, double simulationTime, double 
 {
     double cosM, sinM, factor;              // cos(Mean anomaly), sin(Mean anomaly)
     double * sin2Lat, * sin2Lon, *cos2Lon, *cosLat;
+    double * sinSqLat, * cosSqLat;
     int i,j, node_num;
     double * val;
     double * m;
 
     node_num = grid->node_num;
+
+    Array1D<double> * scalar_dummy;
+    scalar_dummy = new Array1D<double>(node_num);
+
 
     factor = grid->globals->loveReduct.Value() * pow(omega,2.0)*radius*ecc;
 
@@ -50,19 +55,49 @@ void deg2Ecc(Mesh * grid, Array2D<double> & soln, double simulationTime, double 
     sin2Lon = &(grid->trig2Lon(0,1));
     sin2Lat = &(grid->trig2Lat(0,1));
 
+    cosSqLat = &(grid->trigSqLat(0, 0));
+    sinSqLat = &(grid->trigSqLat(0, 1));
+
+    // Solve for dUdlon
     for (i=0; i<node_num; i++) {
         j = i*2;
 
-        soln(i,0) = factor * 1.5 * cosLat[j]   // cosLat here as cos^2(lat)/cos(lat)
-                        * (4.*sinM * cos2Lon[j]
-                        - 3.*cosM * sin2Lon[j]);
+        // soln(i,0) = factor * 1.5 * cosLat[j]   // cosLat here as cos^2(lat)/cos(lat)
+        //                 * (4.*sinM * cos2Lon[j]
+        //                 - 3.*cosM * sin2Lon[j]);
+        //
+        // soln(i,1) = -factor*0.75*sin2Lat[j]
+        //                 *(3.*cosM*(1.+cos2Lon[j])
+        //                 + 4.*sinM*sin2Lon[j]);
 
-        soln(i,1) = -factor*0.75*sin2Lat[j]
-                        *(3.*cosM*(1.+cos2Lon[j])
-                        + 4.*sinM*sin2Lon[j]);
+        (*scalar_dummy)(i) = 0.75*factor*radius *((1-3*sinSqLat[j])*cosM
+                                + cosSqLat[j] * (3*cosM*cos2Lon[j]
+                                + 4*sinM*sin2Lon[j]));
 
     }
 
+    pressureGradient(grid, soln, *scalar_dummy, node_num, -1.0);
+    // double a, b;
+    // for (i=0; i<node_num; i++) {
+    //     j = i*2;
+    //
+    //     a = factor * 1.5 * cosLat[j]   // cosLat here as cos^2(lat)/cos(lat)
+    //                     * (4.*sinM * cos2Lon[j]
+    //                     - 3.*cosM * sin2Lon[j]);
+    //
+    //     b = -factor*0.75*sin2Lat[j]
+    //                     *(3.*cosM*(1.+cos2Lon[j])
+    //                     + 4.*sinM*sin2Lon[j]);
+    //
+    //     std::cout<<soln(i,0)<<'\t'<<a<<std::endl;
+    //     std::cout<<soln(i,1)<<'\t'<<b<<std::endl;
+    //
+    //     // (*scalar_dummy)(i) = 0.75*factor*radius *((1-3*sinSqLat[j])*cosM
+    //     //                         + cosSqLat[j] * (3*cosM*cos2Lon[j]
+    //     //                         + 4*sinM*sin2Lon[j]));
+    //
+    // }
+    delete scalar_dummy;
 };
 
 
@@ -251,6 +286,7 @@ void deg2EccRad(Mesh * grid, Array2D<double> & soln, double simulationTime, doub
 void deg2Obliq(Mesh * grid, Array2D<double> & soln, double simulationTime, double radius, double omega, double theta)
 {
     double * sinLat, * sinLon, *cosLon, * cos2Lat;
+    double * sin2Lat;
     int i,j, node_num;
     double * val;
     double * m;
@@ -258,8 +294,15 @@ void deg2Obliq(Mesh * grid, Array2D<double> & soln, double simulationTime, doubl
 
     node_num = grid->node_num;
 
+    Array1D<double> * scalar_dummy;
+    scalar_dummy = new Array1D<double>(node_num);
+
+
+    // factor = pow(omega,2.0)*pow(radius,2.0)*ecc;
     factor = -3. * grid->globals->loveReduct.Value() * pow(omega,2.0)*radius*theta;
     cosM = cos(omega*simulationTime);
+    // sinM = sin(omega*simulationTime);
+
 
     if (grid->globals->surface_type == LID_LOVE || grid->globals->surface_type == LID_MEMBR)
     {
@@ -272,15 +315,26 @@ void deg2Obliq(Mesh * grid, Array2D<double> & soln, double simulationTime, doubl
     cosLon = &(grid->trigLon(0,0));
     sinLon = &(grid->trigLon(0,1));
     sinLat = &(grid->trigLat(0,1));
+    sin2Lat = &(grid->trig2Lat(0,1));
 
+    // Solve for dUdlon
     for (i=0; i<node_num; i++) {
         j = i*2;
         // calculate potential gradient in longitude
-        soln(i,0) += -factor * sinLat[j] * sinLon[j] * cosM;
+        // soln(i,0) += -factor * sinLat[j] * sinLon[j] * cosM;
+        //
+        //
+        // // calculate potential gradient in latitude
+        // soln(i,1) += factor * cos2Lat[j] * cosLon[j] * cosM;
 
-        // calculate potential gradient in latitude
-        soln(i,1) += factor * cos2Lat[j] * cosLon[j] * cosM;
+        // Calculate tidal potential
+        (*scalar_dummy)(i) = radius*factor/2. * cosM * sin2Lat[j] * cosLon[j];
+
     }
+
+    pressureGradient(grid, soln, *scalar_dummy, node_num, -1.0);
+
+    delete scalar_dummy;
 };
 
 

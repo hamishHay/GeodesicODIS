@@ -2,7 +2,7 @@ import matplotlib as mpl
 import os
 if "SSH_CONNECTION" in os.environ:
     mpl.use('Agg')
-    
+
 import matplotlib.pyplot as plt
 import matplotlib.tri as tri
 import matplotlib as mpl
@@ -77,7 +77,7 @@ plt.colorbar(c1, ax = ax1, orientation="horizontal")
 plt.colorbar(c2, ax = ax2, orientation="horizontal")
 plt.colorbar(c3, ax = ax3, orientation="horizontal")
 
-fig.savefig("/home/hamish/Dropbox/plottings.pdf")
+fig.savefig("/home/hamish/Dropbox/Tests/plottings.pdf")
 
 # import cartopy
 # import cartopy.crs as ccrs

@@ -76,7 +76,7 @@ int updatePressure(Globals * globals,
     rr =        pow(r, 2.0);
 
     iter =      0;
-    max_iter =  2;
+    max_iter =  1;
     epsilon =   1e-8;
     dt =        globals->timeStep.Value();
 
@@ -125,6 +125,16 @@ int updatePressure(Globals * globals,
         p(i) = 0.0;
     }
 
+    double * hVar = new double[node_num];
+    double a_ratio = 0.0;
+    for (i=0; i<node_num; i++) hVar[i] = globals->h.Value()*(1. + a_ratio*(*trigLat)(i,0)*pow((*trigMLon)(i,4,0),4.0));
+
+    for (i=0; i<node_num; i++)
+    {
+        (*v_temp)(i,0) = v(i,0) * hVar[i];
+        (*v_temp)(i,1) = v(i,1) * hVar[i];
+    }
+
 
     //------------------------- BEGIN PRESSURE SOLVER --------------------------
     // Below, ODIS attempts to correct the current velocity solution v to obey
@@ -150,17 +160,22 @@ int updatePressure(Globals * globals,
                 MKL_INT opt = MKL_DSS_REFINEMENT_ON;    // intel sovler options
 
                 total_div = 0.0;
-                velocityDivergence(grid, *v_div, v, total_div, -1.0);
+
+                // velocityDivergence(grid, *v_div, v, total_div, -1.0);
+                velocityDivergence(grid, *v_div, *v_temp, total_div, -1.0);
+                // velocityDivergence(grid, *v_div, v, total_div, -globals->h.Value());
 
                 iter = 0;
                 do
                 {
+
+
                     // Solve A*p = d to find the pressure correction
                     dss_solve_real(*solverHandle, opt, v_div_p, nRhs, p_temp);
 
                     for (i=0; i<node_num; i++)
                     {
-                        p_temp[i] *= 0.5/dt;            // remember, p_temp points to p_corr
+                        p_temp[i] *= 1.0/dt;            // remember, p_temp points to p_corr
                         p(i) += (*p_corr)(i)*1000.0;    // multiply by density
                         (*v_div)(i) = 0.0;              // reset divergence array
                     }
@@ -171,11 +186,22 @@ int updatePressure(Globals * globals,
 
                     // avgAtPoles(grid, v);
 
+                    for (i=0; i<node_num; i++)
+                    {
+                        (*v_temp)(i,0) = v(i,0) * hVar[i];
+                        (*v_temp)(i,1) = v(i,1) * hVar[i];
+                    }
                     // Re-evalute div(v)
+                    std::cout<<iter<<'\t'<<total_div<<std::endl;
                     total_div = 0.0;
-                    velocityDivergence(grid, *v_div, v, total_div, -1.0);
+
+                    // velocityDivergence(grid, *v_div, v, total_div, -1.0);
+                    velocityDivergence(grid, *v_div, *v_temp, total_div, -1.0);
+                    // velocityDivergence(grid, *v_div, v, total_div, -globals->h.Value());
+
 
                     iter++;
+                    std::cout<<iter<<'\t'<<total_div<<std::endl;
                 }
                 while ((iter < max_iter)  && (total_div > epsilon));
             }
@@ -261,6 +287,8 @@ int updatePressure(Globals * globals,
                     total_div = 0.0;
                     velocityDivergence(grid, *v_div, v, total_div, -1.0);
 
+                    // std::cout<<total_div<<std::endl;
+
                     iter++;
 
                 }
@@ -277,6 +305,8 @@ int updatePressure(Globals * globals,
 
     delete div_lm;
     delete p_lm;
+
+    delete hVar;
 
     if (total_div > epsilon) {
         // std::cout<<"PRESSURE FIELD DID NOT CONVERGE AFTER ITER="<<iter<<"! "<<std::endl;

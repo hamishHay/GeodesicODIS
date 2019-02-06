@@ -119,13 +119,13 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
             break;
 
         case LID_INF:
-            // pressureGradient(grid, dvdt, p_tm1, node_num, 1.0/1000.0);
+            // pressureGradient(grid, dvdt, p_tm1, node_num, -1.0/1000.0);
             // pressureGradientSH(globals, grid, dvdt, p_tm1, -1.0/1000.0);
             break;
 
     }
 
-    velocityDiffusion(grid, dvdt, v_tm1, visc);
+    // velocityDiffusion(grid, dvdt, v_tm1, visc);
 
     return 1;
 
