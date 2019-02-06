@@ -83,18 +83,18 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
     }
 
 
-    switch (globals->fric_type)
-    {
-        case LINEAR:
-            linearDrag(node_num, drag_coeff, dvdt, v_tm1);
-            break;
-        case QUADRATIC:
-            quadraticDrag(node_num, drag_coeff, h, dvdt, v_tm1);
-            break;
-    }
+    // switch (globals->fric_type)
+    // {
+    //     case LINEAR:
+    //         linearDrag(node_num, drag_coeff, dvdt, v_tm1);
+    //         break;
+    //     case QUADRATIC:
+    //         quadraticDrag(node_num, drag_coeff, h, dvdt, v_tm1);
+    //         break;
+    // }
 
 
-    coriolisForce(grid, dvdt, v_tm1);
+    // coriolisForce(grid, dvdt, v_tm1);
 
     switch (globals->surface_type)
     {
@@ -123,6 +123,15 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
             // pressureGradientSH(globals, grid, dvdt, p_tm1, -1.0/1000.0);
             break;
 
+    }
+
+    for (int i=0; i <node_num; i++)
+    {
+        if ((grid->boundary)(i))
+        {
+          dvdt(i, 0) = 0.0;
+          dvdt(i, 1) = 0.0;
+        }
     }
 
     velocityDiffusion(grid, dvdt, v_tm1, visc);

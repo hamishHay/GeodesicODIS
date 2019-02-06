@@ -35,6 +35,9 @@ void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pre
     double p0, p1;
     double x_grad, y_grad;
 
+    double * land;
+    land = &((mesh->land_mask)(0));
+
     friend_list = &(mesh->node_friends);
     grad_coeffs = &(mesh->grad_coeffs);
 
@@ -43,14 +46,14 @@ void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pre
         friend_num = 6;
         if ((*friend_list)(i, 5) == -1) friend_num = 5;
 
-        p0 = pressure(i);
+        p0 = pressure(i)*land[i];
 
         x_grad = p0 * (*grad_coeffs)(i, 0, 0);
         y_grad = p0 * (*grad_coeffs)(i, 0, 1);
 
         for (j=0; j<friend_num; j++)
         {
-            p1 = pressure( (*friend_list)(i, j) );
+            p1 = pressure( (*friend_list)(i, j) ) * land[ (*friend_list)(i, j) ];
 
             x_grad += p1 * (*grad_coeffs)(i, j+1, 0);
             y_grad += p1 * (*grad_coeffs)(i, j+1, 1);
@@ -353,6 +356,9 @@ void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & v
     double div_v;
     double cos_a, sin_a;
 
+    double * land;
+    land = &((mesh->land_mask)(0));
+
     node_num = mesh->node_num;
     friend_list = &(mesh->node_friends);
     vel_transform = &(mesh->node_vel_trans);
@@ -363,8 +369,8 @@ void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & v
         friend_num = 6;
         if ((*friend_list)(i, 5) == -1) friend_num = 5;
 
-        u0 = velocity(i,0);
-        v0 = velocity(i,1);
+        u0 = velocity(i,0) * land[i];
+        v0 = velocity(i,1) * land[i];
 
         div_v = (*div_coeffs)(i, 0, 0) * u0 + (*div_coeffs)(i, 0, 1) * v0;
 
@@ -373,8 +379,8 @@ void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & v
             j1 = (*friend_list)(i, j);
 
             // FIND VELOCITY AT FRIEND j1
-            u_temp = velocity(j1, 0);
-            v_temp = velocity(j1, 1);
+            u_temp = velocity(j1, 0) * land[j1];
+            v_temp = velocity(j1, 1) * land[j1];
 
             // CONVERT TO MAPPED VELOCITIES
             cos_a = (*vel_transform)(i, j+1, 0);
@@ -414,6 +420,9 @@ void velocityDiffusion(Mesh * mesh, Array2D<double> & dvdt, Array2D<double> & ve
     double lap_u, lap_v;
     double node_friend_dist;
 
+    double * land;
+    land = &((mesh->land_mask)(0));
+
     node_num = mesh->node_num;
     friend_list = &(mesh->node_friends);
     edge_lens = &(mesh->control_vol_edge_len);
@@ -426,8 +435,8 @@ void velocityDiffusion(Mesh * mesh, Array2D<double> & dvdt, Array2D<double> & ve
         friend_num = 6;
         if ((*friend_list)(i, 5) == -1) friend_num = 5;
 
-        u0 = velocity(i,0);
-        v0 = velocity(i,1);
+        u0 = velocity(i,0)*land[i];
+        v0 = velocity(i,1)*land[i];
 
         lap_u = 0.0;
         lap_v = 0.0;
@@ -439,8 +448,8 @@ void velocityDiffusion(Mesh * mesh, Array2D<double> & dvdt, Array2D<double> & ve
               j1 = (j-1)%friend_num;
               if (j1 < 0) j1 += friend_num;
 
-              u_temp = velocity(i1,0);
-              v_temp = velocity(i1,1);
+              u_temp = velocity(i1,0)*land[i1];
+              v_temp = velocity(i1,1)*land[i1];
 
               cos_a = (*vel_transform)(i, j+1, 0);
               sin_a = (*vel_transform)(i, j+1, 1);

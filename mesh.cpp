@@ -48,6 +48,9 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
     grad_coeffs(N, 7, 2),
     div_coeffs(N, 7, 2),
 
+    land_mask(N),
+    boundary(N),
+
     trigLat(N,2),
     trigLon(N,2),
     trig2Lat(N,2),
@@ -84,6 +87,8 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
 
     // Read in grid file
     ReadMeshFile();
+
+    DefineLand();
 
     // Calculate mapping coordinates
     CalcMappingCoords();
@@ -123,13 +128,67 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
 
     CalcDivOperatorCoeffs();
 
-    // CalcLand();
+
 
     CalcPressureFactor();
 
     ReadWeightingFile();
 
 };
+
+
+int Mesh::DefineLand(void)
+{
+  int new_node_num = node_num;
+  int i,j;
+
+  double lon1, lat1;
+
+  double ang_dist = 30.*radConv;
+  double dist;
+  double lat_cent = 0.0;
+  double lon_cent = 180.*radConv;
+  double rad = 1.0;
+
+  for (i=0; i<node_num; i++)
+  {
+    lat1 = node_pos_sph(i,0);
+    lon1 = node_pos_sph(i,1);
+
+    distanceBetweenSph(dist, lat_cent, lat1, lon_cent, lon1, rad);
+
+    boundary(i) = 0;
+    if (dist > ang_dist) land_mask(i) = 0.0;
+    else {
+      int f = node_friends(i,5);
+
+      int friend_num = 6;                                     // Assume hexagon (6 centroids)
+      if (f == -1) {
+          friend_num = 5;                                   // Check if pentagon (5 centroids)
+      }
+
+      land_mask(i) = 1.0;
+      for (j=0; j<friend_num; j++)                        // Loop through all centroids in the control volume
+      {
+        f = node_friends(i,j);
+
+        lat1 = node_pos_sph(f,0);
+        lon1 = node_pos_sph(f,1);
+
+        distanceBetweenSph(dist, lat_cent, lat1, lon_cent, lon1, rad);
+
+        if (dist > ang_dist) {
+          boundary(i) = 1;
+          break;
+        }
+      }
+      // land_mask(i) /= (double)friend_num;
+      // land_mask(i)
+      // std::cout<<land_mask(i)<<std::endl;
+    }
+
+  }
+}
 
 // Function to calculate the cosine(alpha) and sine(alpha) velocity tranform
 // factors from Lee and Macdonald (2009). These factors are constant in time,

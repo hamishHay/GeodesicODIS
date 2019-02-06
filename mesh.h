@@ -14,6 +14,7 @@
 class Mesh {
 private:
   int ReadMeshFile(void);
+  int DefineLand(void);
   int ReadLatLonFile(void);
   int ReadWeightingFile(void);
   int CalcMappingCoords(void);
@@ -104,6 +105,9 @@ public:
 
   // Array to store the triangular areas within each subelement.
   Array3D<double> node_friend_element_areas_map;
+
+  Array1D<double> land_mask;
+  Array1D<double> boundary;
 
   Array1D<double> pressure_factor;
 

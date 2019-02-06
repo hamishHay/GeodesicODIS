@@ -64,6 +64,7 @@ triang = tri.Triangulation(x, y)
 
 fig, (ax1,ax2,ax3) = plt.subplots(ncols=3, figsize=(15,4))
 c1 = ax1.tricontourf(triang,data_u,21)
+# c1 = ax1.tripcolor(triang,data_u)
 c2 = ax2.tricontourf(triang,data_v,21)
 c3 = ax3.tricontourf(triang,data_eta,21)
 
