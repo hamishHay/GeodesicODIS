@@ -1094,7 +1094,7 @@ int Mesh::GeneratePressureSolver(void)
 
     double * hVar = new double[node_num];
     double a_ratio = 0.0;
-    for (i=0; i<node_num; i++) hVar[i] = globals->h.Value()*(1. + a_ratio*trigLat(i,0)*pow(trigMLon(i,4,0),4.0));
+    for (i=0; i<node_num; i++) hVar[i] = 1.0;//globals->h.Value()*(1. + a_ratio*trigLat(i,0)*pow(trigMLon(i,4,0),4.0));
 
 
     // }

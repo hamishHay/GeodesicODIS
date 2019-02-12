@@ -63,7 +63,7 @@ times = [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]
 in_file = h5py.File("DATA/data.h5", 'r')
 
 dmin = 0.0
-dmax = 0.015
+dmax = 2.1e-5
 
 norm = mpl.colors.Normalize(vmin=dmin,vmax=dmax)
 levels = np.linspace(dmin,dmax,201)

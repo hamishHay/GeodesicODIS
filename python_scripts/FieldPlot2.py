@@ -173,7 +173,7 @@ class FieldPlot2:
         # time = time[-70000*dt:-69800*dt]
         # data = data[-70000*dt:-69800*dt]
         # t2 = np.linspace(0,dt*2,len(data))
-        ax_current.semilogy(time, data, lw=2.0)
+        ax_current.semilogy(data, lw=2.0)
 
         # ax_current.set_xticks(np.arange(0, t2[-1]+1, 0.5))
         # ax_current.set_xticks(np.arange(0, t2[-1], 0.25), minor=True)

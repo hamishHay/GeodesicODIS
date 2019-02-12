@@ -122,17 +122,23 @@ int updatePressure(Globals * globals,
     {
         (*v_div)(i) = 0.0;
         (*p_corr)(i) = 0.0;
-        p(i) = 0.0;
+        // p(i) = 0.0;
     }
 
     double * hVar = new double[node_num];
     double a_ratio = 0.0;
-    for (i=0; i<node_num; i++) hVar[i] = globals->h.Value()*(1. + a_ratio*(*trigLat)(i,0)*pow((*trigMLon)(i,4,0),4.0));
+    for (i=0; i<node_num; i++) hVar[i] = 1.0;//globals->h.Value()*(1. + a_ratio*(*trigLat)(i,0)*pow((*trigMLon)(i,4,0),4.0));
 
     for (i=0; i<node_num; i++)
     {
         (*v_temp)(i,0) = v(i,0) * hVar[i];
         (*v_temp)(i,1) = v(i,1) * hVar[i];
+
+        // (*v_temp)(i,0) = (dvdt(i,0) - v(i,0)/dt) * hVar[i];
+        // (*v_temp)(i,1) = (dvdt(i,1) - v(i,1)/dt) * hVar[i];
+
+        // (*v_temp)(i,0) = dt * dvdt(i,0) * hVar[i];
+        // (*v_temp)(i,1) = dt * dvdt(i,1) * hVar[i];
     }
 
 
@@ -176,12 +182,17 @@ int updatePressure(Globals * globals,
                     for (i=0; i<node_num; i++)
                     {
                         p_temp[i] *= 1.0/dt;            // remember, p_temp points to p_corr
-                        p(i) += (*p_corr)(i)*1000.0;    // multiply by density
+                        p(i) += 0.5*(*p_corr)(i)*1000.0;    // multiply by density
                         (*v_div)(i) = 0.0;              // reset divergence array
+
+                        // std::cout<<i<<'\t'<<p_temp[i]*dt<<std::endl;
                     }
+
+
 
                     // Apply pressure correction gradient to force div(v) = 0
                     pressureGradient(grid, v, *p_corr,  node_num, dt);
+                    pressureGradient(grid, dvdt, *p_corr,  node_num, 1.0);
                     // pressureGradient(grid, dvdt, *p_corr,  node_num, 1.0);
 
                     // avgAtPoles(grid, v);
@@ -190,9 +201,14 @@ int updatePressure(Globals * globals,
                     {
                         (*v_temp)(i,0) = v(i,0) * hVar[i];
                         (*v_temp)(i,1) = v(i,1) * hVar[i];
+                        // (*v_temp)(i,0) = dt * dvdt(i,0) * hVar[i];
+                        // (*v_temp)(i,1) = dt * dvdt(i,1) * hVar[i];
+                        // (*v_temp)(i,0) = (dvdt(i,0) - v(i,0)/dt) * hVar[i];
+                        // (*v_temp)(i,1) = (dvdt(i,1) - v(i,1)/dt) * hVar[i];
+                        (*v_div)(i) = 0.0;
                     }
                     // Re-evalute div(v)
-                    std::cout<<iter<<'\t'<<total_div<<std::endl;
+                    // std::cout<<iter<<'\t'<<total_div<<std::endl;
                     total_div = 0.0;
 
                     // velocityDivergence(grid, *v_div, v, total_div, -1.0);
@@ -201,16 +217,17 @@ int updatePressure(Globals * globals,
 
 
                     iter++;
-                    std::cout<<iter<<'\t'<<total_div<<std::endl;
+                    // std::cout<<iter<<'\t'<<total_div<<std::endl;
                 }
-                while ((iter < max_iter)  && (total_div > epsilon));
+                while ((iter < max_iter));//  && (total_div > epsilon));
             }
             break;
 
         case 2:
             {
                 total_div = 0.0;
-                velocityDivergence(grid, *v_div, v, total_div, -1.0);
+                // velocityDivergence(grid, *v_div, v, total_div, -1.0);
+                velocityDivergence(grid, *v_div, dvdt, total_div, -1.0);
 
                 iter = 0;
 
@@ -226,17 +243,22 @@ int updatePressure(Globals * globals,
                     //                  grid->V_inv,
                     //                  grid->cell_ID);
 
-                    interpolateGG2LLConservative(globals,
-                                             grid,
-                                             *ll_v_div,
-                                             *v_div);
+                    // interpolateGG2LLConservative(globals,
+                    //                          grid,
+                    //                          *ll_v_div,
+                    //                          *v_div);
 
-                    getSHCoeffsLL(*ll_v_div, *div_lm, N_ll, l_max);
+                    // getSHCoeffsLL(*ll_v_div, *div_lm, N_ll, l_max);
+                    getSHCoeffsGG(grid->node_pos_sph,
+                                  *v_div,
+                                  *div_lm,
+                                   node_num,
+                                    l_max);
 
                     for (l=1; l<l_max+1; l++)
                     {
                         ll_num = (double)(l*(l+1));
-                        factor = -rr / (dt*ll_num);
+                        factor = -rr / (ll_num);
                         for (m=0; m<=l; m++)
                         {
                             (*p_lm)(l, m, 0) = factor * (*div_lm)(l, m, 0);  // C_lm
@@ -279,13 +301,14 @@ int updatePressure(Globals * globals,
                     }
 
                     // Apply pressure correction gradient to force div(v) = 0
-                    pressureGradient(grid, v, *p_corr,  node_num, dt);
-                    // pressureGradient(grid, dvdt, *p_corr,  node_num, 1.0);
+                    // pressureGradient(grid, v, *p_corr,  node_num, dt);
+                    pressureGradient(grid, dvdt, *p_corr,  node_num, 1.0);
 
                     // avgAtPoles(grid, v);
 
                     total_div = 0.0;
-                    velocityDivergence(grid, *v_div, v, total_div, -1.0);
+                    // velocityDivergence(grid, *v_div, v, total_div, -1.0);
+                    velocityDivergence(grid, *v_div, dvdt, total_div, -1.0);
 
                     // std::cout<<total_div<<std::endl;
 

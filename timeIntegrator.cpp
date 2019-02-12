@@ -41,7 +41,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
     h =       globals->h.Value();
     node_num = globals->node_num;
 
-    visc = 5e3;
+    visc = 5e2;
 
     for (int i=0; i <node_num; i++)
     {
@@ -119,13 +119,13 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
             break;
 
         case LID_INF:
-            // pressureGradient(grid, dvdt, p_tm1, node_num, -1.0/1000.0);
+            pressureGradient(grid, dvdt, p_tm1, node_num, 1.0/1000.0);
             // pressureGradientSH(globals, grid, dvdt, p_tm1, -1.0/1000.0);
             break;
 
     }
 
-    // velocityDiffusion(grid, dvdt, v_tm1, visc);
+    velocityDiffusion(grid, dvdt, v_tm1, visc);
 
     return 1;
 
@@ -315,25 +315,80 @@ int ab3Explicit(Globals * globals, Mesh * grid)
             // SOLVE THE MOMENTUM EQUATION
             updateVelocity(globals, grid, *dvel_dt_t0, *vel_tm1, *press_t0, current_time);
 
+
             // INTEGRATE VELOCITIES FORWARD IN TIME
             integrateAB3vector(globals, grid, *vel_t0, *vel_tm1, *dvel_dt_t0, *dvel_dt_tm1, *dvel_dt_tm2, iter);
 
-            // FORCE CONTINUITY EQUATION
-            err = updatePressure(globals, grid, *press_t0, *vel_t0, *dvel_dt_t0);
-
-            // UPDATE ALL VELOCITIES *AND* THEIR DERIVATIVES
-            for (i = 0; i<node_num; i++)
+            if (  iter >= 0)
             {
+
+              // FORCE CONTINUITY EQUATION
+              err = updatePressure(globals, grid, *press_t0, *vel_t0, *dvel_dt_t0);
+
+              // UPDATE ALL VELOCITIES *AND* THEIR DERIVATIVES
+              for (i = 0; i<node_num; i++)
+              {
                 (*vel_tm1)(i,0) = (*vel_t0)(i,0);
-                (*dvel_dt_tm1)(i,0) = (*dvel_dt_t0)(i,0);
+                // (*dvel_dt_tm1)(i,0) = (*dvel_dt_t0)(i,0);
 
                 (*vel_tm1)(i,1) = (*vel_t0)(i,1);
-                (*dvel_dt_tm1)(i,1) = (*dvel_dt_t0)(i,1);
+                // (*dvel_dt_tm1)(i,1) = (*dvel_dt_t0)(i,1);
+              }
+
+              // INTEGRATE VELOCITIES FORWARD IN TIME
+              integrateAB3vector(globals, grid, *vel_t0, *vel_tm1, *dvel_dt_t0, *dvel_dt_tm1, *dvel_dt_tm2, iter);
+
+
+              for (i = 0; i<node_num; i++)
+              {
+                (*vel_tm1)(i,0) = (*vel_t0)(i,0);
+                // (*dvel_dt_tm1)(i,0) = (*dvel_dt_t0)(i,0);
+
+                (*vel_tm1)(i,1) = (*vel_t0)(i,1);
+                // (*dvel_dt_tm1)(i,1) = (*dvel_dt_t0)(i,1);
+              }
             }
+
+            // // SOLVE THE MOMENTUM EQUATION
+            // updateVelocity(globals, grid, *dvel_dt_t0, *vel_tm1, *press_t0, current_time);
+
+
 
             updateEnergy(globals, e_diss, *energy_diss, *vel_t0, *cv_mass);
 
             total_diss[0] = e_diss;
+
+
+
+            // TEST VERSION!!!!!!!!!!!!!!!! STILL UNDER TESTING. DON'T TRUST!
+
+            // SOLVE THE MOMENTUM EQUATION
+            // updateVelocity(globals, grid, *dvel_dt_t0, *vel_tm1, *press_t0, current_time);
+            //
+            //
+            // // INTEGRATE VELOCITIES FORWARD IN TIME
+            // integrateAB3vector(globals, grid, *vel_t0, *vel_tm1, *dvel_dt_t0, *dvel_dt_tm1, *dvel_dt_tm2, iter);
+            //
+            // if (  iter >= 100)
+            // {
+            //     // FORCE CONTINUITY EQUATION
+            //     err = updatePressure(globals, grid, *press_t0, *vel_tm1, *dvel_dt_t0);
+            //
+            //     // UPDATE ALL VELOCITIES *AND* THEIR DERIVATIVES
+            //     // for (i = 0; i<node_num; i++)
+            //     // {
+            //     //     (*vel_tm1)(i,0) = (*vel_t0)(i,0);
+            //     //     // (*dvel_dt_tm1)(i,0) = (*dvel_dt_t0)(i,0);
+            //     //
+            //     //     (*vel_tm1)(i,1) = (*vel_t0)(i,1);
+            //     //     // (*dvel_dt_tm1)(i,1) = (*dvel_dt_t0)(i,1);
+            //     // }
+            // }
+            // updateEnergy(globals, e_diss, *energy_diss, *vel_tm1, *cv_mass);
+            //
+            //
+            //
+            // total_diss[0] = e_diss;
 
         }
 
