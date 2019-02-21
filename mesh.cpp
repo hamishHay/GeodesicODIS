@@ -373,15 +373,13 @@ int Mesh::CalcMaxTimeStep(void)
           {
               dist = node_dists(i,j) * 0.5;                 // consider half node-node distance
               dt = std::min(dt, dist/sqrt(g*h_max));
-
-              if (i == 0) std::cout<<dt<<'\t'<<dist/sqrt(g*h_max)<<std::endl;
           }
       }
 
       dt *= 0.85;         // take some caution
   }
 
-  std::cout<<"DT: "<<dt<<std::endl;
+  // std::cout<<"DT: "<<dt<<std::endl;
 
   globals->timeStep.SetValue(dt);
 

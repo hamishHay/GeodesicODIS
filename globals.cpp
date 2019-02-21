@@ -229,6 +229,7 @@ Globals::Globals(int action) {
     else if (potential.Value() == "ECC_W3")     tide_type = ECC_W3;
     else if (potential.Value() == "OBLIQ_W3")   tide_type = OBLIQ_W3;
     else if (potential.Value() == "PLANET")     tide_type = PLANET;
+    else if (potential.Value() == "PLANET_OBL") tide_type = PLANET_OBL;
     else {
         outstring << "ERROR: NO POTENTIAL FORCING FOUND!" << std::endl;
         Output->Write(ERR_MESSAGE, &outstring);

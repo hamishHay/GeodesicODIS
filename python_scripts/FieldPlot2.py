@@ -181,6 +181,9 @@ class FieldPlot2:
         # ax_current.set_xlim(0,max(t2))
         # ax_current.set_ylim(0.8*np.amin(data[-100:]),1.2*np.amax(data[-100:]))
 
+        # ax_current.set_xlim([0, 3000])
+        # ax_current.set_ylim([3e-5, 0.05])
+
         ax_current.grid(which='major',alpha=0.8)
         ax_current.grid(which='minor',alpha=0.4)
 

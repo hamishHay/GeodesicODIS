@@ -261,7 +261,7 @@ int applySurfaceBCs(Globals * globals)
 
             std::ifstream betaFile( globals->grav_coeff_file.Value(), std::ifstream::in);
 
-            std::cout<<globals->grav_coeff_file.Value()<<std::endl;
+            // std::cout<<globals->grav_coeff_file.Value()<<std::endl;
             count_col = 1;
             count_row = 1;
             if (betaFile.is_open())
@@ -339,10 +339,10 @@ int applySurfaceBCs(Globals * globals)
         int l;
         for (l=0; l<l_max+1; l++)
         {
+            // std::cout<<l<<'\t'<<beta_factor[l]<<std::endl;
             beta_factor[l] = 1.0 - beta_factor[l];
-            // std::cout<<l<<'\t'<<1. - beta_factor[l]<<std::endl;
         }
-
+        //
         // std::cout<<upsilon_factor<<std::endl;
         }
 

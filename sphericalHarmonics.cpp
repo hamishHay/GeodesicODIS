@@ -51,6 +51,7 @@ void getSHCoeffsGG(Array2D<double> & coords, Array1D<double> & data, Array3D<dou
                 {
                     sh_coeffs(l, m, 0) = sh_coeffs_fort[index];
                     sh_coeffs(l, m, 1) = sh_coeffs_fort[index + 1];
+                    // std::cout<<l<<' '<<m<<' '<<sh_coeffs(l, m, 0)<<std::endl;
                 }
 
                 index += 2;
@@ -98,13 +99,13 @@ void getSHCoeffsLL(Array2D<double> & data,
         {
                 if (m<=l)
                 {
-                    // if (fabs(sh_coeffs_fort[index]) > 1e-12) sh_coeffs(l, m, 0) = sh_coeffs_fort[index];
-                    // else sh_coeffs(l, m, 0) = 0.0;
-                    // if (fabs(sh_coeffs_fort[index+1]) > 1e-12) sh_coeffs(l, m, 1) = sh_coeffs_fort[index+1];
-                    // else sh_coeffs(l, m, 1) = 0.0;
+                    if (fabs(sh_coeffs_fort[index]) > 1e-12) sh_coeffs(l, m, 0) = sh_coeffs_fort[index];
+                    else sh_coeffs(l, m, 0) = 0.0;
+                    if (fabs(sh_coeffs_fort[index+1]) > 1e-12) sh_coeffs(l, m, 1) = sh_coeffs_fort[index+1];
+                    else sh_coeffs(l, m, 1) = 0.0;
 
-                    sh_coeffs(l, m, 0) = sh_coeffs_fort[index];
-                    sh_coeffs(l, m, 1) = sh_coeffs_fort[index+1];
+                    // sh_coeffs(l, m, 0) = sh_coeffs_fort[index];
+                    // sh_coeffs(l, m, 1) = sh_coeffs_fort[index+1];
                 }
 
                 index += 2;

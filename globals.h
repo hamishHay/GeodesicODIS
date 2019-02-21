@@ -69,7 +69,8 @@ enum Potential {OBLIQ,      // Obliquity tide (Tyler 2011)
                 TOTAL,      // Entire ecc and obliq potential to second order in Eccentricity and Obliquity
                 ECC_W3,     // Time-dependent degree-3 eccentricity tide // TODO - Add expressions to documentation
                 OBLIQ_W3,   // Time-dependent degree-3 obliquity tide
-                PLANET};    // Planet-planet tidal forcing
+                PLANET,
+                PLANET_OBL};    // Planet-planet tidal forcing
 
 
 //Class stores all global values

@@ -54,7 +54,7 @@ OutFiles::OutFiles() {
   // buff_copy = strdup(buff);
 
   // dirname(buff_copy);
-  std::cout<<buff<<std::endl;
+  // std::cout<<buff<<std::endl;
   // getcwd( buff, PATH );
 
   path = buff; // set char array to std::string
@@ -64,7 +64,7 @@ OutFiles::OutFiles() {
 	errName = path + SEP + "ERROR.txt";
 	dataPath = path + SEP + "DATA" + SEP + "data.h5";
 
-  std::cout<<path + SEP + "OUTPUT.txt"<<std::endl;
+  // std::cout<<path + SEP + "OUTPUT.txt"<<std::endl;
 
 	remove(&outName[0]); //Converts std::string to char array
 	output.open(&outName[0], std::ofstream::out | std::ofstream::app);

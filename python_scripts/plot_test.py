@@ -9,7 +9,7 @@ import matplotlib as mpl
 import numpy as np
 import math
 import h5py
-from mpl_toolkits.basemap import Basemap
+# from mpl_toolkits.basemap import Basemap
 import sys
 import math
 
@@ -40,6 +40,10 @@ in_file = h5py.File("DATA/data.h5", 'r')
 data_u = in_file["east velocity"][n]
 data_v = in_file["north velocity"][n]
 
+# data_u = np.mean(in_file["east velocity"][-10*1000:-1], axis=0)
+# data_v = np.mean(in_file["north velocity"][-10*1000:-1], axis=0)
+
+# print(np.max(in_file["displacement"][-3*1000:]))
 data_eta = in_file["displacement"][n]
 
 # data_eta = np.mean(in_file["dissipated energy"][-100*100:], axis=0)
@@ -57,7 +61,7 @@ y = np.radians(grid[:,0])
 
 # data_diss = in_file["dissipated energy"][n]
 
-print(np.max(data_u), np.max(data_v))#, np.max(data_eta))
+print(np.max(abs(data_u)), np.max(abs(data_v)), np.max(data_eta))
 print("TRIANGULATING POSITIONS")
 # Create the Triangulation; no triangles so Delaunay triangulation created.
 triang = tri.Triangulation(x, y)

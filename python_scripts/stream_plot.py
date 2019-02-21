@@ -56,8 +56,8 @@ axes = [axes1[0][0], axes1[0][1], axes1[0][2], axes1[0][3], axes1[1][0], axes1[1
 l_axes = [axes1[0][0], axes1[1][0]]
 b_axes = [axes1[1][0], axes1[1][1], axes1[1][2], axes1[1][3]]
 
-time = np.array([0, 12, 25, 37, 50, 62, 75, 87], dtype=np.int) + n
-time = np.array([0, 6, 12, 18, 25, 31, 37, 43], dtype=np.int) + n
+time = np.array([0, 12, 25, 37, 50, 62, 75, 87], dtype=np.int)*100 + n
+# time = np.array([0, 6, 12, 18, 25, 31, 37, 43], dtype=np.int) + n
 times = [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]
 
 in_file = h5py.File("DATA/data.h5", 'r')

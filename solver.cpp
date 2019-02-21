@@ -20,6 +20,8 @@ int solveODIS(Globals * globals, Mesh * mesh)
 
     outstring << "Identifying using selected solver method... ";
 
+    int err;
+
     switch (globals->solver_type)
     {
     case EULER:
@@ -37,7 +39,7 @@ int solveODIS(Globals * globals, Mesh * mesh)
         outstring << std::endl << std::endl;
         Output->Write(OUT_MESSAGE, &outstring);
 
-        ab3Explicit(globals, mesh);
+        err = ab3Explicit(globals, mesh);
         break;
 
     default:
@@ -47,8 +49,13 @@ int solveODIS(Globals * globals, Mesh * mesh)
         break;
     }
 
-    outstring << "Calculations appear to have finished!" << std::endl;
-    Output->Write(OUT_MESSAGE, &outstring);
-
+    if (err) {
+        outstring << "SOLVER RETURNED WITH AN ERROR..." <<std::endl << std::endl;
+        Output->Write(OUT_MESSAGE, &outstring);
+    }
+    else {
+        outstring << "Calculations appear to have finished!" << std::endl;
+        Output->Write(OUT_MESSAGE, &outstring);
+    }
     return 1;
 };

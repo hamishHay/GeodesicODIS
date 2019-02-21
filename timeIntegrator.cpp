@@ -41,7 +41,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
     h =       globals->h.Value();
     node_num = globals->node_num;
 
-    visc = 1e2;
+    visc = 1e4;
 
     for (int i=0; i <node_num; i++)
     {
@@ -82,6 +82,9 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
             break;
         case PLANET:
             deg2Planet(grid, dvdt, current_time, r);
+            break;
+        case PLANET_OBL:
+            deg2PlanetObl(grid, dvdt, current_time, r, obliq);
             break;
     }
 
@@ -386,6 +389,15 @@ int ab3Explicit(Globals * globals, Mesh * grid)
                              *vel_tm1,   *dvel_dt_t0,   *dvel_dt_tm1,   *dvel_dt_tm2,
                              *press_tm1, *dpress_dt_t0, *dpress_dt_tm1, *dpress_dt_tm2);
 
+        // smoothingSH(globals, grid, *press_tm1);
+        // smoothingSH(globals, grid, *dpress_dt_t0);
+        // smoothingSH(globals, grid, *dpress_dt_tm1);
+        // smoothingSH(globals, grid, *dpress_dt_tm2);
+        // smoothingSHVector(globals, grid, *vel_tm1);
+        // smoothingSHVector(globals, grid, *dvel_dt_t0);
+        // smoothingSHVector(globals, grid, *dvel_dt_tm1);
+        // smoothingSHVector(globals, grid, *dvel_dt_tm2);
+
        iter = 3;
     }
     else iter = 0;
@@ -403,11 +415,47 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     double sum_dummy = 1.0;
     double avg_val;
     int f;
+    double g_old = globals->g.Value();
+    bool lid_switch = false;
+    // double cd_old = globals->alpha.Value();
+    // double cd_max = 1e-1;
+    // globals->alpha.SetValue(cd_max);
+
+    // if we want to use the ice shell, start with free surface solution that
+    // uses the approximate ice shell solution (b_2 in the pressure gradient
+    // term).
+    // if ((globals->surface_type == LID_LOVE) && (!globals->init.Value())) {
+    //     lid_switch = true; // switch is only set to true if we want to turn on
+    //                        // the ice shell later.
+    //     globals->surface_type = FREE;
+    //
+    //     // modify gravity by the shell factor beta_2, which modifies the
+    //     // restoring force on the ocean and assumes the ocean response is
+    //     // governed by degree-2.
+    //     globals->g.SetValue(-g_old*(globals->shell_factor_beta[2]-1.0));
+    // }
+
+
+    // std::cout<<g_old<<' '<<globals->g.Value()<<' '<<-(globals->shell_factor_beta[2]-1.0)<<std::endl;
+
     while (current_time <= end_time)
     {
-
         current_time += dt;
         out_time += dt;
+
+        // if (globals->alpha.Value() > cd_old + 0.01*cd_old) globals->alpha.SetValue(cd_max*exp(-current_time/(4.*orbit_period)) + cd_old);
+        // else globals->alpha.SetValue(cd_old);
+        // std::cout<<globals->alpha.Value()<<std::endl;
+
+        // check if we want to turn on the ice shell
+        // if ((lid_switch) && (globals->surface_type == FREE) && (current_time >= 0.01*end_time))
+        // {
+        //     globals->surface_type = LID_LOVE;
+        //     globals->g.SetValue(g_old);
+        //     lid_switch = false;
+        //     // std::cout<<g_old<<' '<<globals->g.Value()<<' '<<-(globals->shell_factor_beta[2]-1.0)<<std::endl;
+        // }
+
 
         if (globals->surface_type == FREE ||
             globals->surface_type == FREE_LOADING ||
@@ -486,7 +534,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
         if (out_time >= out_frac*orbit_period)
         {
             outstring << std::fixed << std::setprecision(8) <<"DUMPING DATA AT "<<current_time/orbit_period;
-            outstring << " AVG DISS: "<<*total_diss*4*pi*r*r<<' '<<out_count;
+            outstring << " AVG DISS: "<<*total_diss*4*pi*r*r/1e9<<" GW"<<out_count;
 
             Output->Write(OUT_MESSAGE, &outstring);
 
@@ -513,7 +561,10 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
 
     FILE * outFile;
-    outFile = fopen("init_new.txt", "w");
+    std::string initial_condition_file;
+    initial_condition_file = Output->path + SEP + "init_new.txt";
+    remove(&initial_condition_file[0]);
+    outFile = fopen(&initial_condition_file[0], "w");
 
     for (i=0; i<node_num; i++)
     {                   //   u    dudt0  dudt1  dudt2    v    dvdt0  dvdt1  dvdt2    p    dpdt0  dpdt1  dpdt2
@@ -527,6 +578,6 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
     Output->Write(OUT_MESSAGE, &outstring);
 
-
-    return 1;
+    if (flag) return 1;     // return with error
+    else return 0;          // return without error
 };

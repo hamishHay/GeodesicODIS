@@ -15,7 +15,7 @@ int loadInitialConditions(Globals * globals, Mesh * mesh,
     std::string file_str;                  // string with path to mesh file.
 
     // file_str = globals->path + SEP + "initial_conditions.txt";
-    file_str = globals->path + SEP + "init.txt";
+    file_str = globals->path + SEP + "init_new.txt";
 
     // in stream for input.in file
     std::ifstream gridFile(file_str, std::ifstream::in);
@@ -29,6 +29,7 @@ int loadInitialConditions(Globals * globals, Mesh * mesh,
         i = 0;
         while (std::getline(gridFile, line))
         {
+            if (i >= globals->node_num) break;
             // std::cout<<line<<std::endl;
             std::istringstream line_ss(line);
 

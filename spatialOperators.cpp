@@ -121,45 +121,102 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
         (*scalar_dummy)(i) = gg_scalar(i);
     }
 
-    int l_max_total = 2;
-    while (l_max_total <= l_max)
-    {
-      interpolateGG2LLConservative(globals,
-                                  mesh,
-                                  *ll_scalar,
-                                  *scalar_dummy);
+    interpolateGG2LLConservative(globals,
+                                mesh,
+                                *ll_scalar,
+                                *scalar_dummy);
 
-      // FIND SPHERICAL HARMONIC EXPANSION COEFFICIENTS
-      // OF THE PRESSURE FIELD
-      getSHCoeffsLL(*ll_scalar, *scalar_lm_dummy, N_ll, l_max);
+    // FIND SPHERICAL HARMONIC EXPANSION COEFFICIENTS
+    // OF THE PRESSURE FIELD
+    getSHCoeffsLL(*ll_scalar, *scalar_lm_dummy, N_ll, l_max);
 
-      for (i=0; i<node_num; i++)
-      {
+    // getSHCoeffsGG(mesh->node_pos_sph, gg_scalar, *scalar_lm, node_num, l_max);
 
-            l = l_max_total;
-            dummy_val = 0.0;
-            for (m=0; m<=l; m++)
-            {
-                (*scalar_lm)(l, m, 0) = (*scalar_lm_dummy)(l, m, 0);
-                (*scalar_lm)(l, m, 1) = (*scalar_lm_dummy)(l, m, 1);
+    // for (i=0; i<node_num; i++)
+    // {
+    //
+    //       // l = l_max_total;
+    //       // dummy_val = 0.0;
+    double coeff_max = 0.0;
+          for (l=0; l<l_max+1; l++)
+          {
+              for (m=0; m<=l; m++)
+              {
+                  // std::cout<<l<<' '<<m<<'\t'<<(*scalar_lm)(l, m, 0)<<' '<<(*scalar_lm_dummy)(l, m, 0)<<' '<<(*scalar_lm)(l, m, 0)/(*scalar_lm_dummy)(l, m, 0)<<std::endl;
+                  // std::cout<<l<<' '<<m<<'\t'<<(*scalar_lm)(l, m, 1)<<' '<<(*scalar_lm_dummy)(l, m, 1)<<' '<<(*scalar_lm)(l, m, 1)/(*scalar_lm_dummy)(l, m, 1)<<std::endl;
+                  (*scalar_lm)(l, m, 0) = (*scalar_lm_dummy)(l, m, 0);
+                  (*scalar_lm)(l, m, 1) = (*scalar_lm_dummy)(l, m, 1);
 
-                scalar_lm_cos = (*scalar_lm)(l, m, 0);
-                scalar_lm_sin = (*scalar_lm)(l, m, 1);
+                  // coeff_max = std::max(coeff_max, std::max(fabs((*scalar_lm)(l, m, 0)), fabs((*scalar_lm)(l, m, 1))));
 
-                cosMLon = (*trigMLon)(i, m, 0);
-                sinMLon = (*trigMLon)(i, m, 1);
 
-                dummy_val += (*Pbar_lm)(i, l, m)
-                          * (scalar_lm_cos * cosMLon
-                          + scalar_lm_sin * sinMLon);
+                  // scalar_lm_cos = (*scalar_lm)(l, m, 0);
+                  // scalar_lm_sin = (*scalar_lm)(l, m, 1);
 
-            }
-        (*scalar_dummy)(i) -= dummy_val;
+                  // cosMLon = (*trigMLon)(i, m, 0);
+                  // sinMLon = (*trigMLon)(i, m, 1);
 
-      }
+                  // dummy_val += (*Pbar_lm)(i, l, m)
+                  // * (scalar_lm_cos * cosMLon
+                  // + scalar_lm_sin * sinMLon);
 
-      l_max_total+=1;
-    }
+              }
+
+          }
+
+          // for (l=0; l<l_max; l++)
+          // {
+          //     for (m=0; m<=l; m++)
+          //     {
+          //         if ((*scalar_lm)(l, m, 0) < 0.001*coeff_max) (*scalar_lm)(l, m, 0) = 0.0;
+          //         if ((*scalar_lm)(l, m, 1) < 0.001*coeff_max) (*scalar_lm)(l, m, 1) = 0.0;
+          //
+          //     }
+          //
+          // }
+    // //   // (*scalar_dummy)(i) -= dummy_val;
+    //
+    // }
+
+    // int l_max_total = 2;
+    // while (l_max_total <= l_max)
+    // {
+    //   interpolateGG2LLConservative(globals,
+    //                               mesh,
+    //                               *ll_scalar,
+    //                               *scalar_dummy);
+    //
+    //   // FIND SPHERICAL HARMONIC EXPANSION COEFFICIENTS
+    //   // OF THE PRESSURE FIELD
+    //   getSHCoeffsLL(*ll_scalar, *scalar_lm_dummy, N_ll, l_max);
+    //
+    //   for (i=0; i<node_num; i++)
+    //   {
+    //
+    //         l = l_max_total;
+    //         dummy_val = 0.0;
+    //         for (m=0; m<=l; m++)
+    //         {
+    //             (*scalar_lm)(l, m, 0) = (*scalar_lm_dummy)(l, m, 0);
+    //             (*scalar_lm)(l, m, 1) = (*scalar_lm_dummy)(l, m, 1);
+    //
+    //             scalar_lm_cos = (*scalar_lm)(l, m, 0);
+    //             scalar_lm_sin = (*scalar_lm)(l, m, 1);
+    //
+    //             cosMLon = (*trigMLon)(i, m, 0);
+    //             sinMLon = (*trigMLon)(i, m, 1);
+    //
+    //             dummy_val += (*Pbar_lm)(i, l, m)
+    //                       * (scalar_lm_cos * cosMLon
+    //                       + scalar_lm_sin * sinMLon);
+    //
+    //         }
+    //     (*scalar_dummy)(i) -= dummy_val;
+    //
+    //   }
+    //
+    //   l_max_total+=1;
+    // }
 
     int count = 0;
 
@@ -324,6 +381,7 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
             dgemv_(&trans, &M, &N, &alpha, sh_matrix, &lda, sh_coeffs, &incx, &beta, soln_vec, &incy);
 
             pressureGradient(mesh, dvdt, *scalar_dummy, node_num, -factor);
+            // pressureGradient(mesh, dvdt, gg_scalar, node_num, -factor);
 
             break;
 
