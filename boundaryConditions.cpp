@@ -124,15 +124,11 @@ int applySurfaceBCs(Globals * globals)
 
             globals->radius.SetValue(globals->radius.Value() - globals->shell_thickness.Value());
 
-            // path = globals->path;
-
-            // std::ifstream betaFile(path + SEP + "input_files" + SEP + "LOVE_SHELL_COEFFS" + SEP + "ENCELADUS" + SEP + "beta_hs1km_to_hs100km_lmax30.txt",std::ifstream::in);
-            // std::ifstream upsilonFile(path + SEP + "input_files" + SEP + "LOVE_SHELL_COEFFS" + SEP + "ENCELADUS" + SEP + "upsilon_hs_1km_to_50km_lmax2.txt",std::ifstream::in);
             hs = globals->shell_thickness.Value();
 
 
             // Check if ice shell value is within table range. TODO - define where this range comes from!
-            if ((hs < 1e3) || (hs > 50e3)) {
+            if ((hs < 1e3) || (hs > 100e3)) {
                 outstring << "ERROR:\t\t User selected ice shell thickness of " << hs/1e3;
                 outstring << " km is outside of calculated shell thickness range. " << std::endl;
                 outstring << "\t\t Shell behaviour is therefore undefined. "<<std::endl;
@@ -339,11 +335,11 @@ int applySurfaceBCs(Globals * globals)
         int l;
         for (l=0; l<l_max+1; l++)
         {
-            // std::cout<<l<<'\t'<<beta_factor[l]<<std::endl;
+            std::cout<<l<<'\t'<<beta_factor[l]<<std::endl;
             beta_factor[l] = 1.0 - beta_factor[l];
         }
         //
-        // std::cout<<upsilon_factor<<std::endl;
+        std::cout<<upsilon_factor<<std::endl;
         }
 
 
@@ -366,6 +362,79 @@ int applySurfaceBCs(Globals * globals)
 
     default:
         break;
+    }
+
+    if (globals->tide_type == GENERAL)
+    {
+        double hs;
+        double * beta_factor;
+        double upsilon_factor;
+        std::string path;
+
+        // TODO - tidy up this terrible code
+
+        beta_factor = globals->shell_factor_beta;
+        l_max = globals->l_max.Value();
+
+        // path = globals->path;
+
+        // std::ifstream betaFile(path + SEP + "input_files" + SEP + "LOVE_SHELL_COEFFS" + SEP + "ENCELADUS" + SEP + "beta_hs1km_to_hs100km_lmax30.txt",std::ifstream::in);
+        // std::ifstream upsilonFile(path + SEP + "input_files" + SEP + "LOVE_SHELL_COEFFS" + SEP + "ENCELADUS" + SEP + "upsilon_hs_1km_to_50km_lmax2.txt",std::ifstream::in);
+        hs = globals->shell_thickness.Value();
+
+        double x;                        // beta values
+        int count_col;                   // counter for counting file column position
+        int count_row;                   // counter for counting file row position
+        std::string line, val;           // strings for column and individual number
+
+        path = globals->path;
+
+        // std::ifstream fourierFile( globals->fourier_coeff_file.Value(), std::ifstream::in);
+        std::ifstream fourierFile( "/home/hamish/Research/PlanetPlanetTides/ocean_heating/io_europa.txt", std::ifstream::in);
+
+        // std::cout<<globals->grav_coeff_file.Value()<<std::endl;
+        count_col = 0;
+        count_row = 0;
+        if (fourierFile.is_open())
+        {
+
+            outstring << "Fourier coefficients found." << std::endl;
+            globals->Output->Write(OUT_MESSAGE, &outstring);
+
+            while (std::getline(fourierFile, line) && count_row <= globals->freq.Value())
+            {
+
+                std::istringstream line_ss(line);
+                while (std::getline(line_ss,val,' '))
+                {
+                    // std::cout<<line<<std::endl;
+                    // if (count_col == int(hs)/1000) {
+                    //     x = std::atof(val.c_str());
+                    //     count_col = 1;
+                    //     break;
+                    //
+                    // }
+                    // std::cout<<count_col<<' '<<val<<std::endl;
+                    if (count_col == 0) globals->a20q[count_row] = std::atof(val.c_str());
+                    if (count_col == 2) globals->a22q[count_row] = std::atof(val.c_str());
+                    if (count_col == 7) globals->b22q[count_row] = std::atof(val.c_str());
+                    count_col++;
+                }
+                count_col=0.0;
+
+                // beta_factor[count_row] = x;
+                count_row++;
+            };
+
+            fourierFile.close();
+        }
+        else
+        {
+            outstring << "Gravity coefficient file could not be read: "<< globals->grav_coeff_file.Value() << std::endl;
+            globals->Output->Write(ERR_MESSAGE, &outstring);
+            globals->Output->TerminateODIS();
+        }
+
     }
 
     return 1;

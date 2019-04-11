@@ -69,8 +69,9 @@ enum Potential {OBLIQ,      // Obliquity tide (Tyler 2011)
                 TOTAL,      // Entire ecc and obliq potential to second order in Eccentricity and Obliquity
                 ECC_W3,     // Time-dependent degree-3 eccentricity tide // TODO - Add expressions to documentation
                 OBLIQ_W3,   // Time-dependent degree-3 obliquity tide
-                PLANET,
-                PLANET_OBL};    // Planet-planet tidal forcing
+                PLANET,     // Planet-planet tidal forcing
+                PLANET_OBL,
+                GENERAL};   // Generalised forcing
 
 
 //Class stores all global values
@@ -135,6 +136,11 @@ public:
   GlobalVar<bool> init;                 // boolean for using initial conditions
   GlobalVar<double> converge;           // convergence criteria for ODIS.
 
+  GlobalVar<int> freq;                  // Planet-planet freq
+  GlobalVar<double> a20;                // Fourier coeffs for general forcing
+  GlobalVar<double> a22;
+  GlobalVar<double> b22;
+
   // Variables to switch on or off output of certain Variables
   // i.e., setting kinetic to true outputs global averaged kinetic energy
   GlobalVar<bool> diss_avg; // dissipated energy
@@ -155,6 +161,7 @@ public:
 
   GlobalVar<std::string> grav_coeff_file;      // file name containing beta coeffs
   GlobalVar<std::string> forcing_coeff_file;   // file name containing upsilon coeffs
+  GlobalVar<std::string> fourier_coeff_file;   // file name containing upsilon coeffs
 
   // GlobalVar<double> nu_shell;
   // GlobalVar< Array1D<double> > beta_shell;
@@ -162,6 +169,10 @@ public:
   double * loading_factor;      // Ocean loading factor, gamma_o (Matsuyama, 2014)
 
   double * shell_factor_beta;
+
+  double * a20q;
+  double * a22q;
+  double * b22q;
 
   // constructor to initialise and/or read all variables from input file.
   Globals();

@@ -127,6 +127,18 @@ Globals::Globals(int action) {
     endTime.SetStringID("simulation end time");
     allGlobals.push_back(&endTime);
 
+    a20.SetStringID("fourier a20");
+    allGlobals.push_back(&a20);
+
+    a22.SetStringID("fourier a22");
+    allGlobals.push_back(&a22);
+
+    b22.SetStringID("fourier b22");
+    allGlobals.push_back(&b22);
+
+    freq.SetStringID("fourier freq");
+    allGlobals.push_back(&freq);
+
     potential.SetStringID("potential");
     allGlobals.push_back(&potential);
 
@@ -184,6 +196,9 @@ Globals::Globals(int action) {
     forcing_coeff_file.SetStringID("forcing coeff file");
     allGlobals.push_back(&forcing_coeff_file);
 
+    fourier_coeff_file.SetStringID("fourier coeff file");
+    allGlobals.push_back(&forcing_coeff_file);
+
 
     ReadGlobals(); //Read globals from input.in file
   }
@@ -230,6 +245,7 @@ Globals::Globals(int action) {
     else if (potential.Value() == "OBLIQ_W3")   tide_type = OBLIQ_W3;
     else if (potential.Value() == "PLANET")     tide_type = PLANET;
     else if (potential.Value() == "PLANET_OBL") tide_type = PLANET_OBL;
+    else if (potential.Value() == "GENERAL")    tide_type = GENERAL;
     else {
         outstring << "ERROR: NO POTENTIAL FORCING FOUND!" << std::endl;
         Output->Write(ERR_MESSAGE, &outstring);
@@ -253,6 +269,13 @@ Globals::Globals(int action) {
              surface_type == LID_MEMBR)
     {
         shell_factor_beta = new double[l_max.Value() + 1];
+    }
+
+    if (tide_type == GENERAL)
+    {
+        a20q = new double[freq.Value()+1];
+        a22q = new double[freq.Value()+1];
+        b22q = new double[freq.Value()+1];
     }
 
     applySurfaceBCs(this);

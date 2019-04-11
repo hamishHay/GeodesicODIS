@@ -57,11 +57,14 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
 
     Pbar_lm(N, l_max+1, l_max+1),
     Pbar_lm_deriv(N, l_max+1, l_max+1),
+    Pbar_20(N),
+    Pbar_22(N),
 
     Pbar_cosMLon(N, l_max+1, l_max+1),
     Pbar_sinMLon(N, l_max+1, l_max+1),
     Pbar_deriv_cosMLon(N, l_max+1, l_max+1),
     Pbar_deriv_sinMLon(N, l_max+1, l_max+1),
+
 
     sh_matrix(N, (l_max+1)*(l_max+2) - 6), //-6 is to ignore degrees 0 and 1
     sh_matrix_fort(N*((l_max+1)*(l_max+2) - 6)),
@@ -859,6 +862,9 @@ int Mesh::CalcLegendreFuncs(void)
 
                 // assign legendre pol derivative at node i for degree l and order m
                 Pbar_lm_deriv(i, l, m) = (*temp_dlegendre)(l, m)*sin(pi*0.5 - node_pos_sph(i, 0));
+
+                if ((l==2) && (m==0)) Pbar_20(i) = (*temp_legendre)(l, m);
+                if ((l==2) && (m==2)) Pbar_22(i) = (*temp_legendre)(l, m);
 
             }
         }

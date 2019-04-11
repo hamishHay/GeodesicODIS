@@ -22,6 +22,7 @@
 #include "array2d.h"
 #include "spatialOperators.h"
 #include <math.h>
+#include <iomanip>
 
 // -----------------------------------------------------------------------------
 // Full eccentricity tidal forcing, degree-2 (e.g., Matsuyama (2014)) ----------
@@ -37,17 +38,19 @@ void deg2Ecc(Mesh * grid, Array2D<double> & soln, double simulationTime, double 
 
     node_num = grid->node_num;
 
+
     Array1D<double> * scalar_dummy;
     scalar_dummy = new Array1D<double>(node_num);
 
 
-    factor = grid->globals->loveReduct.Value() * pow(omega,2.0)*radius*ecc;
 
     if (grid->globals->surface_type == LID_LOVE || grid->globals->surface_type == LID_MEMBR)
     {
-     factor /= radius;
-     factor *= pow(radius + grid->globals->shell_thickness.Value(), 2.0)/radius;
+     radius += grid->globals->shell_thickness.Value();
+     // factor /= radius;
+     // factor *= pow(radius + grid->globals->shell_thickness.Value(), 2.0)/radius;
     }
+    factor = grid->globals->loveReduct.Value() * pow(omega,2.0)*radius*ecc;
 
     cosM = cos(omega*simulationTime);
     sinM = sin(omega*simulationTime);
@@ -610,6 +613,8 @@ void deg2Planet(Mesh * grid, Array2D<double> & soln, double simulationTime, doub
 
     node_num = grid->node_num;
 
+    radius += grid->globals->shell_thickness.Value();
+
     Array1D<double> * scalar_dummy;
     scalar_dummy = new Array1D<double>(node_num);
 
@@ -621,14 +626,14 @@ void deg2Planet(Mesh * grid, Array2D<double> & soln, double simulationTime, doub
     double dist;
 
     // m2 = 8.931938e+22;  // Io
-    // m2 = 1.4815e23;   // Ganymede
-    m2 = 4.799e22;  //Europa
+    m2 = 1.4815e23;   // Ganymede
+    // m2 = 4.799e22;  //Europa
 
 
-    // a2 = 421800000.0; // Io
-    // a2 = 1.074e9;   // Ganymede
+    // a1 = 421800000.0; // Io
+    a2 = 1.074e9;   // Ganymede
     a1 = grid->globals->a.Value();
-    a2 = 671100000.0; // Europa
+    // a2 = 671100000.0; // Europa
 
     // n2 = 4.11e-5;   // Io
     // n2 = 1.016e-5;     // Ganymede
@@ -661,9 +666,156 @@ void deg2Planet(Mesh * grid, Array2D<double> & soln, double simulationTime, doub
     for (i=0; i<node_num; i++) {
         j = i*2;
         // Calculate obliquity tidal potential
+
         cosgam = cosLat[j] * (cosLon[j]*cosphi + sinLon[j]*sinphi);
-        (*scalar_dummy)(i) = factor * (3. * cosgam*cosgam - 1.0);
+        (*scalar_dummy)(i) = factor * (3. * pow(cosgam, 2.0) - 1.0);
     }
+
+
+
+    pressureGradient(grid, soln, *scalar_dummy, node_num, -1.0);
+
+
+    delete scalar_dummy;
+};
+
+void deg2General(Mesh * grid, Array2D<double> & soln, double simulationTime, double radius, Array1D<double> & scalar)
+{
+    double cos_qnt, sin_qnt;
+    double * cos2Lon, * sin2Lon;
+    double * cosLon, * cosLat, * sinLon;
+    double * P20, * P22;
+    double n1, n2, nij;
+    int i,j, node_num, q, q_max;
+
+
+    n1 = grid->globals->angVel.Value();
+    n2 = 0.5*n1;
+    nij = n1-n2;
+
+    radius += grid->globals->shell_thickness.Value();
+
+    node_num = grid->node_num;
+
+    cos2Lon = &(grid->trig2Lon(0,0));
+    sin2Lon = &(grid->trig2Lon(0,1));
+
+    cosLon = &(grid->trigLon(0,0));
+    sinLon = &(grid->trigLon(0,1));
+
+    cosLat = &(grid->trigLat(0,0));
+
+    P20 = &(grid->Pbar_20(0));
+    P22 = &(grid->Pbar_22(0));
+
+    Array1D<double> * scalar_dummy;
+    scalar_dummy = new Array1D<double>(node_num);
+
+    double a20, a22, b22;
+    q_max = grid->globals->freq.Value();
+
+    a20 = grid->globals->a20q[q_max];
+    a22 = grid->globals->a22q[q_max];
+    b22 = grid->globals->b22q[q_max];
+
+    // std::cout<<a20<<' '<<a22<<' '<<b22<<' '<<q<<std::endl;
+
+    cos_qnt = cos( (double)q_max * nij * simulationTime);
+    sin_qnt = sin( (double)q_max * nij * simulationTime);
+
+    double m2 = 4.799844e+22;  //Europa
+
+
+    // a2 = 421800000.0; // Io
+    // a2 = 1.074e9;   // Ganymede
+    double a1 = grid->globals->a.Value();
+    double a2 = 671100000.0; // Europa
+
+    // n2 = 4.11e-5;   // Io
+    // n2 = 1.016e-5;     // Ganymede
+    // n2 = 2.05e-5;     // Europa
+    // n1 = grid->globals->angVel.Value();
+    // n2 = n1*0.5;
+    //
+    // double nij = n1-n2;
+
+    double cosnt = cos(nij*(double)simulationTime);
+    double sinnt = sin(nij*(double)simulationTime);
+
+
+    // cosnt = cos(-n1*simulationTime);
+    // sinnt = sin(-n1*simulationTime);
+
+    double dist = sqrt(std::pow(a1, 2.0) + std::pow(a2, 2.0) - 2.*a1*a2*cosnt);
+
+    double cosphi = (a1 - a2*cosnt)/dist;
+    double sinphi = a2*sinnt/dist;
+
+    double factor = 0.5 * 6.67408e-11 * m2 * std::pow(radius/dist, 2.0)/dist;
+
+    // std::cout<<std::setprecision(8)<<std::scientific<<radius<<' '<<dist<<std::endl;
+    // Assign pointers to start of trig node arrays
+    cosLon = &(grid->trigLon(0,0));
+    sinLon = &(grid->trigLon(0,1));
+
+    cosLat = &(grid->trigLat(0,0));
+
+    double cosgam;
+    // for (i=0; i<node_num; i++) {
+    //     j = i*2;
+    //     // (*scalar_dummy)(i) = 0;
+    //
+    //     (*scalar_dummy)(i) = ((a20 * cos_qnt)* P20[i]
+    //                         + (a22 * cos_qnt) * P22[i] * cos2Lon[j]
+    //                         +b22 * P22[i] * sin2Lon[j] * sin_qnt)*grid->globals->loveReduct.Value();
+    // }
+
+
+    for (i=0; i<node_num; i++) {
+        j = i*2;
+        double U20=0.0;
+        double U22a=0.0;
+        double U22b=0.0;
+        for (q=q_max; q<=q_max; q++)
+        {
+            a20 = grid->globals->a20q[q];
+            a22 = grid->globals->a22q[q];
+            b22 = -grid->globals->b22q[q];
+
+            cos_qnt = cos( (double)q * nij * simulationTime);
+            sin_qnt = sin( (double)q * nij * simulationTime);
+
+            // (*scalar_dummy)(i) += ((a20 * cos_qnt)* P20[i]
+            //                         + (a22 * cos_qnt) * P22[i] * cos2Lon[j]
+            //                         +b22 * P22[i] * sin2Lon[j] * sin_qnt)*grid->globals->loveReduct.Value();
+
+
+            // std::cout<<q<<' '<<a20<<' '<<a22<<' '<<b22<<std::endl;
+            U20 += (a20 * cos_qnt);
+            U22a += (a22 * cos_qnt);
+            U22b += (b22 * sin_qnt);
+        }
+
+        U20 = (0.5*grid->globals->a20q[0] + U20)*P20[i];
+        U22a = (0.5*grid->globals->a22q[0] + U22a)*P22[i]*cos2Lon[j];
+        U22b = (-0.5*grid->globals->b22q[0] + U22b)*P22[i]*sin2Lon[j];
+
+        (*scalar_dummy)(i) = (U20 + U22a + U22b)*grid->globals->loveReduct.Value();
+
+        // cosgam = cosLat[j] * (cosLon[j]*cosphi + sinLon[j]*sinphi);
+        // double test = factor * (3. * pow(cosgam, 2.0) - 1.0)*grid->globals->loveReduct.Value();
+
+        // std::cout<<test<<' '<<(*scalar_dummy)(i)<<' '<<test/(*scalar_dummy)(i)<<std::endl;
+    }
+
+    // if (simulationTime <= 0.0+1e-5)
+    // {
+    //     for (i=0; i<node_num; i++) {
+    //         scalar(i) = grid->globals->loveReduct.Value()*(*scalar_dummy)(i)/(grid->globals->g.Value()*grid->globals->shell_factor_beta[2]);
+    //     }
+    // }
+
+    // grid->globals->Output->TerminateODIS();
 
     pressureGradient(grid, soln, *scalar_dummy, node_num, -1.0);
 
@@ -681,6 +833,7 @@ void deg2PlanetObl(Mesh * grid, Array2D<double> & soln, double simulationTime, d
     double * m;
 
     node_num = grid->node_num;
+
 
     Array1D<double> * scalar_dummy;
     scalar_dummy = new Array1D<double>(node_num);

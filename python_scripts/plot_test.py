@@ -43,10 +43,15 @@ data_v = in_file["north velocity"][n]
 # data_u = np.mean(in_file["east velocity"][-10*1000:-1], axis=0)
 # data_v = np.mean(in_file["north velocity"][-10*1000:-1], axis=0)
 
+# data_diss = in_file["east velocity"][:]**2 + in_file["north velocity"][:]**2
+# data_diss = 1.2e3 * 1000 * np.mean(data_diss, axis=0)
+
 # print(np.max(in_file["displacement"][-3*1000:]))
 data_eta = in_file["displacement"][n]
+# data_eta = data_diss
+#data_eta = data_diss
 
-# data_eta = np.mean(in_file["dissipated energy"][-100*100:], axis=0)
+data_eta = np.mean(in_file["dissipated energy"][:], axis=0)
 
 N = int(1 + 0.5 * math.log((len(data_u)-2)/10, 2))
 

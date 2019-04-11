@@ -80,11 +80,26 @@ int loadInitialConditions(Globals * globals, Mesh * mesh,
 
         gridFile.close();
     }
-    else
-    {
-        outstring << "ERROR: GRID FILE NOT FOUND AT " + file_str << std::endl;
+    else{
+
+      v(i,0) = 0.0;
+      dvdt1(i,0) = 0.0;
+      dvdt2(i,0) = 0.0;
+      dvdt3(i,0) = 0.0;
+
+      v(i,1) = 0.0;
+      dvdt1(i,1) = 0.0;
+      dvdt2(i,1) = 0.0;
+      dvdt3(i,1) = 0.0;
+
+      p(i) = 0.0;
+      dpdt1(i) = 0.0;
+      dpdt2(i) = 0.0;
+      dpdt3(i) = 0.0;
+
+
+        outstring << "WARNING: NO INITIAL CONDITION FILE FOUND " + file_str << std::endl;
         globals->Output->Write(ERR_MESSAGE, &outstring);
-        globals->Output->TerminateODIS();
     }
 
     return 1;

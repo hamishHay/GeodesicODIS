@@ -43,6 +43,8 @@ void deg2EccTotal(Mesh * grid, Array2D<double> &, double simulationTime, double 
 
 void deg2Planet(Mesh * grid, Array2D<double> &, double simulationTime, double radius);
 
+void deg2General(Mesh * grid, Array2D<double> &, double simulationTime, double radius, Array1D<double> & scalar);
+
 void deg2PlanetObl(Mesh * grid, Array2D<double> &, double simulationTime, double radius, double obl);
 
 //

@@ -41,7 +41,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
     h =       globals->h.Value();
     node_num = globals->node_num;
 
-    visc = 1e4;
+    visc = 2e3;
 
     for (int i=0; i <node_num; i++)
     {
@@ -85,6 +85,9 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
             break;
         case PLANET_OBL:
             deg2PlanetObl(grid, dvdt, current_time, r, obliq);
+            break;
+        case GENERAL:
+            deg2General(grid, dvdt, current_time, r, p_tm1);
             break;
     }
 
@@ -285,7 +288,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     Array2D<double> * dvel_dt_tm1;  // velocity time derivative at current timestep
     Array2D<double> * dvel_dt_tm2;  // velocity time derivative at current timestep
 
-    // Array2D<double> * vel_dummy;
+    Array2D<double> * vel_dummy;
 
     Array1D<double> * press_t0;      // displacement solution for current timestep
     Array1D<double> * press_tm1;     // displacement solution at previous timestep (t minus 1)
@@ -346,7 +349,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     vel_t0 = new Array2D<double>(node_num, 2);
     vel_tm1 = new Array2D<double>(node_num, 2);
 
-    // vel_dummy = new Array2D<double>(node_num, 2);
+    vel_dummy = new Array2D<double>(node_num, 2);
     // press_dummy = new Array1D<double>(node_num);
 
     dpress_dt_t0 = new Array1D<double>(node_num);
@@ -379,7 +382,11 @@ int ab3Explicit(Globals * globals, Mesh * grid)
         (*press_tm1)(i) = 0.0;
         (*press_tm2)(i) = 0.0;
         (*cv_mass)(i) = grid->control_volume_mass(i);
+
+        // deg2General(grid, *vel_dummy, 0.0, r, *press_tm1);
     }
+
+    delete vel_dummy;
 
 
     if (globals->init.Value())
@@ -533,8 +540,8 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
         if (out_time >= out_frac*orbit_period)
         {
-            outstring << std::fixed << std::setprecision(8) <<"DUMPING DATA AT "<<current_time/orbit_period;
-            outstring << " AVG DISS: "<<*total_diss*4*pi*r*r/1e9<<" GW"<<out_count;
+            outstring << std::fixed <<"DUMPING DATA AT "<<current_time/orbit_period;
+            outstring << " AVG DISS: "<<std::scientific<<*total_diss*4*pi*r*r/1e9<<" GW"<<out_count;
 
             Output->Write(OUT_MESSAGE, &outstring);
 

@@ -126,6 +126,9 @@ public:
   Array2D<double> sh_matrix;
   Array1D<double> sh_matrix_fort;
 
+  Array1D<double> Pbar_20;
+  Array1D<double> Pbar_22;
+
   Array3D<double> V_inv;
   // Array2D<double> ll_data;
   Array3D<double> ll_map_coords;
