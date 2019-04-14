@@ -54,47 +54,49 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
     Array1D<double> * forcing_potential;
     forcing_potential = new Array1D<double>(node_num);
 
-    switch (globals->tide_type)
-    {
-        case ECC:
-            deg2Ecc(grid, dvdt, current_time, r, omega, e);
-            break;
-        case ECC_LIB:
-            deg2EccLib(grid, dvdt, current_time, r, omega, e);
-            break;
-        case ECC_WEST:
-            deg2EccWest(grid, dvdt, current_time, r, omega, e);
-            break;
-        case ECC_EAST:
-            deg2EccEast(grid, dvdt, current_time, r, omega, e);
-            break;
-        case ECC_RAD:
-            deg2EccRad(grid, dvdt, current_time, r, omega, e);
-            break;
-        case OBLIQ:
-            deg2Obliq(grid, dvdt, current_time, r, omega, obliq);
-            break;
-        case OBLIQ_WEST:
-            deg2ObliqWest(grid, dvdt, current_time, r, omega, obliq);
-            break;
-        case OBLIQ_EAST:
-            deg2ObliqEast(grid, dvdt, current_time, r, omega, obliq);
-            break;
-        case FULL:
-            deg2Full(grid, dvdt, current_time, r, omega, obliq, e);
-            // deg2Ecc(grid, dvdt, current_time, r, omega, e);
-            // deg2Obliq(grid, dvdt, current_time, r, omega, obliq);
-            break;
-        case PLANET:
-            deg2Planet(grid, dvdt, *forcing_potential, current_time, r);
-            break;
-        case PLANET_OBL:
-            deg2PlanetObl(grid, dvdt, current_time, r, obliq);
-            break;
-        case GENERAL:
-            deg2General(grid, dvdt, current_time, r, p_tm1);
-            break;
-    }
+    forcing(globals, grid, *forcing_potential, globals->tide_type, current_time, e, obliq);
+
+    // switch (globals->tide_type)
+    // {
+    //     case ECC:
+    //         deg2Ecc(grid, dvdt, current_time, r, omega, e);
+    //         break;
+    //     case ECC_LIB:
+    //         deg2EccLib(grid, dvdt, current_time, r, omega, e);
+    //         break;
+    //     case ECC_WEST:
+    //         deg2EccWest(grid, dvdt, current_time, r, omega, e);
+    //         break;
+    //     case ECC_EAST:
+    //         deg2EccEast(grid, dvdt, current_time, r, omega, e);
+    //         break;
+    //     case ECC_RAD:
+    //         deg2EccRad(grid, dvdt, current_time, r, omega, e);
+    //         break;
+    //     case OBLIQ:
+    //         deg2Obliq(grid, dvdt, current_time, r, omega, obliq);
+    //         break;
+    //     case OBLIQ_WEST:
+    //         deg2ObliqWest(grid, dvdt, current_time, r, omega, obliq);
+    //         break;
+    //     case OBLIQ_EAST:
+    //         deg2ObliqEast(grid, dvdt, current_time, r, omega, obliq);
+    //         break;
+    //     case FULL:
+    //         deg2Full(grid, dvdt, current_time, r, omega, obliq, e);
+    //         // deg2Ecc(grid, dvdt, current_time, r, omega, e);
+    //         // deg2Obliq(grid, dvdt, current_time, r, omega, obliq);
+    //         break;
+    //     case PLANET:
+    //         deg2Planet(grid, dvdt, *forcing_potential, current_time, r);
+    //         break;
+    //     case PLANET_OBL:
+    //         deg2PlanetObl(grid, dvdt, current_time, r, obliq);
+    //         break;
+    //     case GENERAL:
+    //         deg2General(grid, dvdt, current_time, r, p_tm1);
+    //         break;
+    // }
 
 
     // switch (globals->fric_type)
@@ -156,7 +158,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
     {
         vec[3*i] = v_tm1(i,0);
         vec[3*i+1] = v_tm1(i,1);
-        vec[3*i+2] = p_tm1(i) + (*forcing_potential)(i);
+        vec[3*i+2] = p_tm1(i) - (*forcing_potential)(i)/g;
     }
 
     error = mkl_sparse_d_mv(operation, 1.0, *(grid->operatorMomentum), descript, vec, betam, &(dvdt(0,0)));

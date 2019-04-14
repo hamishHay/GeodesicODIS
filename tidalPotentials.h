@@ -9,8 +9,11 @@
 #define TIDALPOTENTIALS_H
 
 #include "mesh.h"
+#include "globals.h"
 #include "array2d.h"
 #include <math.h>
+
+void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, int forcing_type, double time, double ecc=0.1, double obl=0.1);
 
 
 // Degree 2 component of the eccentricity tide (see Tyler 2011, Matsuyama 2014)

@@ -24,6 +24,142 @@
 #include <math.h>
 #include <iomanip>
 
+
+void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, int forcing_type, double time, double ecc, double obl)
+{
+    int i,j, node_num;
+    node_num = grid->node_num;
+
+    double factor, factor2;              // cos(Mean anomaly), sin(Mean anomaly)
+    double radius, omega;
+
+    double * sinLon, * cosLon;
+    double * sin2Lon, *cos2Lon;
+    double * cosLat, * sinLat;
+    double * sin2Lat;
+    double * sinSqLat, * cosSqLat;
+
+    double cosM, sinM;
+
+    radius = consts->radius.Value();
+    omega = consts->angVel.Value();
+
+    if (consts->surface_type == LID_LOVE || consts->surface_type == LID_MEMBR)
+    {
+     radius += consts->shell_thickness.Value();
+    }
+
+    cosM = cos(omega*time);
+    sinM = sin(omega*time);
+
+    // Assign pointers to start of trig node arrays
+    cosLon = &(grid->trigLon(0,0));
+    sinLon = &(grid->trigLon(0,1));
+    cosLat = &(grid->trigLat(0,0));
+
+    cos2Lon = &(grid->trig2Lon(0,0));
+    sin2Lon = &(grid->trig2Lon(0,1));
+    sin2Lat = &(grid->trig2Lat(0,1));
+
+    cosSqLat = &(grid->trigSqLat(0, 0));
+    sinSqLat = &(grid->trigSqLat(0, 1));
+
+
+    switch (forcing_type)
+    {
+      case ECC:
+      {
+          factor = 0.75 * consts->loveReduct.Value() * pow(omega,2.0)*pow(radius,2.0)*ecc;
+
+          for (i=0; i<node_num; i++) {
+              j = i*2;
+
+              potential(i) = factor*((1. - 3.*sinSqLat[j])*cosM
+                                      + cosSqLat[j] * (3.*cosM*cos2Lon[j]
+                                      + 4.*sinM*sin2Lon[j]));
+          }
+      }
+      break;
+
+      case OBLIQ:
+      {
+          factor = -3./2. * consts->loveReduct.Value() * pow(omega,2.0)*pow(radius,2.0)*obl;
+
+          for (i=0; i<node_num; i++) {
+              j = i*2;
+
+              potential(i) = factor * cosM * sin2Lat[j] * cosLon[j];
+          }
+
+      }
+      break;
+
+      case FULL:
+      {
+          factor = 0.75 * consts->loveReduct.Value() * pow(omega,2.0)*pow(radius,2.0)*ecc;
+
+          factor2 = -3./2. * consts->loveReduct.Value() * pow(omega,2.0)*pow(radius,2.0)*obl;
+
+          for (i=0; i<node_num; i++) {
+              j = i*2;
+
+              potential(i) = factor*((1-3*sinSqLat[j])*cosM
+                                      + cosSqLat[j] * (3*cosM*cos2Lon[j]
+                                      + 4*sinM*sin2Lon[j]))
+                            + factor2 * cosM * sin2Lat[j] * cosLon[j];
+          }
+      }
+      break;
+
+      case PLANET:
+      {
+          double a1, a2;  //semimajor axes
+          double n1, n2;  //mean motions
+          double m2;
+          double cosnt, sinnt;
+          double cosphi, sinphi;
+          double dist;
+          double cosgam;
+
+          // m2 = 8.931938e+22;  // Io
+          m2 = 1.4815e23;   // Ganymede
+          // m2 = 4.799e22;  //Europa
+
+          // a1 = 421800000.0; // Io
+          a2 = 1.074e9;   // Ganymede
+          a1 = grid->globals->a.Value();
+          // a2 = 671100000.0; // Europa
+
+          // n2 = 4.11e-5;   // Io
+          // n2 = 1.016e-5;     // Ganymede
+          // n2 = 2.05e-5;     // Europa
+          n1 = grid->globals->angVel.Value();
+          n2 = n1*0.5;
+
+          double nij = n1-n2;
+
+          cosnt = cos(nij*time);
+          sinnt = sin(nij*time);
+
+          dist = sqrt(pow(a1, 2.0) + pow(a2, 2.0) - 2.*a1*a2*cosnt);
+
+          cosphi = (a1 - a2*cosnt)/dist;
+          sinphi = a2*sinnt/dist;
+
+          factor = 0.5 * 6.67408e-11 * m2 * pow(radius/dist, 2.0)/dist;
+
+          for (i=0; i<node_num; i++) {
+              j = i*2;
+
+              cosgam = cosLat[j] * (cosLon[j]*cosphi + sinLon[j]*sinphi);
+              potential(i) = factor * (3. * cosgam*cosgam - 1.0);
+          }
+      }
+      break;
+    }
+};
+
+
 // -----------------------------------------------------------------------------
 // Full eccentricity tidal forcing, degree-2 (e.g., Matsuyama (2014)) ----------
 // -----------------------------------------------------------------------------
@@ -654,7 +790,7 @@ void deg2Planet(Mesh * grid, Array2D<double> & soln, Array1D<double> & potential
     cosphi = (a1 - a2*cosnt)/dist;
     sinphi = a2*sinnt/dist;
 
-    factor = 0.5 * 6.67408e-11 * m2 * pow(radius/dist, 2.0)/dist;
+    factor = -1.0/grid->globals->g.Value() * 0.5 * 6.67408e-11 * m2 * pow(radius/dist, 2.0)/dist;
 
     // Assign pointers to start of trig node arrays
     cosLon = &(grid->trigLon(0,0));
@@ -668,8 +804,7 @@ void deg2Planet(Mesh * grid, Array2D<double> & soln, Array1D<double> & potential
         // Calculate obliquity tidal potential
 
         cosgam = cosLat[j] * (cosLon[j]*cosphi + sinLon[j]*sinphi);
-        // (*scalar_dummy)(i) = factor * (3. * pow(cosgam, 2.0) - 1.0);
-        potential(i) = factor * (3. * pow(cosgam, 2.0) - 1.0)*(-1.0/grid->globals->g.Value());
+        potential(i) = factor * (3. * cosgam*cosgam - 1.0);
     }
 
 
@@ -677,7 +812,7 @@ void deg2Planet(Mesh * grid, Array2D<double> & soln, Array1D<double> & potential
     // pressureGradient(grid, soln, *scalar_dummy, node_num, -1.0/grid->globals->g.Value());
 
 
-    delete scalar_dummy;
+    // delete scalar_dummy;
 };
 
 void deg2General(Mesh * grid, Array2D<double> & soln, double simulationTime, double radius, Array1D<double> & scalar)
