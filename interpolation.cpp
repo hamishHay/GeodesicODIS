@@ -7,8 +7,8 @@
 #include <iostream>
 #include "spatialOperators.h"
 
-#include <mkl_spblas.h>
-#include <mkl.h>
+// #include <mkl_spblas.h>
+// #include <mkl.h>
 
 /**
 *   @purpose    Function interpolates data from the geodesic grid to the regular

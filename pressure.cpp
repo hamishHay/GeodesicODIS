@@ -106,12 +106,12 @@ int updatePressure(Globals * globals,
     div_lm = new Array3D<double>(2.*(l_max+1), 2.*(l_max+1), 2);
     p_lm = new Array3D<double>(2.*(l_max+1), 2.*(l_max+1), 2);
 
-    Pbar_lm = &(grid->Pbar_lm);             // 4-pi Normalised associated leg funcs
-    Pbar_lm_deriv = &(grid->Pbar_lm_deriv); // 4-pi Normalised associated leg funcs derivs
+    // Pbar_lm = &(grid->Pbar_lm);             // 4-pi Normalised associated leg funcs
+    // Pbar_lm_deriv = &(grid->Pbar_lm_deriv); // 4-pi Normalised associated leg funcs derivs
     trigMLon = &(grid->trigMLon);           // cos and sin of m*longitude
     trigLat = &(grid->trigLat);
 
-    p_factor = &(grid->pressure_factor);
+    // p_factor = &(grid->pressure_factor);
 
     for (i=0; i<node_num; i++)
     {
@@ -188,16 +188,16 @@ int updatePressure(Globals * globals,
                     {
                         for (m=0; m<=l; m++)
                         {
-                            (*p_corr)(i) += (*Pbar_lm)(i, l, m) * ( (*p_lm)(l, m, 0) * (*trigMLon)(i, m, 0) +
-                                                            (*p_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
-
-                            u_corr += u_factor * (*Pbar_lm)(i, l, m)
-                                        * (-(*p_lm)(l, m, 0) * (double)m * (*trigMLon)(i, m, 1)
-                                           + (*p_lm)(l, m, 1) * (double)m * (*trigMLon)(i, m, 0));
-
-                            v_corr += v_factor * (*Pbar_lm_deriv)(i, l, m)
-                                       * ((*p_lm)(l, m, 0) * (*trigMLon)(i, m, 0)
-                                          + (*p_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
+                            // (*p_corr)(i) += (*Pbar_lm)(i, l, m) * ( (*p_lm)(l, m, 0) * (*trigMLon)(i, m, 0) +
+                            //                                 (*p_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
+                            //
+                            // u_corr += u_factor * (*Pbar_lm)(i, l, m)
+                            //             * (-(*p_lm)(l, m, 0) * (double)m * (*trigMLon)(i, m, 1)
+                            //                + (*p_lm)(l, m, 1) * (double)m * (*trigMLon)(i, m, 0));
+                            //
+                            // v_corr += v_factor * (*Pbar_lm_deriv)(i, l, m)
+                            //            * ((*p_lm)(l, m, 0) * (*trigMLon)(i, m, 0)
+                            //               + (*p_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
 
                         }
                     }

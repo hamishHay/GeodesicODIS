@@ -3,6 +3,7 @@
 #include "array3d.h"
 #include "array2d.h"
 #include "array1d.h"
+#include "mkl.h"
 
 void coriolisForce(Mesh * mesh, Array2D<double> & dvdt, Array2D<double> &velocity)
 {

@@ -8,6 +8,7 @@
 #include "mathRoutines.h"
 #include "sphericalHarmonics.h"
 
+#include <mkl.h>
 #include <mkl_spblas.h>
 
 //Class stores all coordinate information about the mesh
@@ -28,10 +29,15 @@ private:
   int CalcTrigFunctions(void);
   int CalcNodeDists(void);
   int CalcMaxTimeStep(void);
-  int CalcPressureFactor();
+
   int CalcLegendreFuncs();
   int CalcGradOperatorCoeffs();
   int CalcDivOperatorCoeffs();
+  int CalcLaplaceOperatorCoeffs(void);
+  int CalcCoriolisOperatorCoeffs(void);
+  int CalcLinearDragOperatorCoeffs(void);
+  int GeneratePressureSolver(void);
+  int GenerateMomentumOperator(void);
 
 
 public:
@@ -105,8 +111,6 @@ public:
   // Array to store the triangular areas within each subelement.
   Array3D<double> node_friend_element_areas_map;
 
-  Array1D<double> pressure_factor;
-
   // Arrays to store trig functions evaluated at each node
   Array2D<double> trigLat;
   Array2D<double> trigLon;
@@ -116,33 +120,34 @@ public:
   Array2D<double> trigSqLon;
 
 
-  Array3D<double> Pbar_lm;
-  Array3D<double> Pbar_lm_deriv;
   Array3D<double> trigMLon;
-  Array3D<double> Pbar_cosMLon;
-  Array3D<double> Pbar_sinMLon;
-  Array3D<double> Pbar_deriv_cosMLon;
-  Array3D<double> Pbar_deriv_sinMLon;
   Array2D<double> sh_matrix;
   Array1D<double> sh_matrix_fort;
 
   Array1D<double> Pbar_20;
   Array1D<double> Pbar_22;
 
-  Array3D<double> V_inv;
-  // Array2D<double> ll_data;
-  Array3D<double> ll_map_coords;
-  Array2D<int> cell_ID;
-
-  Array3D<double> LU_V;
-  Array3D<double> V_MAT;
-  Array2D<int> IPIV_V;
-
   int * interpRows;
   int * interpCols;
   double * interpWeights;
 
+  // Handle to the Intel MKL direct sparse matrix solver to solve an elliptical
+  // equation in pressure correction
+  _MKL_DSS_HANDLE_t pressureSolverHandle;
+
   sparse_matrix_t * interpMatrix;
+
+  sparse_matrix_t * operatorMomentum;
+  sparse_matrix_t * operatorLaplacian;
+  sparse_matrix_t * operatorLaplacian2;
+  sparse_matrix_t * operatorGradientX;
+  sparse_matrix_t * operatorGradientY;
+  sparse_matrix_t * operatorGradient;
+  sparse_matrix_t * operatorDivergence;
+  sparse_matrix_t * operatorDivergenceX;
+  sparse_matrix_t * operatorDivergenceY;
+  sparse_matrix_t * operatorCoriolis;
+  sparse_matrix_t * operatorLinearDrag;
 
   Globals * globals;
 

@@ -6,6 +6,7 @@
 #include "spatialOperators.h"
 #include <math.h>
 #include <iostream>
+#include <mkl.h>
 
 void setBeta(Array1D<double> & beta, int m, int n, int node_num, Array3D<double> & trigMLon, Array3D<double> & trigNLat)
 {
@@ -143,20 +144,57 @@ void runOperatorTests(Globals * globals, Mesh * mesh)
 
             velocityDivergence(mesh, *divTest, *u, sum, -1.0);
 
-            pressureGradient(mesh, *gradTest, *beta, node_num, -1.0);
+            // pressureGradient(mesh, *gradTest, *beta, node_num, -1.0);
+
+            sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
+            matrix_descr descript;
+            // struct matrix_descr {
+            //     sparse_matrix_type_t type;
+            // } descript;
+            descript.type = SPARSE_MATRIX_TYPE_GENERAL;
+            double alpham = 1.0;
+            double betam = 1.0;
+            int error;
+
+            // double * u_vel, * v_vel;
+            // u_vel = new double[node_num];
+            // v_vel = new double[node_num];
+            double * du_vel, * dv_vel;
+            du_vel = new double[2*node_num];
+            // dv_vel = new double[node_num];
+            double * vec = new double[3*node_num];
+            for (i=0; i<node_num; i++)
+            {
+                // dvdt(i,0) = 0.0;
+                // dvdt(i,1) = 0.0;
+                // pressure(i) = 0.001*i;
+                // u_vel[i] = velocity(i,0);
+                // v_vel[i] = velocity(i,1);
+                du_vel[2*i] = 0.0;
+                du_vel[2*i+1] = 0.0;
+                // dv_vel[i] = dvdt(i,1);
+                vec[3*i] = 0.0;
+                vec[3*i+1] = 0.0;
+                vec[3*i+2] = (*beta)(i);
+            }
+
+            error = mkl_sparse_d_mv(operation, -1.0, *(mesh->operatorGradientX), descript, vec, betam, du_vel);
 
             for (i = 0; i < node_num; i++)
             {
+                std::cout<<i<<' ';
                 std::cout<<(*gradBeta)(i,0)<<'\t';
-                std::cout<<(*gradBeta)(i,1)<<'\t';
+                // std::cout<<(*gradBeta)(i,1)<<'\t';
                 // std::cout<<(*u)(i,a)/(r*(*trigLon)(i,1))<<'\t';
-                std::cout<<(*gradTest)(i,0)<<'\t';
-                std::cout<<(*gradTest)(i,1)<<'\t';
+                // std::cout<<(*gradTest)(i,0)<<'\t';
+                // std::cout<<(*gradTest)(i,1)<<'\t';
+                std::cout<<du_vel[2*i]<<'\t';
+                // std::cout<<(*gradTest)(i,1)<<'\t';
                 // std::cout<<fabs((*gradBeta)(i,a) - (*gradTest)(i,a))/(*gradBeta)(i,a)*100.0<<std::endl;
 
-
-                std::cout<<(*divU)(i)<<'\t';
-                std::cout<<(*divTest)(i)<<std::endl;
+                std::cout<<std::endl;
+                // std::cout<<(*divU)(i)<<'\t';
+                // std::cout<<(*divTest)(i)<<std::endl;
                 // std::cout<<(*divU)(i) - (*divTest)(i)<<std::endl;
 
 

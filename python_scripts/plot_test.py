@@ -51,7 +51,7 @@ data_eta = in_file["displacement"][n]
 # data_eta = data_diss
 #data_eta = data_diss
 
-data_eta = np.mean(in_file["dissipated energy"][:], axis=0)
+# data_eta = np.mean(in_file["dissipated energy"][:], axis=0)
 
 N = int(1 + 0.5 * math.log((len(data_u)-2)/10, 2))
 

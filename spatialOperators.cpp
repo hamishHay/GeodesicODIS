@@ -5,6 +5,7 @@
 #include "array1d.h"
 #include "sphericalHarmonics.h"
 #include "interpolation.h"
+#include "mkl.h"
 
 extern "C"{
 // FORTRAN adds _ after all the function names
@@ -26,39 +27,88 @@ double dgemv_( const char * TRANS,
 
 void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pressure, int nodeNum, double g = 1.0)
 {
-    int friend_num;
-    int i, j, end_i;
+    // int friend_num;
+    int i, j;
 
-    Array2D<int> * friend_list;
-    Array3D<double> * grad_coeffs;
+    // Array2D<int> * friend_list;
+    // Array3D<double> * grad_coeffs;
+    //
+    // double p0, p1;
+    // double x_grad, y_grad;
+    //
+    // friend_list = &(mesh->node_friends);
+    // grad_coeffs = &(mesh->grad_coeffs);
 
-    double p0, p1;
-    double x_grad, y_grad;
+    sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
+    matrix_descr descript;
+    // struct matrix_descr {
+    //     sparse_matrix_type_t type;
+    // } descript;
+    descript.type = SPARSE_MATRIX_TYPE_GENERAL;
+    double alpham = 1.0;
+    double betam = 1.0;
+    int error;
 
-    friend_list = &(mesh->node_friends);
-    grad_coeffs = &(mesh->grad_coeffs);
-
+    // double * u_vel, * v_vel;
+    // u_vel = new double[node_num];
+    // v_vel = new double[node_num];
+    // double * du_vel, * dv_vel;
+    // du_vel = new double[2*nodeNum];
+    // dv_vel = new double[nodeNum];
+    double * vec = new double[3*nodeNum];
     for (i=0; i<nodeNum; i++)
     {
-        friend_num = 6;
-        if ((*friend_list)(i, 5) == -1) friend_num = 5;
-
-        p0 = pressure(i);
-
-        x_grad = p0 * (*grad_coeffs)(i, 0, 0);
-        y_grad = p0 * (*grad_coeffs)(i, 0, 1);
-
-        for (j=0; j<friend_num; j++)
-        {
-            p1 = pressure( (*friend_list)(i, j) );
-
-            x_grad += p1 * (*grad_coeffs)(i, j+1, 0);
-            y_grad += p1 * (*grad_coeffs)(i, j+1, 1);
-        }
-
-        dvdt(i,0) -= g*x_grad;
-        dvdt(i,1) -= g*y_grad;
+        // dvdt(i,0) = 0.0;
+        // dvdt(i,1) = 0.0;
+        // pressure(i) = 0.001*i;
+        // u_vel[i] = velocity(i,0);
+        // v_vel[i] = velocity(i,1);
+        // du_vel[2*i] = dvdt(i,0);
+        // du_vel[2*i+1] = dvdt(i,1);
+        // dv_vel[i] = dvdt(i,1);
+        vec[3*i] = 0.0;
+        vec[3*i+1] = 0.0;
+        vec[3*i+2] = pressure(i);
     }
+
+    error = mkl_sparse_d_mv(operation, g, *(mesh->operatorGradient), descript, vec, betam, &(dvdt(0,0)));
+    // error = mkl_sparse_d_mv(operation, -g, *(mesh->operatorGradientY), descript, vec, betam, du_vel);
+
+    // for (i=0; i<nodeNum; i++)
+    // {
+    //     dvdt(i,0) = du_vel[i];
+    //     dvdt(i,1) = dv_vel[i];
+    // }
+
+    // delete[] u_vel;
+    // delete[] v_vel;
+    // delete[] dv_vel;
+
+    // for (i=0; i<nodeNum; i++)
+    // {
+    //     friend_num = 6;
+    //     if ((*friend_list)(i, 5) == -1) friend_num = 5;
+    //
+    //     p0 = pressure(i);
+    //
+    //     x_grad = p0 * (*grad_coeffs)(i, 0, 0);
+    //     y_grad = p0 * (*grad_coeffs)(i, 0, 1);
+    //
+    //     for (j=0; j<friend_num; j++)
+    //     {
+    //         p1 = pressure( (*friend_list)(i, j) );
+    //
+    //         x_grad += p1 * (*grad_coeffs)(i, j+1, 0);
+    //         y_grad += p1 * (*grad_coeffs)(i, j+1, 1);
+    //     }
+    //
+    //     dvdt(i,0) -= g*x_grad;
+    //     dvdt(i,1) -= g*y_grad;
+    // }
+
+    // for (i=0; i<nodeNum; i++) std::cout<<i<<'\t'<<dvdt(i,1)-du_vel[i*2+1]<<std::endl;
+    // std::cout<<"NOICE";
+    delete[] vec;
 };
 
 void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & gg_scalar, double factor)
@@ -105,8 +155,8 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
     ll_scalar = new Array2D<double>(180/N_ll, 360/N_ll);
     scalar_dummy = new Array1D<double>(node_num);
 
-    Pbar_lm = &(mesh->Pbar_lm);             // 4-pi Normalised associated leg funcs
-    Pbar_lm_deriv = &(mesh->Pbar_lm_deriv); // 4-pi Normalised associated leg funcs derivs
+    // Pbar_lm = &(mesh->Pbar_lm);             // 4-pi Normalised associated leg funcs
+    // Pbar_lm_deriv = &(mesh->Pbar_lm_deriv); // 4-pi Normalised associated leg funcs derivs
     trigMLon = &(mesh->trigMLon);           // cos and sin of m*longitude
     cosLat = &(mesh->trigLat(0,0));
 
@@ -226,80 +276,80 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
     case 1:
         // LOOP THROUGH EVERY GRID POINT, REBUILDING SCALAR
         // GRADIENT DIRECTLY FROM SPHERICAL HARMONIC COEFFICIENTS
-        for (i=0; i<node_num; i++)
-        {
-            // lon_factor = factor * 1.0/(r*(*trigLat)(i,0));
-            lon_factor = factor * 1.0/(r*cosLat[i*2]);
-
-
-            dvdt_x_total = 0.0;
-            dvdt_y_total = 0.0;
-            dummy_val_total = 0.0;
-            double dummy_val_total2 = 0.0;
-
-            (*scalar_dummy)(i) = 0.0;
-            for (l=start_l; l<l_max+1; l++)
-            {
-                dvdt_x = 0.0;
-                dvdt_y = 0.0;
-                dummy_val = 0.0;
-
-                for (m=0; m<=l; m++)
-                {
-                    scalar_lm_cos = (*scalar_lm)(l, m, 0);
-                    scalar_lm_sin = (*scalar_lm)(l, m, 1);
-
-                    cosMLon = (*trigMLon)(i, m, 0);
-                    sinMLon = (*trigMLon)(i, m, 1);
-
-                    dvdt_x += lon_factor * (*Pbar_lm)(i, l, m)
-                              * (-scalar_lm_cos * (double)m * sinMLon
-                              + scalar_lm_sin * (double)m * cosMLon);
-
-                    dvdt_y += lat_factor * (*Pbar_lm_deriv)(i, l, m)
-                              * (scalar_lm_cos * cosMLon
-                              + scalar_lm_sin * sinMLon);
-
-
-                    dummy_val += (*Pbar_lm)(i, l, m)
-                              * (scalar_lm_cos * cosMLon
-                              + scalar_lm_sin * sinMLon);
-                }
-
-                dummy_val_total2 += dummy_val;
-
-                if (globals->surface_type == FREE_LOADING)
-                {
-                    dvdt_x *= loading_factor[l];
-                    dvdt_y *= loading_factor[l];
-                    dummy_val *= loading_factor[l];
-                }
-                else if (globals->surface_type == LID_LOVE
-                         || globals->surface_type == LID_MEMBR)
-                {
-                    dvdt_x *= shell_factor_beta[l];
-                    dvdt_y *= shell_factor_beta[l];
-                    dummy_val *= shell_factor_beta[l];
-                }
-
-
-                dvdt_x_total += dvdt_x;
-                dvdt_y_total += dvdt_y;
-                dummy_val_total += dummy_val;
-            }
-
-            (*scalar_dummy)(i) = dummy_val_total;
-            // gg_scalar(i) = dummy_val_total2;
-
-            if (i > 1) {
-                dvdt(i,0) += dvdt_x_total;
-                dvdt(i,1) += dvdt_y_total;
-            }
-        }
-
-        // Numerically calc gradient for the first two grid points,
-        // i.e., the north and south pole.
-        pressureGradient(mesh, dvdt, *scalar_dummy, 2, -factor);
+        // for (i=0; i<node_num; i++)
+        // {
+        //     // lon_factor = factor * 1.0/(r*(*trigLat)(i,0));
+        //     lon_factor = factor * 1.0/(r*cosLat[i*2]);
+        //
+        //
+        //     dvdt_x_total = 0.0;
+        //     dvdt_y_total = 0.0;
+        //     dummy_val_total = 0.0;
+        //     double dummy_val_total2 = 0.0;
+        //
+        //     (*scalar_dummy)(i) = 0.0;
+        //     for (l=start_l; l<l_max+1; l++)
+        //     {
+        //         dvdt_x = 0.0;
+        //         dvdt_y = 0.0;
+        //         dummy_val = 0.0;
+        //
+        //         for (m=0; m<=l; m++)
+        //         {
+        //             scalar_lm_cos = (*scalar_lm)(l, m, 0);
+        //             scalar_lm_sin = (*scalar_lm)(l, m, 1);
+        //
+        //             cosMLon = (*trigMLon)(i, m, 0);
+        //             sinMLon = (*trigMLon)(i, m, 1);
+        //
+        //             dvdt_x += lon_factor * (*Pbar_lm)(i, l, m)
+        //                       * (-scalar_lm_cos * (double)m * sinMLon
+        //                       + scalar_lm_sin * (double)m * cosMLon);
+        //
+        //             dvdt_y += lat_factor * (*Pbar_lm_deriv)(i, l, m)
+        //                       * (scalar_lm_cos * cosMLon
+        //                       + scalar_lm_sin * sinMLon);
+        //
+        //
+        //             dummy_val += (*Pbar_lm)(i, l, m)
+        //                       * (scalar_lm_cos * cosMLon
+        //                       + scalar_lm_sin * sinMLon);
+        //         }
+        //
+        //         dummy_val_total2 += dummy_val;
+        //
+        //         if (globals->surface_type == FREE_LOADING)
+        //         {
+        //             dvdt_x *= loading_factor[l];
+        //             dvdt_y *= loading_factor[l];
+        //             dummy_val *= loading_factor[l];
+        //         }
+        //         else if (globals->surface_type == LID_LOVE
+        //                  || globals->surface_type == LID_MEMBR)
+        //         {
+        //             dvdt_x *= shell_factor_beta[l];
+        //             dvdt_y *= shell_factor_beta[l];
+        //             dummy_val *= shell_factor_beta[l];
+        //         }
+        //
+        //
+        //         dvdt_x_total += dvdt_x;
+        //         dvdt_y_total += dvdt_y;
+        //         dummy_val_total += dummy_val;
+        //     }
+        //
+        //     (*scalar_dummy)(i) = dummy_val_total;
+        //     // gg_scalar(i) = dummy_val_total2;
+        //
+        //     if (i > 1) {
+        //         dvdt(i,0) += dvdt_x_total;
+        //         dvdt(i,1) += dvdt_y_total;
+        //     }
+        // }
+        //
+        // // Numerically calc gradient for the first two grid points,
+        // // i.e., the north and south pole.
+        // pressureGradient(mesh, dvdt, *scalar_dummy, 2, -factor);
 
         break;
 
@@ -307,40 +357,40 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, 
         // LOOP THROUGH EVERY GRID POINT, REBUILDING SCALAR
         // FIELD FROM SPHERICAL HARMONIC COEFFICIENTS AND *THEN* TAKE THE
         // GRADIENT NUMERICALLY
-        for (i=0; i<node_num; i++)
-        {
-            dvdt_x_total = 0.0;
-            (*scalar_dummy)(i) = 0.0;
-
-            for (l=0; l<l_max+1; l++)
-            {
-                dvdt_x = 0.0;
-                for (m=0; m<=l; m++)
-                {
-                    dvdt_x += (*Pbar_lm)(i, l, m)
-                              * ((*scalar_lm)(l, m, 0) * (*trigMLon)(i, m, 0)
-                              + (*scalar_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
-                }
-
-
-                if (globals->surface_type == FREE_LOADING)
-                {
-                    dvdt_x *= loading_factor[l];
-                }
-                else if (globals->surface_type == LID_LOVE ||
-                         globals->surface_type == LID_MEMBR)
-                {
-                    dvdt_x *= shell_factor_beta[l];
-                }
-
-                dvdt_x_total += dvdt_x;
-            }
-
-            (*scalar_dummy)(i) += dvdt_x_total;
-
-        }
-
-        pressureGradient(mesh, dvdt, *scalar_dummy, node_num, -factor);
+        // for (i=0; i<node_num; i++)
+        // {
+        //     dvdt_x_total = 0.0;
+        //     (*scalar_dummy)(i) = 0.0;
+        //
+        //     for (l=0; l<l_max+1; l++)
+        //     {
+        //         dvdt_x = 0.0;
+        //         for (m=0; m<=l; m++)
+        //         {
+        //             dvdt_x += (*Pbar_lm)(i, l, m)
+        //                       * ((*scalar_lm)(l, m, 0) * (*trigMLon)(i, m, 0)
+        //                       + (*scalar_lm)(l, m, 1) * (*trigMLon)(i, m, 1));
+        //         }
+        //
+        //
+        //         if (globals->surface_type == FREE_LOADING)
+        //         {
+        //             dvdt_x *= loading_factor[l];
+        //         }
+        //         else if (globals->surface_type == LID_LOVE ||
+        //                  globals->surface_type == LID_MEMBR)
+        //         {
+        //             dvdt_x *= shell_factor_beta[l];
+        //         }
+        //
+        //         dvdt_x_total += dvdt_x;
+        //     }
+        //
+        //     (*scalar_dummy)(i) += dvdt_x_total;
+        //
+        // }
+        //
+        // pressureGradient(mesh, dvdt, *scalar_dummy, node_num, -factor);
 
         break;
 
@@ -402,52 +452,83 @@ void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & v
     int node_num, friend_num;
     int i, j, j1;
 
-    Array2D<int> * friend_list;
-    Array3D<double> * vel_transform;
-    Array3D<double> * div_coeffs;
-
-    double u0, u1, u_temp;
-    double v0, v1, v_temp;
-    double div_v;
-    double cos_a, sin_a;
-
+    // Array2D<int> * friend_list;
+    // Array3D<double> * vel_transform;
+    // Array3D<double> * div_coeffs;
+    //
+    // double u0, u1, u_temp;
+    // double v0, v1, v_temp;
+    // double div_v;
+    // double cos_a, sin_a;
+    //
     node_num = mesh->node_num;
-    friend_list = &(mesh->node_friends);
-    vel_transform = &(mesh->node_vel_trans);
-    div_coeffs = &(mesh->div_coeffs);
+    // friend_list = &(mesh->node_friends);
+    // vel_transform = &(mesh->node_vel_trans);
+    // div_coeffs = &(mesh->div_coeffs);
 
+    sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
+    matrix_descr descript;
+    // struct matrix_descr {
+    //     sparse_matrix_type_t type;
+    // } descript;
+    descript.type = SPARSE_MATRIX_TYPE_GENERAL;
+    double alpham = 1.0;
+    double betam = 0.0;
+    int error;
+
+    double * vec = new double[3*node_num];
+    // double * test = new double[node_num];
     for (i=0; i<node_num; i++)
     {
-        friend_num = 6;
-        if ((*friend_list)(i, 5) == -1) friend_num = 5;
-
-        u0 = velocity(i,0);
-        v0 = velocity(i,1);
-
-        div_v = (*div_coeffs)(i, 0, 0) * u0 + (*div_coeffs)(i, 0, 1) * v0;
-
-        for (j=0; j<friend_num; j++)
-        {
-            j1 = (*friend_list)(i, j);
-
-            // FIND VELOCITY AT FRIEND j1
-            u_temp = velocity(j1, 0);
-            v_temp = velocity(j1, 1);
-
-            // CONVERT TO MAPPED VELOCITIES
-            cos_a = (*vel_transform)(i, j+1, 0);
-            sin_a = (*vel_transform)(i, j+1, 1);
-
-            u1 = u_temp * cos_a + v_temp * sin_a;
-            v1 = -u_temp * sin_a + v_temp * cos_a;
-
-            div_v += (*div_coeffs)(i, j+1, 0) * u1 + (*div_coeffs)(i, j+1, 1) * v1;
-        }
-
-        dpdt(i) = -h*div_v;
-
-        if (sum >= 0.0) sum += fabs(div_v);
+        vec[3*i] = velocity(i,0);
+        vec[3*i+1] = velocity(i,1);
+        vec[3*i+2] = 0.0;
     }
+
+    error = mkl_sparse_d_mv(operation, -h, *(mesh->operatorDivergence), descript, vec, betam, &(dpdt(0)));
+    // error = mkl_sparse_d_mv(operation, -h, *(mesh->operatorDivergenceY), descript, vec, betam, test);
+    //
+    delete[] vec;
+    //
+    // for (i=0; i<node_num; i++)
+    // {
+    //     friend_num = 6;
+    //     if ((*friend_list)(i, 5) == -1) friend_num = 5;
+    //
+    //     u0 = velocity(i,0);
+    //     v0 = velocity(i,1);
+    //
+    //     div_v = (*div_coeffs)(i, 0, 0) * u0 + (*div_coeffs)(i, 0, 1) * v0;
+    //
+    //     for (j=0; j<friend_num; j++)
+    //     {
+    //         j1 = (*friend_list)(i, j);
+    //
+    //         // FIND VELOCITY AT FRIEND j1
+    //         u_temp = velocity(j1, 0);
+    //         v_temp = velocity(j1, 1);
+    //
+    //         // CONVERT TO MAPPED VELOCITIES
+    //         cos_a = (*vel_transform)(i, j+1, 0);
+    //         sin_a = (*vel_transform)(i, j+1, 1);
+    //
+    //         u1 = u_temp * cos_a + v_temp * sin_a;
+    //         v1 = -u_temp * sin_a + v_temp * cos_a;
+    //
+    //         div_v += (*div_coeffs)(i, j+1, 0) * u1 + (*div_coeffs)(i, j+1, 1) * v1;
+    //     }
+    //
+    //     // dpdt(i) = -h*div_v;
+    //
+    //     if (sum >= 0.0) sum += fabs(div_v);
+    //     dpdt(i) += test[i];
+    //
+    //     if (fabs(-h*div_v-test[i])>1e-12) std::cout<<i<<' '<<-h*div_v<<' '<<test[i]<<' '<<-h*div_v-test[i]<<std::endl;
+    // }
+
+    // mesh->globals->Output->TerminateODIS();
+
+    // delete[] test;
 };
 
 // Function to calculate the Laplacian and diffusion for the velocity field.
@@ -455,75 +536,98 @@ void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & v
 // difference operator given as equation 3.2 in Heikes et al (2013).
 void velocityDiffusion(Mesh * mesh, Array2D<double> & dvdt, Array2D<double> & velocity, double viscosity)
 {
-    int node_num, friend_num;
-    int i, j, i1, j1, j2;
-
-    Array2D<int> * friend_list;
-    Array2D<double> * edge_lens;
-    Array1D<double> * cv_areas;
-    Array3D<double> * vel_transform;
-    Array2D<double> * node_friend_dists;
-
-    double m;                          // mapping factor at current cv edge
-    double u0, u1, u_temp;
-    double v0, v1, v_temp;
-    double edge_len;
-    double cos_a, sin_a;
-    double lap_u, lap_v;
-    double node_friend_dist;
-
+    int i, node_num;
+    // int node_num, friend_num;
+    // int i, j, i1, j1, j2;
+    //
+    // Array2D<int> * friend_list;
+    // Array2D<double> * edge_lens;
+    // Array1D<double> * cv_areas;
+    // Array3D<double> * vel_transform;
+    // Array2D<double> * node_friend_dists;
+    //
+    // double m;                          // mapping factor at current cv edge
+    // double u0, u1, u_temp;
+    // double v0, v1, v_temp;
+    // double edge_len;
+    // double cos_a, sin_a;
+    // double lap_u, lap_v;
+    // double node_friend_dist;
+    //
     node_num = mesh->node_num;
-    friend_list = &(mesh->node_friends);
-    edge_lens = &(mesh->control_vol_edge_len);
-    cv_areas = &(mesh->control_volume_surf_area_map);
-    vel_transform = &(mesh->node_vel_trans);
-    node_friend_dists = &(mesh->node_dists);
+    // friend_list = &(mesh->node_friends);
+    // edge_lens = &(mesh->control_vol_edge_len);
+    // cv_areas = &(mesh->control_volume_surf_area_map);
+    // vel_transform = &(mesh->node_vel_trans);
+    // node_friend_dists = &(mesh->node_dists);
 
+    sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
+    matrix_descr descript;
+    // struct matrix_descr {
+    //     sparse_matrix_type_t type;
+    // } descript;
+    descript.type = SPARSE_MATRIX_TYPE_GENERAL;
+    double alpham = 1.0;
+    double betam = 1.0;
+    int error;
+
+    double * vec = new double[3*node_num];
     for (i=0; i<node_num; i++)
     {
-        friend_num = 6;
-        if ((*friend_list)(i, 5) == -1) friend_num = 5;
-
-        u0 = velocity(i,0);
-        v0 = velocity(i,1);
-
-        lap_u = 0.0;
-        lap_v = 0.0;
-
-        for (j=0; j<friend_num; j++)
-        {
-              i1 = (*friend_list)(i,j);
-
-              j1 = (j-1)%friend_num;
-              if (j1 < 0) j1 += friend_num;
-
-              u_temp = velocity(i1,0);
-              v_temp = velocity(i1,1);
-
-              cos_a = (*vel_transform)(i, j+1, 0);
-              sin_a = (*vel_transform)(i, j+1, 1);
-
-              u1 = u_temp * cos_a + v_temp * sin_a;
-              v1 = -u_temp * sin_a + v_temp * cos_a;
-
-              // CHANGED - index of j is now less by 1. The distance between node
-              //           and friend is stored in the same index system as the
-              //           friends themselves. The control volume edge lengths are
-              //           stored in the j-1 index system (i.e., edge s6 lines up
-              //           with node-friend length l1)
-
-              node_friend_dist = (*node_friend_dists)(i, j);  // same j index as the friend node
-              edge_len = (*edge_lens)(i, j1);                 // index j-1 due to clockwise storage
-
-              lap_u += (u1 - u0)/node_friend_dist * edge_len;
-              lap_v += (v1 - v0)/node_friend_dist * edge_len;
-
-        }
-
-        dvdt(i,0) += viscosity * lap_u/(*cv_areas)(i);
-        dvdt(i,1) += viscosity * lap_v/(*cv_areas)(i);
-
+        vec[3*i] = velocity(i,0);
+        vec[3*i+1] = velocity(i,1);
+        vec[3*i+2] = 0.0;
     }
+
+    error = mkl_sparse_d_mv(operation, viscosity, *(mesh->operatorLaplacian2), descript, vec, betam, &(dvdt(0,0)));
+
+    delete[] vec;
+
+    // for (i=0; i<node_num; i++)
+    // {
+    //     friend_num = 6;
+    //     if ((*friend_list)(i, 5) == -1) friend_num = 5;
+    //
+    //     u0 = velocity(i,0);
+    //     v0 = velocity(i,1);
+    //
+    //     lap_u = 0.0;
+    //     lap_v = 0.0;
+    //
+    //     for (j=0; j<friend_num; j++)
+    //     {
+    //           i1 = (*friend_list)(i,j);
+    //
+    //           j1 = (j-1)%friend_num;
+    //           if (j1 < 0) j1 += friend_num;
+    //
+    //           u_temp = velocity(i1,0);
+    //           v_temp = velocity(i1,1);
+    //
+    //           cos_a = (*vel_transform)(i, j+1, 0);
+    //           sin_a = (*vel_transform)(i, j+1, 1);
+    //
+    //           u1 = u_temp * cos_a + v_temp * sin_a;
+    //           v1 = -u_temp * sin_a + v_temp * cos_a;
+    //
+    //           // CHANGED - index of j is now less by 1. The distance between node
+    //           //           and friend is stored in the same index system as the
+    //           //           friends themselves. The control volume edge lengths are
+    //           //           stored in the j-1 index system (i.e., edge s6 lines up
+    //           //           with node-friend length l1)
+    //
+    //           node_friend_dist = (*node_friend_dists)(i, j);  // same j index as the friend node
+    //           edge_len = (*edge_lens)(i, j1);                 // index j-1 due to clockwise storage
+    //
+    //           lap_u += (u1 - u0)/node_friend_dist * edge_len;
+    //           lap_v += (v1 - v0)/node_friend_dist * edge_len;
+    //
+    //     }
+    //
+    //     dvdt(i,0) += viscosity * lap_u/(*cv_areas)(i);
+    //     dvdt(i,1) += viscosity * lap_v/(*cv_areas)(i);
+    //
+    // }
 };
 
 // Function to calculate the Laplacian and diffusion for the velocity field.

@@ -41,7 +41,7 @@ void deg2Full(Mesh * grid, Array2D<double> &, double simulationTime, double radi
 
 void deg2EccTotal(Mesh * grid, Array2D<double> &, double simulationTime, double radius, double omega, double theta, double ecc);
 
-void deg2Planet(Mesh * grid, Array2D<double> &, double simulationTime, double radius);
+void deg2Planet(Mesh * grid, Array2D<double> &, Array1D<double> &, double simulationTime, double radius);
 
 void deg2General(Mesh * grid, Array2D<double> &, double simulationTime, double radius, Array1D<double> & scalar);
 

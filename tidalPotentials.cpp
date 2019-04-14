@@ -601,7 +601,7 @@ void deg2EccTotal(Mesh * grid, Array2D<double> & soln, double simulationTime, do
     // avgAtPoles(grid, soln);
 };
 
-void deg2Planet(Mesh * grid, Array2D<double> & soln, double simulationTime, double radius)
+void deg2Planet(Mesh * grid, Array2D<double> & soln, Array1D<double> & potential, double simulationTime, double radius)
 {
     double factor;              // cos(Mean anomaly), sin(Mean anomaly)
     double * sinLon, * cosLon;
@@ -668,12 +668,13 @@ void deg2Planet(Mesh * grid, Array2D<double> & soln, double simulationTime, doub
         // Calculate obliquity tidal potential
 
         cosgam = cosLat[j] * (cosLon[j]*cosphi + sinLon[j]*sinphi);
-        (*scalar_dummy)(i) = factor * (3. * pow(cosgam, 2.0) - 1.0);
+        // (*scalar_dummy)(i) = factor * (3. * pow(cosgam, 2.0) - 1.0);
+        potential(i) = factor * (3. * pow(cosgam, 2.0) - 1.0)*(-1.0/grid->globals->g.Value());
     }
 
 
 
-    pressureGradient(grid, soln, *scalar_dummy, node_num, -1.0);
+    // pressureGradient(grid, soln, *scalar_dummy, node_num, -1.0/grid->globals->g.Value());
 
 
     delete scalar_dummy;

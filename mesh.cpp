@@ -44,7 +44,6 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
     control_volume_mass(N),
     node_friend_element_areas_map(N,6,3),
     centroid_node_dists_map(N,6),
-    pressure_factor(N),
     grad_coeffs(N, 7, 2),
     div_coeffs(N, 7, 2),
 
@@ -55,30 +54,14 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
     trigSqLat(N,2),
     trigSqLon(N,2),
 
-    Pbar_lm(N, l_max+1, l_max+1),
-    Pbar_lm_deriv(N, l_max+1, l_max+1),
     Pbar_20(N),
     Pbar_22(N),
-
-    Pbar_cosMLon(N, l_max+1, l_max+1),
-    Pbar_sinMLon(N, l_max+1, l_max+1),
-    Pbar_deriv_cosMLon(N, l_max+1, l_max+1),
-    Pbar_deriv_sinMLon(N, l_max+1, l_max+1),
-
 
     sh_matrix(N, (l_max+1)*(l_max+2) - 6), //-6 is to ignore degrees 0 and 1
     sh_matrix_fort(N*((l_max+1)*(l_max+2) - 6)),
 
 
-    trigMLon(N, l_max+1, 2),
-
-    V_inv(N, 6, 6),
-    V_MAT(N, 6, 6),
-    LU_V(N, 6, 6),
-    IPIV_V(N, 6),
-    ll_map_coords(180/N_ll, 360/N_ll, 2),
-    cell_ID(180/N_ll, 360/N_ll)
-
+    trigMLon(N, l_max+1, 2)
 {
 
     globals = Globals;                   // define reference to all constants
@@ -120,17 +103,27 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
 
     CalcMaxTimeStep();
 
-    CalcLegendreFuncs();
+    // CalcLegendreFuncs();
 
     CalcGradOperatorCoeffs();
 
     CalcDivOperatorCoeffs();
 
+    CalcLaplaceOperatorCoeffs();
+
+    std::cout<<"DONE"<<std::endl;
+    CalcCoriolisOperatorCoeffs();
+
+    CalcLinearDragOperatorCoeffs();
+
+    // GeneratePressureSolver();
+
+    GenerateMomentumOperator();
+
     // CalcLand();
 
-    CalcPressureFactor();
-
     ReadWeightingFile();
+
 
 };
 
@@ -175,11 +168,13 @@ int Mesh::CalcVelocityTransformFactors(void)
 
                 // assign transform factors values to arrays
                 velTransform(*cos_a, *sin_a, lat1, lat2, lon1, lon2);
+
                 break;
             }
         }
     }
 
+    std::cout<<"HI"<<std::endl;
     return 1;
 };
 
@@ -391,43 +386,6 @@ int Mesh::CalcMaxTimeStep(void)
   return 1;
 }
 
-int Mesh::CalcPressureFactor(void)
-{
-    int i, j, f, friend_num;
-    double * area, * edge_len, * node_dist;
-    double factor, relax_factor;
-
-    relax_factor = 1.7;
-
-    for (i=0; i<node_num; i++)
-    {
-
-        f = node_friends(i,5);
-
-        friend_num = 6;                                     // Assume hexagon (6 centroids)
-        if (f == -1) friend_num = 5;                                   // Check if pentagon (5 centroids)
-
-        area = &control_volume_surf_area_map(i);
-
-        factor = 0.0;
-
-        for (j=0; j<friend_num; j++)                        // Loop through all centroids in the control volume
-        {
-            f = node_friends(i,j);
-
-            edge_len = &control_vol_edge_len(i,j);            // set pointer to edge length array
-            node_dist = &node_dists(i, j);
-
-            factor += (*edge_len)/(*node_dist);
-        }
-
-        factor = relax_factor * (*area) / (globals->timeStep.Value() * factor);
-
-        pressure_factor(i) = factor;
-    }
-
-    return 1;
-}
 
 // Function to find the length of control volume edges for each node, in mapping
 // coordinates. Values are stored in control_vol_edge_len 2D array.
@@ -845,6 +803,10 @@ int Mesh::CalcLegendreFuncs(void)
     temp_legendre = new Array2D<double>(2 * (l_max+1), 2 * (l_max+1));
     temp_dlegendre = new Array2D<double>(2 * (l_max+1), 2 * (l_max+1));
 
+    Array3D<double> * Pbar_lm = new Array3D<double>(node_num, l_max+1, l_max+1);
+    Array3D<double> * Pbar_cosMLon = new Array3D<double>(node_num, l_max+1, l_max+1);
+    Array3D<double> * Pbar_sinMLon = new Array3D<double>(node_num, l_max+1, l_max+1);
+
     for (i=0; i<node_num; i++)
     {
         cosCoLat = cos(pi*0.5 - node_pos_sph(i,0));     // cos(colatitude) of node i
@@ -852,16 +814,18 @@ int Mesh::CalcLegendreFuncs(void)
         getLegendreFuncs(cosCoLat, *temp_legendre, l_max);
         getLegendreFuncsDeriv(cosCoLat, *temp_dlegendre, l_max);
 
+
+
         for (l = 0; l < l_max+1; l++)
         {
             for (m = 0; m <= l; m++)
             {
 
                 // assign legendre pol at node i for degree l and order m
-                Pbar_lm(i, l, m) = (*temp_legendre)(l, m);
+                (*Pbar_lm)(i, l, m) = (*temp_legendre)(l, m);
 
                 // assign legendre pol derivative at node i for degree l and order m
-                Pbar_lm_deriv(i, l, m) = (*temp_dlegendre)(l, m)*sin(pi*0.5 - node_pos_sph(i, 0));
+                // Pbar_lm_deriv(i, l, m) = (*temp_dlegendre)(l, m)*sin(pi*0.5 - node_pos_sph(i, 0));
 
                 if ((l==2) && (m==0)) Pbar_20(i) = (*temp_legendre)(l, m);
                 if ((l==2) && (m==2)) Pbar_22(i) = (*temp_legendre)(l, m);
@@ -881,11 +845,11 @@ int Mesh::CalcLegendreFuncs(void)
         {
             for (m = 0; m <= l; m++)
             {
-                Pbar_cosMLon(i, l, m) = Pbar_lm(i, l, m)*trigMLon(i, m, 0);
-                Pbar_sinMLon(i, l, m) = Pbar_lm(i, l, m)*trigMLon(i, m, 1);
+                (*Pbar_cosMLon)(i, l, m) = (*Pbar_lm)(i, l, m)*trigMLon(i, m, 0);
+                (*Pbar_sinMLon)(i, l, m) = (*Pbar_lm)(i, l, m)*trigMLon(i, m, 1);
 
-                Pbar_deriv_cosMLon(i, l, m) = Pbar_lm_deriv(i, l, m)*trigMLon(i, m, 0);
-                Pbar_deriv_sinMLon(i, l, m) = Pbar_lm_deriv(i, l, m)*trigMLon(i, m, 1);
+                // Pbar_deriv_cosMLon(i, l, m) = Pbar_lm_deriv(i, l, m)*trigMLon(i, m, 0);
+                // Pbar_deriv_sinMLon(i, l, m) = Pbar_lm_deriv(i, l, m)*trigMLon(i, m, 1);
 
             }
         }
@@ -895,7 +859,7 @@ int Mesh::CalcLegendreFuncs(void)
         {
             for (m = 0; m <= l; m++)
             {
-                sh_matrix(i, count) = Pbar_cosMLon(i, l, m);
+                sh_matrix(i, count) = (*Pbar_cosMLon)(i, l, m);
                 if (globals->surface_type == FREE_LOADING) sh_matrix(i, count) *= globals->loading_factor[l];
                 else if (globals->surface_type == LID_MEMBR ||
                          globals->surface_type == LID_LOVE) sh_matrix(i, count) *= globals->shell_factor_beta[l];
@@ -903,7 +867,7 @@ int Mesh::CalcLegendreFuncs(void)
 
                 count++;
 
-                sh_matrix(i, count) = Pbar_sinMLon(i, l, m);
+                sh_matrix(i, count) = (*Pbar_sinMLon)(i, l, m);
                 if (globals->surface_type == FREE_LOADING) sh_matrix(i, count) *= globals->loading_factor[l];
                 else if (globals->surface_type == LID_MEMBR ||
                          globals->surface_type == LID_LOVE) sh_matrix(i, count) *= globals->shell_factor_beta[l];
@@ -927,9 +891,194 @@ int Mesh::CalcLegendreFuncs(void)
     delete temp_legendre;
     delete temp_dlegendre;
 
+    delete Pbar_lm;
+    delete Pbar_cosMLon;
+    delete Pbar_sinMLon;
+
     return 1;
 }
 
+int Mesh::CalcCoriolisOperatorCoeffs(void)
+{
+    int i, j, j2, j3, f, f_num;
+
+    //--------------- Construct sparse matrix in CSR format --------------------
+
+    //--------------- Define objects to construct matrix -----------------------
+
+    // Here we assign the number of non-zero matrix elements for each operator.
+    // There are 12 pentagons on the geodesic grid, each with 5 neighbours and
+    // one central node (total of 6). The other cells are hexagons with 6
+    // neighbours and one central node (total of 7). Additionally, there is a
+    // row for each variable (total 3). Therefore, the total number
+    // of non-zero coefficients in our sparse matrix is given as:
+    int nNonZeroGrad = 2*node_num;
+
+    int     * colIndx;    // column index for each non-zero element
+    int     * rowIndxX;    // row indices for CSR matrix format (x component)
+    int     * rowIndxY;    // row indices for CSR matrix format (y component)
+    double * nzCoeffsX;   // non-zero grad operator coeffis in x direction
+
+    int * rowStartX;      // start row indices (x component)
+    int * rowEndX;        // start row indices (x component)
+
+
+    int         error;    // error message from MKL
+
+    // Define c (0) based indexing
+    sparse_index_base_t indexing = SPARSE_INDEX_BASE_ZERO;
+
+    // Define all operations the original (non-transpose) matrix
+    sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
+
+    //---------------- Initialise objects into memory --------------------------
+
+    rowStartX = new int[2*node_num];
+    rowEndX   = new int[2*node_num];
+    rowIndxX  = new int[2*node_num + 1];
+
+
+    nzCoeffsX = new double[nNonZeroGrad];
+    colIndx   = new int[nNonZeroGrad];
+
+    // assign the non-zero coefficients and their column indexes in CSR format
+    int count=0;
+
+    for (i=0; i<node_num; i++)
+    {
+
+          nzCoeffsX[count] = +2*globals->angVel.Value()*trigLat(i, 1);
+          colIndx[count] = i*3 + 1;
+          count++;
+
+          nzCoeffsX[count] = -2*globals->angVel.Value()*trigLat(i, 1);
+          colIndx[count] = i*3;
+          count++;
+    }
+
+    // assign the row indexes for the sparse matrix in CSR format
+    rowIndxX[0] = 0;         // first element is always zero
+
+    for (i=1; i<2*node_num; i++) {
+      rowIndxX[i] = i;
+    }
+
+    // last element is always the number of non-zero coefficients
+    rowIndxX[2*node_num] = nNonZeroGrad;
+
+    for (i=0; i<node_num*2; i++) {
+      rowStartX[i] = rowIndxX[i];
+      rowEndX[i] = rowIndxX[i+1]; }
+
+    // Create the operator for the x and y components
+    operatorCoriolis = new sparse_matrix_t;
+    sparse_matrix_t * operatorCoriolisTemp = new sparse_matrix_t;
+    error = mkl_sparse_d_create_csr(operatorCoriolisTemp, indexing, 2*node_num, 3*node_num, rowStartX, rowEndX, colIndx, nzCoeffsX);
+
+    matrix_descr descrp;
+    descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
+    error = mkl_sparse_copy (*operatorCoriolisTemp, descrp, operatorCoriolis);
+
+    delete[] rowStartX;
+    delete[] rowEndX;
+    delete[] rowIndxX;
+    delete[] colIndx;
+    delete[] nzCoeffsX;
+    delete operatorCoriolisTemp;
+
+    return 1;
+}
+
+int Mesh::CalcLinearDragOperatorCoeffs(void)
+{
+    int i, j, j2, j3, f, f_num;
+
+    //--------------- Construct sparse matrix in CSR format --------------------
+
+    //--------------- Define objects to construct matrix -----------------------
+
+    // Here we assign the number of non-zero matrix elements for each operator.
+    // There are 12 pentagons on the geodesic grid, each with 5 neighbours and
+    // one central node (total of 6). The other cells are hexagons with 6
+    // neighbours and one central node (total of 7). Additionally, there is a
+    // row for each variable (total 3). Therefore, the total number
+    // of non-zero coefficients in our sparse matrix is given as:
+    int nNonZeroGrad = 2*node_num;
+
+    int     * colIndx;    // column index for each non-zero element
+    int     * rowIndxX;    // row indices for CSR matrix format (x component)
+    int     * rowIndxY;    // row indices for CSR matrix format (y component)
+    double * nzCoeffsX;   // non-zero grad operator coeffis in x direction
+
+    int * rowStartX;      // start row indices (x component)
+    int * rowEndX;        // start row indices (x component)
+
+
+    int         error;    // error message from MKL
+
+    // Define c (0) based indexing
+    sparse_index_base_t indexing = SPARSE_INDEX_BASE_ZERO;
+
+    // Define all operations the original (non-transpose) matrix
+    sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
+
+    //---------------- Initialise objects into memory --------------------------
+
+    rowStartX = new int[2*node_num];
+    rowEndX   = new int[2*node_num];
+    rowIndxX  = new int[2*node_num + 1];
+
+
+    nzCoeffsX = new double[nNonZeroGrad];
+    colIndx   = new int[nNonZeroGrad];
+
+    // assign the non-zero coefficients and their column indexes in CSR format
+    int count=0;
+
+    for (i=0; i<node_num; i++)
+    {
+
+          nzCoeffsX[count] = -globals->alpha.Value();
+          colIndx[count] = i*3;
+          count++;
+
+          nzCoeffsX[count] = -globals->alpha.Value();
+          colIndx[count] = i*3+1;
+          count++;
+    }
+
+    // assign the row indexes for the sparse matrix in CSR format
+    rowIndxX[0] = 0;         // first element is always zero
+
+    for (i=1; i<2*node_num; i++) {
+      rowIndxX[i] = i;
+    }
+
+    // last element is always the number of non-zero coefficients
+    rowIndxX[2*node_num] = nNonZeroGrad;
+
+    for (i=0; i<node_num*2; i++) {
+      rowStartX[i] = rowIndxX[i];
+      rowEndX[i] = rowIndxX[i+1]; }
+
+    // Create the operator for the x and y components
+    operatorLinearDrag = new sparse_matrix_t;
+    sparse_matrix_t * operatorLinearDragTemp = new sparse_matrix_t;
+    error = mkl_sparse_d_create_csr(operatorLinearDragTemp, indexing, 2*node_num, 3*node_num, rowStartX, rowEndX, colIndx, nzCoeffsX);
+
+    matrix_descr descrp;
+    descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
+    error = mkl_sparse_copy (*operatorLinearDragTemp, descrp, operatorLinearDrag);
+
+    delete[] rowStartX;
+    delete[] rowEndX;
+    delete[] rowIndxX;
+    delete[] colIndx;
+    delete[] nzCoeffsX;
+    delete operatorLinearDragTemp;
+
+    return 1;
+}
 
 int Mesh::CalcGradOperatorCoeffs(void)
 {
@@ -1026,6 +1175,155 @@ int Mesh::CalcGradOperatorCoeffs(void)
 
 
     }
+
+    // Now create the gradient operators using the coefficients above
+
+    struct node {
+      int ID;
+      int F_NUM;
+    };
+
+    // why is this line here? Where would it be better placed?
+    mkl_set_num_threads(2);
+
+    //--------------- Construct sparse matrix in CSR format --------------------
+
+    //--------------- Define objects to construct matrix -----------------------
+
+    // Here we assign the number of non-zero matrix elements for each operator.
+    // There are 12 pentagons on the geodesic grid, each with 5 neighbours and
+    // one central node (total of 6). The other cells are hexagons with 6
+    // neighbours and one central node (total of 7). Additionally, there is a
+    // row for each variable (total 3). Therefore, the total number
+    // of non-zero coefficients in our sparse matrix is given as:
+    int nNonZeroGrad = (node_num-12)*7 + 12*6;
+
+    int     * colIndx;    // column index for each non-zero element
+    int     * rowIndxX;    // row indices for CSR matrix format (x component)
+    int     * rowIndxY;    // row indices for CSR matrix format (y component)
+    double * nzCoeffsX;   // non-zero grad operator coeffis in x direction
+    double * nzCoeffsY;   // non-zero grad operator coeffis in y direction
+
+    int * rowStartX;      // start row indices (x component)
+    int * rowEndX;        // start row indices (x component)
+
+    int * rowStartY;      // end row indices (x component)
+    int * rowEndY;        // end row indices (x component)
+
+    int         error;    // error message from MKL
+
+    // Define c (0) based indexing
+    sparse_index_base_t indexing = SPARSE_INDEX_BASE_ZERO;
+
+    // Define all operations the original (non-transpose) matrix
+    sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
+
+    //---------------- Initialise objects into memory --------------------------
+
+    rowStartX = new int[2*node_num];
+    rowEndX   = new int[2*node_num];
+    rowIndxX  = new int[2*node_num + 1];
+
+    rowStartY = new int[2*node_num];
+    rowEndY   = new int[2*node_num];
+    rowIndxY  = new int[2*node_num + 1];
+
+    nzCoeffsX = new double[nNonZeroGrad];
+    nzCoeffsY = new double[nNonZeroGrad];
+    colIndx   = new int[nNonZeroGrad];
+
+    // assign the non-zero coefficients and their column indexes in CSR format
+    int count=0;
+
+    for (i=0; i<node_num; i++)
+    {
+        f_num = 6;               // Assume hexagon (6 neighbours)
+        f = node_friends(i,5);
+        if (f == -1) f_num = 5;  // Check if pentagon (5 neighbours)
+
+        std::vector<node> cols(f_num+1);
+        cols[0].ID = i;
+        cols[0].F_NUM = 0;
+
+        // Add each friend to the node list
+        for (j=0; j<f_num; j++) {
+            cols[j+1].ID = node_friends(i, j);
+            cols[j+1].F_NUM = j+1; }
+
+        // Order the node list so that lowest node ID's come first
+        // This ensures each friend corresponds to its correct column
+        std::sort(cols.begin(), cols.end(),
+          [](auto const &a, auto const &b) { return a.ID < b.ID; });
+
+        // Using the ordered list to construct row i coefficients in the operator
+        for (j=0; j<f_num+1; j++) {
+          nzCoeffsX[count] = -globals->g.Value()*grad_coeffs(i, cols[j].F_NUM, 0);
+          nzCoeffsY[count] = -globals->g.Value()*grad_coeffs(i, cols[j].F_NUM, 1);
+
+          // Assign the column index. The grad operator operates only on the
+          // tidal displacement, which occupies every 3rd index, starting at
+          // column index 2
+          colIndx[count] = cols[j].ID*3 + 2;
+          count++; }
+    }
+
+    // assign the row indexes for the sparse matrix in CSR format
+    rowIndxX[0] = 0;         // first element is always zero
+    rowIndxY[0] = 0;
+
+    j=0;
+    for (i=0; i<2*node_num; i++) {
+      if (node_friends(j,5) == -1) {
+        if (i%2 == 0) rowIndxX[i+1] = rowIndxX[i]+6;
+        else rowIndxX[i+1] = rowIndxX[i];
+
+        if ((i+1)%2 == 0) rowIndxY[i+1] = rowIndxY[i]+6;
+        else rowIndxY[i+1] = rowIndxY[i]; }
+
+      else {
+        if (i%2 == 0) rowIndxX[i+1] = rowIndxX[i]+7;
+        else rowIndxX[i+1] = rowIndxX[i];
+
+        if ((i+1)%2 == 0) rowIndxY[i+1] = rowIndxY[i]+7;
+        else rowIndxY[i+1] = rowIndxY[i]; }
+
+      if (i%2 == 1) j++;
+    }
+
+    // last element is always the number of non-zero coefficients
+    rowIndxX[2*node_num] = nNonZeroGrad;
+    rowIndxY[2*node_num] = nNonZeroGrad;
+
+    for (i=0; i<node_num*2; i++) {
+      rowStartX[i] = rowIndxX[i];
+      rowEndX[i] = rowIndxX[i+1];
+
+      rowStartY[i] = rowIndxY[i];
+      rowEndY[i] = rowIndxY[i+1]; }
+
+    // Create the operator for the x and y components
+    operatorGradientX = new sparse_matrix_t;
+    error = mkl_sparse_d_create_csr(operatorGradientX, indexing, 2*node_num, 3*node_num, rowStartX, rowEndX, colIndx, nzCoeffsX);
+
+    operatorGradientY = new sparse_matrix_t;
+    error = mkl_sparse_d_create_csr(operatorGradientY, indexing, 2*node_num, 3*node_num, rowStartY, rowEndY, colIndx, nzCoeffsY);
+
+    // Sum to create a single gradient operator
+    operatorGradient = new sparse_matrix_t;
+    error = mkl_sparse_d_add(operation, *operatorGradientX, 1.0, *operatorGradientY, operatorGradient);
+
+    delete operatorGradientY;
+    delete operatorGradientX;
+
+    delete[] rowStartX;
+    delete[] rowEndX;
+    delete[] rowStartY;
+    delete[] rowEndY;
+    delete[] rowIndxX;
+    delete[] rowIndxY;
+    delete[] nzCoeffsX;
+    delete[] nzCoeffsY;
+    delete[] colIndx;
 
     return 1;
 }
@@ -1126,8 +1424,818 @@ int Mesh::CalcDivOperatorCoeffs(void)
 
     }
 
+
+    // Now create the gradient operators using the coefficients above
+
+    struct node {
+      int ID;
+      int F_NUM;
+    };
+
+    // why is this line here? Where would it be better placed?
+    mkl_set_num_threads(2);
+
+    //--------------- Construct sparse matrix in CSR format --------------------
+
+    //--------------- Define objects to construct matrix -----------------------
+
+    // Here we assign the number of non-zero matrix elements for each operator.
+    // There are 12 pentagons on the geodesic grid, each with 5 neighbours and
+    // one central node (total of 6). The other cells are hexagons with 6
+    // neighbours and one central node (total of 7). Additionally, there is a
+    // row for each variable (total 3). Therefore, the total number
+    // of non-zero coefficients in our sparse matrix is given as:
+    int nNonZeroGrad = ((node_num-12)*7 + 12*6);
+
+    int     * colIndxX;    // column index for each non-zero element
+    int     * colIndxY;    // column index for each non-zero element
+    int     * rowIndxX;    // row indices for CSR matrix format (x component)
+    int     * rowIndxY;    // row indices for CSR matrix format (y component)
+    double * nzCoeffsX;   // non-zero grad operator coeffis in x direction
+    double * nzCoeffsY;   // non-zero grad operator coeffis in y direction
+
+    int * rowStartX;      // start row indices (x component)
+    int * rowEndX;        // start row indices (x component)
+
+    int * rowStartY;      // end row indices (x component)
+    int * rowEndY;        // end row indices (x component)
+
+    int         error;    // error message from MKL
+
+    // Define c (0) based indexing
+    sparse_index_base_t indexing = SPARSE_INDEX_BASE_ZERO;
+
+    // Define all operations the original (non-transpose) matrix
+    sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
+
+    //---------------- Initialise objects into memory --------------------------
+
+    rowStartX = new int[node_num];
+    rowEndX   = new int[node_num];
+    rowIndxX  = new int[node_num + 1];
+
+    rowStartY = new int[node_num];
+    rowEndY   = new int[node_num];
+    rowIndxY  = new int[node_num + 1];
+
+    nzCoeffsX = new double[nNonZeroGrad];
+    nzCoeffsY = new double[nNonZeroGrad];
+    colIndxX   = new int[nNonZeroGrad];
+    colIndxY   = new int[nNonZeroGrad];
+
+    // assign the non-zero coefficients and their column indexes in CSR format
+    int count=0;
+
+    for (i=0; i<node_num; i++)
+    {
+        f_num = 6;               // Assume hexagon (6 neighbours)
+        f = node_friends(i,5);
+        if (f == -1) f_num = 5;  // Check if pentagon (5 neighbours)
+
+        std::vector<node> cols(f_num+1);
+        cols[0].ID = i;
+        cols[0].F_NUM = 0;
+
+        // Add each friend to the node list
+        for (j=0; j<f_num; j++) {
+            cols[j+1].ID = node_friends(i, j);
+            cols[j+1].F_NUM = j+1; }
+
+        // Order the node list so that lowest node ID's come first
+        // This ensures each friend corresponds to its correct column
+        std::sort(cols.begin(), cols.end(),
+          [](auto const &a, auto const &b) { return a.ID < b.ID; });
+
+        // Using the ordered list to construct row i coefficients in the operator
+        for (j=0; j<f_num+1; j++) {
+          double cos_a = node_vel_trans(i, cols[j].F_NUM, 0);
+          double sin_a = node_vel_trans(i, cols[j].F_NUM, 1);
+
+          // Because the gradient operator returns a vector, we have to transform
+          // the vector into mapped coordinates. We do this here by premultiplying
+          // the components of the divergence operator by the transpose of the
+          // the transform matrix defined in node_vel_trans.
+          nzCoeffsX[count]  =  (cos_a*div_coeffs(i, cols[j].F_NUM, 0) - sin_a*div_coeffs(i,  cols[j].F_NUM, 1));
+          colIndxX[count] = cols[j].ID*3;
+
+          nzCoeffsY[count]  =  (sin_a*div_coeffs(i, cols[j].F_NUM, 0) + cos_a*div_coeffs(i,  cols[j].F_NUM, 1));
+          colIndxY[count] = cols[j].ID*3 + 1;
+
+          count++; }
+    }
+
+    // assign the row indexes for the sparse matrix in CSR format
+    rowIndxX[0] = 0;         // first element is always zero
+    rowIndxY[0] = 0;
+
+    for (i=0; i<node_num; i++) {
+      if (node_friends(i,5) == -1) {
+        rowIndxX[i+1] = rowIndxX[i]+6;
+        rowIndxY[i+1] = rowIndxY[i]+6;
+        }
+
+      else {
+        rowIndxX[i+1] = rowIndxX[i]+7;
+        rowIndxY[i+1] = rowIndxY[i]+7;
+      }
+
+        // if ((i+1)%2 == 0) rowIndxY[i+1] = rowIndxY[i]+7;
+        // else rowIndxY[i+1] = rowIndxY[i]; }
+    }
+
+    // last element is always the number of non-zero coefficients
+    rowIndxX[node_num] = nNonZeroGrad;
+    rowIndxY[node_num] = nNonZeroGrad;
+
+    for (i=0; i<node_num; i++) {
+      rowStartX[i] = rowIndxX[i];
+      rowEndX[i] = rowIndxX[i+1];
+
+      rowStartY[i] = rowIndxY[i];
+      rowEndY[i] = rowIndxY[i+1]; }
+
+    // Create the operator for the x and y components
+    operatorDivergenceX = new sparse_matrix_t;
+    error = mkl_sparse_d_create_csr(operatorDivergenceX, indexing, 1*node_num, 3*node_num, rowStartX, rowEndX, colIndxX, nzCoeffsX);
+
+    operatorDivergenceY = new sparse_matrix_t;
+    error = mkl_sparse_d_create_csr(operatorDivergenceY, indexing, 1*node_num, 3*node_num, rowStartX, rowEndX, colIndxY, nzCoeffsY);
+
+    operatorDivergence = new sparse_matrix_t;
+    error = mkl_sparse_d_add(operation, *operatorDivergenceX, 1.0, *operatorDivergenceY, operatorDivergence);
+    std::cout<<error<<std::endl;
+
+    matrix_descr descrp;
+    descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
+
+    error = mkl_sparse_set_mv_hint (*operatorDivergence, operation, descrp, 1000000000);
+    error = mkl_sparse_set_memory_hint (*operatorDivergence, SPARSE_MEMORY_AGGRESSIVE);
+    error = mkl_sparse_optimize (*operatorDivergence);
+
+    delete operatorDivergenceY;
+    delete operatorDivergenceX;
+
+    delete[] rowStartX;
+    delete[] rowEndX;
+    delete[] rowStartY;
+    delete[] rowEndY;
+    delete[] rowIndxX;
+    delete[] rowIndxY;
+    delete[] nzCoeffsX;
+    delete[] nzCoeffsY;
+    delete[] colIndxX;
+    delete[] colIndxY;
+
     return 1;
 }
+
+// Function to generate a sparse matrix A for the Laplacian operator, convert it
+// to CSR format, and create a solver object that is capable of solving the
+// linear system A*p = d to find the pressure field, p, give a rhs vector d.
+int Mesh::CalcLaplaceOperatorCoeffs(void)
+{
+    int i, j, j2, j3, f, f_num;
+    // Now create the gradient operators using the coefficients above
+
+    struct node {
+      int ID;
+      int F_NUM;
+    };
+
+
+    //--------------- Construct sparse matrix in CSR format --------------------
+
+    //--------------- Define objects to construct matrix -----------------------
+
+    double * nzCoeffs_grad_x;   // non-zero grad operator coeffis in x direction
+    double * nzCoeffs_grad_y;   // non-zero grad operator coeffis in y direction
+    double * nzCoeffs_div_x;    // non-zero div operator coeffis in x direction
+    double * nzCoeffs_div_y;    // non-zero div operator coeffis in y direction
+
+    // Here we assign the number of non-zero matrix elements for each operator.
+    // There are 12 pentagons on the geodesic grid, each with 5 neighbours and
+    // one central node (total of 6). The other cells are hexagons with 6
+    // neighbours and one central node (total of 7). Therefore, the total number
+    // of non-zero coefficients in our sparse matrix is given as:
+    int nNonZero = (node_num-12)*7 + 12*6;
+
+    int     * colIndx;    // column index for each non-zero element
+    int     * rowIndx;    // row indices for CSR matrix format
+    double * nzCoeffs;    // array for each non-zero coefficient
+
+    int         error;    // error message from MKL
+
+    int * rowStart, * rowEnd; // row indexes for CSR sparse matrix format
+
+
+    //---------------- Initialise objects into memory --------------------------
+
+    rowStart = new int[node_num];
+    rowEnd   = new int[node_num];
+
+    colIndx  = new int[nNonZero];
+    nzCoeffs = new double[nNonZero];
+    rowIndx  = new int[node_num + 1];
+
+    nzCoeffs_grad_x = new double[nNonZero];
+    nzCoeffs_grad_y = new double[nNonZero];
+    nzCoeffs_div_x  = new double[nNonZero];
+    nzCoeffs_div_y  = new double[nNonZero];
+
+    // assign the non-zero coefficients and their column indexes in CSR format
+    int count=0;
+    for (i=0; i<node_num; i++)
+    {
+        f_num = 6;               // Assume hexagon (6 neighbours)
+        f = node_friends(i,5);
+        if (f == -1) f_num = 5;  // Check if pentagon (5 neighbours)
+
+
+        std::vector<node> cols(f_num+1);
+        cols[0].ID = i;
+        cols[0].F_NUM = 0;
+
+        // Add each friend to the node list
+        for (j=0; j<f_num; j++) {
+            cols[j+1].ID = node_friends(i, j);
+            cols[j+1].F_NUM = j+1; }
+
+        // Order the node list so that lowest node ID's come first
+        // This ensures each friend corresponds to its correct column
+        std::sort(cols.begin(), cols.end(),
+          [](auto const &a, auto const &b) { return a.ID < b.ID; });
+
+        // Using the ordered list to construct row i coefficients in the operator
+        double cos_a, sin_a;
+        for (j=0; j<f_num+1; j++) {
+          cos_a = node_vel_trans(i, cols[j].F_NUM, 0);
+          sin_a = node_vel_trans(i, cols[j].F_NUM, 1);
+
+          nzCoeffs_grad_x[count] = grad_coeffs(i, cols[j].F_NUM, 0);
+          nzCoeffs_grad_y[count] = grad_coeffs(i, cols[j].F_NUM, 1);
+
+          // Because the gradient operator returns a vector, we have to transform
+          // the vector into mapped coordinates. We do this here by premultiplying
+          // the components of the divergence operator by the transpose of the
+          // the transform matrix defined in node_vel_trans.
+          nzCoeffs_div_x[count]  =  5e3*(cos_a*div_coeffs(i, cols[j].F_NUM, 0) - sin_a*div_coeffs(i,  cols[j].F_NUM, 1));
+          nzCoeffs_div_y[count]  =  5e3*(sin_a*div_coeffs(i, cols[j].F_NUM, 0) + cos_a*div_coeffs(i,  cols[j].F_NUM, 1));
+
+          // Assign the column index. These operators act on each
+          // velocity component, which occupies every 3rd index, starting at
+          // column index 2
+          colIndx[count] = cols[j].ID;
+          // colIndxY[count] = cols[j].ID*3+1;
+          count++; }
+
+
+
+    }
+
+
+
+    // assign the row indexes for the sparse matrix in CSR format
+
+    rowIndx[0] = 0;         // first element is always zero
+
+    for (i=0; i<node_num; i++) {
+      if (node_friends(i,5) == -1) {
+        rowIndx[i+1] = rowIndx[i]+6;
+      }
+      else {
+        rowIndx[i+1] = rowIndx[i]+7;
+      }
+    }
+
+    // last element is always the number of non-zero coefficients
+    rowIndx[node_num] = nNonZero;
+
+    for (i=0; i<node_num; i++) {
+      rowStart[i] = rowIndx[i];
+      rowEnd[i] = rowIndx[i+1]; }
+
+
+    //----------------- Set up sparse matrix for div and grad ------------------
+
+
+    // define handles to the sparse matrices for each component of the grad and
+    // div operators. The Laplacian matrix will be constructed from these.
+    sparse_matrix_t * DIV_X, * DIV_Y, * GRAD_X, * GRAD_Y;
+    sparse_matrix_t * LAP_X, * LAP_Y;
+
+    DIV_X   = new sparse_matrix_t;
+    DIV_Y   = new sparse_matrix_t;
+    GRAD_X  = new sparse_matrix_t;
+    GRAD_Y  = new sparse_matrix_t;
+    LAP_X   = new sparse_matrix_t;
+    LAP_Y   = new sparse_matrix_t;
+
+
+
+    // Define c (0) based indexing
+    sparse_index_base_t indexing = SPARSE_INDEX_BASE_ZERO;
+
+    // Define all operations the original (non-transpose) matrix
+    sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
+
+    // Assign non-zero values to matrices for the components of div and grad operators
+    error = mkl_sparse_d_create_csr(DIV_X,  indexing, node_num, node_num, rowStart, rowEnd, colIndx, nzCoeffs_div_x);
+    error = mkl_sparse_d_create_csr(DIV_Y,  indexing, node_num, node_num, rowStart, rowEnd, colIndx, nzCoeffs_div_y);
+
+    error = mkl_sparse_d_create_csr(GRAD_X, indexing, node_num, node_num, rowStart, rowEnd, colIndx, nzCoeffs_grad_x);
+    error = mkl_sparse_d_create_csr(GRAD_Y, indexing, node_num, node_num, rowStart, rowEnd, colIndx, nzCoeffs_grad_y);
+
+    // Compute the multiplication of each component of the div dot grad
+    error = mkl_sparse_spmm(operation, *DIV_X, *GRAD_X, LAP_X); // div_x * grad_x
+    error = mkl_sparse_spmm(operation, *DIV_Y, *GRAD_Y, LAP_Y); // div_y * grad_y
+
+    // Sum each component to give the total Grad^2 operator (Laplacian)
+    // This is equivalent to (div_x * grad_x) + (div_y + grad_y)
+    sparse_matrix_t * LAP = new sparse_matrix_t;
+    error = mkl_sparse_d_add(operation, *LAP_X, 1.0, *LAP_Y, LAP);
+
+
+
+    delete DIV_X;
+    delete DIV_Y;
+    delete GRAD_X;
+    delete GRAD_Y;
+    delete LAP_X;
+    delete LAP_Y;
+
+    delete[] rowStart;
+    delete[] rowEnd;
+    delete[] colIndx;
+    delete[] nzCoeffs_div_x;
+    delete[] nzCoeffs_div_y;
+    delete[] nzCoeffs_grad_x;
+    delete[] nzCoeffs_grad_y;
+
+
+    int    * rowStartLap;
+    int      * rowEndLap;
+    int     * colIndxLap;
+    double * nzCoeffsLap;
+
+    int nc, nr; //nrows, ncols
+    int nNonZeroLap;
+
+    rowStartLap = NULL;
+    rowEndLap   = NULL;
+    colIndxLap  = NULL;
+    nzCoeffsLap = NULL;
+
+    // Now extract the the row and column index arrays, and nonzero coefficients
+    // from the Laplacian operator. These will be used to set up the solver for
+    // the problem L*p = d below, where L is the Laplacian operator and is to be
+    // inverted to find the solution p.
+    error = mkl_sparse_d_export_csr (*LAP, &indexing, &nc, &nr, &rowStartLap, &rowEndLap, &colIndxLap, &nzCoeffsLap);
+
+    nNonZeroLap = rowEndLap[nr - 1];
+
+    int * colIndxU = new int[nNonZeroLap];
+    int * colIndxV = new int[nNonZeroLap];
+    int * rowStartU = new int[2*node_num];
+    int * rowStartV = new int[2*node_num];
+    int * rowEndU = new int[2*node_num];
+    int * rowEndV = new int[2*node_num];
+
+    double * nzCoeffsLap2 = new double[nNonZeroLap];
+
+    for (i=0; i<nNonZeroLap; i++)
+    {
+      colIndxU[i] = 3*colIndxLap[i];
+      colIndxV[i] = 3*colIndxLap[i]+1;
+
+      nzCoeffsLap2[i] = nzCoeffsLap[i];
+    }
+
+    rowStartU[0] = 0.0;
+    rowStartV[0] = 0.0;
+    for (i=1; i<node_num; i++)
+    {
+      rowStartU[2*i-1] = rowStartLap[i];
+      rowStartU[2*i] = rowStartLap[i];}
+
+    for (i=0; i<node_num; i++)
+    {
+      rowStartV[2*i] = rowStartLap[i];
+      rowStartV[2*i+1] = rowStartLap[i];
+
+    }
+    rowStartU[2*node_num-1] = nNonZeroLap;
+    for (i=0; i<2*node_num-1; i++)
+    {
+      rowEndU[i] = rowStartU[i+1];
+      rowEndV[i] = rowStartV[i+1];
+    }
+
+
+    rowEndU[2*node_num-1] = nNonZeroLap;
+    rowEndV[2*node_num-1] = nNonZeroLap;
+
+    // assign the row indexes for the sparse matrix in CSR format
+    // for (i=0; i<2*node_num; i++)
+    // {
+    //   std::cout<<i<<' '<<rowStartV[i]<<' '<<rowEndV[i]<<' '<<nNonZeroLap<<std::endl;
+    // }
+
+
+    sparse_matrix_t * LAP2_X = new sparse_matrix_t;
+    sparse_matrix_t * LAP2_Y = new sparse_matrix_t;
+    error = mkl_sparse_d_create_csr(LAP2_X,  indexing, 2*node_num, 3*node_num, rowStartU, rowEndU, colIndxU, nzCoeffsLap2);
+    error = mkl_sparse_d_create_csr(LAP2_Y,  indexing, 2*node_num, 3*node_num, rowStartV, rowEndV, colIndxV, nzCoeffsLap2);
+
+    // Assing memory to the handle for the Laplacian operator matrix
+    operatorLaplacian = new sparse_matrix_t;  // defined in mesh.h
+    error = mkl_sparse_d_add(operation, *LAP2_X, 1.0, *LAP2_Y, operatorLaplacian);
+
+
+    delete[] rowStartU;
+    delete[] rowEndU;
+    delete[] rowStartV;
+    delete[] rowEndV;
+    delete[] colIndxU;
+    delete[] colIndxV;
+    // delete[] nzCoeffsLap;
+    delete[] nzCoeffsLap2;
+
+    delete LAP2_X;
+    delete LAP2_Y;
+
+    return 1;
+}
+
+
+
+int Mesh::GenerateMomentumOperator(void)
+{
+    // Define c (0) based indexing
+    sparse_index_base_t indexing = SPARSE_INDEX_BASE_ZERO;
+
+    // Define all operations the original (non-transpose) matrix
+    sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
+
+    operatorMomentum = new sparse_matrix_t;
+    int error = mkl_sparse_d_add(operation, *operatorLaplacian, 1.0, *operatorGradient, operatorMomentum);
+    // int error = mkl_sparse_d_add(operation, *operatorCoriolis, 1.0, *operatorGradient, operatorMomentum);
+    error = mkl_sparse_d_add(operation, *operatorMomentum, 1.0, *operatorCoriolis, operatorMomentum);
+    error = mkl_sparse_d_add(operation, *operatorMomentum, 1.0, *operatorLinearDrag, operatorMomentum);
+
+
+    matrix_descr descrp;
+    descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
+
+
+    // error = mkl_sparse_set_dotmv_hint (*operatorMomentum, operation, descrp, 1000000000);
+    error = mkl_sparse_set_mv_hint (*operatorMomentum, operation, descrp, 100000000);
+    error = mkl_sparse_set_memory_hint (*operatorMomentum, SPARSE_MEMORY_AGGRESSIVE);
+    error = mkl_sparse_optimize (*operatorMomentum);
+
+    // Free space!
+    delete operatorLaplacian;
+    delete operatorGradient;
+    delete operatorCoriolis;
+    delete operatorLinearDrag;
+
+    return 1;
+}
+// Function to generate a sparse matrix A for the Laplacian operator, convert it
+// to CSR format, and create a solver object that is capable of solving the
+// linear system A*p = d to find the pressure field, p, give a rhs vector d.
+int Mesh::GeneratePressureSolver(void)
+{
+    int i, j, j2, j3, f, f_num;
+    double areaCV, *coeff;
+    double D;
+
+
+    double * hVar = new double[node_num];
+    double a_ratio = 0.0;
+    for (i=0; i<node_num; i++) hVar[i] = 1.0;//globals->h.Value()*(1. + a_ratio*trigLat(i,0)*pow(trigMLon(i,4,0),4.0));
+
+
+    // }
+
+    Array2D<double> * pressure_matrix;
+    pressure_matrix = new Array2D<double>(node_num, 7);
+
+    // why is this line here? Where would it be better placed?
+    mkl_set_num_threads(2);
+
+    //-------------- Calculate the laplacian matrix coefficients ---------------
+
+    for (i=0; i<node_num; i++)
+    {
+
+        f_num = 6;                  // Assume hexagon (6 centroids)
+        f = node_friends(i,5);
+        if (f == -1) f_num = 5;     // Check if pentagon (5 centroids)
+
+        // Control volume area
+        areaCV = control_volume_surf_area_map(i);
+
+        // Calculate the central node coefficient first
+        coeff = &(*pressure_matrix)(i, 0);
+        *coeff = 0.0;
+        for (j=0; j<f_num; j++)
+        {
+            j2 = (j-1)%f_num;
+            if (j2 < 0) j2 += f_num;
+            f = node_friends(i, j);
+
+            //          this part is the spatially
+            //          varying scalar, TODO change
+            //          to ocean thickness!!!!!
+            //        -----------------------------
+            D =  0.5*(hVar[i] + hVar[f]) * control_vol_edge_len(i, j2) /  ( control_vol_edge_centre_m(i, j2) * node_dists(i, j) );
+            // 0.5*(trigLon(i, 1) + trigLon(f, 1)) *
+            *coeff += D;
+        }
+        *coeff *= -1./areaCV; // Need the negative sign here!
+
+        // Now calculate coeffs for neighbouring nodes (matrix diagonals)
+        for (j=0; j<f_num; j++)
+        {
+            coeff = &(*pressure_matrix)(i, j+1);
+
+            j2 = (j-1)%f_num;
+            if (j2 < 0) j2 += f_num;
+            f = node_friends(i,j);
+
+
+            D = 0.5*(hVar[i] + hVar[f]) * control_vol_edge_len(i, j2) /  ( control_vol_edge_centre_m(i, j2) * node_dists(i, j) );
+            // 0.5*(trigLon(i, 1) + trigLon(f, 1)) *
+
+            *coeff = D;
+            *coeff *= 1./areaCV; // No negative sign here!
+        }
+    }
+
+
+    //--------------- Construct sparse matrix in CSR format --------------------
+
+    //--------------- Define objects to construct matrix -----------------------
+
+    double * nzCoeffs_grad_x;   // non-zero grad operator coeffis in x direction
+    double * nzCoeffs_grad_y;   // non-zero grad operator coeffis in y direction
+    double * nzCoeffs_div_x;    // non-zero div operator coeffis in x direction
+    double * nzCoeffs_div_y;    // non-zero div operator coeffis in y direction
+
+    // Here we assign the number of non-zero matrix elements for each operator.
+    // There are 12 pentagons on the geodesic grid, each with 5 neighbours and
+    // one central node (total of 6). The other cells are hexagons with 6
+    // neighbours and one central node (total of 7). Therefore, the total number
+    // of non-zero coefficients in our sparse matrix is given as:
+    int nNonZero = (node_num-12)*7 + 12*6;
+
+    int     * colIndx;    // column index for each non-zero element
+    int     * rowIndx;    // row indices for CSR matrix format
+    double * nzCoeffs;    // array for each non-zero coefficient
+
+    int         error;    // error message from MKL
+
+    int * rowStart, * rowEnd; // row indexes for CSR sparse matrix format
+
+
+    //---------------- Initialise objects into memory --------------------------
+
+    rowStart = new int[node_num];
+    rowEnd   = new int[node_num];
+
+    colIndx  = new int[nNonZero];
+    nzCoeffs = new double[nNonZero];
+    rowIndx  = new int[node_num + 1];
+
+    nzCoeffs_grad_x = new double[nNonZero];
+    nzCoeffs_grad_y = new double[nNonZero];
+    nzCoeffs_div_x  = new double[nNonZero];
+    nzCoeffs_div_y  = new double[nNonZero];
+
+    // assign the non-zero coefficients and their column indexes in CSR format
+    int count=0;
+    for (i=0; i<node_num; i++)
+    {
+        f_num = 6;               // Assume hexagon (6 neighbours)
+        f = node_friends(i,5);
+        if (f == -1) f_num = 5;  // Check if pentagon (5 neighbours)
+
+        nzCoeffs[count] = (*pressure_matrix)(i, 0);  // assign diagonal element
+
+        nzCoeffs_grad_x[count] = grad_coeffs(i, 0, 0);
+        nzCoeffs_grad_y[count] = grad_coeffs(i, 0, 1);
+
+        nzCoeffs_div_x[count]  = div_coeffs(i, 0, 0);
+        nzCoeffs_div_y[count]  = div_coeffs(i, 0, 1);
+        // nzCoeffs_div_x[count]  = hVar[i] * div_coeffs(i, 0, 0);
+        // nzCoeffs_div_y[count]  = hVar[i] * div_coeffs(i, 0, 1);
+
+        colIndx[count] = i;
+
+        count++;
+        double cos_a, sin_a;
+        for (j=0; j<f_num; j++)                       // assign off-diagonals
+        {
+            nzCoeffs[count] = (*pressure_matrix)(i, j+1);
+            colIndx[count]  = node_friends(i, j);
+
+            cos_a = node_vel_trans(i, j+1, 0);
+            sin_a = node_vel_trans(i, j+1, 1);
+
+            nzCoeffs_grad_x[count] = grad_coeffs(i, j+1, 0);
+            nzCoeffs_grad_y[count] = grad_coeffs(i, j+1, 1);
+
+            f = node_friends(i,j);
+
+            // Because the gradient operator returns a vector, we have to transform
+            // the vector into mapped coordinates. We do this here by premultiplying
+            // the components of the divergence operator by the transpose of the
+            // the transform matrix defined in node_vel_trans.
+            nzCoeffs_div_x[count]  =  cos_a*div_coeffs(i, j+1, 0) - sin_a*div_coeffs(i,  j+1, 1);
+            nzCoeffs_div_y[count]  =  sin_a*div_coeffs(i, j+1, 0) + cos_a*div_coeffs(i,  j+1, 1);
+
+            // nzCoeffs_div_x[count]  =  hVar[f] * (cos_a*div_coeffs(i, j+1, 0) - sin_a*div_coeffs(i,  j+1, 1));
+            // nzCoeffs_div_y[count]  =  hVar[f] * (sin_a*div_coeffs(i, j+1, 0) + cos_a*div_coeffs(i,  j+1, 1));
+
+            count++;
+        }
+
+
+    }
+
+    // assign the row indexes for the sparse matrix in CSR format
+
+    rowIndx[0] = 0;         // first element is always zero
+
+    // number of non-zero elements for pentagons
+    for (i=0; i<12; i++) rowIndx[i+1] = 6*(i+1);
+
+    // number of non-zero elements for hexagons
+    for (i=12; i<node_num; i++) rowIndx[i+1] = (12*6) + 7*(i-11);
+
+    // last element is always the number of non-zero coefficients
+    rowIndx[node_num] = nNonZero;
+
+    for (i=0; i<node_num; i++)
+    {
+      rowStart[i] = rowIndx[i];
+      rowEnd[i] = rowIndx[i+1];
+    }
+
+    //----------------- Set up sparse matrix for div and grad ------------------
+
+
+    // define handles to the sparse matrices for each component of the grad and
+    // div operators. The Laplacian matrix will be constructed from these.
+    sparse_matrix_t * DIV_X, * DIV_Y, * GRAD_X, * GRAD_Y;
+    sparse_matrix_t * LAP_X, * LAP_Y;
+
+    DIV_X   = new sparse_matrix_t;
+    DIV_Y   = new sparse_matrix_t;
+    GRAD_X  = new sparse_matrix_t;
+    GRAD_Y  = new sparse_matrix_t;
+    LAP_X   = new sparse_matrix_t;
+    LAP_Y   = new sparse_matrix_t;
+
+    // Assing memory to the handle for the Laplacian operator matrix
+    operatorLaplacian = new sparse_matrix_t;  // defined in mesh.h
+
+    // Define c (0) based indexing
+    sparse_index_base_t indexing = SPARSE_INDEX_BASE_ZERO;
+
+    // Define all operations the original (non-transpose) matrix
+    sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
+
+    // Assign non-zero values to matrices for the components of div and grad operators
+    error = mkl_sparse_d_create_csr(DIV_X,  indexing, node_num, node_num, rowStart, rowEnd, colIndx, nzCoeffs_div_x);
+    error = mkl_sparse_d_create_csr(DIV_Y,  indexing, node_num, node_num, rowStart, rowEnd, colIndx, nzCoeffs_div_y);
+
+    error = mkl_sparse_d_create_csr(GRAD_X, indexing, node_num, node_num, rowStart, rowEnd, colIndx, nzCoeffs_grad_x);
+    error = mkl_sparse_d_create_csr(GRAD_Y, indexing, node_num, node_num, rowStart, rowEnd, colIndx, nzCoeffs_grad_y);
+
+    // Compute the multiplication of each component of the div dot grad
+    error = mkl_sparse_spmm(operation, *DIV_X, *GRAD_X, LAP_X); // div_x * grad_x
+    error = mkl_sparse_spmm(operation, *DIV_Y, *GRAD_Y, LAP_Y); // div_y * grad_y
+
+    // Sum each component to give the total Grad^2 operator (Laplacian)
+    // This is equivalent to (div_x * grad_x) + (div_y + grad_y)
+    error = mkl_sparse_d_add(operation, *LAP_X, 1.0, *LAP_Y, operatorLaplacian);
+
+    // matrix_descr descrp;
+    // descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
+    // error = mkl_sparse_set_mv_hint (*operatorLaplacian, operation, descrp, 100000000);
+    // error = mkl_sparse_set_memory_hint (*operatorLaplacian, SPARSE_MEMORY_AGGRESSIVE);
+    // error = mkl_sparse_optimize (*operatorLaplacian);
+
+    // error = mkl_sparse_d_create_csr(operatorLaplacian, indexing, node_num, node_num, rowStart, rowEnd, colIndx, nzCoeffs);
+
+    // error = mkl_sparse_d_create_csr(operatorLaplacian,  indexing, node_num, node_num, rowStart, rowEnd, colIndx, nzCoeffs_div_x);
+    // error = mkl_sparse_d_create_csr(operatorLaplacian2,  indexing, node_num, node_num, rowStart, rowEnd, colIndx, nzCoeffs_div_y);
+
+
+    // Remove uneeded matrices from memory
+    delete DIV_X;
+    delete DIV_Y;
+    delete LAP_Y;
+    delete LAP_X;
+    delete GRAD_X;
+    delete GRAD_Y;
+
+
+    // Create objects for the row and column indices, and non-zero coefficients
+    // for the Laplace operator. Note that, although the Laplace operator was
+    // just create and assigned above, we do not yet know its structure or the
+    // number and values of the coefficients in its matrix.
+
+    int    * rowStartLap;
+    int      * rowEndLap;
+    int     * colIndxLap;
+    double * nzCoeffsLap;
+
+    int nc, nr; //nrows, ncols
+    int nNonZeroLap;
+
+    rowStartLap = NULL;
+    rowEndLap   = NULL;
+    colIndxLap  = NULL;
+    nzCoeffsLap = NULL;
+
+    // Now extract the the row and column index arrays, and nonzero coefficients
+    // from the Laplacian operator. These will be used to set up the solver for
+    // the problem L*p = d below, where L is the Laplacian operator and is to be
+    // inverted to find the solution p.
+    error = mkl_sparse_d_export_csr (*operatorLaplacian, &indexing, &nc, &nr, &rowStartLap, &rowEndLap, &colIndxLap, &nzCoeffsLap);
+
+    nNonZeroLap = rowEndLap[nr - 1];
+
+    for (i=0; i<node_num; i++)
+    {
+      rowIndx[i] = rowStartLap[i];
+    }
+    rowIndx[node_num] = nNonZeroLap;
+
+
+
+    // std::cout<<rowStartLap[node_num]<<std::endl;
+
+    //----------------- Set up the intel MKL solver for L*p = d ----------------
+
+    // create the solver object and assign it to a handle
+    MKL_INT opt = MKL_DSS_ZERO_BASED_INDEXING;
+    error = dss_create(pressureSolverHandle, opt);
+
+    if (error != MKL_DSS_SUCCESS)
+    {
+        outstring << "ERROR: MKL couldn't create the solver object and exited with error code "<<error<< std::endl;
+        globals->Output->Write(ERR_MESSAGE, &outstring);
+        globals->Output->TerminateODIS();
+    }
+
+    // define the structure of the sparse matrix of size N*N with nNonZero elements
+    opt =  MKL_DSS_SYMMETRIC_STRUCTURE;//MKL_DSS_SYMMETRIC_STRUCTURE;
+    // error = dss_define_structure(pressureSolverHandle, opt, rowIndx, node_num, node_num, colIndx, nNonZero);
+    error = dss_define_structure(pressureSolverHandle, opt, rowIndx, node_num, node_num, colIndxLap, nNonZeroLap);
+
+    if (error != MKL_DSS_SUCCESS)
+    {
+        outstring << "ERROR: MKL couldn't create the laplacian matrix structure and exited with error code "<<error<< std::endl;
+        globals->Output->Write(ERR_MESSAGE, &outstring);
+        globals->Output->TerminateODIS();
+    }
+
+    // reorder the matrix to optimize the permutation order
+    opt = MKL_DSS_AUTO_ORDER;
+    error = dss_reorder(pressureSolverHandle, opt, 0);
+
+    if (error != MKL_DSS_SUCCESS)
+    {
+        outstring << "ERROR: MKL couldn't reorder the laplacian matrix and exited with error code "<<error<< std::endl;
+        globals->Output->Write(ERR_MESSAGE, &outstring);
+        globals->Output->TerminateODIS();
+    }
+
+    // LU factorize the matrix using the nzCoeffs for direct solution
+    opt = MKL_DSS_POSITIVE_DEFINITE;
+    // error = dss_factor_real(pressureSolverHandle, opt, nzCoeffs);
+    error = dss_factor_real(pressureSolverHandle, opt, nzCoeffsLap);
+
+    if (error != MKL_DSS_SUCCESS)
+    {
+        outstring << "ERROR: MKL couldn't factorize the laplacian matrix and exited with error code "<<error<< std::endl;
+        globals->Output->Write(ERR_MESSAGE, &outstring);
+        globals->Output->TerminateODIS();
+    }
+
+    delete pressure_matrix;
+
+    delete nzCoeffs_grad_x;
+    delete nzCoeffs_grad_y;
+    delete nzCoeffs_div_x;
+    delete nzCoeffs_div_y;
+
+    return 1;
+}
+
 
 // Function to read in text file containing mesh information
 // The four pieces of information read and stored are:
@@ -1419,7 +2527,7 @@ int Mesh::ReadWeightingFile(void)
     dset_rows.read( interpRows, PredType::NATIVE_INT, mspace_rows, fspace_rows );
     dset_data.read( interpWeights, PredType::NATIVE_DOUBLE, mspace_data, fspace_data );
 
-    mkl_set_num_threads(1);
+    mkl_set_num_threads(2);
 
     // Create  matrix handle using loaded data
     sparse_index_base_t index_type = SPARSE_INDEX_BASE_ZERO;     // we employ 0-based indexing.
@@ -1446,6 +2554,7 @@ int Mesh::ReadWeightingFile(void)
 
     int numberOfExpectedCalls = 100000000;  // Expect a big number!
     err = mkl_sparse_set_dotmv_hint(*interpMatrix, operation, descrp, numberOfExpectedCalls);
+    err = mkl_sparse_set_memory_hint (*interpMatrix, SPARSE_MEMORY_AGGRESSIVE);
     if (err>0) {
         std::cout<<"Intel matrix optimization error!"<<std::endl;
     }
