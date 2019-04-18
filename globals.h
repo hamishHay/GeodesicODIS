@@ -156,6 +156,8 @@ public:
   GlobalVar<bool> field_dummy2_output;
   GlobalVar<bool> sh_coeff_output;
 
+  GlobalVar<int>  core_num;
+
   // Time in fraction of orbital period for output of all parameters
   GlobalVar<double> outputTime;
 

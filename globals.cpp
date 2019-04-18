@@ -41,6 +41,9 @@
 #include <cstring>
 #include <math.h>
 
+#include <mkl.h>
+#include <omp.h>
+
 // Points constructor to second, optional constructor. --> Not actually necessary?
 Globals::Globals() :Globals(1) {};
 
@@ -109,8 +112,8 @@ Globals::Globals(int action) {
     alpha.SetStringID("friction coefficient");
     allGlobals.push_back(&alpha);
 
-	l_max.SetStringID("sh degree");
-	allGlobals.push_back(&l_max);
+  	l_max.SetStringID("sh degree");
+  	allGlobals.push_back(&l_max);
 
     dLat.SetStringID("latitude spacing");     //TODO remove
     allGlobals.push_back(&dLat);
@@ -189,6 +192,9 @@ Globals::Globals(int action) {
 
     outputTime.SetStringID("output time");
     allGlobals.push_back(&outputTime);
+
+    core_num.SetStringID("core number");
+    allGlobals.push_back(&core_num);
 
     grav_coeff_file.SetStringID("grav coeff file");
     allGlobals.push_back(&grav_coeff_file);
@@ -279,6 +285,9 @@ Globals::Globals(int action) {
     }
 
     applySurfaceBCs(this);
+
+    mkl_set_num_threads(core_num.Value());
+    omp_set_num_threads(core_num.Value());
 
     // Print out all constants to output.txt
     OutputConsts();
@@ -441,6 +450,8 @@ void Globals::SetDefault(void)
 {
   // Member function acts as a backup in case no variables are assigned. Perhaps
   // it would be safer to simply require a fully populated input.in file?
+
+  core_num.SetValue(1);
 
   //Satellite Radius
   radius.SetValue(2574.73e3);
