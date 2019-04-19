@@ -62,10 +62,6 @@ int interpolateGG2LLConservative(Globals * globals,
     // geodesic grid data (0: val, 1: lat gradient, 2: lon gradient)
     gg_data_1D = new double[node_num_gg * 3];
 
-    // lat-lon interpolated solution
-    ll_data_1D = new double[node_num_ll] (); // <--- initialize to zero!!!!
-
-
     // -------------------------------------------------------------------------
     // Compute gradient of the solution to be interpolated
     // -------------------------------------------------------------------------
@@ -113,33 +109,8 @@ int interpolateGG2LLConservative(Globals * globals,
     // and return the interpolated solution in ll_data_1D
     // -------------------------------------------------------------------------
 
-    err = mkl_sparse_d_mv (operation, alpha, *(mesh->interpMatrix), descrp, gg_data_1D, beta, ll_data_1D);
+    err = mkl_sparse_d_mv (operation, alpha, *(mesh->interpMatrix), descrp, gg_data_1D, beta, &(ll_data(0,0)));
 
-
-    // -------------------------------------------------------------------------
-    // Convert the 1D interpolated array to 2D. This is actually not necessary,
-    // and could be avoided in the future if the SH routines are modified.
-    // -------------------------------------------------------------------------
-
-    int count = 0;
-    // double lat, lon;
-    #pragma omp parallel for collapse(2)
-    for (int i=0; i<(int)(180/dLat); i++)
-    {
-        for (int j=0; j<(int)(360/dLat); j++)
-        {
-            ll_data(i, j) = ll_data_1D[count];
-
-            // std::cout<<ll_data(i, j)<<' ';
-
-            count++;
-        }
-        // std::cout<<std::endl;
-    }
-
-    // globals->Output->TerminateODIS();
-
-    delete[] ll_data_1D;
     delete[] gg_data_1D;
     delete gradient;
 
