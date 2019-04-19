@@ -8,7 +8,11 @@
 #include "array1d.h"
 
 int loadInitialConditions(Globals *, Mesh * mesh,
-                          Array2D<double> &, Array2D<double> &, Array2D<double> &, Array2D<double> &,
-                          Array1D<double> &, Array1D<double> &, Array1D<double> &, Array1D<double> &);
+                          Array2D<double> &, Array3D<double> &,
+                          Array1D<double> &, Array2D<double> &);
+
+int writeInitialConditions(Globals *, Mesh *,
+                           Array2D<double> &, Array3D<double> &,
+                           Array1D<double> &, Array2D<double> &);
 
 #endif

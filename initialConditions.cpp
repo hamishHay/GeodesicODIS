@@ -4,9 +4,13 @@
 #include "array2d.h"
 #include "array1d.h"
 
+#include <iostream>
+#include <sstream>
+#include <iomanip>
+
 int loadInitialConditions(Globals * globals, Mesh * mesh,
-                          Array2D<double> & v, Array2D<double> & dvdt1, Array2D<double> & dvdt2, Array2D<double> & dvdt3,
-                          Array1D<double> & p, Array1D<double> & dpdt1, Array1D<double> & dpdt2, Array1D<double> & dpdt3)
+                          Array2D<double> & v, Array3D<double> & dvdt,
+                          Array1D<double> & p, Array2D<double> & dpdt)
 {
     int i, j;
     std::ostringstream outstring;
@@ -30,20 +34,20 @@ int loadInitialConditions(Globals * globals, Mesh * mesh,
         while (std::getline(gridFile, line))
         {
             if (i >= globals->node_num) break;
-            // std::cout<<line<<std::endl;
+
             std::istringstream line_ss(line);
 
             std::getline(line_ss >> std::ws,val,' ');
             v(i,0) = std::stod(val);
 
             std::getline(line_ss >> std::ws,val,' ');
-            dvdt1(i,0) = std::stod(val);
+            dvdt(i,0,0) = std::stod(val);
 
             std::getline(line_ss >> std::ws,val,' ');
-            dvdt2(i,0) = std::stod(val);
+            dvdt(i,0,1) = std::stod(val);
 
             std::getline(line_ss >> std::ws,val,' ');
-            dvdt3(i,0) = std::stod(val);
+            dvdt(i,0,2) = std::stod(val);
 
 
 
@@ -52,13 +56,13 @@ int loadInitialConditions(Globals * globals, Mesh * mesh,
             v(i,1) = std::stod(val);
 
             std::getline(line_ss >> std::ws,val,' ');
-            dvdt1(i,1) = std::stod(val);
+            dvdt(i,1,0) = std::stod(val);
 
             std::getline(line_ss >> std::ws,val,' ');
-            dvdt2(i,1) = std::stod(val);
+            dvdt(i,1,1) = std::stod(val);
 
             std::getline(line_ss >> std::ws,val,' ');
-            dvdt3(i,1) = std::stod(val);
+            dvdt(i,1,2) = std::stod(val);
 
 
 
@@ -67,35 +71,36 @@ int loadInitialConditions(Globals * globals, Mesh * mesh,
             p(i) = std::stod(val);
 
             std::getline(line_ss >> std::ws,val,' ');
-            dpdt1(i) = std::stod(val);
+            dpdt(i,0) = std::stod(val);
 
             std::getline(line_ss >> std::ws,val,' ');
-            dpdt2(i) = std::stod(val);
+            dpdt(i,1) = std::stod(val);
 
             std::getline(line_ss >> std::ws,val,' ');
-            dpdt3(i) = std::stod(val);
+            dpdt(i,2) = std::stod(val);
 
             i++;
         }
 
         gridFile.close();
     }
-    else{
+    else
+    {
 
-      v(i,0) = 0.0;
-      dvdt1(i,0) = 0.0;
-      dvdt2(i,0) = 0.0;
-      dvdt3(i,0) = 0.0;
+        v(i,0) = 0.0;
+        dvdt(i,0,0) = 0.0;
+        dvdt(i,0,1) = 0.0;
+        dvdt(i,0,2) = 0.0;
 
-      v(i,1) = 0.0;
-      dvdt1(i,1) = 0.0;
-      dvdt2(i,1) = 0.0;
-      dvdt3(i,1) = 0.0;
+        v(i,1) = 0.0;
+        dvdt(i,1,0) = 0.0;
+        dvdt(i,1,1) = 0.0;
+        dvdt(i,1,2) = 0.0;
 
-      p(i) = 0.0;
-      dpdt1(i) = 0.0;
-      dpdt2(i) = 0.0;
-      dpdt3(i) = 0.0;
+        p(i) = 0.0;
+        dpdt(i,0) = 0.0;
+        dpdt(i,1) = 0.0;
+        dpdt(i,2) = 0.0;
 
 
         outstring << "WARNING: NO INITIAL CONDITION FILE FOUND " + file_str << std::endl;
@@ -107,90 +112,28 @@ int loadInitialConditions(Globals * globals, Mesh * mesh,
 };
 
 
-// int saveInitialConditions(Globals * globals, Mesh * mesh,
-//                           Array2D<double> & v, Array2D<double> & dvdt1, Array2D<double> & dvdt2, Array2D<double> & dvdt3,
-//                           Array1D<double> & p, Array1D<double> & dpdt1, Array1D<double> & dpdt2, Array1D<double> & dpdt3)
-// {
-//     int node_num;
-//     int i, j;
-//     std::ostringstream outstring;
-//
-//     node_num = mesh->node_num;
-//     std::string line, val;                 // strings for column and individual number
-//     std::string file_str;                  // string with path to mesh file.
-//
-//     // file_str = globals->path + SEP + "initial_conditions.txt";
-//     file_str = globals->path + SEP + "init.txt";
-//
-//     // in stream for input.in file
-//     std::ifstream gridFile(file_str, std::ifstream::in);
-//
-//     if (gridFile.is_open())
-//     {
-//         outstring << std::endl << "Found initial conditions file: " + file_str << std::endl;
-//         globals->Output->Write(OUT_MESSAGE, &outstring);
-//
-//         // std::getline(gridFile, line);                               // READ HEADER
-//         i = 0;
-//         while (std::getline(gridFile, line))
-//         {
-//             // std::cout<<line<<std::endl;
-//             std::istringstream line_ss(line);
-//
-//             std::getline(line_ss >> std::ws,val,' ');
-//             v(i,0) = std::stod(val);
-//
-//             std::getline(line_ss >> std::ws,val,' ');
-//             dvdt1(i,0) = std::stod(val);
-//
-//             std::getline(line_ss >> std::ws,val,' ');
-//             dvdt2(i,0) = std::stod(val);
-//
-//             std::getline(line_ss >> std::ws,val,' ');
-//             dvdt3(i,0) = std::stod(val);
-//
-//
-//
-//
-//             std::getline(line_ss >> std::ws,val,' ');
-//             v(i,1) = std::stod(val);
-//
-//             std::getline(line_ss >> std::ws,val,' ');
-//             dvdt1(i,1) = std::stod(val);
-//
-//             std::getline(line_ss >> std::ws,val,' ');
-//             dvdt2(i,1) = std::stod(val);
-//
-//             std::getline(line_ss >> std::ws,val,' ');
-//             dvdt3(i,1) = std::stod(val);
-//
-//
-//
-//
-//             std::getline(line_ss >> std::ws,val,' ');
-//             p(i) = std::stod(val);
-//
-//             std::getline(line_ss >> std::ws,val,' ');
-//             dpdt1(i) = std::stod(val);
-//
-//             std::getline(line_ss >> std::ws,val,' ');
-//             dpdt2(i) = std::stod(val);
-//
-//             std::getline(line_ss >> std::ws,val,' ');
-//             dpdt3(i) = std::stod(val);
-//
-//             i++;
-//         }
-//
-//         gridFile.close();
-//     }
-//     else
-//     {
-//         outstring << "ERROR: GRID FILE NOT FOUND AT " + file_str << std::endl;
-//         globals->Output->Write(ERR_MESSAGE, &outstring);
-//         globals->Output->TerminateODIS();
-//     }
-//
-//     return 1;
-//
-// };
+int writeInitialConditions(Globals * globals, Mesh * mesh,
+                          Array2D<double> & v, Array3D<double> & dvdt,
+                          Array1D<double> & p, Array2D<double> & dpdt)
+{
+    int node_num = globals->node_num;
+
+    FILE * outFile;
+    std::string initial_condition_file;
+    initial_condition_file = globals->path + SEP + "init_new.txt";
+    remove(&initial_condition_file[0]);
+
+    outFile = fopen(&initial_condition_file[0], "w");
+
+    for (int i=0; i<node_num; i++)
+    {                   //   u    dudt0  dudt1  dudt2    v    dvdt0  dvdt1  dvdt2    p    dpdt0  dpdt1  dpdt2
+        fprintf (outFile, "%1.6E, %1.6E, %1.6E, %1.6E, %1.6E, %1.6E, %1.6E, %1.6E, %1.6E, %1.6E, %1.6E, %1.6E\n",
+                 v(i,0), dvdt(i, 0, 0), dvdt(i, 0, 1), dvdt(i, 0, 2),
+                 v(i,1), dvdt(i, 1, 0), dvdt(i, 1, 1), dvdt(i, 1, 2),
+                 p(i),   dpdt(i, 0),    dpdt(i, 1),    dpdt(i, 2) );
+    }
+
+    fclose(outFile);
+    return 1;
+
+};
