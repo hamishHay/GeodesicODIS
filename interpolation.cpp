@@ -75,12 +75,12 @@ int interpolateGG2LLConservative(Globals * globals,
 
     pressureGradient(mesh, *gradient, gg_data, node_num_gg, -1.0);
 
-
     // -------------------------------------------------------------------------
     // Fill the data vector with the geodesic grid solution and its gradients
     // -------------------------------------------------------------------------
 
     double * cosLat = &(mesh->trigLat(0,0));
+    #pragma omp parallel for
     for (int i=0; i<node_num_gg; i++)
     {
         gg_data_1D[3*i]     = gg_data(i);
@@ -123,14 +123,18 @@ int interpolateGG2LLConservative(Globals * globals,
 
     int count = 0;
     // double lat, lon;
+    #pragma omp parallel for collapse(2)
     for (int i=0; i<(int)(180/dLat); i++)
     {
         for (int j=0; j<(int)(360/dLat); j++)
         {
             ll_data(i, j) = ll_data_1D[count];
 
+            // std::cout<<ll_data(i, j)<<' ';
+
             count++;
         }
+        // std::cout<<std::endl;
     }
 
     // globals->Output->TerminateODIS();
