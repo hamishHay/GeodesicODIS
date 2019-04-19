@@ -15,7 +15,6 @@
 
 void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, int forcing_type, double time, double ecc=0.1, double obl=0.1);
 
-
 // Degree 2 component of the eccentricity tide (see Tyler 2011, Matsuyama 2014)
 void deg2Ecc(Mesh * grid, Array2D<double> &, double simulationTime, double radius, double omega, double ecc);
 

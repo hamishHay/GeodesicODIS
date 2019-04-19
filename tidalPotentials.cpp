@@ -30,7 +30,7 @@ void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, int for
     int i,j, node_num;
     node_num = grid->node_num;
 
-    double factor, factor2;              // cos(Mean anomaly), sin(Mean anomaly)
+    double factor, factor2;
     double radius, omega;
 
     double * sinLon, * cosLon;
@@ -71,7 +71,8 @@ void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, int for
       {
           factor = 0.75 * consts->loveReduct.Value() * pow(omega,2.0)*pow(radius,2.0)*ecc;
 
-          for (i=0; i<node_num; i++) {
+          #pragma omp parallel for
+          for (i=0; i<node_num; ++i) {
               j = i*2;
 
               potential(i) = factor*((1. - 3.*sinSqLat[j])*cosM
@@ -85,7 +86,8 @@ void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, int for
       {
           factor = -3./2. * consts->loveReduct.Value() * pow(omega,2.0)*pow(radius,2.0)*obl;
 
-          for (i=0; i<node_num; i++) {
+          #pragma omp parallel for
+          for (i=0; i<node_num; ++i) {
               j = i*2;
 
               potential(i) = factor * cosM * sin2Lat[j] * cosLon[j];
@@ -100,7 +102,8 @@ void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, int for
 
           factor2 = -3./2. * consts->loveReduct.Value() * pow(omega,2.0)*pow(radius,2.0)*obl;
 
-          for (i=0; i<node_num; i++) {
+          #pragma omp parallel for
+          for (i=0; i<node_num; ++i) {
               j = i*2;
 
               potential(i) = factor*((1-3*sinSqLat[j])*cosM
@@ -148,7 +151,8 @@ void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, int for
 
           factor = 0.5 * 6.67408e-11 * m2 * pow(radius/dist, 2.0)/dist;
 
-          for (i=0; i<node_num; i++) {
+          #pragma omp parallel for
+          for (i=0; i<node_num; ++i) {
               j = i*2;
 
               cosgam = cosLat[j] * (cosLon[j]*cosphi + sinLon[j]*sinphi);
@@ -157,6 +161,48 @@ void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, int for
       }
       break;
     }
+
+    // switch (globals->tide_type)
+    // {
+    //     case ECC:
+    //         deg2Ecc(grid, dvdt, current_time, r, omega, e);
+    //         break;
+    //     case ECC_LIB:
+    //         deg2EccLib(grid, dvdt, current_time, r, omega, e);
+    //         break;
+    //     case ECC_WEST:
+    //         deg2EccWest(grid, dvdt, current_time, r, omega, e);
+    //         break;
+    //     case ECC_EAST:
+    //         deg2EccEast(grid, dvdt, current_time, r, omega, e);
+    //         break;
+    //     case ECC_RAD:
+    //         deg2EccRad(grid, dvdt, current_time, r, omega, e);
+    //         break;
+    //     case OBLIQ:
+    //         deg2Obliq(grid, dvdt, current_time, r, omega, obliq);
+    //         break;
+    //     case OBLIQ_WEST:
+    //         deg2ObliqWest(grid, dvdt, current_time, r, omega, obliq);
+    //         break;
+    //     case OBLIQ_EAST:
+    //         deg2ObliqEast(grid, dvdt, current_time, r, omega, obliq);
+    //         break;
+    //     case FULL:
+    //         deg2Full(grid, dvdt, current_time, r, omega, obliq, e);
+    //         // deg2Ecc(grid, dvdt, current_time, r, omega, e);
+    //         // deg2Obliq(grid, dvdt, current_time, r, omega, obliq);
+    //         break;
+    //     case PLANET:
+    //         deg2Planet(grid, dvdt, *forcing_potential, current_time, r);
+    //         break;
+    //     case PLANET_OBL:
+    //         deg2PlanetObl(grid, dvdt, current_time, r, obliq);
+    //         break;
+    //     case GENERAL:
+    //         deg2General(grid, dvdt, current_time, r, p_tm1);
+    //         break;
+    // }
 };
 
 
@@ -219,26 +265,7 @@ void deg2Ecc(Mesh * grid, Array2D<double> & soln, double simulationTime, double 
     }
 
     pressureGradient(grid, soln, *scalar_dummy, node_num, -1.0);
-    // double a, b;
-    // for (i=0; i<node_num; i++) {
-    //     j = i*2;
-    //
-    //     a = factor * 1.5 * cosLat[j]   // cosLat here as cos^2(lat)/cos(lat)
-    //                     * (4.*sinM * cos2Lon[j]
-    //                     - 3.*cosM * sin2Lon[j]);
-    //
-    //     b = -factor*0.75*sin2Lat[j]
-    //                     *(3.*cosM*(1.+cos2Lon[j])
-    //                     + 4.*sinM*sin2Lon[j]);
-    //
-    //     std::cout<<soln(i,0)<<'\t'<<a<<std::endl;
-    //     std::cout<<soln(i,1)<<'\t'<<b<<std::endl;
-    //
-    //     // (*scalar_dummy)(i) = 0.75*factor*radius *((1-3*sinSqLat[j])*cosM
-    //     //                         + cosSqLat[j] * (3*cosM*cos2Lon[j]
-    //     //                         + 4*sinM*sin2Lon[j]));
-    //
-    // }
+
     delete scalar_dummy;
 };
 
