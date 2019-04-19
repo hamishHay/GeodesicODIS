@@ -103,7 +103,7 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
 
     CalcMaxTimeStep();
 
-    // CalcLegendreFuncs();
+    CalcLegendreFuncs();
 
     CalcGradOperatorCoeffs();
 
@@ -111,7 +111,6 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
 
     CalcLaplaceOperatorCoeffs();
 
-    std::cout<<"DONE"<<std::endl;
     CalcCoriolisOperatorCoeffs();
 
     CalcLinearDragOperatorCoeffs();
@@ -174,7 +173,6 @@ int Mesh::CalcVelocityTransformFactors(void)
         }
     }
 
-    std::cout<<"HI"<<std::endl;
     return 1;
 };
 
@@ -803,11 +801,11 @@ int Mesh::CalcLegendreFuncs(void)
     temp_legendre = new Array2D<double>(2 * (l_max+1), 2 * (l_max+1));
     temp_dlegendre = new Array2D<double>(2 * (l_max+1), 2 * (l_max+1));
 
-    Array3D<double> * Pbar_lm = new Array3D<double>(node_num, l_max+1, l_max+1);
-    Array3D<double> * Pbar_cosMLon = new Array3D<double>(node_num, l_max+1, l_max+1);
-    Array3D<double> * Pbar_sinMLon = new Array3D<double>(node_num, l_max+1, l_max+1);
+    Array3D<double> Pbar_lm(node_num, l_max+1, l_max+1);
+    Array3D<double> Pbar_cosMLon(node_num, l_max+1, l_max+1);
+    Array3D<double> Pbar_sinMLon(node_num, l_max+1, l_max+1);
 
-    for (i=0; i<node_num; i++)
+    for (i=0; i<node_num; ++i)
     {
         cosCoLat = cos(pi*0.5 - node_pos_sph(i,0));     // cos(colatitude) of node i
 
@@ -822,7 +820,7 @@ int Mesh::CalcLegendreFuncs(void)
             {
 
                 // assign legendre pol at node i for degree l and order m
-                (*Pbar_lm)(i, l, m) = (*temp_legendre)(l, m);
+                Pbar_lm(i, l, m) = (*temp_legendre)(l, m);
 
                 // assign legendre pol derivative at node i for degree l and order m
                 // Pbar_lm_deriv(i, l, m) = (*temp_dlegendre)(l, m)*sin(pi*0.5 - node_pos_sph(i, 0));
@@ -845,8 +843,8 @@ int Mesh::CalcLegendreFuncs(void)
         {
             for (m = 0; m <= l; m++)
             {
-                (*Pbar_cosMLon)(i, l, m) = (*Pbar_lm)(i, l, m)*trigMLon(i, m, 0);
-                (*Pbar_sinMLon)(i, l, m) = (*Pbar_lm)(i, l, m)*trigMLon(i, m, 1);
+                Pbar_cosMLon(i, l, m) = Pbar_lm(i, l, m)*trigMLon(i, m, 0);
+                Pbar_sinMLon(i, l, m) = Pbar_lm(i, l, m)*trigMLon(i, m, 1);
 
                 // Pbar_deriv_cosMLon(i, l, m) = Pbar_lm_deriv(i, l, m)*trigMLon(i, m, 0);
                 // Pbar_deriv_sinMLon(i, l, m) = Pbar_lm_deriv(i, l, m)*trigMLon(i, m, 1);
@@ -859,7 +857,7 @@ int Mesh::CalcLegendreFuncs(void)
         {
             for (m = 0; m <= l; m++)
             {
-                sh_matrix(i, count) = (*Pbar_cosMLon)(i, l, m);
+                sh_matrix(i, count) = Pbar_cosMLon(i, l, m);
                 if (globals->surface_type == FREE_LOADING) sh_matrix(i, count) *= globals->loading_factor[l];
                 else if (globals->surface_type == LID_MEMBR ||
                          globals->surface_type == LID_LOVE) sh_matrix(i, count) *= globals->shell_factor_beta[l];
@@ -867,7 +865,7 @@ int Mesh::CalcLegendreFuncs(void)
 
                 count++;
 
-                sh_matrix(i, count) = (*Pbar_sinMLon)(i, l, m);
+                sh_matrix(i, count) = Pbar_sinMLon(i, l, m);
                 if (globals->surface_type == FREE_LOADING) sh_matrix(i, count) *= globals->loading_factor[l];
                 else if (globals->surface_type == LID_MEMBR ||
                          globals->surface_type == LID_LOVE) sh_matrix(i, count) *= globals->shell_factor_beta[l];
@@ -878,11 +876,12 @@ int Mesh::CalcLegendreFuncs(void)
     }
 
     int count = 0;
-    for (m = 0; m <= (l_max+1)*(l_max+2) - 6; m++)
+    for (m = 0; m < (l_max+1)*(l_max+2) - 6; m++)
     {
         for (i=0; i<node_num; i++)
         {
             sh_matrix_fort(count) = sh_matrix(i, m);
+            // std::cout<<sh_matrix_fort(count)<<std::endl;
             count++;
         }
     }
@@ -890,10 +889,6 @@ int Mesh::CalcLegendreFuncs(void)
     // free up memory!
     delete temp_legendre;
     delete temp_dlegendre;
-
-    delete Pbar_lm;
-    delete Pbar_cosMLon;
-    delete Pbar_sinMLon;
 
     return 1;
 }
@@ -1184,7 +1179,6 @@ int Mesh::CalcGradOperatorCoeffs(void)
     };
 
     // why is this line here? Where would it be better placed?
-    mkl_set_num_threads(2);
 
     //--------------- Construct sparse matrix in CSR format --------------------
 
@@ -1312,6 +1306,15 @@ int Mesh::CalcGradOperatorCoeffs(void)
     operatorGradient = new sparse_matrix_t;
     error = mkl_sparse_d_add(operation, *operatorGradientX, 1.0, *operatorGradientY, operatorGradient);
 
+    matrix_descr descrp;
+    descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
+
+
+    // error = mkl_sparse_set_dotmv_hint (*operatorMomentum, operation, descrp, 1000000000);
+    error = mkl_sparse_set_mv_hint (*operatorGradient, operation, descrp, 100000000);
+    error = mkl_sparse_set_memory_hint (*operatorGradient, SPARSE_MEMORY_AGGRESSIVE);
+    error = mkl_sparse_optimize (*operatorGradient);
+
     delete operatorGradientY;
     delete operatorGradientX;
 
@@ -1433,7 +1436,6 @@ int Mesh::CalcDivOperatorCoeffs(void)
     };
 
     // why is this line here? Where would it be better placed?
-    mkl_set_num_threads(2);
 
     //--------------- Construct sparse matrix in CSR format --------------------
 
@@ -1538,9 +1540,6 @@ int Mesh::CalcDivOperatorCoeffs(void)
         rowIndxX[i+1] = rowIndxX[i]+7;
         rowIndxY[i+1] = rowIndxY[i]+7;
       }
-
-        // if ((i+1)%2 == 0) rowIndxY[i+1] = rowIndxY[i]+7;
-        // else rowIndxY[i+1] = rowIndxY[i]; }
     }
 
     // last element is always the number of non-zero coefficients
@@ -1563,7 +1562,6 @@ int Mesh::CalcDivOperatorCoeffs(void)
 
     operatorDivergence = new sparse_matrix_t;
     error = mkl_sparse_d_add(operation, *operatorDivergenceX, 1.0, *operatorDivergenceY, operatorDivergence);
-    std::cout<<error<<std::endl;
 
     matrix_descr descrp;
     descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
@@ -1880,21 +1878,73 @@ int Mesh::GenerateMomentumOperator(void)
     int error = mkl_sparse_d_add(operation, *operatorLaplacian, 1.0, *operatorGradient, operatorMomentum);
     // int error = mkl_sparse_d_add(operation, *operatorCoriolis, 1.0, *operatorGradient, operatorMomentum);
     error = mkl_sparse_d_add(operation, *operatorMomentum, 1.0, *operatorCoriolis, operatorMomentum);
-    error = mkl_sparse_d_add(operation, *operatorMomentum, 1.0, *operatorLinearDrag, operatorMomentum);
+
+    if (globals->fric_type == LINEAR) mkl_sparse_d_add(operation, *operatorMomentum, 1.0, *operatorLinearDrag, operatorMomentum);
+
+    mkl_sparse_order (*operatorMomentum);
 
 
     matrix_descr descrp;
     descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
 
-
+    int iter_num = 9999999;
     // error = mkl_sparse_set_dotmv_hint (*operatorMomentum, operation, descrp, 1000000000);
-    error = mkl_sparse_set_mv_hint (*operatorMomentum, operation, descrp, 100000000);
+    error = mkl_sparse_set_mv_hint (*operatorMomentum, operation, descrp, iter_num);
+    // error = mkl_sparse_set_mm_hint (*operatorMomentum, operation, descrp, SPARSE_LAYOUT_COLUMN_MAJOR, 1, iter_num);
     error = mkl_sparse_set_memory_hint (*operatorMomentum, SPARSE_MEMORY_AGGRESSIVE);
     error = mkl_sparse_optimize (*operatorMomentum);
+    error = mkl_sparse_optimize (*operatorMomentum);
+
+
+
+    // op_mom = new SpMat(2*node_num,3*node_num);
+    //
+    // int    * rowStartLap;
+    // int      * rowEndLap;
+    // int     * colIndxLap;
+    // double * nzCoeffsLap;
+    //
+    // int nc, nr; //nrows, ncols
+    // int nNonZeroLap;
+    //
+    // rowStartLap = NULL;
+    // rowEndLap   = NULL;
+    // colIndxLap  = NULL;
+    // nzCoeffsLap = NULL;
+    //
+    // // Now extract the the row and column index arrays, and nonzero coefficients
+    // // from the Laplacian operator. These will be used to set up the solver for
+    // // the problem L*p = d below, where L is the Laplacian operator and is to be
+    // // inverted to find the solution p.
+    // error = mkl_sparse_d_export_csr (*operatorMomentum, &indexing, &nc, &nr, &rowStartLap, &rowEndLap, &colIndxLap, &nzCoeffsLap);
+    //
+    // nNonZeroLap = rowEndLap[nr - 1];
+    //
+    // // for (i=0; i<2*node_num; i++)
+    // // {
+    // //   rowIndx[i] = rowStartLap[i];
+    // // }
+    // // rowIndx[node_num] = nNonZeroLap;
+    //
+    // int count = 0;
+    // int num_row;
+    // for (int i=0; i<2*node_num; ++i)
+    // {
+    //   num_row = rowEndLap[i]-rowStartLap[i];
+    //
+    //   for (int j=0; j<num_row; ++j)
+    //   {
+    //
+    //     (*op_mom).insert(i, colIndxLap[rowEndLap[i]+j]) = nzCoeffsLap[count++];
+    //
+    //   }
+    // }
+    //
+    // (*op_mom).makeCompressed();
 
     // Free space!
     delete operatorLaplacian;
-    delete operatorGradient;
+    // delete operatorGradient;
     delete operatorCoriolis;
     delete operatorLinearDrag;
 
@@ -1921,7 +1971,6 @@ int Mesh::GeneratePressureSolver(void)
     pressure_matrix = new Array2D<double>(node_num, 7);
 
     // why is this line here? Where would it be better placed?
-    mkl_set_num_threads(2);
 
     //-------------- Calculate the laplacian matrix coefficients ---------------
 
@@ -2527,7 +2576,6 @@ int Mesh::ReadWeightingFile(void)
     dset_rows.read( interpRows, PredType::NATIVE_INT, mspace_rows, fspace_rows );
     dset_data.read( interpWeights, PredType::NATIVE_DOUBLE, mspace_data, fspace_data );
 
-    mkl_set_num_threads(2);
 
     // Create  matrix handle using loaded data
     sparse_index_base_t index_type = SPARSE_INDEX_BASE_ZERO;     // we employ 0-based indexing.

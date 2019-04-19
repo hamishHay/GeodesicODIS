@@ -10,6 +10,9 @@
 
 #include <mkl.h>
 #include <mkl_spblas.h>
+// #include <Eigen/Sparse>
+//
+// typedef Eigen::SparseMatrix<double, Eigen::RowMajor> SpMat;
 
 //Class stores all coordinate information about the mesh
 class Mesh {
@@ -38,7 +41,6 @@ private:
   int CalcLinearDragOperatorCoeffs(void);
   int GeneratePressureSolver(void);
   int GenerateMomentumOperator(void);
-
 
 public:
 //	Mesh(); //constructor
