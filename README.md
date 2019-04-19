@@ -31,4 +31,5 @@ Lab](https://www.lpl.arizona.edu/graduate/students/hamish-hay)
 
 ## Version History
 GeodesicODIS 1.0 (November 2018): Recorded in branch HayMatsuyama2018.
+
 GeodesicODIS 1.1 (April 2019): Parallelized code, better grids, optimization and simplification of code.
