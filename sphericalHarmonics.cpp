@@ -32,6 +32,7 @@ void getSHCoeffsGG(Array2D<double> & coords, Array1D<double> & data, Array3D<dou
     lats_fort = new double[node_num];
     lons_fort = new double[node_num];
 
+    #pragma omp parallel for
     for (i=0; i<node_num; i++)
     {
         lats_fort[i] = coords(i,0)*rad2deg;
@@ -43,14 +44,20 @@ void getSHCoeffsGG(Array2D<double> & coords, Array1D<double> & data, Array3D<dou
 
     index = 0;
 
+    // #pragma omp parallel for collapse(2)
     for (m=0; m<l_max+1; m++)
     {
         for (l=0; l<l_max+1; l++)
         {
                 if (m<=l)
                 {
-                    sh_coeffs(l, m, 0) = sh_coeffs_fort[index];
-                    sh_coeffs(l, m, 1) = sh_coeffs_fort[index + 1];
+                    if (fabs(sh_coeffs_fort[index]) > 1e-14) sh_coeffs(l, m, 0) = sh_coeffs_fort[index];
+                    else sh_coeffs(l, m, 0) = 0.0;
+                    if (fabs(sh_coeffs_fort[index+1]) > 1e-14) sh_coeffs(l, m, 1) = sh_coeffs_fort[index+1];
+                    else sh_coeffs(l, m, 1) = 0.0;
+                    // sh_coeffs(l, m, 0) = sh_coeffs_fort[index];
+                    // sh_coeffs(l, m, 1) = sh_coeffs_fort[index + 1];
+                    // std::cout<<l<<' '<<m<<' '<<sh_coeffs(l, m, 0)<<' '<<sh_coeffs(l, m, 1)<<std::endl;
                     // std::cout<<l<<' '<<m<<' '<<sh_coeffs(l, m, 0)<<std::endl;
                 }
 
@@ -82,12 +89,15 @@ void getSHCoeffsLL(Array2D<double> & data,
 
     // THIS IS AN EVIL AND SLOW LOOP HELP
     count = 0;
-    for (j = 0; j < 360/N_ll; j++) {
-        for (i = 0; i < 180/N_ll; i++) {
+    // #pragma omp parallel for collapse(2)
+    for (j = 0; j < 360/N_ll; ++j) {
+        for (i = 0; i < 180/N_ll; ++i) {
             data_fort[count] = data(i,j);
             count++;
         }
     }
+
+
 
     extractshcoeffll_(data_fort, &lat_len, &l_max, sh_coeffs_fort);
 
@@ -99,10 +109,12 @@ void getSHCoeffsLL(Array2D<double> & data,
         {
                 if (m<=l)
                 {
-                    if (fabs(sh_coeffs_fort[index]) > 1e-12) sh_coeffs(l, m, 0) = sh_coeffs_fort[index];
+                    if (fabs(sh_coeffs_fort[index]) > 1e-11) sh_coeffs(l, m, 0) = sh_coeffs_fort[index];
                     else sh_coeffs(l, m, 0) = 0.0;
-                    if (fabs(sh_coeffs_fort[index+1]) > 1e-12) sh_coeffs(l, m, 1) = sh_coeffs_fort[index+1];
+                    if (fabs(sh_coeffs_fort[index+1]) > 1e-11) sh_coeffs(l, m, 1) = sh_coeffs_fort[index+1];
                     else sh_coeffs(l, m, 1) = 0.0;
+
+                    // std::cout<<l<<' '<<m<<' '<<sh_coeffs(l, m, 0)<<' '<<sh_coeffs(l, m, 1)<<std::endl;
 
                     // sh_coeffs(l, m, 0) = sh_coeffs_fort[index];
                     // sh_coeffs(l, m, 1) = sh_coeffs_fort[index+1];
