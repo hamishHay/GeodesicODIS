@@ -60,6 +60,8 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
     sh_matrix(N, (l_max+1)*(l_max+2) - 6), //-6 is to ignore degrees 0 and 1
     sh_matrix_fort(N*((l_max+1)*(l_max+2) - 6)),
 
+    cell_is_boundary(N),
+
 
     trigMLon(N, l_max+1, 2)
 {
@@ -119,12 +121,61 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
 
     GenerateMomentumOperator();
 
-    // CalcLand();
+    DefineBoundaryCells();
 
     ReadWeightingFile();
 
 
 };
+
+int Mesh::DefineBoundaryCells(void)
+{
+    // simply define if a control volume is either interior to a boundary (0),
+    // shares a face with a boundary (1), or is completely outside of the
+    // boundary (2).
+    int i, j, f, friend_num;
+    double * lat1, * lat2, * lon1, * lon2, * dist;
+    double r;
+
+    r = globals->radius.Value();
+
+    for (i=0; i<node_num; i++)
+    {
+        f = node_friends(i,5);
+
+        friend_num = 6;                                     // Assume hexagon (6 centroids)
+        if (f == -1) {
+            friend_num = 5;                                 // Check if pentagon (5 centroids)
+            node_dists(i,5) = -1.0;
+        }
+
+        lat1 = 0.0;                     // set map coords for first
+        lon1 = 0.0;
+
+        lat2 = &node_pos_sph(i, 0);                     // set map coords for second centroid
+        lon2 = &node_pos_sph(i, 1);
+
+        distanceBetweenSph(*dist, *lat1, *lat2, *lon1, *lon2, r);
+
+        if (*dist*180./pi >= 10.0) cell_is_boundary(i) = 0;
+        else cell_is_boundary(i) = 2;
+
+        for (j=0; j<friend_num; j++)                        // Loop through all centroids in the control volume
+        {
+            f = node_friends(i,j);
+            lat2 = &node_pos_sph(f, 0);                     // set map coords for second centroid
+            lon2 = &node_pos_sph(f, 1);
+
+            distanceBetweenSph(*dist, *lat1, *lat2, *lon1, *lon2, r);   //
+
+            if ((*dist*180./pi >= 10.0) && !cell_is_boundary(i) ) {
+                cell_is_boundary(i) = 1;
+                break;
+            }
+        }
+    }
+
+}
 
 // Function to calculate the cosine(alpha) and sine(alpha) velocity tranform
 // factors from Lee and Macdonald (2009). These factors are constant in time,
@@ -529,6 +580,17 @@ int Mesh::CalcControlVolumeEdgeNormals(void)
 
             normalVectorBetween(*xn, *yn, *x1, *x2, *y1, *y2);    // calculate center coords between the two centroids.
             // xc and yc automatically assigned the coords
+
+            // For no-normal flow at the edges, can we just set the normal vector components to zero?
+
+            // if boundary face, *xn = 0.0, *yn=0.0;
+
+            if (cell_is_boundary(i) &&
+                cell_is_boundary( node_friends(i, j) ))
+            {
+                *xn = 0.0;
+                *yn = 0.0;
+            }
 
         }
     }
