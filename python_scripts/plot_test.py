@@ -12,6 +12,8 @@ import h5py
 # from mpl_toolkits.basemap import Basemap
 import sys
 import math
+from pyshtools.expand import SHExpandLSQ
+import pyshtools
 
 plt.rcParams['mathtext.fontset'] = 'custom'
 plt.rcParams['mathtext.rm'] = 'Avante Garde'
@@ -27,7 +29,7 @@ plt.rc('text.latex',preamble='\\usepackage{siunitx},\\usepackage{sfmath}')
 
 plt.rc('lines', linewidth=0.6)
 
-plt.rc('figure', dpi=120)
+plt.rc('figure', dpi=100)
 
 # Creating a Triangulation without specifying the triangles results in the
 # Delaunay triangulation of the points.
@@ -47,11 +49,14 @@ data_v = in_file["north velocity"][n]
 # data_diss = 1.2e3 * 1000 * np.mean(data_diss, axis=0)
 
 # print(np.max(in_file["displacement"][-3*1000:]))
-data_eta = in_file["displacement"][n]
+data_eta = in_file["displacement"][n] #- np.mean(in_file["displacement"][-2001:-2], axis=0)
+
+P = 2*np.pi/(2.05e-5)
+# print(in_file["kinetic avg output"][n]/P)
 # data_eta = data_diss
 #data_eta = data_diss
 
-# data_eta = np.mean(in_file["dissipated energy"][:], axis=0)
+# data_eta = np.mean(in_file["dissipated energy"][-101:-2], axis=0)
 
 N = int(1 + 0.5 * math.log((len(data_u)-2)/10, 2))
 
@@ -61,20 +66,51 @@ except:
     d = input("Can't find grid file for level " + str(N) +"!!!")
     sys.exit()
 
-x = np.radians(grid[:,1])
-y = np.radians(grid[:,0])
+x = grid[:,1]
+y = grid[:,0]
 
 # data_diss = in_file["dissipated energy"][n]
 
-print(np.max(abs(data_u)), np.max(abs(data_v)), np.max(data_eta))
+print(np.max(abs(data_u)), np.max(abs(data_v)), np.amax(data_eta))
+print(np.max(abs(data_u)), np.max(abs(data_v)), np.amin(data_eta))
 print("TRIANGULATING POSITIONS")
 # Create the Triangulation; no triangles so Delaunay triangulation created.
 triang = tri.Triangulation(x, y)
 
+# fig, ax = plt.subplots()
+# levels = np.arange(-0.20, 0.32+0.01, 0.04)
+# levels = np.arange(-0.06, 0.1+0.01, 0.02)
+# levels = np.arange(-0.2, 0.32+0.01, 0.04)
+# c = ax.tricontourf(triang,data_eta*1e6)#, colors='k', ls='-')
+# plt.colorbar(c, ax = ax, orientation="horizontal", label='Heat flux [\\num{e-6} \\si{\\watt\\per\\metre\\squared}]')
+# ax.set_xlim([0, 360])
+# ax.set_ylim([-90, 90])
+# ax.set_aspect('equal')
+#
+# fig.savefig("/home/hamish/figure_odis.png", bbox_inches='tight')
+
+# plt.colorbar(c, ax = ax, orientation="horizontal")
+
+cilm, chi2 = SHExpandLSQ (data_eta, y, x, 12, norm=1)
+
+print(cilm[0])
+
+power_per_l = pyshtools.spectralanalysis.spectrum(cilm)
+degrees = np.arange(cilm.shape[1])
+
+fig, ax = plt.subplots(1, 1)
+ax.plot(degrees, power_per_l, 'o-')
+ax.set(yscale='log', xscale='log', xlabel='Spherical harmonic degree', ylabel='Power')
+ax.grid()
+
+# ax.plot(np.sum(cilm[0]**2.0, axis=-1), 'o')
+
 fig, (ax1,ax2,ax3) = plt.subplots(ncols=3, figsize=(15,4))
-c1 = ax1.tricontourf(triang,data_u,21)
-c2 = ax2.tricontourf(triang,data_v,21)
-c3 = ax3.tricontourf(triang,data_eta,21)
+
+
+c1 = ax1.tricontourf(triang,data_u,levels=11)
+c2 = ax2.tricontourf(triang,data_v,levels=11)
+c3 = ax3.tricontourf(triang,data_eta,levels=11)
 
 plt.colorbar(c1, ax = ax1, orientation="horizontal")
 plt.colorbar(c2, ax = ax2, orientation="horizontal")

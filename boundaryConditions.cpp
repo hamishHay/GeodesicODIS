@@ -390,7 +390,7 @@ int applySurfaceBCs(Globals * globals)
         path = globals->path;
 
         // std::ifstream fourierFile( globals->fourier_coeff_file.Value(), std::ifstream::in);
-        std::ifstream fourierFile( "/home/hamish/Research/PlanetPlanetTides/ocean_heating/io_europa.txt", std::ifstream::in);
+        std::ifstream fourierFile( "/home/hamish/Research/PlanetPlanetTides/important/lpsc/galilean/europa_io.txt", std::ifstream::in);
 
         // std::cout<<globals->grav_coeff_file.Value()<<std::endl;
         count_col = 0;

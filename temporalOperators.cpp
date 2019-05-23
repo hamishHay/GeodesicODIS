@@ -14,10 +14,6 @@
 #include <mkl.h>
 #include <omp.h>
 
-
-
-
-
 int integrateAB3scalar(Globals * globals,
                  Mesh * grid,
                  Array1D<double> & s,        // current solution
@@ -165,3 +161,91 @@ int integrateAB3vector(Globals * globals,
 
      return 1;
  };
+
+
+ int integrateRK4scalar(Globals * globals,
+                  Mesh * grid,
+                  Array1D<double> & s,        // current solution
+                  Array1D<double> & ds,
+                  Array1D<double> & ds_dt,    // velocity time grad at t=0
+                  int iter)                      // simulation interation num
+  {
+
+      double a, b, c;        // RK4 integration constants
+      double dt;
+      int node_num, i;
+
+      dt = globals->timeStep.Value();
+      node_num = globals->node_num;
+
+      a = 23./12.;
+      b = -16./12.;
+
+      switch (iter) {
+        case 1:
+          a = 0.0;
+          b = 1./3.;
+          break;
+        case 2:
+          a = -5./9.;
+          b = 15./16.;
+          break;
+        case 3:
+          a = -153./128.;
+          b = 8./15.;
+          break;
+      }
+
+     #pragma omp parallel for
+     for (i = 0; i<node_num; ++i)
+     {
+         ds(i) = a*ds(i) + dt*ds_dt(i);
+         s(i) = s(i) + b*ds_dt(i);
+     }
+
+      return 1;
+  };
+
+
+ int integrateRK4vector(Globals * globals,
+                  Mesh * grid,
+                  Array2D<double> & v,        // current solution
+                  Array2D<double> & dv,
+                  Array2D<double> & dv_dt,    // velocity time grad at t=0
+                  int iter)                      // simulation interation num
+  {
+
+      double a, b, c;        // AB3 integration constants
+      double dt;
+      int node_num, i;
+
+      dt = globals->timeStep.Value();
+      node_num = globals->node_num;
+
+      switch (iter) {
+        case 1:
+          a = 0.0;
+          b = 1./3.;
+          break;
+        case 2:
+          a = -5./9.;
+          b = 15./16.;
+          break;
+        case 3:
+          a = -153./128.;
+          b = 8./15.;
+          break;
+      }
+
+       #pragma omp parallel for
+       for (i = 0; i<node_num; ++i)
+       {
+           dv(i,0) = a*dv(i,0) + dt*dv_dt(i,0);
+           dv(i,1) = a*dv(i,1) + dt*dv_dt(i,1);
+
+           v(i,0) += b*dv(i, 0);
+           v(i,1) += b*dv(i, 1);
+       }
+
+      return 1;
+  };

@@ -158,7 +158,7 @@ inline void triangularAreaSph(double &area, double &lat1, double &lat2, double &
   B = acos((cos(b) - cos(a)*cos(c))/(sin(a)*sin(c)));
   C = acos((cos(c) - cos(b)*cos(a))/(sin(b)*sin(a)));
 
-  area = pow(r,2.0) * ((A + B + C) - pi);
+  area = pow(r,2.0) * fabs((A + B + C) - pi);
 }
 
 //

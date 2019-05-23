@@ -1676,8 +1676,8 @@ int Mesh::CalcLaplaceOperatorCoeffs(void)
           // the vector into mapped coordinates. We do this here by premultiplying
           // the components of the divergence operator by the transpose of the
           // the transform matrix defined in node_vel_trans.
-          nzCoeffs_div_x[count]  =  5e3*(cos_a*div_coeffs(i, cols[j].F_NUM, 0) - sin_a*div_coeffs(i,  cols[j].F_NUM, 1));
-          nzCoeffs_div_y[count]  =  5e3*(sin_a*div_coeffs(i, cols[j].F_NUM, 0) + cos_a*div_coeffs(i,  cols[j].F_NUM, 1));
+          nzCoeffs_div_x[count]  =  1e4*(cos_a*div_coeffs(i, cols[j].F_NUM, 0) - sin_a*div_coeffs(i,  cols[j].F_NUM, 1));
+          nzCoeffs_div_y[count]  =  1e4*(sin_a*div_coeffs(i, cols[j].F_NUM, 0) + cos_a*div_coeffs(i,  cols[j].F_NUM, 1));
 
           // Assign the column index. These operators act on each
           // velocity component, which occupies every 3rd index, starting at

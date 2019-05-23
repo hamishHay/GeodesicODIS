@@ -231,6 +231,7 @@ Globals::Globals(int action) {
 
     if (solver.Value() == "EULER") solver_type = EULER;
     else if (solver.Value() == "AB3") solver_type = AB3;
+    else if (solver.Value() == "RK4") solver_type = RK4;
     else {
         outstring << "ERROR: NO SOLVER FOUND!" << std::endl;
         Output->Write(ERR_MESSAGE, &outstring);

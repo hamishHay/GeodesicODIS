@@ -58,6 +58,8 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
     h =       globals->h.Value();
     node_num = globals->node_num;
 
+    // std::cout<<omega<<' '<<r<<' '<<g<<' '<<h<<' '<<globals->period.Value()<<std::endl;
+
     visc = 5e3;
 
     Array1D<double> forcing_potential(node_num);
@@ -121,11 +123,26 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
 
 };
 
-int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt, Array2D<double> & v_t0)
+int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt, Array2D<double> & v_t0, Array1D<double> & eta)
 {
     double sum = -1.0;
+    int node_num = globals->node_num;
+    double h = globals->h.Value();
 
-    velocityDivergence(grid, deta_dt, v_t0, sum, globals->h.Value());
+    Array2D<double> vh(node_num, 3);
+
+    #pragma omp parallel for
+    for (int i=0; i<node_num; ++i)
+    {
+        // vh(i, 0) = v_t0(i, 0)*(h+eta(i));
+        // vh(i, 1) = v_t0(i, 1)*(h+eta(i));
+        vh(i, 0) = v_t0(i, 0)*h;
+        vh(i, 1) = v_t0(i, 1)*h;
+        vh(i, 2) = 0.0;
+    }
+
+    // velocityDivergence(grid, deta_dt, v_t0, sum, globals->h.Value());
+    velocityDivergence(grid, deta_dt, vh, sum, 1.0);
 
     return 1;
 };
@@ -235,10 +252,13 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     current_time = 0.0;
     out_time = 0.0;
 
+    std::cout<<orbit_period<<std::endl;
+
+
     while (current_time <= end_time)
     {
-        current_time += dt;
-        out_time += dt;
+
+
 
         if (globals->surface_type == FREE ||
             globals->surface_type == FREE_LOADING ||
@@ -262,7 +282,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
             total_diss[0] = e_diss;
 
             // SOLVE THE CONTINUITY EQUATION
-            updateDisplacement(globals, grid, *dp_dt_t0, *v_t0);
+            updateDisplacement(globals, grid, *dp_dt_t0, *v_t0, *p_t0);
 
             #pragma omp parallel for
             for (i=0; i<node_num; ++i) {
@@ -271,6 +291,276 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
             integrateAB3scalar(globals, grid, *p_t0, *dp_dt, iter);
         }
+
+        current_time += dt;
+        out_time += dt;
+
+        // else if (globals->surface_type == LID_INF)
+        // {
+        //
+        //     // TEST VERSION!!!!!!!!!!!!!!!! STILL UNDER TESTING. DON'T TRUST!
+        //
+        //     // SOLVE THE MOMENTUM EQUATION
+        //     updateVelocity(globals, grid, *dv_dt_t0, *v_tm1, *p_t0, current_time);
+        //
+        //
+        //     // INTEGRATE VELOCITIES FORWARD IN TIME
+        //     // for (i = 0; i<node_num; i++)
+        //     // {
+        //     //    (*v_t0)(i,0) = (*dv_dt_t0)(i,0) * dt + (*v_tm1)(i,0);
+        //     //    (*v_tm1)(i,0) = (*v_t0)(i,0);
+        //     //
+        //     //    (*v_t0)(i,1) = (*dv_dt_t0)(i,1) * dt + (*v_tm1)(i,1);
+        //     //    (*v_tm1)(i,1) = (*v_t0)(i,1);
+        //     // }
+        //     // MARCH FORWARD VELOCITY SOLUTION
+        //     // integrateAB3vector(globals, grid, *v_t0, *v_tm1, *dv_dt_t0, *dv_dt_tm1, *dv_dt_tm2, iter);
+        //
+        //     // FORCE CONTINUITY EQUATION
+        //     err = updatePressure(globals, grid, *p_t0, *v_t0, *dv_dt_t0);
+        //
+        //     // pressureGradientSH(globals, grid, *dv_dt_t0, *p_t0, -1.0/1000.0);
+        //
+        //     // INTEGRATE VELOCITIES FORWARD IN TIME
+        //     for (i = 0; i<node_num; i++)
+        //     {
+        //         (*v_t0)(i,0) = (*dv_dt_t0)(i,0) * dt + (*v_tm1)(i,0);
+        //         (*v_tm1)(i,0) = (*v_t0)(i,0);
+        //
+        //         (*v_t0)(i,1) = (*dv_dt_t0)(i,1) * dt + (*v_tm1)(i,1);
+        //         (*v_tm1)(i,1) = (*v_t0)(i,1);
+        //
+        //     }
+        //
+        //     updateEnergy(globals, e_diss, *energy_diss, *v_t0, *cv_mass);
+        //
+        //     total_diss[0] = e_diss;
+        //
+        //
+        // }
+
+        iter ++;
+
+        // if (iter >= 3)  globals->Output->TerminateODIS();
+
+        // Check for output
+        if (out_time >= out_frac*orbit_period)
+        {
+            outstring << std::fixed <<"DUMPING DATA AT "<<current_time/orbit_period;
+            outstring << " AVG DISS: "<<std::scientific<<*total_diss*4*pi*r*r/1e9<<" GW"<<out_count;
+
+            Output->Write(OUT_MESSAGE, &outstring);
+
+            out_time -= out_frac*orbit_period;
+
+            Output->DumpData(globals, out_count, pp);
+            out_count++;
+        }
+
+        if (flag) {
+            outstring << "Terminate signal caught..."<<std::endl;
+            Output->Write(OUT_MESSAGE, &outstring);
+
+            break;
+        }
+    }
+
+    // Save initial conditions!
+    writeInitialConditions(globals, grid, *v_t0, *dv_dt, *p_t0, *dp_dt);
+
+    Output->Write(OUT_MESSAGE, &outstring);
+
+    if (flag) return 1;     // return with error
+    else return 0;          // return without error
+};
+
+
+// Function to implement the time loop to solve mass and momentum equations over
+// the geodesic grid using the Adams-Bashforth 3rd order forward method.
+int rk4Explicit(Globals * globals, Mesh * grid)
+{
+    //--------------------------------------------------------------------------
+    //------------------------- DECLARE VARIABLES ------------------------------
+    //--------------------------------------------------------------------------
+
+    omp_set_num_threads( globals->core_num.Value() );
+    mkl_set_num_threads( globals->core_num.Value() );
+
+    std::ostringstream outstring;
+    int i, j, k, iter, out_count;
+    double ** pp;
+
+    Array2D<double> * v_t0;        // velocity solution for current timestep
+    Array2D<double> * dv_dt_t0;    // velocity time derivative at current timestep
+
+    Array1D<double> * p_t0;      // displacement solution for current timestep
+    Array1D<double> * dp_dt_t0;  // displacement time derivative at current timestep
+
+    Array3D<double> * dv_dt;
+    Array2D<double> * dp_dt;
+
+    Array1D<double> * energy_diss;
+    Array1D<double> * cv_mass;
+
+    double end_time, current_time, dt, out_frac, orbit_period, out_time;
+
+    double r = globals->radius.Value();
+
+    int node_num;
+    node_num = globals->node_num;
+
+    OutFiles * Output;
+
+    signal(SIGINT, CatchExit);
+
+    //--------------------------------------------------------------------------
+    //------------------------- ASSIGN VARIABLES -------------------------------
+    //--------------------------------------------------------------------------
+
+    end_time     = globals->endTime.Value();
+    dt           = globals->timeStep.Value();
+    out_frac     = globals->outputTime.Value();
+    orbit_period = globals->period.Value();
+
+    Output = globals->Output;
+    pp = new double *[globals->out_tags.size()];
+
+    std::vector<std::string> * tags;
+    tags = &globals->out_tags;
+
+    double * total_diss;
+    total_diss = new double[1];
+    double e_diss;
+
+    outstring << "Defining arrays for Runge-Kutta time integration..." << std::endl;
+
+    v_t0     = new Array2D<double>(node_num, 2);
+    Array2D<double> * v_t0_old     = new Array2D<double>(node_num, 2);
+    dv_dt_t0 = new Array2D<double>(node_num, 2);
+
+    p_t0     = new Array1D<double>(node_num);
+    Array1D<double> * p_t0_old     = new Array1D<double>(node_num);
+    dp_dt_t0 = new Array1D<double>(node_num);
+
+    dv_dt    = new Array3D<double>(node_num, 2, 4);   //[node][vel component][dvdt]
+    dp_dt    = new Array2D<double>(node_num, 4);      //[node][dpdt]
+
+    cv_mass = new Array1D<double>(node_num);
+    energy_diss = new Array1D<double>(node_num);
+
+    for (i=0; i<globals->out_tags.size(); i++)
+    {
+        if      ((*tags)[i] == "velocity output")        pp[i] = &(*v_t0)(0,0);
+        else if ((*tags)[i] == "displacement output")    pp[i] = &(*p_t0)(0);
+        else if ((*tags)[i] == "dissipation output")     pp[i] = &(*energy_diss)(0);
+        else if ((*tags)[i] == "dissipation avg output") pp[i] = &total_diss[0];
+        else if ((*tags)[i] == "kinetic avg output")     pp[i] = &current_time;
+    }
+
+    for (i=0; i<node_num; i++)
+    {
+        (*v_t0)(i,0) = 0.0;
+        (*v_t0)(i,1) = 0.0;
+        (*p_t0)(i) = 0.0;
+
+        (*cv_mass)(i) = grid->control_volume_mass(i);
+    }
+
+    if (globals->init.Value())
+    {
+       loadInitialConditions(globals, grid, *v_t0, *dv_dt, *p_t0, *dp_dt);
+
+       iter = 3;
+    }
+    else iter = 0;
+
+    //--------------------------------------------------------------------------
+    //------------------------- BEGIN TIME LOOP --------------------------------
+    //--------------------------------------------------------------------------
+
+    out_count = 1;
+    current_time = 0.0;
+    out_time = 0.0;
+
+    std::cout<<orbit_period<<std::endl;
+
+
+    while (current_time <= end_time)
+    {
+
+
+
+        if (globals->surface_type == FREE ||
+            globals->surface_type == FREE_LOADING ||
+            globals->surface_type == LID_LOVE ||
+            globals->surface_type == LID_MEMBR)
+        {
+            for (i=0; i<node_num; ++i) {
+              (*v_t0_old)(i, 0) = (*v_t0)(i, 0);
+              (*v_t0_old)(i, 1) = (*v_t0)(i, 1);
+              (*p_t0_old)(i) = (*p_t0)(i);
+            }
+
+
+            for (int j=0; j<4; j++)
+            {
+              double x = 1.0;
+              if (j>0 && j<3) x = 0.5;
+              // SOLVE THE MOMENTUM EQUATION
+              updateVelocity(globals, grid, *dv_dt_t0, *v_t0, *p_t0, current_time+x*dt);
+
+              // #pragma omp parallel for
+              // for (i=0; i<node_num; ++i) {
+              //   (*dv_dt)(i, 0, j) = (*dv_dt_t0)(i, 0);
+              //   (*dv_dt)(i, 1, j) = (*dv_dt_t0)(i, 1);
+              //   (*v_t0)(i, 0) = (*v_t0_old)(i, 0) + (*dv_dt_t0)(i,0)*dt*x;
+              //   (*v_t0)(i, 1) = (*v_t0_old)(i, 1) + (*dv_dt_t0)(i,1)*dt*x;
+              // }
+
+              // MARCH VELOCITY FORWARD IN TIME
+              // integrateAB3vector(globals, grid, *v_t0, *dv_dt, iter);
+
+
+
+              // SOLVE THE CONTINUITY EQUATION
+              updateDisplacement(globals, grid, *dp_dt_t0, *v_t0, *p_t0);
+
+              // #pragma omp parallel for
+              // for (i=0; i<node_num; ++i) {
+              //   (*dp_dt)(i, j) = (*dp_dt_t0)(i);
+              // }
+
+              // integrateAB3scalar(globals, grid, *p_t0, *dp_dt, iter);
+
+              #pragma omp parallel for
+              for (i=0; i<node_num; ++i) {
+                (*dv_dt)(i, 0, j) = (*dv_dt_t0)(i, 0);
+                (*dv_dt)(i, 1, j) = (*dv_dt_t0)(i, 1);
+                (*v_t0)(i, 0) = (*v_t0_old)(i, 0) + (*dv_dt_t0)(i,0)*dt*x;
+                (*v_t0)(i, 1) = (*v_t0_old)(i, 1) + (*dv_dt_t0)(i,1)*dt*x;
+                (*dp_dt)(i, j) = (*dp_dt_t0)(i);
+                (*p_t0)(i) = (*p_t0_old)(i) + (*dp_dt_t0)(i)*dt*x;
+              }
+
+            }
+
+            #pragma omp parallel for
+            for (i=0; i<node_num; ++i) {
+              (*v_t0)(i, 0) = (*v_t0_old)(i, 0) + dt/6.*((*dv_dt)(i,0,0)+2.*(*dv_dt)(i,0,1)+2.*(*dv_dt)(i,0,2)+(*dv_dt)(i,0,3));
+              (*v_t0)(i, 1) = (*v_t0_old)(i, 1) + dt/6.*((*dv_dt)(i,1,0)+2.*(*dv_dt)(i,1,1)+2.*(*dv_dt)(i,1,2)+(*dv_dt)(i,1,3));
+              (*p_t0)(i) = (*p_t0_old)(i) + dt/6.*((*dp_dt)(i,0)+2.*(*dp_dt)(i,1)+2.*(*dp_dt)(i,2)+(*dp_dt)(i,3));
+
+              // (*v_t0)(i, 1, j) = (*v_t0_old)(i, 1) + (*dv_dt_t0)(i,1)*dt*x;
+              // (*p_t0)(i, j) = (*p_t0_old)(i) + (*dp_dt_t0)(i)*dt*x;
+            }
+
+            // UPDATE ENERGY DISSIPATION
+            updateEnergy(globals, e_diss, *energy_diss, *v_t0, *cv_mass);
+            total_diss[0] = e_diss;
+        }
+
+        current_time += dt;
+        out_time += dt;
 
         // else if (globals->surface_type == LID_INF)
         // {

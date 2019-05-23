@@ -178,7 +178,7 @@ void runOperatorTests(Globals * globals, Mesh * mesh)
                 vec[3*i+2] = (*beta)(i);
             }
 
-            error = mkl_sparse_d_mv(operation, -1.0, *(mesh->operatorGradientX), descript, vec, betam, du_vel);
+            error = mkl_sparse_d_mv(operation, -1/1.308, *(mesh->operatorGradient), descript, vec, betam, du_vel);
 
             for (i = 0; i < node_num; i++)
             {
