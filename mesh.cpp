@@ -87,6 +87,8 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
     // Find control volume edge midpoints in mapping coords
     CalcControlVolumeEdgeCentres();
 
+    DefineBoundaryCells();
+
     // Find control volume edge outward normal unit vectors
     CalcControlVolumeEdgeNormals();
 
@@ -121,9 +123,7 @@ Mesh::Mesh(Globals * Globals, int N, int N_ll, int l_max)
 
     GenerateMomentumOperator();
 
-    DefineBoundaryCells();
-
-    ReadWeightingFile();
+    // ReadWeightingFile();
 
 
 };
@@ -134,10 +134,10 @@ int Mesh::DefineBoundaryCells(void)
     // shares a face with a boundary (1), or is completely outside of the
     // boundary (2).
     int i, j, f, friend_num;
-    double * lat1, * lat2, * lon1, * lon2, * dist;
-    double r;
+    double lat1, lat2, lon1, lon2, dist;
+    double r = 1.0;
 
-    r = globals->radius.Value();
+    // r = globals->radius.Value();
 
     for (i=0; i<node_num; i++)
     {
@@ -150,29 +150,39 @@ int Mesh::DefineBoundaryCells(void)
         }
 
         lat1 = 0.0;                     // set map coords for first
-        lon1 = 0.0;
+        lon1 = pi;
 
-        lat2 = &node_pos_sph(i, 0);                     // set map coords for second centroid
-        lon2 = &node_pos_sph(i, 1);
+        lat2 = node_pos_sph(i, 0);                     // set map coords for second centroid
+        lon2 = node_pos_sph(i, 1);
 
-        distanceBetweenSph(*dist, *lat1, *lat2, *lon1, *lon2, r);
 
-        if (*dist*180./pi >= 10.0) cell_is_boundary(i) = 0;
+        distanceBetweenSph(dist, lat1, lat2, lon1, lon2, r);
+        // dist /= r;
+
+        // std::cout<<dist*180./pi<<std::endl;
+        if (dist*180./pi >= 20.0) cell_is_boundary(i) = 0;
         else cell_is_boundary(i) = 2;
 
-        for (j=0; j<friend_num; j++)                        // Loop through all centroids in the control volume
+        if (cell_is_boundary(i) == 0)
         {
+          for (j=0; j<friend_num; j++)                        // Loop through all centroids in the control volume
+          {
             f = node_friends(i,j);
-            lat2 = &node_pos_sph(f, 0);                     // set map coords for second centroid
-            lon2 = &node_pos_sph(f, 1);
+            lat2 = node_pos_sph(f, 0);                     // set map coords for second centroid
+            lon2 = node_pos_sph(f, 1);
 
-            distanceBetweenSph(*dist, *lat1, *lat2, *lon1, *lon2, r);   //
-
-            if ((*dist*180./pi >= 10.0) && !cell_is_boundary(i) ) {
-                cell_is_boundary(i) = 1;
-                break;
+            distanceBetweenSph(dist, lat1, lat2, lon1, lon2, r);   //
+            // dist /= r;
+            // std::cout<<i<<'\t'<<dist*180./pi<<std::endl;
+            if (dist*180./pi <= 20.0) {
+              cell_is_boundary(i) = 1;
+              break;
             }
+          }
         }
+        // if (cell_is_boundary(i) == 2) std::cout<<i<<'\t'<<cell_is_boundary(i)<<std::endl;
+
+        // cell_is_boundary(i) = 0;
     }
 
 }
@@ -585,12 +595,12 @@ int Mesh::CalcControlVolumeEdgeNormals(void)
 
             // if boundary face, *xn = 0.0, *yn=0.0;
 
-            if (cell_is_boundary(i) &&
-                cell_is_boundary( node_friends(i, j) ))
-            {
-                *xn = 0.0;
-                *yn = 0.0;
-            }
+            // if (cell_is_boundary(i) &&
+            //     cell_is_boundary( node_friends(i, (j+1)%friend_num) ))
+            // {
+            //     *xn = 0.0;
+            //     *yn = 0.0;
+            // }
 
         }
     }
@@ -1738,8 +1748,8 @@ int Mesh::CalcLaplaceOperatorCoeffs(void)
           // the vector into mapped coordinates. We do this here by premultiplying
           // the components of the divergence operator by the transpose of the
           // the transform matrix defined in node_vel_trans.
-          nzCoeffs_div_x[count]  =  5e3*(cos_a*div_coeffs(i, cols[j].F_NUM, 0) - sin_a*div_coeffs(i,  cols[j].F_NUM, 1));
-          nzCoeffs_div_y[count]  =  5e3*(sin_a*div_coeffs(i, cols[j].F_NUM, 0) + cos_a*div_coeffs(i,  cols[j].F_NUM, 1));
+          nzCoeffs_div_x[count]  =  0.0*(cos_a*div_coeffs(i, cols[j].F_NUM, 0) - sin_a*div_coeffs(i,  cols[j].F_NUM, 1));
+          nzCoeffs_div_y[count]  =  0.0*(sin_a*div_coeffs(i, cols[j].F_NUM, 0) + cos_a*div_coeffs(i,  cols[j].F_NUM, 1));
 
           // Assign the column index. These operators act on each
           // velocity component, which occupies every 3rd index, starting at

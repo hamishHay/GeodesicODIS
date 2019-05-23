@@ -69,7 +69,7 @@ int interpolateGG2LLConservative(Globals * globals,
     Array2D<double> * gradient;
     gradient = new Array2D<double>(node_num_gg, 2);
 
-    pressureGradient(mesh, *gradient, gg_data, node_num_gg, -1.0);
+    // pressureGradient(mesh, *gradient, gg_data, node_num_gg, -1.0);
 
     // -------------------------------------------------------------------------
     // Fill the data vector with the geodesic grid solution and its gradients

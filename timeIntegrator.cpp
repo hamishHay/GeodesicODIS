@@ -65,25 +65,25 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
     forcing(globals, grid, forcing_potential, globals->tide_type, current_time, e, obliq);
 
     // TODO - Move these pressure grad calls to a function that makes sense
-    switch (globals->surface_type)
-    {
-        case FREE_LOADING:
-            pressureGradientSH(globals, grid, dvdt, p_tm1, forcing_potential, g);
-            break;
-
-        case LID_LOVE:
-            pressureGradientSH(globals, grid, dvdt, p_tm1, forcing_potential, g);
-            break;
-
-        case LID_MEMBR:
-            pressureGradientSH(globals, grid, dvdt, p_tm1, forcing_potential, g);
-            break;
-
-        case LID_INF:
-            // pressureGradient(grid, dvdt, p_tm1, 1.0/1000.0);
-            // pressureGradientSH(globals, grid, dvdt, p_tm1, -1.0/1000.0);
-            break;
-    }
+    // switch (globals->surface_type)
+    // {
+    //     case FREE_LOADING:
+    //         pressureGradientSH(globals, grid, dvdt, p_tm1, forcing_potential, g);
+    //         break;
+    //
+    //     case LID_LOVE:
+    //         pressureGradientSH(globals, grid, dvdt, p_tm1, forcing_potential, g);
+    //         break;
+    //
+    //     case LID_MEMBR:
+    //         pressureGradientSH(globals, grid, dvdt, p_tm1, forcing_potential, g);
+    //         break;
+    //
+    //     case LID_INF:
+    //         // pressureGradient(grid, dvdt, p_tm1, 1.0/1000.0);
+    //         // pressureGradientSH(globals, grid, dvdt, p_tm1, -1.0/1000.0);
+    //         break;
+    // }
 
     sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
     matrix_descr descript;
@@ -93,6 +93,13 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
     double betam = 0.0;
 
     Array2D<double> soln_old(node_num, 3);
+    Array1D<double> soln_new(node_num);
+
+    for (int i=0; i<node_num; ++i)
+    {
+      dvdt(i, 0) = 0.0;
+      dvdt(i, 1) = 0.0;
+    }
 
     #pragma omp parallel for
     for (int i=0; i<node_num; ++i)
@@ -100,12 +107,17 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
         soln_old(i, 0) = v_tm1(i, 0);
         soln_old(i, 1) = v_tm1(i, 1);
         soln_old(i, 2) = p_tm1(i) - forcing_potential(i)/g;
+        soln_new(i) = p_tm1(i) - forcing_potential(i)/g;
     }
+
+    pressureGradient(grid, dvdt, soln_new, node_num, g);
+    linearDrag(node_num, drag_coeff, dvdt, v_tm1);
+
 
     // timestamp_t t0 = get_timestamp();
 
     // Perform A*d = dvdt where A is operatorMomentum, and d = [u, v, eta-U/g]
-    mkl_sparse_d_mv(operation, 1.0, *(grid->operatorMomentum), descript, &(soln_old(0,0)), betam, &(dvdt(0,0)));
+    // mkl_sparse_d_mv(operation, 1.0, *(grid->operatorMomentum), descript, &(soln_old(0,0)), betam, &(dvdt(0,0)));
 
     // timestamp_t t1 = get_timestamp();
     //
@@ -118,8 +130,12 @@ int updateVelocity(Globals * globals, Mesh * grid, Array2D<double> & dvdt, Array
     if (globals->fric_type == QUADRATIC) quadraticDrag(node_num, drag_coeff, h, dvdt, v_tm1);
 
     // Set CVs interior to boundary to zero
+    double * sinLat = &(grid->trigLat(0,1));
     for (int i=0; i<node_num; ++i)
     {
+        dvdt(i,0) += 2.0 * omega * sinLat[i*2] * v_tm1(i,1);
+        dvdt(i,1) -= 2.0 * omega * sinLat[i*2] * v_tm1(i,0);
+
         if (grid->cell_is_boundary(i) == 2)
         {
             dvdt(i, 0) = 0.0;
@@ -139,7 +155,7 @@ int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt
 
     for (int i=0; i<node_num; ++i)
     {
-        if (grid->cell_is_boundary(i) == 2) deta_dt(i);
+        if (grid->cell_is_boundary(i) == 2) deta_dt(i) = 0.0;
     }
 
     return 1;
@@ -286,6 +302,8 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
             integrateAB3scalar(globals, grid, *p_t0, *dp_dt, iter);
         }
+
+        // std::cout<<(*p_t0)(137)<<std::endl;
 
         // else if (globals->surface_type == LID_INF)
         // {
