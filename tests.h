@@ -11,12 +11,12 @@
 void runOperatorTests(Globals *, Mesh *);
 
 
-void setBeta(Array1D<double> &, int, int, int, Array3D<double> &, Array3D<double> &);
+void setBeta(Array1D<double> &, int, int, int, Array2D<double> &);
 
-void setU(Array2D<double> &, int, int, int, Array3D<double> &, Array3D<double> &, Array2D<double> &, Array2D<double> &);
+void setU(Array2D<double> &, int, int, int, Array2D<double> &);
 
-void setDivU(Array1D<double> &, int, int, int, double, Array3D<double> &, Array3D<double> &, Array2D<double> &, Array2D<double> &);
+void setDivU(Array1D<double> &, int, int, int, double, Array2D<double> &);
 
-void setGradBeta(Array2D<double> &, int, int, int, double, Array3D<double> &, Array3D<double> &, Array2D<double> &);
+void setGradBeta(Array2D<double> &, int, int, int, double, Array2D<double> &);
 
 #endif

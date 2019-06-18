@@ -14,6 +14,8 @@
 //
 // typedef Eigen::SparseMatrix<double, Eigen::RowMajor> SpMat;
 
+class Globals;
+
 //Class stores all coordinate information about the mesh
 class Mesh {
 private:
@@ -27,11 +29,14 @@ private:
   int CalcControlVolumeEdgeNormals(void);
   int CalcControlVolumeArea(void);
   int CalcControlVolumeMass(void);
+  int CalcControlVolumeVertexR(void);
   int CalcElementAreas(void);
   int CalcCentNodeDists(void);
   int CalcTrigFunctions(void);
   int CalcNodeDists(void);
   int CalcMaxTimeStep(void);
+
+  int AssignFaces(void);
 
   int DefineBoundaryCells(void);
 
@@ -44,14 +49,18 @@ private:
   int GeneratePressureSolver(void);
   int GenerateMomentumOperator(void);
 
+
+
 public:
 //	Mesh(); //constructor
   Mesh(Globals *);
-  Mesh(Globals *, int, int, int);
+  Mesh(Globals *, int, int, int, int, int);
 
   std::ostringstream outstring;
 
   int node_num;
+  int face_num;
+  int vertex_num;
 
   // Each row in node_pos_sph represents the lat,lon coords of node. Node ID 5
   // corresponds to node_pos_sph(5,x).
@@ -125,6 +134,31 @@ public:
   Array2D<double> trigSqLat;
   Array2D<double> trigSqLon;
 
+  Array2D<int> faces;
+  Array2D<int> face_nodes;
+  // Array2D<int> face_friends;
+  Array2D<int> face_dir;
+  Array2D<double> face_normal_vec_map;
+  Array1D<int> face_normal_vec_dir;
+  Array1D<double> face_node_dist;
+  Array2D<double> face_centre_pos_sph;
+  Array2D<double> face_intercept_pos_sph;
+  Array2D<double> face_centre_m;
+  Array3D<double> face_node_pos_map;
+  Array1D<double> face_len;
+  Array2D<int> node_face_dir;
+  Array3D<double> node_face_vel_trans;
+
+  Array2D<int> vertexes;
+  Array2D<double> vertex_pos_sph;
+  Array2D<double> vertex_R;
+  Array2D<int> vertex_nodes;
+  Array2D<double> node_R;
+
+  Array2D<int> face_interp_friends;
+  Array2D<double> face_interp_weights;
+
+  // ArrayD<int> * faces;
 
   Array3D<double> trigMLon;
   Array2D<double> sh_matrix;

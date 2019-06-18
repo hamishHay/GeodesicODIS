@@ -1,6 +1,7 @@
 import numpy as np
 import h5py
 import os
+from scipy.integrate import simps
 
 import matplotlib as mpl
 if "SSH_CONNECTION" in os.environ:
@@ -148,16 +149,22 @@ class FieldPlot2:
 
         if data == None:
             data = self.load_data(data_name=data_name, slices=None)
-            #time = self.load_data(data_name="kinetic avg output", slices=None)/self.period
+            time = self.load_data(data_name="kinetic avg output", slices=None)/self.period
         # data *= 4*np.pi * (self.radius-)
-
+        P = 2*np.pi/2.05e-5
+        # print(time[-1002], time[-2])
+        time *= P
         # data *= 4. * np.pi * (self.radius)**2.0/1e9
         data *= 4. * np.pi * (self.radius)**2.0/1e9
         # data *= (252.1e3 - self.h_shell + self.h_ocean)**2.0
         # data *= (1./(252.1e3))**2.0
         # data *= ((252.1e3-self.h_ocean)/(252.1e3))**3.
         #data *= 4. * np.pi * (self.radius)**2.0/1e9 / (2. * self.drag_coeff)
-        print(np.mean(data[-20*5:]))
+        print(np.mean(data[-102:-2]))
+        print(simps(data[-102:-2], time[-102:-2])/P)
+        # print(time[998:1001])
+
+
 
         ax_current = self.fig.add_subplot(111)
 

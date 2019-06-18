@@ -34,7 +34,7 @@
 // #include "solver.h"
 // #include "mass.h"
 // #include "energy.h"
-#include "tidalPotentials.h"
+//#include "tidalPotentials.h"
 #include "array2d.h"
 #include "solver.h"
 #include "tests.h"
@@ -53,13 +53,11 @@ int main(void)
   // Create the numerical grid using the minimum node spacing from "constants"
   // Globals instance.
 
-  Mesh * grid = new Mesh(constants, constants->node_num, (int)constants->dLat.Value(), constants->l_max.Value());
+  Mesh * grid = new Mesh(constants, constants->node_num, constants->face_num, constants->vertex_num, (int)constants->dLat.Value(), constants->l_max.Value());
 
   // runOperatorTests(constants, grid);
 
   solveODIS(constants, grid);
-
-
 
   return 0;
 }

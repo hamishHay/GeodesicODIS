@@ -4,7 +4,7 @@ import matplotlib.tri as tri
 import numpy as np
 import math
 import h5py
-from mpl_toolkits.basemap import Basemap
+# from mpl_toolkits.basemap import Basemap
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import sys
 from scipy.interpolate import griddata
@@ -24,7 +24,7 @@ plt.rcParams['axes.linewidth'] = 0.8
 
 n = int(sys.argv[1])
 N = int(sys.argv[2])
-nx = 201
+nx = 31
 ny = int(nx/2)
 
 grid = np.loadtxt("input_files/grid_l" +str(N)+ ".txt",skiprows=1,usecols=(1,2))
@@ -56,14 +56,14 @@ axes = [axes1[0][0], axes1[0][1], axes1[0][2], axes1[0][3], axes1[1][0], axes1[1
 l_axes = [axes1[0][0], axes1[1][0]]
 b_axes = [axes1[1][0], axes1[1][1], axes1[1][2], axes1[1][3]]
 
-time = np.array([0, 12, 25, 37, 50, 62, 75, 87], dtype=np.int)*100 + n
+time = np.array([0, 12, 25, 37], dtype=np.int) + n
 # time = np.array([0, 6, 12, 18, 25, 31, 37, 43], dtype=np.int) + n
-times = [0.0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]
+times = [0.0, 0.12, 0.25, 0.37]
 
 in_file = h5py.File("DATA/data.h5", 'r')
 
 dmin = 0.0
-dmax = 0.015
+dmax = 5.0
 
 norm = mpl.colors.Normalize(vmin=dmin,vmax=dmax)
 levels = np.linspace(dmin,dmax,201)
@@ -99,19 +99,24 @@ for i in range(len(time)):
                       vmax=dmax)
 
     grey = 0.9
-    stream  = ax.streamplot(np.degrees(lons),
+    # stream  = ax.streamplot(np.degrees(lons),
+    #                          np.degrees(lats),
+    #                          interp_u,
+    #                          interp_v,
+    #                          color=(grey,grey,grey),
+    #                         #  cmap=plt.cm.viridis,
+    #                          norm=norm,
+    #                         #  cmap=cmocean.cm.haline,
+    #                          linewidth=lw,
+    #                          arrowsize=0.8,
+    #                          arrowstyle='fancy',
+    #                          density=1.3)
+
+
+    ax.quiver(np.degrees(lons),
                              np.degrees(lats),
                              interp_u,
-                             interp_v,
-                             color=(grey,grey,grey),
-                            #  cmap=plt.cm.viridis,
-                             norm=norm,
-                            #  cmap=cmocean.cm.haline,
-                             linewidth=lw,
-                             arrowsize=0.8,
-                             arrowstyle='fancy',
-                             density=1.3)
-
+                             interp_v)
 
     # ax.annotate("$t/T = \\num{0.5}$",[340,80])
 
@@ -172,7 +177,7 @@ for ax in b_axes:
 plt.subplots_adjust(wspace=0.1, hspace=0.15)
 
 # fig.savefig("inf_lid_ecc_enc.pdf")
-fig.savefig("inf_gan_ecc_west.png",bbox_inches='tight',dpi=300)
+# fig.savefig("inf_gan_ecc_west.png",bbox_inches='tight',dpi=300)
 
 
 plt.show()

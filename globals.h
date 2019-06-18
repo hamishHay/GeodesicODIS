@@ -35,12 +35,12 @@
 #include "outFiles.h"
 
 class OutFiles;           // Forward declare OutFiles class
+
 // class Array1D;
 
 // define pi here - c++ has no built in value of pi, so it is explicitly defined
 // here
-const double pi = 3.1415926535897932384626433832795028841971693993751058;
-const double radConv = pi / 180.0; // global constant for converting deg --> rad
+
 const int PATH = 1028; // global int for number of characters in the system path
 
 enum Friction { LINEAR,
@@ -109,6 +109,8 @@ public:
   char cpath[PATH];
 
   int node_num;
+  int face_num;
+  int vertex_num;
 
   GlobalVar<double> angVel;             // Angular velocity
   GlobalVar<double> radius;             // Body radius

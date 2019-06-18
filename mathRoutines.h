@@ -3,9 +3,12 @@
 
 // #include "field.h"
 // #include "solver.h"
-#include "mesh.h"
+//#include "mesh.h"
 #include <math.h>
 #include <iostream>
+
+const double pi = 3.1415926535897932384626433832795028841971693993751058;
+const double radConv = pi / 180.0; // global constant for converting deg --> rad
 
 inline void sph2cart(double &, double &, double &, double, double, double);
 inline void sph2cart(double &x, double &y, double &z, double r, double colat, double lon)
@@ -110,6 +113,27 @@ inline void midpointBetween(double &xc, double &yc, double &x1, double &x2, doub
   yc = 0.5 * (y1 + y2);
 }
 
+inline void midpointBetweenSph(double sph1[], double sph2[], double sphc[]);
+inline void midpointBetweenSph(double sph1[], double sph2[], double sphc[])
+{
+  double xyz1[3], xyz2[3];
+  double xyzc[3];
+
+  xyz1[0] = cos(sph1[0])*cos(sph1[1]);
+  xyz1[1] = cos(sph1[0])*sin(sph1[1]);
+  xyz1[2] = sin(sph1[0]);
+
+  xyz2[0] = cos(sph2[0])*cos(sph2[1]);
+  xyz2[1] = cos(sph2[0])*sin(sph2[1]);
+  xyz2[2] = sin(sph2[0]);
+
+  for (int k=0; k<3; k++) {
+      xyzc[k] = 0.5*(xyz1[k]+xyz2[k]);
+  }
+
+  sphc[0] = atan2(xyzc[2], sqrt(pow(xyzc[0], 2.0) + pow(xyzc[1], 2.0)));
+  sphc[1] = atan2(xyzc[1], xyzc[0]);
+}
 
 // Function to find the outward unit vector between two points with coordinates
 // p1 = (x1,y1) and p2 = (x2,y2)
@@ -129,6 +153,176 @@ inline void normalVectorBetween(double &xn, double &yn, double &x1, double &x2, 
   xn = -yy;                     // Find normal unit vector to the tangent vector
   yn = xx;
 }
+
+inline void normalVectorBetweenMap(double n[], double sph1[], double sph2[]);
+inline void normalVectorBetweenMap(double n[], double sph1[], double sph2[])
+{
+  double xx,yy, c1[2], c2[2], mag, sph_mid[3];
+
+  midpointBetweenSph(sph1, sph2, sph_mid);
+
+  double latc = sph_mid[0];
+  double lonc = sph_mid[1];
+  double lat1 = sph1[0];
+  double lon1 = sph1[1];
+  double m = 0.0;
+  double r = 1.0;
+
+  mapFactorAtPoint(m, latc, lat1, lonc, lon1);
+  c1[0] = m * r * (cos(lat1)*sin(lon1-lonc));
+  c1[1] = m * r * (sin(lat1)*cos(latc) - cos(lat1)*sin(latc)*cos(lon1-lonc));
+
+  lat1 = sph2[0];
+  lon1 = sph2[1];
+
+  mapFactorAtPoint(m, latc, lat1, lonc, lon1);
+  c2[0] = m * r * (cos(lat1)*sin(lon1-lonc));
+  c2[1] = m * r * (sin(lat1)*cos(latc) - cos(lat1)*sin(latc)*cos(lon1-lonc));
+
+  xx = c2[0]-c1[0];                   // Components of the tangent vector
+  yy = c2[1]-c1[1];
+
+  mag = sqrt(xx*xx + yy*yy);    // Find magnitude of tangent vector
+
+  xx /= mag;                    // Normalise tangent vector
+  yy /= mag;
+
+  n[0] = -yy;                     // Find normal unit vector to the tangent vector
+  n[1] = xx;
+}
+
+// Function to find the outward unit vector between two points with coordinates
+// p1 = (x1,y1) and p2 = (x2,y2)
+inline void normalVectorBetweenSph(double &, double &, double &);
+inline void normalVectorBetweenSph(double sph1[], double sph2[], double sph3[])
+{
+    double c1[3], c2[3], n[3], sph_mid[3];
+
+
+
+    // Get cartesian coords of each spherical coordiate
+    sph2cart(c1[0], c1[1], c1[2], 1.0, sph1[0], sph1[1]);
+    sph2cart(c2[0], c2[1], c2[2], 1.0, sph2[0], sph2[1]);
+
+    // Take cross product to find vector tangent to line between sph1 and sph2
+    n[0] = c1[1]*c2[2] - c1[2]*c2[1];
+    n[1] = -(c1[0]*c2[2] - c1[2]*c2[0]);
+    n[2] = c1[0]*c2[1] - c1[1]*c2[0];
+
+    double mag = sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2]);
+
+    n[0] /= mag;
+    n[1] /= mag;
+    n[2] /= mag;
+
+    midpointBetweenSph(sph1, sph2, sph_mid);
+
+    double lat = sph_mid[0];
+    double lon = sph_mid[1];
+
+    sph3[0] = sin(lat)*cos(lon)*n[0] + sin(lat)*sin(lon)*n[1] - cos(lat)*n[2];
+    sph3[1] = -sin(lon)*n[0] + cos(lon)*n[1];
+    sph3[2] = cos(lat)*cos(lon)*n[0] + cos(lat)*sin(lon)*n[1] + sin(lat)*n[2];
+
+}
+
+inline void intersectPointSph(double &, double &, double &, double &, double &);
+inline void intersectPointSph(double sph1[], double sph2[], double sph3[], double sph4[], double sph_int[])
+{
+    double c1[3], c2[3], c3[3], c4[4], n1[3], n2[3], mp[3];
+
+    // sph1[0] = pi*0.5 - sph1[0];
+    // sph2[0] = pi*0.5 - sph2[0];
+    // sph3[0] = pi*0.5 - sph3[0];
+    // sph4[0] = pi*0.5 - sph4[0];
+    //
+    // // Get cartesian coords of each spherical coordiate
+    // sph2cart(c1[0], c1[1], c1[2], 1.0, sph1[0], sph1[1]);
+    // sph2cart(c2[0], c2[1], c2[2], 1.0, sph2[0], sph2[1]);
+    // sph2cart(c3[0], c3[1], c3[2], 1.0, sph3[0], sph3[1]);
+    // sph2cart(c4[0], c4[1], c4[2], 1.0, sph4[0], sph4[1]);
+
+    c1[0] = cos(sph1[0])*cos(sph1[1]);
+    c2[0] = cos(sph2[0])*cos(sph2[1]);
+    c3[0] = cos(sph3[0])*cos(sph3[1]);
+    c4[0] = cos(sph4[0])*cos(sph4[1]);
+
+    c1[1] = cos(sph1[0])*sin(sph1[1]);
+    c2[1] = cos(sph2[0])*sin(sph2[1]);
+    c3[1] = cos(sph3[0])*sin(sph3[1]);
+    c4[1] = cos(sph4[0])*sin(sph4[1]);
+
+    c1[2] = sin(sph1[0]);
+    c2[2] = sin(sph2[0]);
+    c3[2] = sin(sph3[0]);
+    c4[2] = sin(sph4[0]);
+
+
+
+    // Take cross product to find vector tangent to line between sph1 and sph2
+    n1[0] = c1[1]*c2[2] - c1[2]*c2[1];
+    n1[1] = -(c1[0]*c2[2] - c1[2]*c2[0]);
+    n1[2] = c1[0]*c2[1] - c1[1]*c2[0];
+
+    n2[0] = c3[1]*c4[2] - c3[2]*c4[1];
+    n2[1] = -(c3[0]*c4[2] - c3[2]*c4[0]);
+    n2[2] = c3[0]*c4[1] - c3[1]*c4[0];
+
+    double mag1 = sqrt(n1[0]*n1[0] + n1[1]*n1[1] + n1[2]*n1[2]);
+    double mag2 = sqrt(n2[0]*n2[0] + n2[1]*n2[1] + n2[2]*n2[2]);
+
+    n1[0] /= mag1;
+    n1[1] /= mag1;
+    n1[2] /= mag1;
+
+    n2[0] /= mag2;
+    n2[1] /= mag2;
+    n2[2] /= mag2;
+
+    mp[0] = n1[1]*n2[2] - n2[1]*n1[2];
+    mp[1] = n2[0]*n1[2] - n1[0]*n2[2];
+    mp[2] = n1[0]*n2[1] - n2[0]*n1[1];
+
+    mag1 = sqrt(mp[0]*mp[0] + mp[1]*mp[1] + mp[2]*mp[2]);
+    mp[0] /= mag1;
+    mp[1] /= mag1;
+    mp[2] /= mag1;
+
+    sph_int[0] = asin(mp[2]/1.0);
+    sph_int[1] = atan2(mp[1], mp[0]);// + pi;
+    sph_int[2] = 1.0;
+
+    if (sph_int[1] < 0.0) sph_int[1] += 2*pi;
+}
+
+inline void angleBetweenMap(double sph1[], double sph2[], double sphc[], double &angle);
+inline void angleBetweenMap(double sph1[], double sph2[], double sphc[], double &angle)
+{
+    double latc = sphc[0];
+    double lonc = sphc[1];
+    double lat1 = sph1[0];
+    double lon1 = sph1[1];
+    double lat2 = sph2[0];
+    double lon2 = sph2[1];
+    double m = 0.0, x1=0.0, y1=0.0, x2=0.0, y2=0.0;
+    double xc=0.0, yc=0.0;
+    double r = 1.0;
+
+    mapAtPoint(m, x1, y1, latc, lat1, lonc, lon1, r);
+    mapAtPoint(m, x2, y2, latc, lat2, lonc, lon2, r);
+
+    double dot = x1*x2 + y1*y2;     // dot product between [x1, y1] and [x2, y2]
+    double det = x1*y2 - y1*x2;     // determinant
+    angle = atan2(det, dot);
+
+    double ang1 = atan2(y1 - yc, x1 - xc);
+    double ang2 = atan2(y2 - yc, x2 - xc);
+    angle = ang1 - ang2;
+
+    if (angle > pi) angle -= 2*pi;
+    else if (angle < -pi) angle += 2*pi;
+}
+
 
 // Function to find the area of a triangle with points p(xc,yc), p(x1,y2) and
 // p(x2,y2) in cartesian or mapping coordinates.
@@ -150,15 +344,15 @@ inline void triangularAreaSph(double &area, double &lat1, double &lat2, double &
 
   // std::cout<<lat1<<' '<<lat2<<' '<<lat3<<std::endl;
 
-  c = acos(sin(lat1) * sin(lat2) + cos(lat1) * cos(lat2) * cos(lon2-lon1));
-  a = acos(sin(lat2) * sin(lat3) + cos(lat2) * cos(lat3) * cos(lon3-lon2));
-  b = acos(sin(lat3) * sin(lat1) + cos(lat3) * cos(lat1) * cos(lon1-lon3));
+  c = fabs(acos(sin(lat1) * sin(lat2) + cos(lat1) * cos(lat2) * cos(fabs(lon2-lon1))));
+  a = fabs(acos(sin(lat2) * sin(lat3) + cos(lat2) * cos(lat3) * cos(fabs(lon3-lon2))));
+  b = fabs(acos(sin(lat3) * sin(lat1) + cos(lat3) * cos(lat1) * cos(fabs(lon1-lon3))));
 
-  A = acos((cos(a) - cos(b)*cos(c))/(sin(b)*sin(c)));
-  B = acos((cos(b) - cos(a)*cos(c))/(sin(a)*sin(c)));
-  C = acos((cos(c) - cos(b)*cos(a))/(sin(b)*sin(a)));
+  A = fabs(acos((cos(a) - cos(b)*cos(c))/(sin(b)*sin(c))));
+  B = fabs(acos((cos(b) - cos(a)*cos(c))/(sin(a)*sin(c))));
+  C = fabs(acos((cos(c) - cos(b)*cos(a))/(sin(b)*sin(a))));
 
-  area = pow(r,2.0) * ((A + B + C) - pi);
+  area = pow(r,2.0) * fabs((A + B + C) - pi);
 }
 
 //

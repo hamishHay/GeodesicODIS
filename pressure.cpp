@@ -134,7 +134,7 @@ int updatePressure(Globals * globals,
             }
 
             total_div_new = 0.0;
-            velocityDivergence(grid, *v_div, v, total_div_new, -1e3/(dt));
+            // velocityDivergence(grid, *v_div, v, total_div_new, -1e3/(dt));
 
             div_diff = total_div_new;
             total_div_old = 0.0;
@@ -219,7 +219,7 @@ int updatePressure(Globals * globals,
 
                 div_diff = total_div_new;
                 total_div_new = 0.0;
-                velocityDivergence(grid, *v_div, v, total_div_new, -1e3/(dt));
+                // velocityDivergence(grid, *v_div, v, total_div_new, -1e3/(dt));
 
                 residual = fabs( total_div_new - total_div_old);
                 total_div_old = total_div_new;
@@ -243,7 +243,7 @@ int updatePressure(Globals * globals,
             }
 
             total_div_new = 0.0;
-            velocityDivergence(grid, *v_div, *dvdt_dummy, total_div_new, -1.0);
+            // velocityDivergence(grid, *v_div, *dvdt_dummy, total_div_new, -1.0);
 
             div_diff = total_div_new;
             total_div_old = 0.0;
@@ -335,7 +335,7 @@ int updatePressure(Globals * globals,
 
                 div_diff = total_div_new;
                 total_div_new = 0.0;
-                velocityDivergence(grid, *v_div, *dvdt_dummy, total_div_new, -1.0);
+                // velocityDivergence(grid, *v_div, *dvdt_dummy, total_div_new, -1.0);
 
                 // std::cout<<"DIV: "<<total_div_new<<std::endl;
 
@@ -360,7 +360,7 @@ int updatePressure(Globals * globals,
             // solving. It is very slow.
 
             total_div_new = 0.0;
-            velocityDivergence(grid, *v_div, v, total_div_new, -1.0);
+            // velocityDivergence(grid, *v_div, v, total_div_new, -1.0);
 
 
             max_iter = 50;
@@ -380,7 +380,7 @@ int updatePressure(Globals * globals,
 
                 total_div_new = 0.0;
                 for (i=0; i<node_num; i++) (*v_div)(i) = 0.0;
-                velocityDivergence(grid, *v_div, v, total_div_new, -1.0);
+                // velocityDivergence(grid, *v_div, v, total_div_new, -1.0);
 
                 residual = fabs( total_div_new - total_div_old);
                 total_div_old = total_div_new;

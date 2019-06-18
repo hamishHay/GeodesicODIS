@@ -9,11 +9,13 @@
 #include "H5Cpp.h"
 
 #include "globals.h"
+#include "mesh.h"
 #include "H5Cpp.h"
 
 enum mess_type{ OUT_MESSAGE, ERR_MESSAGE, GRID_MESSAGE };
 
 class Globals;        // Forward declare globals class
+class Mesh;
 
 class OutFiles {
 private:
@@ -23,6 +25,7 @@ private:
 	std::ofstream error;
 
     int node_num;
+    int face_num;
 
 	void WriteMessage(std::ostringstream * sstream);
 	void WriteError(std::ostringstream * sstream);
@@ -44,6 +47,7 @@ public:
 
   void CreateHDF5Framework(Globals *);
 
+  void DumpGridData(Mesh *);
   void DumpData(Globals *, int, double **);
 
   //------------------------Objects for HDF5 Storage----------------------------
@@ -60,9 +64,11 @@ public:
   float * dummy2_2D;
   // float * harm_coeff_1D;
 
-  hsize_t rank_field;
+  hsize_t rank_cv;
+  hsize_t rank_face;
   hsize_t rank_harm;
   hsize_t rank_1D;
+
 
   hid_t file;
 
@@ -76,6 +82,7 @@ public:
   hid_t data_space_1D_kinetic_avg;
   hid_t data_space_dummy1;
   hid_t data_space_dummy2;
+
   // hid_t data_space_harm_coeff;
 
   hid_t mem_space_eta;
@@ -104,16 +111,21 @@ public:
 
   char * dataFilePath;
 
-  hsize_t * dims_field;
+  hsize_t * dims_cv;
+  hsize_t * dims_face;
   hsize_t * dims_1D_diss_avg;
   hsize_t * dims_harm_coeff;
 
-  hsize_t * max_dims_field;
+  hsize_t * max_dims_cv;
+  hsize_t * max_dims_face;
   hsize_t * max_dims_1D_diss_avg;
   hsize_t * max_dims_harm_coeff;
 
-  hsize_t * start;
-  hsize_t * count;
+  hsize_t * start_cv;
+  hsize_t * count_cv;
+
+  hsize_t * start_face;
+  hsize_t * count_face;
 
   hsize_t * start_1D;
   hsize_t * count_1D;

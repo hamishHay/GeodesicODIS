@@ -11,6 +11,10 @@
 
 int integrateAB3vector(Globals *, Mesh *, Array2D<double> &, Array3D<double> &, int interation);
 
-int integrateAB3scalar(Globals *, Mesh *, Array1D<double> &, Array2D<double> &, int interation);
+int integrateAB3scalar(Globals *, Mesh *, Array1D<double> &, Array2D<double> &, int interation, int num);
+
+
+int integrateRK4vector(Globals *, Mesh *, Array2D<double> &, Array2D<double> &, Array2D<double> &, int interation);
+int integrateRK4scalar(Globals *, Mesh *, Array1D<double> &, Array1D<double> &, Array1D<double> &, int interation);
 
 #endif

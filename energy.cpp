@@ -32,6 +32,11 @@ void updateEnergy(Globals * globals, double & avg_diss, Array1D<double> & e_diss
                             * (v(i,0)*v(i,0) + v(i,1)*v(i,1));
 
             avg_diss += e_diss(i);
+
+            e_diss(i) *= 1./mass(i) * 1000.0 * h; // Convert to flux?
+
+
+
             // flux += 1000.0 * h * drag_coeff * (v(i,0)*v(i,0) + v(i,1)*v(i,1));
         }
         break;
@@ -42,6 +47,8 @@ void updateEnergy(Globals * globals, double & avg_diss, Array1D<double> & e_diss
             e_diss(i) = drag_coeff/h * mass(i)
                                 * sqrt(v(i,0)*v(i,0) + v(i,1)*v(i,1))
                                 * (v(i,0)*v(i,0) + v(i,1)*v(i,1));
+
+
             avg_diss += e_diss(i);
         }
         break;

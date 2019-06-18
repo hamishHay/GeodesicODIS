@@ -8,9 +8,11 @@ HOME=/usr/local
 
 # CFLAGS = -O3 -ffast-math -c -mkl -Wall -Wno-sign-compare -Wunused-but-set-variable -xCORE-AVX2 -msse4 -funroll-loops -finline-functions -mtune=native  -std=c++14 -I/home/hamish/Research/Eigen -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp
 
-CFLAGS = -fast -Ofast -ffast-math -parallel -qopenmp -c -mkl -Wall -Wno-sign-compare -Wunused-but-set-variable -xCORE-AVX2 -msse4 -std=c++14 -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp
+#-parallel -qopenmp 
+CFLAGS = -fast -Ofast -ffast-math -c -mkl -Wall -Wno-sign-compare -Wunused-but-set-variable -xCORE-AVX2 -msse4 -std=c++14 -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp
 
-CLINK = -ipo -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp -lblas -mkl
+# -ipo
+CLINK =  -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp -lblas -mkl
 
 # FFLAGS= -c -I/home/hamish/Research/SHTOOLS-4.0/modules -m64 -fPIC -Ofast -ffast-math -L/home/hamish/Research/SHTOOLS-4.0/lib -lSHTOOLS -L/usr/local/lib -lfftw3 -lm -llapack -lblas
 # FLINK =  -lgfortran -L/home/hamish/Research/SHTOOLS-4.0/lib -lSHTOOLS -Llib -lfftw3 -llapack
@@ -27,8 +29,8 @@ all: ODIS
 # 	$(CC) legendre.o legendreDeriv.o extractSHCoeff.o $(FLINK) main.o mathRoutines.o tidalPotentials.o outFiles.o globals.o mesh.o field.o depth.o mass.o energy.o viscosity.o interpolation.o advection.o solver.o -o ODIS -lgfortran -fopenmp $(CLINK)
 
 
-ODIS: legendre.o legendreDeriv.o extractSHCoeffGG.o extractSHCoeffLL.o main.o tidalPotentials.o outFiles.o globals.o mesh.o membraneConstants.o boundaryConditions.o initialConditions.o solver.o timeIntegrator.o drag.o spatialOperators.o temporalOperators.o energy.o sphericalHarmonics.o interpolation.o pressure.o tests.o
-	$(CC) $(FLINK) legendre.o legendreDeriv.o extractSHCoeffGG.o extractSHCoeffLL.o $(FLINK) main.o tidalPotentials.o outFiles.o globals.o mesh.o membraneConstants.o boundaryConditions.o initialConditions.o solver.o timeIntegrator.o drag.o spatialOperators.o temporalOperators.o energy.o sphericalHarmonics.o interpolation.o pressure.o tests.o -o ODIS -lgfortran  $(CLINK)
+ODIS: legendre.o legendreDeriv.o extractSHCoeffGG.o extractSHCoeffLL.o main.o globals.o outFiles.o  mesh.o tidalPotentials.o membraneConstants.o boundaryConditions.o initialConditions.o solver.o timeIntegrator.o drag.o spatialOperators.o temporalOperators.o energy.o sphericalHarmonics.o interpolation.o pressure.o tests.o
+	$(CC) $(FLINK) legendre.o legendreDeriv.o extractSHCoeffGG.o extractSHCoeffLL.o $(FLINK) main.o globals.o outFiles.o  mesh.o tidalPotentials.o membraneConstants.o boundaryConditions.o initialConditions.o solver.o timeIntegrator.o drag.o spatialOperators.o temporalOperators.o energy.o sphericalHarmonics.o interpolation.o pressure.o tests.o -o ODIS -lgfortran  $(CLINK)
 
 legendre.o: legendre.f95
 	$(F) $(FFLAGS) legendre.f95

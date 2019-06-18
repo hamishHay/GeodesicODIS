@@ -217,6 +217,8 @@ Globals::Globals(int action) {
 
   // geodesic node num expression (Lee and Macdonald, 2008)
   node_num = 10 * pow(pow(2, geodesic_l.Value() - 1), 2) + 2;
+  face_num = ((node_num-12)*6 + 12*5)/2;
+  vertex_num = ((node_num-12)*6 + 12*5)/3;
 
   Output->CreateHDF5Framework(this);
 
@@ -231,6 +233,7 @@ Globals::Globals(int action) {
 
     if (solver.Value() == "EULER") solver_type = EULER;
     else if (solver.Value() == "AB3") solver_type = AB3;
+    else if (solver.Value() == "RK4") solver_type = RK4;
     else {
         outstring << "ERROR: NO SOLVER FOUND!" << std::endl;
         Output->Write(ERR_MESSAGE, &outstring);
