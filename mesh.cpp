@@ -73,6 +73,7 @@ Mesh::Mesh(Globals * Globals, int N, int face_N, int vertex_N, int N_ll, int l_m
     face_len(face_N),
     node_face_dir(N, 6),
     node_face_vel_trans(N, 6, 2),
+    face_is_boundary(face_N),
 
     vertexes(N, 6),
     vertex_pos_sph(vertex_N, 2),
@@ -115,7 +116,6 @@ Mesh::Mesh(Globals * Globals, int N, int face_N, int vertex_N, int N_ll, int l_m
     // Find control volume edge midpoints in mapping coords
     CalcControlVolumeEdgeCentres();
 
-    DefineBoundaryCells();
 
     // Find control volume edge outward normal unit vectors
     CalcControlVolumeEdgeNormals();
@@ -141,11 +141,13 @@ Mesh::Mesh(Globals * Globals, int N, int face_N, int vertex_N, int N_ll, int l_m
 
     AssignFaces();
 
+    DefineBoundaryCells();
+
     CalcGradOperatorCoeffs();
 
     CalcDivOperatorCoeffs();
 
-    CalcLaplaceOperatorCoeffs();
+    // CalcLaplaceOperatorCoeffs();
 
     CalcCoriolisOperatorCoeffs();
 
@@ -255,6 +257,7 @@ int Mesh::AssignFaces(void)
             if (faces(i, j) < 0) {
                 faces(i, j) = face_count;
                 face_nodes(face_count, 0) = i;
+                face_is_boundary(face_count) = 0;
                 // face_friends(face_count, 0) = j;
                 face_dir(face_count, 0) = 1;
                 face_node_dist(face_count) = node_dists(i, j);
@@ -328,12 +331,12 @@ int Mesh::AssignFaces(void)
                 face_intercept_pos_sph(face_count, 0) = sphc[0];
                 face_intercept_pos_sph(face_count, 1) = sphc[1];
 
-                if (face_count==4195) {
-                    std::cout<<std::endl<<i<<' '<<std::endl;
-                    std::cout<<sph1[0]*180/pi<<' '<<sph2[0]*180/pi<<' '<<sphc[0]*180/pi<<std::endl;
-                    std::cout<<sph1[1]*180/pi<<' '<<sph2[1]*180/pi<<' '<<sphc[1]*180/pi<<std::endl;
-
-                }
+                // if (face_count==4195) {
+                //     std::cout<<std::endl<<i<<' '<<std::endl;
+                //     std::cout<<sph1[0]*180/pi<<' '<<sph2[0]*180/pi<<' '<<sphc[0]*180/pi<<std::endl;
+                //     std::cout<<sph1[1]*180/pi<<' '<<sph2[1]*180/pi<<' '<<sphc[1]*180/pi<<std::endl;
+                //
+                // }
 
                 int k=0;
                 for (int j2=0; j2<friend_num2; j2++) {
@@ -419,10 +422,12 @@ int Mesh::AssignFaces(void)
             std::sort( face_vertex_list.begin( ), face_vertex_list.end( ), [ ]( const face_friends &lhs, const face_friends &rhs )
             { return lhs.angle > rhs.angle; });
 
-            // for (int j=0; j<friend_num; j++) {
-            //         std::cout<<i<<' '<<friends_list[j].ID<<" angle: "<<friends_list[j].angle<<'\t';
-            //         std::cout<<' '<<face_vertex_list[j].ID<<" angle: "<<face_vertex_list[j].angle<<std::endl;
-            // }
+        //     if (i==2381 || i==2377) {
+        //     for (int j=0; j<friend_num; j++) {
+        //             std::cout<<i<<' '<<friends_list[j].ID<<" angle: "<<friends_list[j].angle<<'\t';
+        //             std::cout<<' '<<face_vertex_list[j].ID<<" angle: "<<face_vertex_list[j].angle<<std::endl;
+        //     }
+        // }
 
             // Now we know the right order of faces and vertexes relative to face
             // i, so we can now compute the R weights
@@ -481,12 +486,12 @@ int Mesh::AssignFaces(void)
 
                 triangularAreaSph(a1, sph1[0], sph2[0], sph_int[0], sph1[1], sph2[1], sph_int[1], r);
 
-                if (i==4195) {
-                    std::cout<<std::endl<<i<<' '<<a1<<std::endl;
-                    std::cout<<sph1[0]*180/pi<<' '<<sph2[0]*180/pi<<' '<<sph_int[0]*180/pi<<std::endl;
-                    std::cout<<sph1[1]*180/pi<<' '<<sph2[1]*180/pi<<' '<<sph_int[1]*180/pi<<std::endl;
-
-                }
+                // if (i==4195) {
+                //     std::cout<<std::endl<<i<<" FACE: "<<f_ID<<" VERTEX: "<<v_ID<<" NODE: "<<node_ID<<std::endl;
+                //     std::cout<<sph1[0]*180/pi<<' '<<sph2[0]*180/pi<<' '<<sph_int[0]*180/pi<<std::endl;
+                //     std::cout<<sph1[1]*180/pi<<' '<<sph2[1]*180/pi<<' '<<sph_int[1]*180/pi<<std::endl;
+                //
+                // }
 
                 // calc triangle area for face_intersect2-node-vertex
                 f_ID = friends_list[(j+1)%friend_num].ID;
@@ -496,11 +501,12 @@ int Mesh::AssignFaces(void)
 
                 triangularAreaSph(a2, sph1[0], sph2[0], sph_int[0], sph1[1], sph2[1], sph_int[1], r);
 
-                if (i==4195) {
-                std::cout<<std::endl<<i<<' '<<a2<<std::endl;
-                std::cout<<sph1[0]*180/pi<<' '<<sph2[0]*180/pi<<' '<<sph_int[0]*180/pi<<std::endl;
-                std::cout<<sph1[1]*180/pi<<' '<<sph2[1]*180/pi<<' '<<sph_int[1]*180/pi<<std::endl;
-                }
+                // if (i==4195) {
+                //     std::cout<<std::endl<<i<<" FACE: "<<f_ID<<" VERTEX: "<<v_ID<<" NODE: "<<node_ID<<std::endl;
+                //     std::cout<<sph1[0]*180/pi<<' '<<sph2[0]*180/pi<<' '<<sph_int[0]*180/pi<<std::endl;
+                //     std::cout<<sph1[1]*180/pi<<' '<<sph2[1]*180/pi<<' '<<sph_int[1]*180/pi<<std::endl;
+                //
+                // }
 
                 area = (a1+a2)/area_cv;//control_volume_surf_area_map(node_ID);
 
@@ -517,13 +523,20 @@ int Mesh::AssignFaces(void)
 
 
             for (j=0; j<friend_num; j++) {
+                // if (i==2381) {
+                //     // std::cout<<i<<' '<<face_intercept_pos_sph(i,0)<<' '<<face_intercept_pos_sph(i,1)<<' ';
+                //     // std::cout<<vertex_pos_sph(face_vertex_list[j].ID,0)<<' '<<vertex_pos_sph(face_vertex_list[j].ID,1)<<std::endl;
+                //
+                //     // std::cout<<i<<' ';
+                //     // std::cout<<friends_list[j].ID<<' '<<j_add<<std::endl;
+                //
+                // }
                 //Calc each weight w_ee' for e
                 if (i != friends_list[j].ID) {
                     face_interp_friends(i, j_add) = friends_list[j].ID;
                     face_interp_weights(i, j_add) = 0.0;
                     for (int j2=0; j2<j; j2++)
                     {
-                        // std::cout<<j<<' '<<j2<<' '<<R_weights[j2]<<std::endl;
                         face_interp_weights(i, j_add) += R_weights[j2];
                     }
                     face_interp_weights(i, j_add) -= 0.5;
@@ -542,11 +555,22 @@ int Mesh::AssignFaces(void)
                     // happens under the asusmption that the weights are
                     // calculated in an anti-clockwise sense
                     int t_ev = 1;
-                    if (face_nodes(i, 0) == node_ID) t_ev = face_dir(i,0);
-                    else t_ev = -face_dir(i,1);
+                    if (face_nodes(i, 0) == node_ID) t_ev = 1;//face_dir(i,0);
+                    else t_ev = -1;//face_dir(i,1);
+                    // t_ev = -face_dir(i,0);
 
                     face_interp_weights(i, j_add) *= t_ev;
-                    std::cout<<i<<' '<<j_add<<' '<<friends_list[j].ID<<' '<<face_interp_weights(i, j_add)<<std::endl;
+                    // if (node_ID==2381) std::cout<<i<<' '<<j_add<<' '<<friends_list[j].ID<<' '<<face_interp_weights(i, j_add)<<std::endl;
+
+                    // if (i==2381 || i==2377) {
+                    //     int fID = friends_list[j].ID;
+                    //     std::cout<<i<<' '<<fID<<' '<<j_add<<' '<<face_interp_weights(i, j_add)<<' '<<t_ev<<std::endl;
+                    //     // std::cout<<i<<' '<<face_intercept_pos_sph(i,0)<<' '<<face_intercept_pos_sph(i,1)<<' ';
+                    //     // std::cout<<face_normal_vec_map(i, 0)<<' '<<face_normal_vec_map(i, 1)<<std::endl;
+                    //     // std::cout<<i<<' ';
+                    //     // std::cout<<friends_list[j].ID<<' '<<j_add<<std::endl;
+                    //
+                    // }
                     j_add++;
                 }
                 // face_interp_friends(j, j2) = friends_list[(j)%friend_num].ID;
@@ -559,6 +583,24 @@ int Mesh::AssignFaces(void)
         }
 
     }
+
+    // for (int i=0; i<face_num; i++)
+    // {
+    //     int j_add = 0;
+    //     for (int k=0; k<2; k++)
+    //     {
+    //         int node_ID = face_nodes(i, k);
+    //
+    //         friend_num = 6;
+    //         if (node_friends(node_ID, 5) < 0) friend_num--;
+    //
+    //         for (int j=0; j<friend_num; j++)
+    //         {
+    //             std::cout<<i<<face_interp_weights(i, j_add)
+    //         }
+    //
+    //     }
+    // }
 
     std::cout<<"FACE NUM: "<<face_count<<' '<<face_num<<std::endl;
     std::cout<<"NODE NUM: "<<node_num<<std::endl;
@@ -596,30 +638,33 @@ int Mesh::DefineBoundaryCells(void)
         // dist /= r;
 
         // std::cout<<dist*180./pi<<std::endl;
-        if (dist*180./pi >= 20) cell_is_boundary(i) = 0;
-        else cell_is_boundary(i) = 2;
+        if (dist*180./pi <= 88) cell_is_boundary(i) = 0;
+        else cell_is_boundary(i) = 1;
 
-        if (cell_is_boundary(i) == 0)
-        {
-          for (j=0; j<friend_num; j++)                        // Loop through all centroids in the control volume
-          {
-            f = node_friends(i,j);
-            lat2 = node_pos_sph(f, 0);                     // set map coords for second centroid
-            lon2 = node_pos_sph(f, 1);
-
-            distanceBetweenSph(dist, lat1, lat2, lon1, lon2, r);   //
-            // dist /= r;
-            // std::cout<<i<<'\t'<<dist*180./pi<<std::endl;
-            if (dist*180./pi < 2) {
-              cell_is_boundary(i) = 1;
-              break;
-            }
-          }
-        }
+        // if (cell_is_boundary(i) == 0)
+        // {
+        //   for (j=0; j<friend_num; j++)                        // Loop through all centroids in the control volume
+        //   {
+        //     int f_ID = faces(i,j);
+        //     lat2 = face_intercept_pos_sph(f_ID, 0);                     // set map coords for second centroid
+        //     lon2 = face_intercept_pos_sph(f_ID, 1);
+        //
+        //     distanceBetweenSph(dist, lat1, lat2, lon1, lon2, r);   //
+        //     // dist /= r;
+        //     // std::cout<<i<<'\t'<<dist*180./pi<<std::endl;
+        //     if (dist*180./pi < 20) {
+        //       // cell_is_boundary(i) = 1;
+        //       face_is_boundary(f_ID) = 1;
+        //       // break;
+        //     }
+        //   }
+        // }
         // if (cell_is_boundary(i) == 2) std::cout<<i<<'\t'<<cell_is_boundary(i)<<std::endl;
 
-        // cell_is_boundary(i) = 0;
+        cell_is_boundary(i) = 0;
     }
+
+
 
 }
 
@@ -720,27 +765,27 @@ int Mesh::CalcMappingCoords(void)
                     // assign mapped values to arrays
                     mapAtPoint(*m, *x, *y, lat1, lat2, lon1, lon2, r);
 
-                    if (i==137 && (f==1427 || f==1453 || f ==1457))
-                    {
-                      double dist = 0.0;
-                      std::cout<<i<<' '<<f<<' '<<*x<<' '<<*y<<' '<<lat2*180/pi<<std::endl;
-                      // distanceBetween(dist, *xc, *x1, *yc, *y1);
-                      // std::cout<<i<<' '<<f<<' '<<dist<<std::endl;
-                      // std::cout<<i<<' '<<nx<<' '<<ny<<std::endl;
-                      // std::cout<<i<<' '<<m<<std::endl;
-                      // std::cout<<i<<' '<<mesh->node_dists(i, (j+1)%friend_num)<<std::endl;
-                      // for (int k=0; k<3; k++) std::cout<<' '<<f1<<' '<<(*element_areas)(i,(j)%friend_num,k);
-                      // for (int k=0; k<3; k++) std::cout<<' '<<f2<<' '<<(*element_areas)(i,(j+1)%friend_num,k);
-                      // for (int k=0; k<3; k++) std::cout<<' '<<f2<<' '<<(*element_areas)(i,(j+2)%friend_num,k);
-                    }
-                    if (i==1453 && (f==1457 || f==137 || f ==1427))
-                    {
-                      double dist = 0.0;
-                      // distanceBetween(dist, *xc, *x1, *yc, *y1);
-                      // std::cout<<i<<' '<<f<<' '<<dist<<std::endl;
-                      // std::cout<<i<<' '<<j<<' '<<f<<std::endl;
-                      std::cout<<i<<' '<<f<<' '<<*x<<' '<<*y<<' '<<lat2*180/pi<<std::endl;
-                    }
+                    // if (i==137 && (f==1427 || f==1453 || f ==1457))
+                    // {
+                    //   double dist = 0.0;
+                    //   std::cout<<i<<' '<<f<<' '<<*x<<' '<<*y<<' '<<lat2*180/pi<<std::endl;
+                    //   // distanceBetween(dist, *xc, *x1, *yc, *y1);
+                    //   // std::cout<<i<<' '<<f<<' '<<dist<<std::endl;
+                    //   // std::cout<<i<<' '<<nx<<' '<<ny<<std::endl;
+                    //   // std::cout<<i<<' '<<m<<std::endl;
+                    //   // std::cout<<i<<' '<<mesh->node_dists(i, (j+1)%friend_num)<<std::endl;
+                    //   // for (int k=0; k<3; k++) std::cout<<' '<<f1<<' '<<(*element_areas)(i,(j)%friend_num,k);
+                    //   // for (int k=0; k<3; k++) std::cout<<' '<<f2<<' '<<(*element_areas)(i,(j+1)%friend_num,k);
+                    //   // for (int k=0; k<3; k++) std::cout<<' '<<f2<<' '<<(*element_areas)(i,(j+2)%friend_num,k);
+                    // }
+                    // if (i==1453 && (f==1457 || f==137 || f ==1427))
+                    // {
+                    //   double dist = 0.0;
+                    //   // distanceBetween(dist, *xc, *x1, *yc, *y1);
+                    //   // std::cout<<i<<' '<<f<<' '<<dist<<std::endl;
+                    //   // std::cout<<i<<' '<<j<<' '<<f<<std::endl;
+                    //   std::cout<<i<<' '<<f<<' '<<*x<<' '<<*y<<' '<<lat2*180/pi<<std::endl;
+                    // }
                     break;
             }
         }
@@ -1355,28 +1400,28 @@ int Mesh::CalcElementAreas(void)
                 // double rr = globals->radius.Value();
                 // triangularAreaSph(area, lat0, lat1, lat2, lon0, lon1, lon2, rr);
 
-                if (i==137 && (f==1427))// || f==1453 || f ==1457))
-                {
-                  double dist = 0.0;
-                  // std::cout<<i<<' '<<f<<' '<<*x1<<' '<<*y1<<' '<<*x2<<' '<<*y2<<std::endl;
-                  distanceBetween(dist, *xc, *x1, *yc, *y1);
-                  std::cout<<i<<' '<<f<<' '<<*t_area<<std::endl;
-                  // std::cout<<i<<' '<<nx<<' '<<ny<<std::endl;
-                  // std::cout<<i<<' '<<m<<std::endl;
-                  // std::cout<<i<<' '<<mesh->node_dists(i, (j+1)%friend_num)<<std::endl;
-                  // for (int k=0; k<3; k++) std::cout<<' '<<f1<<' '<<(*element_areas)(i,(j)%friend_num,k);
-                  // for (int k=0; k<3; k++) std::cout<<' '<<f2<<' '<<(*element_areas)(i,(j+1)%friend_num,k);
-                  // for (int k=0; k<3; k++) std::cout<<' '<<f2<<' '<<(*element_areas)(i,(j+2)%friend_num,k);
-                }
-                if (i==1453 && (f==137))// || f==1457 || f ==1427))
-                {
-                  double dist = 0.0;
-                  distanceBetween(dist, *xc, *x1, *yc, *y1);
-                  // std::cout<<i<<' '<<f<<' '<<dist<<std::endl;
-                  std::cout<<i<<' '<<f<<' '<<*t_area<<std::endl;
-                  // std::cout<<i<<' '<<f<<' '<<as<<' '<<ae<<std::endl;
-                  // std::cout<<i<<' '<<f<<' '<<*x1<<' '<<*y1<<' '<<*x2<<' '<<*y2<<std::endl;
-                }
+                // if (i==137 && (f==1427))// || f==1453 || f ==1457))
+                // {
+                //   double dist = 0.0;
+                //   // std::cout<<i<<' '<<f<<' '<<*x1<<' '<<*y1<<' '<<*x2<<' '<<*y2<<std::endl;
+                //   distanceBetween(dist, *xc, *x1, *yc, *y1);
+                //   // std::cout<<i<<' '<<f<<' '<<*t_area<<std::endl;
+                //   // std::cout<<i<<' '<<nx<<' '<<ny<<std::endl;
+                //   // std::cout<<i<<' '<<m<<std::endl;
+                //   // std::cout<<i<<' '<<mesh->node_dists(i, (j+1)%friend_num)<<std::endl;
+                //   // for (int k=0; k<3; k++) std::cout<<' '<<f1<<' '<<(*element_areas)(i,(j)%friend_num,k);
+                //   // for (int k=0; k<3; k++) std::cout<<' '<<f2<<' '<<(*element_areas)(i,(j+1)%friend_num,k);
+                //   // for (int k=0; k<3; k++) std::cout<<' '<<f2<<' '<<(*element_areas)(i,(j+2)%friend_num,k);
+                // }
+                // if (i==1453 && (f==137))// || f==1457 || f ==1427))
+                // {
+                //   double dist = 0.0;
+                //   distanceBetween(dist, *xc, *x1, *yc, *y1);
+                //   // std::cout<<i<<' '<<f<<' '<<dist<<std::endl;
+                //   std::cout<<i<<' '<<f<<' '<<*t_area<<std::endl;
+                //   // std::cout<<i<<' '<<f<<' '<<as<<' '<<ae<<std::endl;
+                //   // std::cout<<i<<' '<<f<<' '<<*x1<<' '<<*y1<<' '<<*x2<<' '<<*y2<<std::endl;
+                // }
 
             }
         }
@@ -1540,11 +1585,11 @@ int Mesh::CalcCoriolisOperatorCoeffs(void)
     // neighbours and one central node (total of 7). Additionally, there is a
     // row for each variable (total 3). Therefore, the total number
     // of non-zero coefficients in our sparse matrix is given as:
-    int nNonZeroGrad = 2*node_num;
+    int nNonZeroGrad = (12*5)*9 + (face_num - 12*5)*10;
 
     int     * colIndx;    // column index for each non-zero element
     int     * rowIndxX;    // row indices for CSR matrix format (x component)
-    int     * rowIndxY;    // row indices for CSR matrix format (y component)
+    // int     * rowIndxY;    // row indices for CSR matrix format (y component)
     double * nzCoeffsX;   // non-zero grad operator coeffis in x direction
 
     int * rowStartX;      // start row indices (x component)
@@ -1561,9 +1606,9 @@ int Mesh::CalcCoriolisOperatorCoeffs(void)
 
     //---------------- Initialise objects into memory --------------------------
 
-    rowStartX = new int[2*node_num];
-    rowEndX   = new int[2*node_num];
-    rowIndxX  = new int[2*node_num + 1];
+    rowStartX = new int[face_num];
+    rowEndX   = new int[face_num];
+    rowIndxX  = new int[face_num + 1];
 
 
     nzCoeffsX = new double[nNonZeroGrad];
@@ -1572,47 +1617,65 @@ int Mesh::CalcCoriolisOperatorCoeffs(void)
     // assign the non-zero coefficients and their column indexes in CSR format
     int count=0;
 
-    for (i=0; i<node_num; i++)
+    for (int i=0; i<face_num; ++i)
     {
+        double v_tang = 0.0;
+        int friend_num = 10;
 
-          nzCoeffsX[count] = +2*globals->angVel.Value()*trigLat(i, 1);
-          colIndx[count] = i*3 + 1;
-          count++;
+        int n1, n2;
+        n1 = face_nodes(i,0);
+        n2 = face_nodes(i,1);
+        if (node_friends(n1,5) < 0) friend_num--;
+        if (node_friends(n2,5) < 0) friend_num--;
 
-          nzCoeffsX[count] = -2*globals->angVel.Value()*trigLat(i, 1);
-          colIndx[count] = i*3;
-          count++;
+        for (int j=0; j<friend_num; j++) {
+            int f_ID = face_interp_friends(i, j);
+            colIndx[count] = f_ID;
+            nzCoeffsX[count] = -2.0 * globals->angVel.Value() * sin(face_intercept_pos_sph(i, 0))*face_interp_weights(i,j)*face_len(f_ID)/face_node_dist(i);
+
+            count++;
+
+
+            // v_tang += v_tm1(f_ID)*grid->face_interp_weights(i,j)*grid->face_len(f_ID);
+        }
+
+        if (i<face_num-1) rowIndxX[i+1] = count;
+        // v_tang /= grid->face_node_dist(i);
+
+        // dvdt(i) -= 2.0 * omega * sin(grid->face_intercept_pos_sph(i, 0)) * v_tang;
+        //
+        // dvdt(i) -= v_tm1(i)*globals->alpha.Value();
     }
 
     // assign the row indexes for the sparse matrix in CSR format
     rowIndxX[0] = 0;         // first element is always zero
 
-    for (i=1; i<2*node_num; i++) {
-      rowIndxX[i] = i;
-    }
-
     // last element is always the number of non-zero coefficients
-    rowIndxX[2*node_num] = nNonZeroGrad;
+    rowIndxX[face_num] = nNonZeroGrad;
+    // for (i=1; i<face_num; i++) {
+    //   rowIndxX[i] = i;
+    // }
 
-    for (i=0; i<node_num*2; i++) {
+
+    for (i=0; i<face_num; i++) {
       rowStartX[i] = rowIndxX[i];
       rowEndX[i] = rowIndxX[i+1]; }
 
     // Create the operator for the x and y components
     operatorCoriolis = new sparse_matrix_t;
-    sparse_matrix_t * operatorCoriolisTemp = new sparse_matrix_t;
-    error = mkl_sparse_d_create_csr(operatorCoriolisTemp, indexing, 2*node_num, 3*node_num, rowStartX, rowEndX, colIndx, nzCoeffsX);
+    // sparse_matrix_t * operatorCoriolisTemp = new sparse_matrix_t;
+    error = mkl_sparse_d_create_csr(operatorCoriolis, indexing, face_num, face_num, rowStartX, rowEndX, colIndx, nzCoeffsX);
 
-    matrix_descr descrp;
-    descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
-    error = mkl_sparse_copy (*operatorCoriolisTemp, descrp, operatorCoriolis);
+    // matrix_descr descrp;
+    // descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
+    // error = mkl_sparse_copy (*operatorCoriolisTemp, descrp, operatorCoriolis);
 
-    delete[] rowStartX;
-    delete[] rowEndX;
-    delete[] rowIndxX;
-    delete[] colIndx;
-    delete[] nzCoeffsX;
-    delete operatorCoriolisTemp;
+    // delete[] rowStartX;
+    // delete[] rowEndX;
+    // delete[] rowIndxX;
+    // delete[] colIndx;
+    // delete[] nzCoeffsX;
+    // delete operatorCoriolisTemp;
 
     return 1;
 }
@@ -1631,7 +1694,7 @@ int Mesh::CalcLinearDragOperatorCoeffs(void)
     // neighbours and one central node (total of 7). Additionally, there is a
     // row for each variable (total 3). Therefore, the total number
     // of non-zero coefficients in our sparse matrix is given as:
-    int nNonZeroGrad = 2*node_num;
+    int nNonZeroGrad = face_num;
 
     int     * colIndx;    // column index for each non-zero element
     int     * rowIndxX;    // row indices for CSR matrix format (x component)
@@ -1652,9 +1715,9 @@ int Mesh::CalcLinearDragOperatorCoeffs(void)
 
     //---------------- Initialise objects into memory --------------------------
 
-    rowStartX = new int[2*node_num];
-    rowEndX   = new int[2*node_num];
-    rowIndxX  = new int[2*node_num + 1];
+    rowStartX = new int[face_num];
+    rowEndX   = new int[face_num];
+    rowIndxX  = new int[face_num + 1];
 
 
     nzCoeffsX = new double[nNonZeroGrad];
@@ -1663,47 +1726,47 @@ int Mesh::CalcLinearDragOperatorCoeffs(void)
     // assign the non-zero coefficients and their column indexes in CSR format
     int count=0;
 
-    for (i=0; i<node_num; i++)
+    for (i=0; i<face_num; i++)
     {
 
           nzCoeffsX[count] = -globals->alpha.Value();
-          colIndx[count] = i*3;
+          colIndx[count] = i;
           count++;
 
-          nzCoeffsX[count] = -globals->alpha.Value();
-          colIndx[count] = i*3+1;
-          count++;
+          // nzCoeffsX[count] = -globals->alpha.Value();
+          // colIndx[count] = i*3+1;
+          // count++;
     }
 
     // assign the row indexes for the sparse matrix in CSR format
     rowIndxX[0] = 0;         // first element is always zero
 
-    for (i=1; i<2*node_num; i++) {
+    for (i=1; i<face_num; i++) {
       rowIndxX[i] = i;
     }
 
     // last element is always the number of non-zero coefficients
-    rowIndxX[2*node_num] = nNonZeroGrad;
+    rowIndxX[face_num] = nNonZeroGrad;
 
-    for (i=0; i<node_num*2; i++) {
+    for (i=0; i<face_num; i++) {
       rowStartX[i] = rowIndxX[i];
       rowEndX[i] = rowIndxX[i+1]; }
 
     // Create the operator for the x and y components
     operatorLinearDrag = new sparse_matrix_t;
-    sparse_matrix_t * operatorLinearDragTemp = new sparse_matrix_t;
-    error = mkl_sparse_d_create_csr(operatorLinearDragTemp, indexing, 2*node_num, 3*node_num, rowStartX, rowEndX, colIndx, nzCoeffsX);
+    // sparse_matrix_t * operatorLinearDragTemp = new sparse_matrix_t;
+    error = mkl_sparse_d_create_csr(operatorLinearDrag, indexing, face_num, face_num, rowStartX, rowEndX, colIndx, nzCoeffsX);
 
-    matrix_descr descrp;
-    descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
-    error = mkl_sparse_copy (*operatorLinearDragTemp, descrp, operatorLinearDrag);
-
-    delete[] rowStartX;
-    delete[] rowEndX;
-    delete[] rowIndxX;
-    delete[] colIndx;
-    delete[] nzCoeffsX;
-    delete operatorLinearDragTemp;
+    // matrix_descr descrp;
+    // descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
+    // error = mkl_sparse_copy (*operatorLinearDragTemp, descrp, operatorLinearDrag);
+    //
+    // delete[] rowStartX;
+    // delete[] rowEndX;
+    // delete[] rowIndxX;
+    // delete[] colIndx;
+    // delete[] nzCoeffsX;
+    // delete operatorLinearDragTemp;
 
     return 1;
 }
@@ -1711,107 +1774,6 @@ int Mesh::CalcLinearDragOperatorCoeffs(void)
 int Mesh::CalcGradOperatorCoeffs(void)
 {
     int i, j, j2, j3, f, f_num;
-    double areaCV, areaElement, *coeff_x, *coeff_y;
-    double alpha, beta, gamma, B_x, B_y;
-
-    for (i=0; i<node_num; i++)
-    {
-
-        f_num = 6;                                     // Assume hexagon (6 centroids)
-        f = node_friends(i,5);
-        if (f == -1) {
-            f_num = 5;                                   // Check if pentagon (5 centroids)
-        }
-
-        // Control volume area
-        areaCV = control_volume_surf_area_map(i);
-
-        // Calculate the central node coefficient first
-        coeff_x = &grad_coeffs(i, 0, 0);
-        coeff_y = &grad_coeffs(i, 0, 1);
-        *coeff_x = 0.0;
-        *coeff_y = 0.0;
-        for (j=0; j<f_num; j++)
-        {
-            j2 = (j-1)%f_num;
-            if (j2 < 0) j2 += f_num;
-
-            alpha = node_friend_element_areas_map(i, j, 1);
-
-            B_x = control_vol_edge_centre_m(i, j) * control_vol_edge_normal_map(i, j, 0) * control_vol_edge_len(i, j);
-            B_y = control_vol_edge_centre_m(i, j) * control_vol_edge_normal_map(i, j, 1) * control_vol_edge_len(i, j);
-
-            B_x += control_vol_edge_centre_m(i, j2) * control_vol_edge_normal_map(i, j2, 0) * control_vol_edge_len(i, j2);
-            B_y += control_vol_edge_centre_m(i, j2) * control_vol_edge_normal_map(i, j2, 1) * control_vol_edge_len(i, j2);
-
-            // Total element area = alpha + beta + gamma
-            areaElement = alpha + node_friend_element_areas_map(i, j, 0) + node_friend_element_areas_map(i, j, 2);
-
-            *coeff_x += B_x/areaElement * alpha;
-            *coeff_y += B_y/areaElement * alpha;
-
-        }
-        *coeff_x *= 0.5 * 1./areaCV;
-        *coeff_y *= 0.5 * 1./areaCV;
-
-        // Now calculate coeffs for neighbouring nodes (matrix diagonals)
-        for (j=0; j<f_num; j++)
-        {
-            // First term ------------------------------------------------------
-            coeff_x = &grad_coeffs(i, j+1, 0);
-            coeff_y = &grad_coeffs(i, j+1, 1);
-
-            j2 = (j-1)%f_num;
-            if (j2 < 0) j2 += f_num;
-
-            beta = node_friend_element_areas_map(i, j, 2);
-
-            B_x = control_vol_edge_centre_m(i, j) * control_vol_edge_normal_map(i, j, 0) * control_vol_edge_len(i, j);
-            B_y = control_vol_edge_centre_m(i, j) * control_vol_edge_normal_map(i, j, 1) * control_vol_edge_len(i, j);
-
-            B_x += control_vol_edge_centre_m(i, j2) * control_vol_edge_normal_map(i, j2, 0) * control_vol_edge_len(i, j2);
-            B_y += control_vol_edge_centre_m(i, j2) * control_vol_edge_normal_map(i, j2, 1) * control_vol_edge_len(i, j2);
-
-            // Total element area = alpha + beta + gamma
-            areaElement = node_friend_element_areas_map(i, j, 0) + beta + node_friend_element_areas_map(i, j, 1);
-
-            *coeff_x = B_x/areaElement * beta;
-            *coeff_y = B_y/areaElement * beta;
-
-            // Second term -----------------------------------------------------
-            gamma = node_friend_element_areas_map(i, j2, 0);
-
-            j3 = (j-2)%f_num;
-            if (j3 < 0) j3 += f_num;
-
-            B_x = control_vol_edge_centre_m(i, j2) * control_vol_edge_normal_map(i, j2, 0) * control_vol_edge_len(i, j2);
-            B_y = control_vol_edge_centre_m(i, j2) * control_vol_edge_normal_map(i, j2, 1) * control_vol_edge_len(i, j2);
-
-            B_x += control_vol_edge_centre_m(i, j3) * control_vol_edge_normal_map(i, j3, 0) * control_vol_edge_len(i, j3);
-            B_y += control_vol_edge_centre_m(i, j3) * control_vol_edge_normal_map(i, j3, 1) * control_vol_edge_len(i, j3);
-
-
-            // Total element area = alpha + beta + gamma
-            areaElement = node_friend_element_areas_map(i, j2, 2) + node_friend_element_areas_map(i, j2, 1) + gamma;
-
-            *coeff_x += B_x/areaElement * gamma;
-            *coeff_y += B_y/areaElement * gamma;
-
-            *coeff_x *= 0.5 * 1./areaCV;
-            *coeff_y *= 0.5 * 1./areaCV;
-        }
-
-
-    }
-
-    // Now create the gradient operators using the coefficients above
-
-    struct node {
-      int ID;
-      int F_NUM;
-    };
-
-    // why is this line here? Where would it be better placed?
 
     //--------------- Construct sparse matrix in CSR format --------------------
 
@@ -1823,19 +1785,15 @@ int Mesh::CalcGradOperatorCoeffs(void)
     // neighbours and one central node (total of 7). Additionally, there is a
     // row for each variable (total 3). Therefore, the total number
     // of non-zero coefficients in our sparse matrix is given as:
-    int nNonZeroGrad = (node_num-12)*7 + 12*6;
+    int nNonZeroGrad = 2*face_num;//(node_num-12)*7 + 12*6;
 
     int     * colIndx;    // column index for each non-zero element
-    int     * rowIndxX;    // row indices for CSR matrix format (x component)
-    int     * rowIndxY;    // row indices for CSR matrix format (y component)
+    int     * rowIndxX;    // row indices for CSR matrix format (x component) component)
     double * nzCoeffsX;   // non-zero grad operator coeffis in x direction
-    double * nzCoeffsY;   // non-zero grad operator coeffis in y direction
 
     int * rowStartX;      // start row indices (x component)
     int * rowEndX;        // start row indices (x component)
 
-    int * rowStartY;      // end row indices (x component)
-    int * rowEndY;        // end row indices (x component)
 
     int         error;    // error message from MKL
 
@@ -1847,97 +1805,51 @@ int Mesh::CalcGradOperatorCoeffs(void)
 
     //---------------- Initialise objects into memory --------------------------
 
-    rowStartX = new int[2*node_num];
-    rowEndX   = new int[2*node_num];
-    rowIndxX  = new int[2*node_num + 1];
+    rowStartX = new int[face_num];
+    rowEndX   = new int[face_num];
+    rowIndxX  = new int[face_num + 1];
 
-    rowStartY = new int[2*node_num];
-    rowEndY   = new int[2*node_num];
-    rowIndxY  = new int[2*node_num + 1];
 
     nzCoeffsX = new double[nNonZeroGrad];
-    nzCoeffsY = new double[nNonZeroGrad];
     colIndx   = new int[nNonZeroGrad];
 
     // assign the non-zero coefficients and their column indexes in CSR format
     int count=0;
 
-    for (i=0; i<node_num; i++)
+    for (i=0; i<face_num; i++)
     {
-        f_num = 6;               // Assume hexagon (6 neighbours)
-        f = node_friends(i,5);
-        if (f == -1) f_num = 5;  // Check if pentagon (5 neighbours)
+        int inner_node_ID, outer_node_ID;
+        inner_node_ID = face_nodes(i, 0);
+        outer_node_ID = face_nodes(i, 1);
 
-        std::vector<node> cols(f_num+1);
-        cols[0].ID = i;
-        cols[0].F_NUM = 0;
+        double dist;
+        dist = face_node_dist(i);
 
-        // Add each friend to the node list
-        for (j=0; j<f_num; j++) {
-            cols[j+1].ID = node_friends(i, j);
-            cols[j+1].F_NUM = j+1; }
+        colIndx[count] = inner_node_ID;
+        nzCoeffsX[count] = -globals->g.Value()*(-face_centre_m(i,0))/dist;
+        count++;
 
-        // Order the node list so that lowest node ID's come first
-        // This ensures each friend corresponds to its correct column
-        std::sort(cols.begin(), cols.end(),
-          [](auto const &a, auto const &b) { return a.ID < b.ID; });
-
-        // Using the ordered list to construct row i coefficients in the operator
-        for (j=0; j<f_num+1; j++) {
-          nzCoeffsX[count] = -globals->g.Value()*grad_coeffs(i, cols[j].F_NUM, 0);
-          nzCoeffsY[count] = -globals->g.Value()*grad_coeffs(i, cols[j].F_NUM, 1);
-
-          // Assign the column index. The grad operator operates only on the
-          // tidal displacement, which occupies every 3rd index, starting at
-          // column index 2
-          colIndx[count] = cols[j].ID*3 + 2;
-          count++; }
+        colIndx[count] = outer_node_ID;
+        nzCoeffsX[count] = -globals->g.Value()*(face_centre_m(i,1))/dist;
+        count++;
     }
 
-    // assign the row indexes for the sparse matrix in CSR format
+
     rowIndxX[0] = 0;         // first element is always zero
-    rowIndxY[0] = 0;
-
-    j=0;
-    for (i=0; i<2*node_num; i++) {
-      if (node_friends(j,5) == -1) {
-        if (i%2 == 0) rowIndxX[i+1] = rowIndxX[i]+6;
-        else rowIndxX[i+1] = rowIndxX[i];
-
-        if ((i+1)%2 == 0) rowIndxY[i+1] = rowIndxY[i]+6;
-        else rowIndxY[i+1] = rowIndxY[i]; }
-
-      else {
-        if (i%2 == 0) rowIndxX[i+1] = rowIndxX[i]+7;
-        else rowIndxX[i+1] = rowIndxX[i];
-
-        if ((i+1)%2 == 0) rowIndxY[i+1] = rowIndxY[i]+7;
-        else rowIndxY[i+1] = rowIndxY[i]; }
-
-      if (i%2 == 1) j++;
+    for (i=1; i<face_num; i++) {
+      rowIndxX[i] = 2*i;
     }
 
     // last element is always the number of non-zero coefficients
-    rowIndxX[2*node_num] = nNonZeroGrad;
-    rowIndxY[2*node_num] = nNonZeroGrad;
+    rowIndxX[face_num] = nNonZeroGrad;
 
-    for (i=0; i<node_num*2; i++) {
+    for (i=0; i<face_num; i++) {
       rowStartX[i] = rowIndxX[i];
-      rowEndX[i] = rowIndxX[i+1];
-
-      rowStartY[i] = rowIndxY[i];
-      rowEndY[i] = rowIndxY[i+1]; }
+      rowEndX[i] = rowIndxX[i+1]; }
 
     // Create the operator for the x and y components
-    operatorGradientX = new sparse_matrix_t;
-    error = mkl_sparse_d_create_csr(operatorGradientX, indexing, 2*node_num, 3*node_num, rowStartX, rowEndX, colIndx, nzCoeffsX);
-
-    operatorGradientY = new sparse_matrix_t;
-    error = mkl_sparse_d_create_csr(operatorGradientY, indexing, 2*node_num, 3*node_num, rowStartY, rowEndY, colIndx, nzCoeffsY);
-
-    // Sum to create a single gradient operator
     operatorGradient = new sparse_matrix_t;
-    error = mkl_sparse_d_add(operation, *operatorGradientX, 1.0, *operatorGradientY, operatorGradient);
+    error = mkl_sparse_d_create_csr(operatorGradient, indexing, face_num, node_num, rowStartX, rowEndX, colIndx, nzCoeffsX);
 
     matrix_descr descrp;
     descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
@@ -1948,381 +1860,20 @@ int Mesh::CalcGradOperatorCoeffs(void)
     error = mkl_sparse_set_memory_hint (*operatorGradient, SPARSE_MEMORY_AGGRESSIVE);
     error = mkl_sparse_optimize (*operatorGradient);
 
-    delete operatorGradientY;
-    delete operatorGradientX;
+    // delete operatorGradientX;
 
-    delete[] rowStartX;
-    delete[] rowEndX;
-    delete[] rowStartY;
-    delete[] rowEndY;
-    delete[] rowIndxX;
-    delete[] rowIndxY;
-    delete[] nzCoeffsX;
-    delete[] nzCoeffsY;
-    delete[] colIndx;
+    // delete[] rowStartX;
+    // delete[] rowEndX;
+    // delete[] rowIndxX;
+    // // delete[] nzCoeffsX;
+    // delete[] colIndx;
 
     return 1;
 }
 
-// int Mesh::CalcGradOperatorCoeffs(void)
-// {
-//     int i, j, j2, j3, f, f_num;
-//     double areaCV, areaElement, *coeff_x, *coeff_y;
-//     double alpha, beta, gamma, B_x, B_y;
-//
-//     for (i=0; i<node_num; i++)
-//     {
-//
-//         f_num = 6;                                     // Assume hexagon (6 centroids)
-//         f = node_friends(i,5);
-//         if (f == -1) {
-//             f_num = 5;                                   // Check if pentagon (5 centroids)
-//         }
-//
-//         // Control volume area
-//         areaCV = control_volume_surf_area_map(i);
-//
-//         // Calculate the central node coefficient first
-//         coeff_x = &grad_coeffs(i, 0, 0);
-//         coeff_y = &grad_coeffs(i, 0, 1);
-//         *coeff_x = 0.0;
-//         *coeff_y = 0.0;
-//         for (j=0; j<f_num; j++)
-//         {
-//             j2 = (j-1)%f_num;
-//             if (j2 < 0) j2 += f_num;
-//
-//             alpha = node_friend_element_areas_map(i, j, 1);
-//
-//             B_x = control_vol_edge_centre_m(i, j) * control_vol_edge_normal_map(i, j, 0) * control_vol_edge_len(i, j);
-//             B_y = control_vol_edge_centre_m(i, j) * control_vol_edge_normal_map(i, j, 1) * control_vol_edge_len(i, j);
-//
-//             B_x += control_vol_edge_centre_m(i, j2) * control_vol_edge_normal_map(i, j2, 0) * control_vol_edge_len(i, j2);
-//             B_y += control_vol_edge_centre_m(i, j2) * control_vol_edge_normal_map(i, j2, 1) * control_vol_edge_len(i, j2);
-//
-//             // Total element area = alpha + beta + gamma
-//             areaElement = alpha + node_friend_element_areas_map(i, j, 0) + node_friend_element_areas_map(i, j, 2);
-//
-//             *coeff_x += B_x/areaElement * alpha;
-//             *coeff_y += B_y/areaElement * alpha;
-//
-//         }
-//         *coeff_x *= 0.5 * 1./areaCV;
-//         *coeff_y *= 0.5 * 1./areaCV;
-//
-//         // Now calculate coeffs for neighbouring nodes (matrix diagonals)
-//         for (j=0; j<f_num; j++)
-//         {
-//             // First term ------------------------------------------------------
-//             coeff_x = &grad_coeffs(i, j+1, 0);
-//             coeff_y = &grad_coeffs(i, j+1, 1);
-//
-//             j2 = (j-1)%f_num;
-//             if (j2 < 0) j2 += f_num;
-//
-//             beta = node_friend_element_areas_map(i, j, 2);
-//
-//             B_x = control_vol_edge_centre_m(i, j) * control_vol_edge_normal_map(i, j, 0) * control_vol_edge_len(i, j);
-//             B_y = control_vol_edge_centre_m(i, j) * control_vol_edge_normal_map(i, j, 1) * control_vol_edge_len(i, j);
-//
-//             B_x += control_vol_edge_centre_m(i, j2) * control_vol_edge_normal_map(i, j2, 0) * control_vol_edge_len(i, j2);
-//             B_y += control_vol_edge_centre_m(i, j2) * control_vol_edge_normal_map(i, j2, 1) * control_vol_edge_len(i, j2);
-//
-//             // Total element area = alpha + beta + gamma
-//             areaElement = node_friend_element_areas_map(i, j, 0) + beta + node_friend_element_areas_map(i, j, 1);
-//
-//             *coeff_x = B_x/areaElement * beta;
-//             *coeff_y = B_y/areaElement * beta;
-//
-//             // Second term -----------------------------------------------------
-//             gamma = node_friend_element_areas_map(i, j2, 0);
-//
-//             j3 = (j-2)%f_num;
-//             if (j3 < 0) j3 += f_num;
-//
-//             B_x = control_vol_edge_centre_m(i, j2) * control_vol_edge_normal_map(i, j2, 0) * control_vol_edge_len(i, j2);
-//             B_y = control_vol_edge_centre_m(i, j2) * control_vol_edge_normal_map(i, j2, 1) * control_vol_edge_len(i, j2);
-//
-//             B_x += control_vol_edge_centre_m(i, j3) * control_vol_edge_normal_map(i, j3, 0) * control_vol_edge_len(i, j3);
-//             B_y += control_vol_edge_centre_m(i, j3) * control_vol_edge_normal_map(i, j3, 1) * control_vol_edge_len(i, j3);
-//
-//
-//             // Total element area = alpha + beta + gamma
-//             areaElement = node_friend_element_areas_map(i, j2, 2) + node_friend_element_areas_map(i, j2, 1) + gamma;
-//
-//             *coeff_x += B_x/areaElement * gamma;
-//             *coeff_y += B_y/areaElement * gamma;
-//
-//             *coeff_x *= 0.5 * 1./areaCV;
-//             *coeff_y *= 0.5 * 1./areaCV;
-//         }
-//
-//
-//     }
-//
-//     // Now create the gradient operators using the coefficients above
-//
-//     struct node {
-//       int ID;
-//       int F_NUM;
-//     };
-//
-//     // why is this line here? Where would it be better placed?
-//
-//     //--------------- Construct sparse matrix in CSR format --------------------
-//
-//     //--------------- Define objects to construct matrix -----------------------
-//
-//     // Here we assign the number of non-zero matrix elements for each operator.
-//     // There are 12 pentagons on the geodesic grid, each with 5 neighbours and
-//     // one central node (total of 6). The other cells are hexagons with 6
-//     // neighbours and one central node (total of 7). Additionally, there is a
-//     // row for each variable (total 3). Therefore, the total number
-//     // of non-zero coefficients in our sparse matrix is given as:
-//     int nNonZeroGrad = (node_num-12)*7 + 12*6;
-//
-//     int     * colIndx;    // column index for each non-zero element
-//     int     * rowIndxX;    // row indices for CSR matrix format (x component)
-//     int     * rowIndxY;    // row indices for CSR matrix format (y component)
-//     double * nzCoeffsX;   // non-zero grad operator coeffis in x direction
-//     double * nzCoeffsY;   // non-zero grad operator coeffis in y direction
-//
-//     int * rowStartX;      // start row indices (x component)
-//     int * rowEndX;        // start row indices (x component)
-//
-//     int * rowStartY;      // end row indices (x component)
-//     int * rowEndY;        // end row indices (x component)
-//
-//     int         error;    // error message from MKL
-//
-//     // Define c (0) based indexing
-//     sparse_index_base_t indexing = SPARSE_INDEX_BASE_ZERO;
-//
-//     // Define all operations the original (non-transpose) matrix
-//     sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
-//
-//     //---------------- Initialise objects into memory --------------------------
-//
-//     rowStartX = new int[2*node_num];
-//     rowEndX   = new int[2*node_num];
-//     rowIndxX  = new int[2*node_num + 1];
-//
-//     rowStartY = new int[2*node_num];
-//     rowEndY   = new int[2*node_num];
-//     rowIndxY  = new int[2*node_num + 1];
-//
-//     nzCoeffsX = new double[nNonZeroGrad];
-//     nzCoeffsY = new double[nNonZeroGrad];
-//     colIndx   = new int[nNonZeroGrad];
-//
-//     // assign the non-zero coefficients and their column indexes in CSR format
-//     int count=0;
-//
-//     for (i=0; i<node_num; i++)
-//     {
-//         f_num = 6;               // Assume hexagon (6 neighbours)
-//         f = node_friends(i,5);
-//         if (f == -1) f_num = 5;  // Check if pentagon (5 neighbours)
-//
-//         std::vector<node> cols(f_num+1);
-//         cols[0].ID = i;
-//         cols[0].F_NUM = 0;
-//
-//         // Add each friend to the node list
-//         for (j=0; j<f_num; j++) {
-//             cols[j+1].ID = node_friends(i, j);
-//             cols[j+1].F_NUM = j+1; }
-//
-//         // Order the node list so that lowest node ID's come first
-//         // This ensures each friend corresponds to its correct column
-//         std::sort(cols.begin(), cols.end(),
-//           [](auto const &a, auto const &b) { return a.ID < b.ID; });
-//
-//         // Using the ordered list to construct row i coefficients in the operator
-//         for (j=0; j<f_num+1; j++) {
-//           nzCoeffsX[count] = -globals->g.Value()*grad_coeffs(i, cols[j].F_NUM, 0);
-//           nzCoeffsY[count] = -globals->g.Value()*grad_coeffs(i, cols[j].F_NUM, 1);
-//
-//           // Assign the column index. The grad operator operates only on the
-//           // tidal displacement, which occupies every 3rd index, starting at
-//           // column index 2
-//           colIndx[count] = cols[j].ID*3 + 2;
-//           count++; }
-//     }
-//
-//     // assign the row indexes for the sparse matrix in CSR format
-//     rowIndxX[0] = 0;         // first element is always zero
-//     rowIndxY[0] = 0;
-//
-//     j=0;
-//     for (i=0; i<2*node_num; i++) {
-//       if (node_friends(j,5) == -1) {
-//         if (i%2 == 0) rowIndxX[i+1] = rowIndxX[i]+6;
-//         else rowIndxX[i+1] = rowIndxX[i];
-//
-//         if ((i+1)%2 == 0) rowIndxY[i+1] = rowIndxY[i]+6;
-//         else rowIndxY[i+1] = rowIndxY[i]; }
-//
-//       else {
-//         if (i%2 == 0) rowIndxX[i+1] = rowIndxX[i]+7;
-//         else rowIndxX[i+1] = rowIndxX[i];
-//
-//         if ((i+1)%2 == 0) rowIndxY[i+1] = rowIndxY[i]+7;
-//         else rowIndxY[i+1] = rowIndxY[i]; }
-//
-//       if (i%2 == 1) j++;
-//     }
-//
-//     // last element is always the number of non-zero coefficients
-//     rowIndxX[2*node_num] = nNonZeroGrad;
-//     rowIndxY[2*node_num] = nNonZeroGrad;
-//
-//     for (i=0; i<node_num*2; i++) {
-//       rowStartX[i] = rowIndxX[i];
-//       rowEndX[i] = rowIndxX[i+1];
-//
-//       rowStartY[i] = rowIndxY[i];
-//       rowEndY[i] = rowIndxY[i+1]; }
-//
-//     // Create the operator for the x and y components
-//     operatorGradientX = new sparse_matrix_t;
-//     error = mkl_sparse_d_create_csr(operatorGradientX, indexing, 2*node_num, 3*node_num, rowStartX, rowEndX, colIndx, nzCoeffsX);
-//
-//     operatorGradientY = new sparse_matrix_t;
-//     error = mkl_sparse_d_create_csr(operatorGradientY, indexing, 2*node_num, 3*node_num, rowStartY, rowEndY, colIndx, nzCoeffsY);
-//
-//     // Sum to create a single gradient operator
-//     operatorGradient = new sparse_matrix_t;
-//     error = mkl_sparse_d_add(operation, *operatorGradientX, 1.0, *operatorGradientY, operatorGradient);
-//
-//     matrix_descr descrp;
-//     descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
-//
-//
-//     // error = mkl_sparse_set_dotmv_hint (*operatorMomentum, operation, descrp, 1000000000);
-//     error = mkl_sparse_set_mv_hint (*operatorGradient, operation, descrp, 100000000);
-//     error = mkl_sparse_set_memory_hint (*operatorGradient, SPARSE_MEMORY_AGGRESSIVE);
-//     error = mkl_sparse_optimize (*operatorGradient);
-//
-//     delete operatorGradientY;
-//     delete operatorGradientX;
-//
-//     delete[] rowStartX;
-//     delete[] rowEndX;
-//     delete[] rowStartY;
-//     delete[] rowEndY;
-//     delete[] rowIndxX;
-//     delete[] rowIndxY;
-//     delete[] nzCoeffsX;
-//     delete[] nzCoeffsY;
-//     delete[] colIndx;
-//
-//     return 1;
-// }
-
 int Mesh::CalcDivOperatorCoeffs(void)
 {
     int i, j, j2, j3, f, f_num;
-    double areaCV, areaElement, *coeff_x, *coeff_y;
-    double alpha, beta, gamma, C_x, C_y;
-
-    for (i=0; i<node_num; i++)
-    {
-
-        f_num = 6;                                     // Assume hexagon (6 centroids)
-        f = node_friends(i,5);
-        if (f == -1) {
-            f_num = 5;                                   // Check if pentagon (5 centroids)
-        }
-
-        // Control volume area
-        areaCV = control_volume_surf_area_map(i);
-
-        // Calculate the central node coefficient first
-        coeff_x = &div_coeffs(i, 0, 0);
-        coeff_y = &div_coeffs(i, 0, 1);
-        *coeff_x = 0.0;
-        *coeff_y = 0.0;
-        for (j=0; j<f_num; j++)
-        {
-            j2 = (j-1)%f_num;
-            if (j2 < 0) j2 += f_num;
-
-            alpha = node_friend_element_areas_map(i, j, 1);
-
-            C_x = control_vol_edge_normal_map(i, j, 0) * control_vol_edge_len(i, j) /  control_vol_edge_centre_m(i, j);
-            C_y = control_vol_edge_normal_map(i, j, 1) * control_vol_edge_len(i, j) /  control_vol_edge_centre_m(i, j);
-
-            C_x += control_vol_edge_normal_map(i, j2, 0) * control_vol_edge_len(i, j2) / control_vol_edge_centre_m(i, j2);
-            C_y += control_vol_edge_normal_map(i, j2, 1) * control_vol_edge_len(i, j2) / control_vol_edge_centre_m(i, j2);
-
-            // Total element area = alpha + beta + gamma
-            areaElement = alpha + node_friend_element_areas_map(i, j, 0) + node_friend_element_areas_map(i, j, 2);
-
-            *coeff_x += C_x/areaElement * alpha;
-            *coeff_y += C_y/areaElement * alpha;
-
-        }
-        *coeff_x *= 0.5 * 1./areaCV;
-        *coeff_y *= 0.5 * 1./areaCV;
-
-        // Now calculate coeffs for neighbouring nodes (matrix diagonals)
-        for (j=0; j<f_num; j++)
-        {
-            // First term ------------------------------------------------------
-            coeff_x = &div_coeffs(i, j+1, 0);
-            coeff_y = &div_coeffs(i, j+1, 1);
-
-            j2 = (j-1)%f_num;
-            if (j2 < 0) j2 += f_num;
-
-            beta = node_friend_element_areas_map(i, j, 2);
-
-            C_x = control_vol_edge_normal_map(i, j, 0) * control_vol_edge_len(i, j) /  control_vol_edge_centre_m(i, j);
-            C_y = control_vol_edge_normal_map(i, j, 1) * control_vol_edge_len(i, j) /  control_vol_edge_centre_m(i, j);
-
-            C_x += control_vol_edge_normal_map(i, j2, 0) * control_vol_edge_len(i, j2) / control_vol_edge_centre_m(i, j2);
-            C_y += control_vol_edge_normal_map(i, j2, 1) * control_vol_edge_len(i, j2) / control_vol_edge_centre_m(i, j2);
-
-            // Total element area = alpha + beta + gamma
-            areaElement = node_friend_element_areas_map(i, j, 0) + beta + node_friend_element_areas_map(i, j, 1);
-
-            *coeff_x = C_x/areaElement * beta;
-            *coeff_y = C_y/areaElement * beta;
-
-            // Second term -----------------------------------------------------
-            gamma = node_friend_element_areas_map(i, j2, 0);
-
-            j3 = (j-2)%f_num;
-            if (j3 < 0) j3 += f_num;
-
-            C_x = control_vol_edge_normal_map(i, j2, 0) * control_vol_edge_len(i, j2) / control_vol_edge_centre_m(i, j2);
-            C_y = control_vol_edge_normal_map(i, j2, 1) * control_vol_edge_len(i, j2) / control_vol_edge_centre_m(i, j2);
-
-            C_x += control_vol_edge_normal_map(i, j3, 0) * control_vol_edge_len(i, j3) / control_vol_edge_centre_m(i, j3);
-            C_y += control_vol_edge_normal_map(i, j3, 1) * control_vol_edge_len(i, j3) / control_vol_edge_centre_m(i, j3);
-
-
-            // Total element area = alpha + beta + gamma
-            areaElement = node_friend_element_areas_map(i, j2, 2) + node_friend_element_areas_map(i, j2, 1) + gamma;
-
-            *coeff_x += C_x/areaElement * gamma;
-            *coeff_y += C_y/areaElement * gamma;
-
-            *coeff_x *= 0.5 * 1./areaCV;
-            *coeff_y *= 0.5 * 1./areaCV;
-        }
-
-
-    }
-
-
-    // Now create the gradient operators using the coefficients above
-
-    struct node {
-      int ID;
-      int F_NUM;
-    };
 
     // why is this line here? Where would it be better placed?
 
@@ -2331,25 +1882,17 @@ int Mesh::CalcDivOperatorCoeffs(void)
     //--------------- Define objects to construct matrix -----------------------
 
     // Here we assign the number of non-zero matrix elements for each operator.
-    // There are 12 pentagons on the geodesic grid, each with 5 neighbours and
-    // one central node (total of 6). The other cells are hexagons with 6
-    // neighbours and one central node (total of 7). Additionally, there is a
-    // row for each variable (total 3). Therefore, the total number
-    // of non-zero coefficients in our sparse matrix is given as:
-    int nNonZeroGrad = ((node_num-12)*7 + 12*6);
+    // There are 12 pentagons on the geodesic grid, each with 5 faces.
+    // The other cells are hexagons with 6 faces. Therefore, the total
+    // number of non-zero coefficients in our sparse matrix is given as:
+    int nNonZeroGrad = ((node_num-12)*6 + 12*5);
 
     int     * colIndxX;    // column index for each non-zero element
-    int     * colIndxY;    // column index for each non-zero element
-    int     * rowIndxX;    // row indices for CSR matrix format (x component)
-    int     * rowIndxY;    // row indices for CSR matrix format (y component)
+    int     * rowIndxX;    // row indices for CSR matrix format (x component) component)
     double * nzCoeffsX;   // non-zero grad operator coeffis in x direction
-    double * nzCoeffsY;   // non-zero grad operator coeffis in y direction
 
     int * rowStartX;      // start row indices (x component)
     int * rowEndX;        // start row indices (x component)
-
-    int * rowStartY;      // end row indices (x component)
-    int * rowEndY;        // end row indices (x component)
 
     int         error;    // error message from MKL
 
@@ -2365,113 +1908,64 @@ int Mesh::CalcDivOperatorCoeffs(void)
     rowEndX   = new int[node_num];
     rowIndxX  = new int[node_num + 1];
 
-    rowStartY = new int[node_num];
-    rowEndY   = new int[node_num];
-    rowIndxY  = new int[node_num + 1];
-
     nzCoeffsX = new double[nNonZeroGrad];
-    nzCoeffsY = new double[nNonZeroGrad];
     colIndxX   = new int[nNonZeroGrad];
-    colIndxY   = new int[nNonZeroGrad];
 
     // assign the non-zero coefficients and their column indexes in CSR format
     int count=0;
 
     for (i=0; i<node_num; i++)
     {
-        f_num = 6;               // Assume hexagon (6 neighbours)
-        f = node_friends(i,5);
-        if (f == -1) f_num = 5;  // Check if pentagon (5 neighbours)
+        f_num = 6;
+        if (node_friends(i, 5) == -1) f_num = 5;
 
-        std::vector<node> cols(f_num+1);
-        cols[0].ID = i;
-        cols[0].F_NUM = 0;
+        for (j=0; j<f_num; j++)
+        {
+            int face_id = faces(i,j);
 
-        // Add each friend to the node list
-        for (j=0; j<f_num; j++) {
-            cols[j+1].ID = node_friends(i, j);
-            cols[j+1].F_NUM = j+1; }
+            // get edge length of current edge
+            double edge_len = face_len(face_id);
+            int dir = node_face_dir(i, j);
+            double area = control_volume_surf_area_map(i);
 
-        // Order the node list so that lowest node ID's come first
-        // This ensures each friend corresponds to its correct column
-        std::sort(cols.begin(), cols.end(),
-          [](auto const &a, auto const &b) { return a.ID < b.ID; });
+            nzCoeffsX[count]  =  -dir*edge_len/area;
+            colIndxX[count] = face_id;
+            count++;
 
-        // Using the ordered list to construct row i coefficients in the operator
-        for (j=0; j<f_num+1; j++) {
-          double cos_a = node_vel_trans(i, cols[j].F_NUM, 0);
-          double sin_a = node_vel_trans(i, cols[j].F_NUM, 1);
+        }
 
-          // Because the gradient operator returns a vector, we have to transform
-          // the vector into mapped coordinates. We do this here by premultiplying
-          // the components of the divergence operator by the transpose of the
-          // the transform matrix defined in node_vel_trans.
-          nzCoeffsX[count]  =  (cos_a*div_coeffs(i, cols[j].F_NUM, 0) - sin_a*div_coeffs(i,  cols[j].F_NUM, 1));
-          colIndxX[count] = cols[j].ID*3;
-
-          nzCoeffsY[count]  =  (sin_a*div_coeffs(i, cols[j].F_NUM, 0) + cos_a*div_coeffs(i,  cols[j].F_NUM, 1));
-          colIndxY[count] = cols[j].ID*3 + 1;
-
-          count++; }
+        if (i<node_num-1) rowIndxX[i+1] = count;
     }
 
     // assign the row indexes for the sparse matrix in CSR format
     rowIndxX[0] = 0;         // first element is always zero
-    rowIndxY[0] = 0;
-
-    for (i=0; i<node_num; i++) {
-      if (node_friends(i,5) == -1) {
-        rowIndxX[i+1] = rowIndxX[i]+6;
-        rowIndxY[i+1] = rowIndxY[i]+6;
-        }
-
-      else {
-        rowIndxX[i+1] = rowIndxX[i]+7;
-        rowIndxY[i+1] = rowIndxY[i]+7;
-      }
-    }
+    rowIndxX[node_num] = nNonZeroGrad;
 
     // last element is always the number of non-zero coefficients
-    rowIndxX[node_num] = nNonZeroGrad;
-    rowIndxY[node_num] = nNonZeroGrad;
+    // rowIndxY[node_num] = nNonZeroGrad;
 
     for (i=0; i<node_num; i++) {
       rowStartX[i] = rowIndxX[i];
-      rowEndX[i] = rowIndxX[i+1];
-
-      rowStartY[i] = rowIndxY[i];
-      rowEndY[i] = rowIndxY[i+1]; }
+      rowEndX[i] = rowIndxX[i+1]; }
 
     // Create the operator for the x and y components
     operatorDivergenceX = new sparse_matrix_t;
-    error = mkl_sparse_d_create_csr(operatorDivergenceX, indexing, 1*node_num, 3*node_num, rowStartX, rowEndX, colIndxX, nzCoeffsX);
-
-    operatorDivergenceY = new sparse_matrix_t;
-    error = mkl_sparse_d_create_csr(operatorDivergenceY, indexing, 1*node_num, 3*node_num, rowStartX, rowEndX, colIndxY, nzCoeffsY);
-
-    operatorDivergence = new sparse_matrix_t;
-    error = mkl_sparse_d_add(operation, *operatorDivergenceX, 1.0, *operatorDivergenceY, operatorDivergence);
+    error = mkl_sparse_d_create_csr(operatorDivergenceX, indexing, node_num, face_num, rowStartX, rowEndX, colIndxX, nzCoeffsX);
 
     matrix_descr descrp;
     descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
 
-    error = mkl_sparse_set_mv_hint (*operatorDivergence, operation, descrp, 1000000000);
-    error = mkl_sparse_set_memory_hint (*operatorDivergence, SPARSE_MEMORY_AGGRESSIVE);
-    error = mkl_sparse_optimize (*operatorDivergence);
+    error = mkl_sparse_set_mv_hint (*operatorDivergenceX, operation, descrp, 1000000000);
+    error = mkl_sparse_set_memory_hint (*operatorDivergenceX, SPARSE_MEMORY_AGGRESSIVE);
+    error = mkl_sparse_optimize (*operatorDivergenceX);
 
-    delete operatorDivergenceY;
-    delete operatorDivergenceX;
-
-    delete[] rowStartX;
-    delete[] rowEndX;
-    delete[] rowStartY;
-    delete[] rowEndY;
-    delete[] rowIndxX;
-    delete[] rowIndxY;
-    delete[] nzCoeffsX;
-    delete[] nzCoeffsY;
-    delete[] colIndxX;
-    delete[] colIndxY;
+    // delete operatorDivergenceX;
+    //
+    // delete[] rowStartX;
+    // delete[] rowEndX;
+    // delete[] rowIndxX;
+    // delete[] nzCoeffsX;
+    // delete[] colIndxX;
 
     return 1;
 }
@@ -2757,6 +2251,7 @@ int Mesh::CalcLaplaceOperatorCoeffs(void)
 
 int Mesh::GenerateMomentumOperator(void)
 {
+    int error;
     // Define c (0) based indexing
     sparse_index_base_t indexing = SPARSE_INDEX_BASE_ZERO;
 
@@ -2764,11 +2259,12 @@ int Mesh::GenerateMomentumOperator(void)
     sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
 
     operatorMomentum = new sparse_matrix_t;
-    int error = mkl_sparse_d_add(operation, *operatorLaplacian, 1.0, *operatorGradient, operatorMomentum);
+    // int error = mkl_sparse_d_add(operation, *operatorLaplacian, 1.0, *operatorGradient, operatorMomentum);
     // int error = mkl_sparse_d_add(operation, *operatorCoriolis, 1.0, *operatorGradient, operatorMomentum);
-    error = mkl_sparse_d_add(operation, *operatorMomentum, 1.0, *operatorCoriolis, operatorMomentum);
+    // error = mkl_sparse_d_add(operation, *operatorMomentum, 1.0, *operatorCoriolis, operatorMomentum);
 
-    if (globals->fric_type == LINEAR) mkl_sparse_d_add(operation, *operatorMomentum, 1.0, *operatorLinearDrag, operatorMomentum);
+    if (globals->fric_type == LINEAR) mkl_sparse_d_add(operation, *operatorCoriolis, 1.0, *operatorLinearDrag, operatorMomentum);
+    else mkl_sparse_d_add(operation, *operatorLinearDrag, 0.0, *operatorCoriolis, operatorMomentum);
 
     mkl_sparse_order (*operatorMomentum);
 

@@ -148,6 +148,7 @@ public:
   Array1D<double> face_len;
   Array2D<int> node_face_dir;
   Array3D<double> node_face_vel_trans;
+  Array1D<int> face_is_boundary;
 
   Array2D<int> vertexes;
   Array2D<double> vertex_pos_sph;
