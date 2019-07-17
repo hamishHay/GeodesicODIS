@@ -10,6 +10,45 @@
 // #include <mkl_spblas.h>
 // #include <mkl.h>
 
+int interpolateVelocity(Globals * globals,
+                        Mesh * mesh,
+                        Array2D<double> & interp_vel,
+                        Array1D<double> & normal_vel)
+{
+    int face_num = globals->face_num;
+
+    for (int i=0; i<face_num; ++i)
+    {
+        double v_tang = 0.0;
+        double v_norm = 0.0;
+        int friend_num = 10;
+
+        int n1, n2;
+        n1 = mesh->face_nodes(i,0);
+        n2 = mesh->face_nodes(i,1);
+        if (mesh->node_friends(n1,5) < 0) friend_num--;
+        if (mesh->node_friends(n2,5) < 0) friend_num--;
+
+        for (int j=0; j<friend_num; j++) {
+            int f_ID = mesh->face_interp_friends(i, j);
+            v_tang += normal_vel(f_ID)*mesh->face_interp_weights(i,j)*mesh->face_len(f_ID);
+        }
+        v_tang /= mesh->face_node_dist(i);
+        v_norm = normal_vel(i);
+
+        double nx, ny, tx, ty;
+        nx = mesh->face_normal_vec_map(i, 0);
+        ny = mesh->face_normal_vec_map(i, 1);
+
+        ty = -nx;
+        tx = ny;
+
+        interp_vel(i,0) = nx*v_norm + tx*v_tang;
+        interp_vel(i,1) = ny*v_norm + ty*v_tang;
+    }
+}
+
+
 /**
 *   @purpose    Function interpolates data from the geodesic grid to the regular
 *               lat-lon grid. Interpolation is biquadratic and takes the form
