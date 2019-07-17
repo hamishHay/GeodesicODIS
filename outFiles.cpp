@@ -187,8 +187,8 @@ void OutFiles::CreateHDF5Framework(Globals * globals)
 
     // eta_1D
     eta_1D = new float[node_num];
-    v_1D = new float[node_num];
-    u_1D = new float[node_num];
+    v_1D = new float[face_num];
+    u_1D = new float[face_num];
     press_1D = new float[node_num];
     diss_1D = new float[node_num];
     kinetic_1D = new float[node_num];
@@ -252,12 +252,12 @@ void OutFiles::CreateHDF5Framework(Globals * globals)
     //
     if (globals->field_velocity_output.Value())
     {
-        data_space_u = H5Screate_simple(rank_cv, max_dims_cv, NULL);
-        data_space_v = H5Screate_simple(rank_cv, max_dims_cv, NULL);
+        data_space_u = H5Screate_simple(rank_face, max_dims_face, NULL);
+        data_space_v = H5Screate_simple(rank_face, max_dims_face, NULL);
         data_set_u = H5Dcreate(file, "east velocity", H5T_NATIVE_FLOAT, data_space_u, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         data_set_v = H5Dcreate(file, "north velocity", H5T_NATIVE_FLOAT, data_space_v, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-        mem_space_u = H5Screate_simple(rank_cv, dims_cv, NULL);
-        mem_space_v = H5Screate_simple(rank_cv, dims_cv, NULL);
+        mem_space_u = H5Screate_simple(rank_face, dims_face, NULL);
+        mem_space_v = H5Screate_simple(rank_face, dims_face, NULL);
     }
     if (globals->field_displacement_output.Value())
     {
@@ -467,8 +467,8 @@ void OutFiles::DumpGridData(Mesh * mesh)
 
     for (int i=0; i<face_num; i++)
     {
-        lats[i] = (float)mesh->face_centre_pos_sph(i, 0)*radConv;
-        lons[i] = (float)mesh->face_centre_pos_sph(i, 1)*radConv;
+        lats[i] = (float)mesh->face_centre_pos_sph(i, 0)*180./pi;
+        lons[i] = (float)mesh->face_centre_pos_sph(i, 1)*180./pi;
         // std::cout<<lons[i]<<std::endl;
     }
     data_space_face_pos = H5Screate_simple(rank_face_pos, max_dims_face_pos, NULL);
@@ -519,7 +519,7 @@ void OutFiles::DumpData(Globals * globals, int time_level, double ** data)
         p = data[j];
         if ((*tags)[j] == "velocity output")
         {
-            for (i=0; i<node_num; i++) {
+            for (i=0; i<face_num; i++) {
                 u_1D[i] = (float)(*p);
                 p++;
 
@@ -527,14 +527,14 @@ void OutFiles::DumpData(Globals * globals, int time_level, double ** data)
                 p++;
             }
 
-            count_cv[1] = node_num;
+            count_face[1] = face_num;
 
-            H5Sselect_hyperslab(data_space_u, H5S_SELECT_SET, start_cv, NULL, count_cv, NULL);
+            H5Sselect_hyperslab(data_space_u, H5S_SELECT_SET, start_face, NULL, count_face, NULL);
             H5Dwrite(data_set_u, H5T_NATIVE_FLOAT, mem_space_u, data_space_u, H5P_DEFAULT, u_1D);
 
-            count_cv[1] = node_num;
+            count_face[1] = face_num;
 
-            H5Sselect_hyperslab(data_space_v, H5S_SELECT_SET, start_cv, NULL, count_cv, NULL);
+            H5Sselect_hyperslab(data_space_v, H5S_SELECT_SET, start_face, NULL, count_face, NULL);
             H5Dwrite(data_set_v, H5T_NATIVE_FLOAT, mem_space_v, data_space_v, H5P_DEFAULT, v_1D);
 
         }
