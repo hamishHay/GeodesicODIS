@@ -14,18 +14,20 @@ import sys
 import math
 from pyshtools.expand import SHExpandLSQ
 import pyshtools
+import cartopy.crs as ccrs
+from cartopy.vector_transform import vector_scalar_to_grid
 
-plt.rcParams['mathtext.fontset'] = 'custom'
-plt.rcParams['mathtext.rm'] = 'Avante Garde'
-plt.rcParams['mathtext.it'] = 'Avante Garde:italic'
-plt.rcParams['mathtext.bf'] = 'Avante Garde:bold'
-# plt.rc('font',sans_serif="Avante Garde")
-plt.rc('font',**{'family':'sans-serif','sans-serif':['Avante Garde']})
-# plt.rc('font',serif='Palatino')
-# for Palatino and other serif fonts use:
-# rc('font',**{'family':'serif','serif':['Palatino']})
-plt.rc('text', usetex=True)
-plt.rc('text.latex',preamble='\\usepackage{siunitx},\\usepackage{sfmath}')
+# plt.rcParams['mathtext.fontset'] = 'custom'
+# plt.rcParams['mathtext.rm'] = 'Avante Garde'
+# plt.rcParams['mathtext.it'] = 'Avante Garde:italic'
+# plt.rcParams['mathtext.bf'] = 'Avante Garde:bold'
+# # plt.rc('font',sans_serif="Avante Garde")
+# plt.rc('font',**{'family':'sans-serif','sans-serif':['Avante Garde']})
+# # plt.rc('font',serif='Palatino')
+# # for Palatino and other serif fonts use:
+# # rc('font',**{'family':'serif','serif':['Palatino']})
+# plt.rc('text', usetex=True)
+# plt.rc('text.latex',preamble='\\usepackage{siunitx},\\usepackage{sfmath}')
 
 plt.rc('lines', linewidth=0.6)
 
@@ -43,8 +45,8 @@ for i in range(nn, nn+1):
 
     data_u = in_file["east velocity"][n]
     data_v = in_file["north velocity"][n]
-    # vel_lon = in_file["face longitude"][:]
-    # vel_lat = in_file["face latitude"][:]
+    vel_lon = in_file["face longitude"][:] - 180.0
+    vel_lat = in_file["face latitude"][:]
     #
     # print(vel_lon)
 
@@ -53,9 +55,10 @@ for i in range(nn, nn+1):
 
     # data_diss = in_file["east velocity"][:]**2 + in_file["north velocity"][:]**2
     # data_diss = 1.2e3 * 1000 * np.mean(data_diss, axis=0)
-
+    data_eta = in_file["displacement"][n]
     # print(np.max(in_file["displacement"][-3*1000:]))
-    data_eta = in_file["displacement"][n] #- np.mean(in_file["displacement"][-2001:-2], axis=0)
+    N = int(1 + 0.5 * math.log((len(data_eta)-2)/10, 2))
+    data_eta = data_eta #- np.mean(in_file["displacement"][-2001:-2], axis=0)
     levels=np.linspace(10, 380,21)#np.amax(data_eta), 21)
     # d = np.ma.array(d, mask=d < .2)
     # data_eta = np.ma.array(data_eta, mask=data_eta < 10)
@@ -67,7 +70,6 @@ for i in range(nn, nn+1):
 
     # data_eta = np.mean(in_file["dissipated energy"][-101:-2], axis=0)
 
-    N = int(1 + 0.5 * math.log((len(data_eta)-2)/10, 2))
 
     try:
         grid = np.loadtxt("input_files/grid_l" + str(N) + ".txt",skiprows=1,usecols=(1,2))
@@ -75,8 +77,30 @@ for i in range(nn, nn+1):
         d = input("Can't find grid file for level " + str(N) +"!!!")
         sys.exit()
 
-    x = grid[:,1]
+    x = grid[:,1] - 180.0
     y = grid[:,0]
+
+
+    # region = np.ones(len(x), dtype=np.int)
+    # # region[x<270] = 0
+    # region[(x>120) & (x<270)] = 0
+    # # # region[y<80] = 0
+    # # # region[y>-80] = 0
+    # reg = (x>180) & (x<270) & (y<80) & (y>-80)
+    #
+    # mag = data_u**2.0 + data_v**2.0
+    # reg = mag > 1e-7
+    # # print(reg)
+    # x = x[reg]
+    # y = y[reg]
+    # # for i in range(len(reg)):
+    # #     print(x[i], y[i])
+    #
+    # # print(x, y)
+    # data_eta = data_eta[reg]
+    # data_u = data_u[reg]
+    # data_v = data_v[reg]
+    # region = region[region]
 
     # data_diss = in_file["dissipated energy"][n]
 
@@ -87,7 +111,9 @@ for i in range(nn, nn+1):
     triang = tri.Triangulation(x, y)
     # for i,j in zip(vel_lon, vel_lat):
     #     print(i,j)
-    # tri_vel = tri.Triangulation(vel_lon, vel_lat)
+    tri_vel = tri.Triangulation(vel_lon, vel_lat)
+
+    # x, y, u, v, c = vector_scalar_to_grid(ccrs.Mollweide(), ccrs.Mollweide(), 40, x, y, data_eta, data_eta,)
 
     # mask = np.zeros(len(x), np.int)
     # mask[137] = 1
@@ -108,30 +134,33 @@ for i in range(nn, nn+1):
 
     # plt.colorbar(c, ax = ax, orientation="horizontal")
 
-    # cilm, chi2 = SHExpandLSQ (data_eta, y, x, 12, norm=1)
-    #
-    # print(cilm[0])
-    #
-    # power_per_l = pyshtools.spectralanalysis.spectrum(cilm)
-    # degrees = np.arange(cilm.shape[1])
-    #
-    # fig, ax = plt.subplots(1, 1)
-    # ax.plot(degrees, power_per_l, 'o-')
-    # ax.set(yscale='log', xscale='log', xlabel='Spherical harmonic degree', ylabel='Power')
+    cilm, chi2 = SHExpandLSQ (data_eta, y, x, 12, norm=1)
+
+    print(cilm[0])
+
+    power_per_l = pyshtools.spectralanalysis.spectrum(cilm)
+    degrees = np.arange(cilm.shape[1])
+
+    fig, ax = plt.subplots(1, 1)
+    ax.plot(degrees, power_per_l, 'o-')
+    ax.set(yscale='log', xscale='log', xlabel='Spherical harmonic degree', ylabel='Power')
     # ax.grid()
+    fig.savefig("/home/hamish/Dropbox/Tests/eta_spectrum.pdf", bbox_inches='tight')
 
     # ax.plot(np.sum(cilm[0]**2.0, axis=-1), 'o')
 
-    fig, (ax1,ax2,ax3) = plt.subplots(ncols=3, figsize=(15,4))
+    fig, (ax1,ax2,ax3) = plt.subplots(ncols=3, figsize=(15,4),subplot_kw={'projection': ccrs.PlateCarree()})
     # c1 = ax1.tripcolor(triang,data_u)
     # c2 = ax2.tripcolor(triang,data_v)
     # c3 = ax3.tripcolor(triang,data_eta)
     # ax3.triplot(triang)
     # ax3.patch.set_color('.25')
-    c1 = ax1.tricontourf(triang,data_u,21)
-    c2 = ax2.tricontourf(triang,data_eta,21)
-    c3 = ax3.tricontourf(triang,data_eta,21)#levels=levels)
-    ax3.quiver(triang.x, triang.y, data_u, data_v, scale=300.0)
+    # c1 = ax1.tricontourf(triang,data_u,11)
+    # c2 = ax2.tricontourf(triang,data_v,11)
+    c1 = ax1.tricontourf(tri_vel,data_u,11,transform=ccrs.PlateCarree())
+    c2 = ax2.tricontourf(tri_vel,data_v,11,transform=ccrs.PlateCarree())
+    c3 = ax3.tricontourf(triang,data_eta,11,transform=ccrs.PlateCarree())
+    ax3.quiver(tri_vel.x, tri_vel.y, data_u, data_v, scale=200.0,transform=ccrs.PlateCarree(),regrid_shape=25, pivot='mid')
     # c3 = ax3.scatter(x, y, c=data_eta)
 
     plt.colorbar(c1, ax = ax1, orientation="horizontal")
@@ -140,8 +169,8 @@ for i in range(nn, nn+1):
 
     # ax2.set_xlim([160, 200])
     # ax2.set_ylim([-30, 30])
-    ax3.set_xlim([140, 220])
-    ax3.set_ylim([-30, 30])
+    # ax3.set_xlim([90, 270])
+    # ax3.set_ylim([-90, 90])
 
     fig.savefig("/home/hamish/Dropbox/Tests/plottings.pdf")
     # fig.savefig("/home/hamish/Dropbox/Tests/plottings_{:03d}.png".format(n), bbox_inches='tight', dpi=300)

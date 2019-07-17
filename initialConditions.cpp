@@ -9,7 +9,7 @@
 #include <iomanip>
 
 int loadInitialConditions(Globals * globals, Mesh * mesh,
-                          Array2D<double> & v, Array3D<double> & dvdt,
+                          Array1D<double> & v, Array2D<double> & dvdt,
                           Array1D<double> & p, Array2D<double> & dpdt)
 {
     int i, j;
@@ -38,33 +38,16 @@ int loadInitialConditions(Globals * globals, Mesh * mesh,
             std::istringstream line_ss(line);
 
             std::getline(line_ss >> std::ws,val,' ');
-            v(i,0) = std::stod(val);
+            v(i) = std::stod(val);
 
             std::getline(line_ss >> std::ws,val,' ');
-            dvdt(i,0,0) = std::stod(val);
+            dvdt(i,0) = std::stod(val);
 
             std::getline(line_ss >> std::ws,val,' ');
-            dvdt(i,0,1) = std::stod(val);
+            dvdt(i,1) = std::stod(val);
 
             std::getline(line_ss >> std::ws,val,' ');
-            dvdt(i,0,2) = std::stod(val);
-
-
-
-
-            std::getline(line_ss >> std::ws,val,' ');
-            v(i,1) = std::stod(val);
-
-            std::getline(line_ss >> std::ws,val,' ');
-            dvdt(i,1,0) = std::stod(val);
-
-            std::getline(line_ss >> std::ws,val,' ');
-            dvdt(i,1,1) = std::stod(val);
-
-            std::getline(line_ss >> std::ws,val,' ');
-            dvdt(i,1,2) = std::stod(val);
-
-
+            dvdt(i,2) = std::stod(val);
 
 
             std::getline(line_ss >> std::ws,val,' ');
@@ -87,15 +70,10 @@ int loadInitialConditions(Globals * globals, Mesh * mesh,
     else
     {
 
-        v(i,0) = 0.0;
-        dvdt(i,0,0) = 0.0;
-        dvdt(i,0,1) = 0.0;
-        dvdt(i,0,2) = 0.0;
-
-        v(i,1) = 0.0;
-        dvdt(i,1,0) = 0.0;
-        dvdt(i,1,1) = 0.0;
-        dvdt(i,1,2) = 0.0;
+        v(i) = 0.0;
+        dvdt(i,0) = 0.0;
+        dvdt(i,1) = 0.0;
+        dvdt(i,2) = 0.0;
 
         p(i) = 0.0;
         dpdt(i,0) = 0.0;
@@ -113,10 +91,10 @@ int loadInitialConditions(Globals * globals, Mesh * mesh,
 
 
 int writeInitialConditions(Globals * globals, Mesh * mesh,
-                          Array2D<double> & v, Array3D<double> & dvdt,
+                          Array1D<double> & v, Array2D<double> & dvdt,
                           Array1D<double> & p, Array2D<double> & dpdt)
 {
-    int node_num = globals->node_num;
+    int face_num = globals->face_num;
 
     FILE * outFile;
     std::string initial_condition_file;
@@ -125,11 +103,10 @@ int writeInitialConditions(Globals * globals, Mesh * mesh,
 
     outFile = fopen(&initial_condition_file[0], "w");
 
-    for (int i=0; i<node_num; i++)
-    {                   //   u    dudt0  dudt1  dudt2    v    dvdt0  dvdt1  dvdt2    p    dpdt0  dpdt1  dpdt2
-        fprintf (outFile, "%1.6E, %1.6E, %1.6E, %1.6E, %1.6E, %1.6E, %1.6E, %1.6E, %1.6E, %1.6E, %1.6E, %1.6E\n",
-                 v(i,0), dvdt(i, 0, 0), dvdt(i, 0, 1), dvdt(i, 0, 2),
-                 v(i,1), dvdt(i, 1, 0), dvdt(i, 1, 1), dvdt(i, 1, 2),
+    for (int i=0; i<face_num; i++)
+    {                   //   u    dudt0  dudt1  dudt2    p    dpdt0  dpdt1  dpdt2
+        fprintf (outFile, "%1.6E, %1.6E, %1.6E, %1.6E, %1.6E, %1.6E, %1.6E, %1.6E\n",
+                 v(i),   dvdt(i, 0),    dvdt(i, 1),    dvdt(i, 2),
                  p(i),   dpdt(i, 0),    dpdt(i, 1),    dpdt(i, 2) );
     }
 

@@ -14,12 +14,13 @@ from mpl_toolkits.axes_grid1 import ImageGrid
 
 class mpl_defaults:
     def __init__(self):
-        plt.rc('font', family='serif')
-        plt.rc('font',serif='Palatino')
+        print("PLOTMUN")
+        # plt.rc('font', family='serif')
+        # plt.rc('font',serif='Palatino')
         # for Palatino and other serif fonts use:
         # rc('font',**{'family':'serif','serif':['Palatino']})
-        plt.rc('text', usetex=True)
-        plt.rc('text.latex',preamble='\\usepackage{siunitx}')
+        # plt.rc('text', usetex=True)
+        # plt.rc('text.latex',preamble='\\usepackage{siunitx}')
 
 class FieldPlot2:
     def __init__(self, ncols=1, nrows=1):
@@ -160,6 +161,7 @@ class FieldPlot2:
         # data *= (1./(252.1e3))**2.0
         # data *= ((252.1e3-self.h_ocean)/(252.1e3))**3.
         #data *= 4. * np.pi * (self.radius)**2.0/1e9 / (2. * self.drag_coeff)
+        print(data)
         print(np.mean(data[-102:-2]))
         print(simps(data[-102:-2], time[-102:-2])/P)
         # print(time[998:1001])
@@ -272,17 +274,17 @@ class FieldPlot2:
         self.fig.savefig(name, dpi=400, bbox_inches='tight', transparent=True)
 
     def set_defaults(self, poster=False):
-        plt.rcParams['mathtext.fontset'] = 'custom'
-        plt.rcParams['mathtext.rm'] = 'Avante Garde'
-        plt.rcParams['mathtext.it'] = 'Avante Garde:italic'
-        plt.rcParams['mathtext.bf'] = 'Avante Garde:bold'
-        # plt.rc('font',sans_serif="Avante Garde")
-        plt.rc('font',**{'family':'sans-serif','sans-serif':['Avante Garde']})
-        # plt.rc('font',serif='Palatino')
-        # for Palatino and other serif fonts use:
-        # rc('font',**{'family':'serif','serif':['Palatino']})
-        plt.rc('text', usetex=True)
-        plt.rc('text.latex',preamble='\\usepackage{siunitx},\\usepackage{sfmath}')
+        # plt.rcParams['mathtext.fontset'] = 'custom'
+        # plt.rcParams['mathtext.rm'] = 'Avante Garde'
+        # plt.rcParams['mathtext.it'] = 'Avante Garde:italic'
+        # plt.rcParams['mathtext.bf'] = 'Avante Garde:bold'
+        # # plt.rc('font',sans_serif="Avante Garde")
+        # plt.rc('font',**{'family':'sans-serif','sans-serif':['Avante Garde']})
+        # # plt.rc('font',serif='Palatino')
+        # # for Palatino and other serif fonts use:
+        # # rc('font',**{'family':'serif','serif':['Palatino']})
+        # plt.rc('text', usetex=True)
+        # plt.rc('text.latex',preamble='\\usepackage{siunitx},\\usepackage{sfmath}')
 
 
         if poster:
