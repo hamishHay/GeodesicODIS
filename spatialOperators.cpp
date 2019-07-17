@@ -241,21 +241,6 @@ void velocityDivergenceN(Mesh * mesh, Array1D<double> & dpdt, Array1D<double> & 
         {
 
             int face_id = mesh->faces(i,j);
-            //
-            //
-            // if (mesh->cell_is_boundary(i)==1)
-            // {
-            //   // std::cout<<i<<' '<<f1<<' '<<f2<<' '<<f3<<std::endl;
-            //   if (mesh->cell_is_boundary(f1)==2 || mesh->cell_is_boundary(f3)==2)
-            //   {
-            //     // u_avg = 0.5 * (u0 + velocity(f2, 0));
-            //     // v_avg = 0.5 * (v0 + velocity(f2, 1));
-            //     u_avg = 0.5 * (velocity(f2, 0) - u0) + u0;
-            //     v_avg = 0.5 * (velocity(f2, 1) - v0) + v0;
-            //     // p_avg = 0.5 * (pressure(f2) - p0) + p0;
-            //   }
-            //
-            // }
 
             // get edge length of current edge
             edge_len = mesh->face_len(face_id);
