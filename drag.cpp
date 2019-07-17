@@ -16,7 +16,7 @@ void linearDrag(int & node_num, double & drag_coeff, Array2D<double> & dv_dt, Ar
 };
 
 
-void quadraticDrag(int & node_num, double & drag_coeff, double & h, Array2D<double> & dv_dt, Array2D<double> & vel)
+void quadraticDrag(int & node_num, double drag_coeff, double h, Array1D<double> & dv_dt, Array2D<double> & vel, Array1D<double> & vel_norm)
 {
     int i;
     double inv_h;
@@ -31,8 +31,8 @@ void quadraticDrag(int & node_num, double & drag_coeff, double & h, Array2D<doub
       uu = u*u;
       vv = v*v;
       sq_uv = sqrt(uu + vv);
-      
-      dv_dt(i,0) -= inv_h * sq_uv * u;
-      dv_dt(i,1) -= inv_h * sq_uv * v;
+
+      dv_dt(i) -= inv_h * sq_uv * vel_norm(i);
+      // dv_dt(i,1) -= inv_h * sq_uv * v;
     }
 };

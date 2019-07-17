@@ -8,6 +8,6 @@
 #include <iostream>
 
 void linearDrag(int &, double &, Array2D<double> &, Array2D<double> &);
-void quadraticDrag(int &, double &, double &, Array2D<double> &, Array2D<double> &);
+void quadraticDrag(int &, double, double, Array1D<double> &, Array2D<double> &, Array1D<double> &);
 
 #endif
