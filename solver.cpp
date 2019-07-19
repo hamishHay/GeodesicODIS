@@ -39,7 +39,7 @@ int solveODIS(Globals * globals, Mesh * mesh)
         outstring << std::endl << std::endl;
         Output->Write(OUT_MESSAGE, &outstring);
 
-        // err = rk4Explicit(globals, mesh);
+        err = rk4Explicit(globals, mesh);
         break;
 
     default:
