@@ -11,7 +11,7 @@ void pressureGradient(Mesh *, Array2D<double> &, Array1D<double> &, int, double)
 
 void pressureGradientN(Mesh *, Array1D<double> &, Array1D<double> &, int, double);
 
-void pressureGradientSH(Globals *, Mesh *, Array2D<double> &, Array1D<double> &, Array1D<double> &, double);
+void pressureGradientSH(Globals *, Mesh *, Array1D<double> &, Array1D<double> &, Array1D<double> &, double);
 
 void velocityDivergence(Mesh *, Array1D<double> &, Array2D<double> &, double &, double);
 

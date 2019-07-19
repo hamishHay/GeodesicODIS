@@ -25,162 +25,6 @@ double dgemv_( const char * TRANS,
                const int * incy);
 }
 
-// void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pressure, int x=1, double g = 1.0)
-// {
-//     int node_num, friend_num;
-//     int i, j, j1, j2,f1,f2, f3;
-//
-//     Array2D<int> * friend_list;
-//     Array2D<double> * cent_map_factor;
-//     Array3D<double> * element_areas;
-//     Array3D<double> * normal_vecs;
-//     Array2D<double> * edge_lens;
-//     Array1D<double> * cv_areas;
-//     Array1D<int> * mask;
-//
-//     double m;                          // mapping factor at current cv edge
-//     double a0, a1, a2;
-//     double p0, p1, p2, p0_cent, p1_cent, p_avg;
-//     double x_grad, y_grad;
-//     double nx, ny;
-//     double edge_len;
-//     // double g;
-//
-//     node_num = mesh->node_num;
-//     friend_list = &(mesh->node_friends);
-//     cent_map_factor = &(mesh->control_vol_edge_centre_m);
-//     element_areas = &(mesh->node_friend_element_areas_map);
-//     normal_vecs = &(mesh->control_vol_edge_normal_map);
-//     edge_lens = &(mesh->control_vol_edge_len);
-//     cv_areas = &(mesh->control_volume_surf_area_map);
-//     // g = mesh->globals->g.Value();
-//     // mask = &(mesh->land_mask);
-//
-//     for (i=0; i<node_num; i++)
-//     {
-//         friend_num = 6;
-//         if ((*friend_list)(i, 5) == -1) friend_num = 5;
-//
-//         p0 = pressure(i);
-//
-//         x_grad = 0.0;
-//         y_grad = 0.0;
-//
-//         for (j=0; j<friend_num; j++)
-//         {
-//             // find avg pressure in element j
-//             j1 = j%friend_num;
-//             j2 = (j+1)%friend_num;
-//
-//             f1 = (*friend_list)(i, j%friend_num);
-//             f2 = (*friend_list)(i, (j+1)%friend_num);
-//             f3 = (*friend_list)(i, (j+2)%friend_num);
-//
-//             a0 = (*element_areas)(i,j1,0);
-//             a1 = (*element_areas)(i,j1,1);
-//             a2 = (*element_areas)(i,j1,2);
-//
-//             p1 = pressure((*friend_list)(i,j1));
-//             p2 = pressure((*friend_list)(i,j2));
-//
-//             // if (mesh->cell_is_boundary(i)==1 && mesh->cell_is_boundary(j1)==2)
-//             // {
-//             //   p1 = 1/a2 * ((a0+a1+a2)*0.5*(p0+p2) -a1*p0 - a0*p2);
-//             // }
-//             //
-//             // if (mesh->cell_is_boundary(i)==1 && mesh->cell_is_boundary(j2)==2)
-//             // {
-//             //   p2 = 1/a0 * ((a0+a1+a2)*0.5*(p0+p1) -a1*p0 - a2*p1);
-//             // }
-//
-//             p0_cent = (p0 * a1 + p1 * a2 + p2 * a0) / (a0 + a1 + a2);
-//
-//
-//
-//             // find avg pressure in element j+1
-//             j1 = j2;
-//             j2 = (j+2)%friend_num;
-//
-//             a0 = (*element_areas)(i,j1,0);
-//             a1 = (*element_areas)(i,j1,1);
-//             a2 = (*element_areas)(i,j1,2);
-//
-//             p1 = pressure((*friend_list)(i,j1));
-//             p2 = pressure((*friend_list)(i,j2));
-//
-//             // if (mesh->cell_is_boundary(i)==1 && mesh->cell_is_boundary(j1)==2)
-//             // {
-//             //   p1 = 1/a2 * ((a0+a1+a2)*0.5*(p0+p2) -a1*p0 - a0*p2);
-//             // }
-//             //
-//             // if (mesh->cell_is_boundary(i)==1 && mesh->cell_is_boundary(j2)==2)
-//             // {
-//             //   p2 = 1/a0 * ((a0+a1+a2)*0.5*(p0+p1) -a1*p0 - a2*p1);
-//             // }
-//
-//             p1_cent = (p0*a1 + p1*a2 + p2*a0) / (a0 + a1 + a2);
-//
-//             // Find average p at the center of the control volume edge
-//             p_avg = 0.5*(p0_cent + p1_cent);
-//
-//             if (mesh->cell_is_boundary(i)==1)
-//             {
-//               if (mesh->cell_is_boundary(f1)==2 || mesh->cell_is_boundary(f3)==2)
-//               {
-//                 p_avg = 0.5 * (pressure(f2) - p0) + p0;
-//               }
-//               else if (mesh->cell_is_boundary(f2)==2)
-//               {
-//                 p_avg = p0;
-//               }
-//
-//             }
-//
-//             // if (mesh->cell_is_boundary(i)==1 && mesh->cell_is_boundary(j2)==2)
-//             // {
-//             //   p2 = 1/a0 * ((a0+a1+a2)*0.5*(p0+p1) -a1*p0 - a2*p1);
-//             // }
-//
-//             // if (mesh->cell_is_boundary(i)==1 && mesh->cell_is_boundary(j1)==2)
-//             // {
-//             //   p_avg = 0.5*(p0 + p2);
-//             // }
-//
-//             j1 = j%friend_num;
-//
-//             // get mapping factor for edge i,j2
-//             m = (*cent_map_factor)(i, j1);
-//
-//             // get components of the edge normal vector
-//             nx = (*normal_vecs)(i, j1, 0);
-//             ny = (*normal_vecs)(i, j1, 1);
-//
-//             // get edge length of current edge
-//             edge_len = (*edge_lens)(i,j1);
-//
-//             // calculate x gradient
-//             x_grad += m * p_avg * nx * edge_len;
-//
-//             // calculate y gradient
-//             y_grad += m * p_avg * ny * edge_len;
-//
-//             j1 = (*friend_list)(i,(j+5)%friend_num);
-//             // if (mesh->cell_is_boundary(i)==1 && mesh->cell_is_boundary(j1)==2)
-//             // {
-//             //   x_grad = 0.0;
-//             //   y_grad = 0.0;
-//             // }
-//
-//         }
-//
-//         x_grad = g * x_grad / (*cv_areas)(i);
-//         y_grad = g * y_grad / (*cv_areas)(i);
-//
-//         dvdt(i,0) -= x_grad;
-//         dvdt(i,1) -= y_grad;
-//     }
-// };
-
 void pressureGradientN(Mesh * mesh, Array1D<double> & dvdt, Array1D<double> & pressure, int x=1, double g = 1.0)
 {
     int node_num, friend_num;
@@ -545,80 +389,82 @@ void velocityDivergenceN(Mesh * mesh, Array1D<double> & dpdt, Array1D<double> & 
 //     delete[] vec;
 // };
 
-// void pressureGradientSH(Globals * globals, Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & gg_scalar, Array1D<double> & gg_soln, double factor)
-// {
-//
-//     int node_num, l_max, N_ll;
-//     int i, j, f, l, m;
-//     int start_l;
-//     double * sh_coeffs;
-//
-//     Array3D<double> * scalar_lm;
-//     Array2D<double> * ll_scalar;
-//
-//     node_num = globals->node_num;
-//     l_max = globals->l_max.Value();
-//     N_ll = (int)globals->dLat.Value();
-//
-//     scalar_lm = new Array3D<double>(2.*(l_max+1), 2.*(l_max+1), 2);
-//
-//     ll_scalar = new Array2D<double>(180/N_ll, 360/N_ll);
-//
-//     if (globals->surface_type == LID_LOVE) start_l = 2;
-//     if (globals->surface_type == FREE_LOADING) start_l = 2;
-//     start_l = 0;
-//
-//     sh_coeffs = new double[(l_max+1)*(l_max+2) - 6];
-//
-//     // getSHCoeffsGG(mesh->node_pos_sph, gg_scalar, *scalar_lm, node_num, l_max);
-//
-//     interpolateGG2LLConservative(globals,
-//                                 mesh,
-//                                 *ll_scalar,
-//                                 gg_scalar);
-//
-//     // FIND SPHERICAL HARMONIC EXPANSION COEFFICIENTS
-//     // OF THE PRESSURE FIELD
-//     getSHCoeffsLL(*ll_scalar, *scalar_lm, N_ll, l_max);
-//
-//     double * sh_matrix;
-//     double * soln_vec;
-//     sh_matrix = &(mesh->sh_matrix_fort(0));
-//     soln_vec = &(gg_soln(0));
-//
-//     char trans = 'n';
-//     int M = node_num;
-//     int N = (l_max+1)*(l_max+2) - 6;
-//     double alpha = factor;
-//     int lda = M;
-//     int incx = 1;
-//     int incy = 1;
-//     double beta = 1.0;
-//
-//     int count = 0;
-//     for (l=2; l<l_max+1; l++)
-//     {
-//         for (m=0; m<=l; m++)
-//         {
-//             sh_coeffs[count] = (*scalar_lm)(l, m, 0);
-//             count++;
-//
-//             sh_coeffs[count] = (*scalar_lm)(l, m, 1);
-//             count++;
-//
-//             // std::cout<<l<<' '<<m<<' '<<(*scalar_lm)(l, m, 0)<<' '<<(*scalar_lm)(l, m, 1)<<std::endl;
-//         }
-//     }
-//
-//     // Perform sh_matrix * sh_coeffs and write the solution to soln_vec
-//     dgemv_(&trans, &M, &N, &alpha, sh_matrix, &lda, sh_coeffs, &incx, &beta, soln_vec, &incy);
-//
-//     delete scalar_lm;
-//     delete ll_scalar;
-//
-//     delete[] sh_coeffs;
-//
-// };
+
+// TODO - move this function to a new file -- maybe selfGravity.cpp ?
+void pressureGradientSH(Globals * globals, Mesh * mesh, Array1D<double> & dvdt, Array1D<double> & gg_scalar, Array1D<double> & gg_soln, double factor)
+{
+
+    int node_num, l_max, N_ll;
+    int i, j, f, l, m;
+    int start_l;
+    double * sh_coeffs;
+
+    Array3D<double> * scalar_lm;
+    Array2D<double> * ll_scalar;
+
+    node_num = globals->node_num;
+    l_max = globals->l_max.Value();
+    N_ll = (int)globals->dLat.Value();
+
+    scalar_lm = new Array3D<double>(2.*(l_max+1), 2.*(l_max+1), 2);
+
+    ll_scalar = new Array2D<double>(180/N_ll, 360/N_ll);
+
+    if (globals->surface_type == LID_LOVE) start_l = 2;
+    if (globals->surface_type == FREE_LOADING) start_l = 2;
+    start_l = 0;
+
+    sh_coeffs = new double[(l_max+1)*(l_max+2) - 6];
+
+    // getSHCoeffsGG(mesh->node_pos_sph, gg_scalar, *scalar_lm, node_num, l_max);
+
+    interpolateGG2LLConservative(globals,
+                                mesh,
+                                *ll_scalar,
+                                gg_scalar);
+
+    // FIND SPHERICAL HARMONIC EXPANSION COEFFICIENTS
+    // OF THE PRESSURE FIELD
+    getSHCoeffsLL(*ll_scalar, *scalar_lm, N_ll, l_max);
+
+    double * sh_matrix;
+    double * soln_vec;
+    sh_matrix = &(mesh->sh_matrix_fort(0));
+    soln_vec = &(gg_soln(0));
+
+    char trans = 'n';
+    int M = node_num;
+    int N = (l_max+1)*(l_max+2) - 6;
+    double alpha = factor;
+    int lda = M;
+    int incx = 1;
+    int incy = 1;
+    double beta = 1.0;
+
+    int count = 0;
+    for (l=2; l<l_max+1; l++)
+    {
+        for (m=0; m<=l; m++)
+        {
+            sh_coeffs[count] = (*scalar_lm)(l, m, 0);
+            count++;
+
+            sh_coeffs[count] = (*scalar_lm)(l, m, 1);
+            count++;
+
+            // std::cout<<l<<' '<<m<<' '<<(*scalar_lm)(l, m, 0)<<' '<<(*scalar_lm)(l, m, 1)<<std::endl;
+        }
+    }
+
+    // Perform sh_matrix * sh_coeffs and write the solution to soln_vec
+    dgemv_(&trans, &M, &N, &alpha, sh_matrix, &lda, sh_coeffs, &incx, &beta, soln_vec, &incy);
+
+    delete scalar_lm;
+    delete ll_scalar;
+
+    delete[] sh_coeffs;
+
+};
 
 // void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & velocity, double & sum, double h = 1.0)
 // {
@@ -869,19 +715,24 @@ void scalarDiffusion(Mesh * mesh, Array1D<double> & d2s, Array1D<double> & s, do
 //     // scalar_dummy = new Array1D<double>(node_num);
 //
 //     Pbar_lm = &(mesh->Pbar_lm);             // 4-pi Normalised associated leg funcs
-//     Pbar_lm_deriv = &(mesh->Pbar_lm_deriv); // 4-pi Normalised associated leg funcs derivs
+//     // Pbar_lm_deriv = &(mesh->Pbar_lm_deriv); // 4-pi Normalised associated leg funcs derivs
 //     trigMLon = &(mesh->trigMLon);           // cos and sin of m*longitude
 //     trigLat = &(mesh->trigLat);
 //     cosLat = &(mesh->trigLat(0,0));
 //
 //     // INTERPOLATE GEODESIC GRID DATA TO LAT-LON GRID
-//     interpolateGG2LL(globals,
-//                         mesh,
-//                         *ll_scalar,
-//                         gg_scalar,
-//                         mesh->ll_map_coords,
-//                         mesh->V_inv,
-//                         mesh->cell_ID);
+//     // interpolateGG2LL(globals,
+//     //                     mesh,
+//     //                     *ll_scalar,
+//     //                     gg_scalar,
+//     //                     mesh->ll_map_coords,
+//     //                     mesh->V_inv,
+//     //                     mesh->cell_ID);
+//
+//     interpolateGG2LLConservative(globals,
+//                             mesh,
+//                             *ll_scalar,
+//                             gg_scalar);
 //
 //     // FIND SPHERICAL HARMONIC EXPANSION COEFFICIENTS
 //     // OF THE PRESSURE FIELD
@@ -1044,3 +895,159 @@ void avgAtPoles(Mesh * mesh, Array2D<double> & velocity)
     }
 
 };
+
+// void pressureGradient(Mesh * mesh, Array2D<double> & dvdt, Array1D<double> & pressure, int x=1, double g = 1.0)
+// {
+//     int node_num, friend_num;
+//     int i, j, j1, j2,f1,f2, f3;
+//
+//     Array2D<int> * friend_list;
+//     Array2D<double> * cent_map_factor;
+//     Array3D<double> * element_areas;
+//     Array3D<double> * normal_vecs;
+//     Array2D<double> * edge_lens;
+//     Array1D<double> * cv_areas;
+//     Array1D<int> * mask;
+//
+//     double m;                          // mapping factor at current cv edge
+//     double a0, a1, a2;
+//     double p0, p1, p2, p0_cent, p1_cent, p_avg;
+//     double x_grad, y_grad;
+//     double nx, ny;
+//     double edge_len;
+//     // double g;
+//
+//     node_num = mesh->node_num;
+//     friend_list = &(mesh->node_friends);
+//     cent_map_factor = &(mesh->control_vol_edge_centre_m);
+//     element_areas = &(mesh->node_friend_element_areas_map);
+//     normal_vecs = &(mesh->control_vol_edge_normal_map);
+//     edge_lens = &(mesh->control_vol_edge_len);
+//     cv_areas = &(mesh->control_volume_surf_area_map);
+//     // g = mesh->globals->g.Value();
+//     // mask = &(mesh->land_mask);
+//
+//     for (i=0; i<node_num; i++)
+//     {
+//         friend_num = 6;
+//         if ((*friend_list)(i, 5) == -1) friend_num = 5;
+//
+//         p0 = pressure(i);
+//
+//         x_grad = 0.0;
+//         y_grad = 0.0;
+//
+//         for (j=0; j<friend_num; j++)
+//         {
+//             // find avg pressure in element j
+//             j1 = j%friend_num;
+//             j2 = (j+1)%friend_num;
+//
+//             f1 = (*friend_list)(i, j%friend_num);
+//             f2 = (*friend_list)(i, (j+1)%friend_num);
+//             f3 = (*friend_list)(i, (j+2)%friend_num);
+//
+//             a0 = (*element_areas)(i,j1,0);
+//             a1 = (*element_areas)(i,j1,1);
+//             a2 = (*element_areas)(i,j1,2);
+//
+//             p1 = pressure((*friend_list)(i,j1));
+//             p2 = pressure((*friend_list)(i,j2));
+//
+//             // if (mesh->cell_is_boundary(i)==1 && mesh->cell_is_boundary(j1)==2)
+//             // {
+//             //   p1 = 1/a2 * ((a0+a1+a2)*0.5*(p0+p2) -a1*p0 - a0*p2);
+//             // }
+//             //
+//             // if (mesh->cell_is_boundary(i)==1 && mesh->cell_is_boundary(j2)==2)
+//             // {
+//             //   p2 = 1/a0 * ((a0+a1+a2)*0.5*(p0+p1) -a1*p0 - a2*p1);
+//             // }
+//
+//             p0_cent = (p0 * a1 + p1 * a2 + p2 * a0) / (a0 + a1 + a2);
+//
+//
+//
+//             // find avg pressure in element j+1
+//             j1 = j2;
+//             j2 = (j+2)%friend_num;
+//
+//             a0 = (*element_areas)(i,j1,0);
+//             a1 = (*element_areas)(i,j1,1);
+//             a2 = (*element_areas)(i,j1,2);
+//
+//             p1 = pressure((*friend_list)(i,j1));
+//             p2 = pressure((*friend_list)(i,j2));
+//
+//             // if (mesh->cell_is_boundary(i)==1 && mesh->cell_is_boundary(j1)==2)
+//             // {
+//             //   p1 = 1/a2 * ((a0+a1+a2)*0.5*(p0+p2) -a1*p0 - a0*p2);
+//             // }
+//             //
+//             // if (mesh->cell_is_boundary(i)==1 && mesh->cell_is_boundary(j2)==2)
+//             // {
+//             //   p2 = 1/a0 * ((a0+a1+a2)*0.5*(p0+p1) -a1*p0 - a2*p1);
+//             // }
+//
+//             p1_cent = (p0*a1 + p1*a2 + p2*a0) / (a0 + a1 + a2);
+//
+//             // Find average p at the center of the control volume edge
+//             p_avg = 0.5*(p0_cent + p1_cent);
+//
+//             if (mesh->cell_is_boundary(i)==1)
+//             {
+//               if (mesh->cell_is_boundary(f1)==2 || mesh->cell_is_boundary(f3)==2)
+//               {
+//                 p_avg = 0.5 * (pressure(f2) - p0) + p0;
+//               }
+//               else if (mesh->cell_is_boundary(f2)==2)
+//               {
+//                 p_avg = p0;
+//               }
+//
+//             }
+//
+//             // if (mesh->cell_is_boundary(i)==1 && mesh->cell_is_boundary(j2)==2)
+//             // {
+//             //   p2 = 1/a0 * ((a0+a1+a2)*0.5*(p0+p1) -a1*p0 - a2*p1);
+//             // }
+//
+//             // if (mesh->cell_is_boundary(i)==1 && mesh->cell_is_boundary(j1)==2)
+//             // {
+//             //   p_avg = 0.5*(p0 + p2);
+//             // }
+//
+//             j1 = j%friend_num;
+//
+//             // get mapping factor for edge i,j2
+//             m = (*cent_map_factor)(i, j1);
+//
+//             // get components of the edge normal vector
+//             nx = (*normal_vecs)(i, j1, 0);
+//             ny = (*normal_vecs)(i, j1, 1);
+//
+//             // get edge length of current edge
+//             edge_len = (*edge_lens)(i,j1);
+//
+//             // calculate x gradient
+//             x_grad += m * p_avg * nx * edge_len;
+//
+//             // calculate y gradient
+//             y_grad += m * p_avg * ny * edge_len;
+//
+//             j1 = (*friend_list)(i,(j+5)%friend_num);
+//             // if (mesh->cell_is_boundary(i)==1 && mesh->cell_is_boundary(j1)==2)
+//             // {
+//             //   x_grad = 0.0;
+//             //   y_grad = 0.0;
+//             // }
+//
+//         }
+//
+//         x_grad = g * x_grad / (*cv_areas)(i);
+//         y_grad = g * y_grad / (*cv_areas)(i);
+//
+//         dvdt(i,0) -= x_grad;
+//         dvdt(i,1) -= y_grad;
+//     }
+// };
