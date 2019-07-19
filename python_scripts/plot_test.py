@@ -88,7 +88,7 @@ for i in range(nn, nn+1):
     # # # region[y>-80] = 0
     # reg = (x>180) & (x<270) & (y<80) & (y>-80)
     #
-    # mag = data_u**2.0 + data_v**2.0
+    mag = np.amax(abs(np.sqrt(data_u**2.0 + data_v**2.0)))
     # reg = mag > 1e-7
     # # print(reg)
     # x = x[reg]
@@ -160,7 +160,7 @@ for i in range(nn, nn+1):
     c1 = ax1.tricontourf(tri_vel,data_u,11,transform=ccrs.PlateCarree())
     c2 = ax2.tricontourf(tri_vel,data_v,11,transform=ccrs.PlateCarree())
     c3 = ax3.tricontourf(triang,data_eta,11,transform=ccrs.PlateCarree())
-    ax3.quiver(tri_vel.x, tri_vel.y, data_u, data_v, scale=200.0,transform=ccrs.PlateCarree(),regrid_shape=25, pivot='mid')
+    ax3.quiver(tri_vel.x, tri_vel.y, data_u/mag, data_v/mag, scale=40.0,transform=ccrs.PlateCarree(),regrid_shape=25, pivot='mid')
     # c3 = ax3.scatter(x, y, c=data_eta)
 
     plt.colorbar(c1, ax = ax1, orientation="horizontal")

@@ -136,6 +136,8 @@ public:
 
   Array2D<int> faces;
   Array2D<int> face_nodes;
+  Array2D<int> face_vertexes;
+  Array1D<double> face_area;
   // Array2D<int> face_friends;
   Array2D<int> face_dir;
   Array2D<double> face_normal_vec_map;

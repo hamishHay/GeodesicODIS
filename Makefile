@@ -8,11 +8,11 @@ HOME=/usr/local
 
 # CFLAGS = -O3 -ffast-math -c -mkl -Wall -Wno-sign-compare -Wunused-but-set-variable -xCORE-AVX2 -msse4 -funroll-loops -finline-functions -mtune=native  -std=c++14 -I/home/hamish/Research/Eigen -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp
 
-#-parallel -qopenmp 
-CFLAGS = -fast -Ofast -ffast-math -c -mkl -Wall -Wno-sign-compare -Wunused-but-set-variable -xCORE-AVX2 -msse4 -std=c++14 -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp
+#-parallel -qopenmp
+CFLAGS = -fast -Ofast -parallel -qopenmp -ffast-math -c -mkl -Wall -Wno-sign-compare -Wunused-but-set-variable -xCORE-AVX2 -msse4 -std=c++14 -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp
 
 # -ipo
-CLINK =  -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp -lblas -mkl
+CLINK =  -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp -lblas -mkl -ipo
 
 # FFLAGS= -c -I/home/hamish/Research/SHTOOLS-4.0/modules -m64 -fPIC -Ofast -ffast-math -L/home/hamish/Research/SHTOOLS-4.0/lib -lSHTOOLS -L/usr/local/lib -lfftw3 -lm -llapack -lblas
 # FLINK =  -lgfortran -L/home/hamish/Research/SHTOOLS-4.0/lib -lSHTOOLS -Llib -lfftw3 -llapack

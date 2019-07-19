@@ -57,11 +57,14 @@ Mesh::Mesh(Globals * Globals, int N, int face_N, int vertex_N, int N_ll, int l_m
     Pbar_20(N),
     Pbar_22(N),
 
+    // Pbar_lm(N),
+
     faces(N, 6),
     face_dir(face_N, 2),
     face_normal_vec_map(face_N, 2),
     face_normal_vec_dir(face_N),
     face_nodes(face_N, 2), //---> ID of nodes that belong to each face
+    face_vertexes(face_N, 2), //---> ID of vertexes that belong to each face
     // face_friends(face_N, 2),
     face_interp_friends(face_N, 10),
     face_interp_weights(face_N, 10),
@@ -70,6 +73,7 @@ Mesh::Mesh(Globals * Globals, int N, int face_N, int vertex_N, int N_ll, int l_m
     face_centre_m(face_N, 2),
     face_centre_pos_sph(face_N, 2),
     face_intercept_pos_sph(face_N, 2),
+    face_area(face_N),
     face_len(face_N),
     node_face_dir(N, 6),
     node_face_vel_trans(N, 6, 2),
@@ -473,6 +477,11 @@ int Mesh::AssignFaces(void)
                 int f_ID = friends_list[j].ID;
                 double sph_int[2], sph1[2], sph2[2];
 
+                if (j==1) {
+                    face_vertexes(f_ID, 0) = v_ID;
+                    face_vertexes(f_ID, 1) = face_vertex_list[j-1].ID;
+                }
+
                 sph1[0] = node_pos_sph(node_ID, 0);
                 sph1[1] = node_pos_sph(node_ID, 1);
 
@@ -486,13 +495,6 @@ int Mesh::AssignFaces(void)
 
                 triangularAreaSph(a1, sph1[0], sph2[0], sph_int[0], sph1[1], sph2[1], sph_int[1], r);
 
-                // if (i==4195) {
-                //     std::cout<<std::endl<<i<<" FACE: "<<f_ID<<" VERTEX: "<<v_ID<<" NODE: "<<node_ID<<std::endl;
-                //     std::cout<<sph1[0]*180/pi<<' '<<sph2[0]*180/pi<<' '<<sph_int[0]*180/pi<<std::endl;
-                //     std::cout<<sph1[1]*180/pi<<' '<<sph2[1]*180/pi<<' '<<sph_int[1]*180/pi<<std::endl;
-                //
-                // }
-
                 // calc triangle area for face_intersect2-node-vertex
                 f_ID = friends_list[(j+1)%friend_num].ID;
                 sph_int[0] = face_intercept_pos_sph(f_ID, 0);
@@ -500,13 +502,6 @@ int Mesh::AssignFaces(void)
 
 
                 triangularAreaSph(a2, sph1[0], sph2[0], sph_int[0], sph1[1], sph2[1], sph_int[1], r);
-
-                // if (i==4195) {
-                //     std::cout<<std::endl<<i<<" FACE: "<<f_ID<<" VERTEX: "<<v_ID<<" NODE: "<<node_ID<<std::endl;
-                //     std::cout<<sph1[0]*180/pi<<' '<<sph2[0]*180/pi<<' '<<sph_int[0]*180/pi<<std::endl;
-                //     std::cout<<sph1[1]*180/pi<<' '<<sph2[1]*180/pi<<' '<<sph_int[1]*180/pi<<std::endl;
-                //
-                // }
 
                 area = (a1+a2)/area_cv;//control_volume_surf_area_map(node_ID);
 
@@ -523,14 +518,7 @@ int Mesh::AssignFaces(void)
 
 
             for (j=0; j<friend_num; j++) {
-                // if (i==2381) {
-                //     // std::cout<<i<<' '<<face_intercept_pos_sph(i,0)<<' '<<face_intercept_pos_sph(i,1)<<' ';
-                //     // std::cout<<vertex_pos_sph(face_vertex_list[j].ID,0)<<' '<<vertex_pos_sph(face_vertex_list[j].ID,1)<<std::endl;
-                //
-                //     // std::cout<<i<<' ';
-                //     // std::cout<<friends_list[j].ID<<' '<<j_add<<std::endl;
-                //
-                // }
+
                 //Calc each weight w_ee' for e
                 if (i != friends_list[j].ID) {
                     face_interp_friends(i, j_add) = friends_list[j].ID;
@@ -560,17 +548,7 @@ int Mesh::AssignFaces(void)
                     // t_ev = -face_dir(i,0);
 
                     face_interp_weights(i, j_add) *= t_ev;
-                    // if (node_ID==2381) std::cout<<i<<' '<<j_add<<' '<<friends_list[j].ID<<' '<<face_interp_weights(i, j_add)<<std::endl;
 
-                    // if (i==2381 || i==2377) {
-                    //     int fID = friends_list[j].ID;
-                    //     std::cout<<i<<' '<<fID<<' '<<j_add<<' '<<face_interp_weights(i, j_add)<<' '<<t_ev<<std::endl;
-                    //     // std::cout<<i<<' '<<face_intercept_pos_sph(i,0)<<' '<<face_intercept_pos_sph(i,1)<<' ';
-                    //     // std::cout<<face_normal_vec_map(i, 0)<<' '<<face_normal_vec_map(i, 1)<<std::endl;
-                    //     // std::cout<<i<<' ';
-                    //     // std::cout<<friends_list[j].ID<<' '<<j_add<<std::endl;
-                    //
-                    // }
                     j_add++;
                 }
                 // face_interp_friends(j, j2) = friends_list[(j)%friend_num].ID;
@@ -584,23 +562,40 @@ int Mesh::AssignFaces(void)
 
     }
 
-    // for (int i=0; i<face_num; i++)
-    // {
-    //     int j_add = 0;
-    //     for (int k=0; k<2; k++)
-    //     {
-    //         int node_ID = face_nodes(i, k);
-    //
-    //         friend_num = 6;
-    //         if (node_friends(node_ID, 5) < 0) friend_num--;
-    //
-    //         for (int j=0; j<friend_num; j++)
-    //         {
-    //             std::cout<<i<<face_interp_weights(i, j_add)
-    //         }
-    //
-    //     }
-    // }
+    for (int i=0; i<face_num; i++)
+    {
+        int v1 = face_vertexes(i,0);
+        int v2 = face_vertexes(i,1);
+
+        double sph1[2], sph2[2], sph3[2];
+
+        sph1[0] = vertex_pos_sph(v1, 0);
+        sph1[1] = vertex_pos_sph(v1, 1);
+
+        sph2[0] = vertex_pos_sph(v2, 0);
+        sph2[1] = vertex_pos_sph(v2, 1);
+
+        double a=0.0, area=0.0;
+        double r = globals->radius.Value();
+
+        for (int k=0; k<2; k++)
+        {
+            int n1 = face_nodes(i, k);
+
+            sph3[0] = node_pos_sph(n1, 0);
+            sph3[1] = node_pos_sph(n1, 1);
+
+            triangularAreaSph(a, sph1[0], sph2[0], sph3[0], sph1[1], sph2[1], sph3[1], r);
+
+            area += a;
+
+        }
+
+        face_area(i) = area;
+
+        face_area(i) = face_node_dist(i)*face_len(i)/2.0;
+
+    }
 
     std::cout<<"FACE NUM: "<<face_count<<' '<<face_num<<std::endl;
     std::cout<<"NODE NUM: "<<node_num<<std::endl;

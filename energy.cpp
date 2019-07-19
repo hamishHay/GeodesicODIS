@@ -8,7 +8,7 @@
 #include <sstream>
 
 
-void updateEnergy(Globals * globals, double & avg_flux, Array1D<double> & e_flux, Array2D<double> & vel)
+void updateEnergy(Globals * globals, double & avg_flux, Array1D<double> & e_flux, Array2D<double> & vel, Array1D<double> & areas)
 {
     int node_num, face_num, i;
     double drag_coeff, h, r;
@@ -31,7 +31,7 @@ void updateEnergy(Globals * globals, double & avg_flux, Array1D<double> & e_flux
           {
             e_flux(i) = drag_coeff * 1000.0 * h * (vel(i,0)*vel(i,0) + vel(i,1)*vel(i,1));
 
-            avg_flux += e_flux(i);
+            avg_flux += e_flux(i)*areas(i);
 
             // e_flux(i) *= 1./mass(i) * 1000.0 * h; // Convert to flux?
 
@@ -48,13 +48,13 @@ void updateEnergy(Globals * globals, double & avg_flux, Array1D<double> & e_flux
                                 * (vel(i,0)*vel(i,0) + vel(i,1)*vel(i,1));
 
 
-            avg_flux += e_flux(i);
+            avg_flux += e_flux(i)*areas(i);
         }
         break;
     }
 
-    // avg_flux /= (4. * pi * r * r);
+    // avg_flux /= face_num;
     // TODO - convert to area weighted average
-    avg_flux = avg_flux/face_num;
+    avg_flux /= (4* pi * pow(r, 2.0));
 
 };
