@@ -64,20 +64,21 @@ writer = Writer(fps=10, metadata=dict(artist='Me'), bitrate=4000)
 
 in_file = h5py.File("DATA/data.h5", 'r')
 
-DATA_V = np.array(in_file["north velocity"])[start:stop+1,:,:]
-DATA_U = np.array(in_file["east velocity"])[start:stop+1,:-1,:]
-
-DATA_V = DATA_V[:,::-1,:]
-DATA_U = DATA_U[:,::-1,:]
-
-DATA = DATA_V
-
 if p_type == "velocity":
+    DATA_V = np.array(in_file["north velocity"])[start:stop+1,:,:]
+    DATA_U = np.array(in_file["east velocity"])[start:stop+1,:-1,:]
+
+    DATA_V = DATA_V[:,::-1,:]
+    DATA_U = DATA_U[:,::-1,:]
+
+    DATA = DATA_V
+
+
     DATA_MAG = np.sqrt(DATA_U**2 + DATA_V**2)
 elif p_type == "dissipation":
     DATA_MAG = 1e3 * h * 1e-6 * (DATA_U**2 + DATA_V**2)
 elif p_type == 'displacement':
-    DATA_MAG = np.array(in_file["displacement"])[start:stop+1,:,:]
+    DATA_MAG = np.array(in_file["displacement"])[start:stop+1,:]
 
 frames = stop-start
 vmin = np.amin(DATA_MAG)

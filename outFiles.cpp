@@ -190,7 +190,7 @@ void OutFiles::CreateHDF5Framework(Globals * globals)
     v_1D = new float[face_num];
     u_1D = new float[face_num];
     press_1D = new float[node_num];
-    diss_1D = new float[node_num];
+    diss_1D = new float[face_num];
     kinetic_1D = new float[node_num];
     diss_avg_1D = new float[1];
     kinetic_avg_1D = new float[node_num];
@@ -271,17 +271,17 @@ void OutFiles::CreateHDF5Framework(Globals * globals)
         data_set_press = H5Dcreate(file, "displacement", H5T_NATIVE_FLOAT, data_space_press, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         mem_space_press = H5Screate_simple(rank_cv, dims_cv, NULL);
     }
-    if (globals->field_pressure_output.Value())
-    {
-        data_space_press = H5Screate_simple(rank_cv, max_dims_cv, NULL); // 2D data space
-        data_set_press = H5Dcreate(file, "displacement", H5T_NATIVE_FLOAT, data_space_press, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-        mem_space_press = H5Screate_simple(rank_cv, dims_cv, NULL);
-    }
+    // if (globals->field_pressure_output.Value())
+    // {
+    //     data_space_press = H5Screate_simple(rank_cv, max_dims_cv, NULL); // 2D data space
+    //     data_set_press = H5Dcreate(file, "displacement", H5T_NATIVE_FLOAT, data_space_press, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    //     mem_space_press = H5Screate_simple(rank_cv, dims_cv, NULL);
+    // }
     if (globals->field_diss_output.Value())
     {
-        data_space_diss = H5Screate_simple(rank_cv, max_dims_cv, NULL);
+        data_space_diss = H5Screate_simple(rank_cv, max_dims_face, NULL);
         data_set_diss = H5Dcreate(file, "dissipated energy", H5T_NATIVE_FLOAT, data_space_diss, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-        mem_space_diss = H5Screate_simple(rank_cv, dims_cv, NULL);
+        mem_space_diss = H5Screate_simple(rank_face, dims_face, NULL);
     }
     if (globals->field_kinetic_output.Value())
     {
@@ -582,14 +582,14 @@ void OutFiles::DumpData(Globals * globals, int time_level, double ** data)
 
         else if ((*tags)[j] == "dissipation output")
         {
-            for (i=0; i<node_num; i++) {
+            for (i=0; i<face_num; i++) {
                 diss_1D[i] = (float)(*p);
                 p++;
             }
 
-            count_cv[1] = node_num;
+            count_face[1] = face_num;
 
-            H5Sselect_hyperslab(data_space_diss, H5S_SELECT_SET, start_cv, NULL, count_cv, NULL);
+            H5Sselect_hyperslab(data_space_diss, H5S_SELECT_SET, start_face, NULL, count_face, NULL);
             H5Dwrite(data_set_diss, H5T_NATIVE_FLOAT, mem_space_diss, data_space_diss, H5P_DEFAULT, diss_1D);
         }
 

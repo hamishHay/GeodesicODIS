@@ -633,7 +633,7 @@ int Mesh::DefineBoundaryCells(void)
         // dist /= r;
 
         // std::cout<<dist*180./pi<<std::endl;
-        if (dist*180./pi <= 88) cell_is_boundary(i) = 0;
+        if (dist*180./pi <= 60) cell_is_boundary(i) = 0;
         else cell_is_boundary(i) = 1;
 
         // if (cell_is_boundary(i) == 0)

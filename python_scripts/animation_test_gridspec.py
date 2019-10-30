@@ -1,235 +1,203 @@
-import numpy as np
-import matplotlib
-matplotlib.rcParams['animation.ffmpeg_path'] = '/bin/ffmpeg'
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-from matplotlib import cm
-import matplotlib.animation as manimation
-import matplotlib.gridspec as gridspec
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-import FieldPlot
+import matplotlib as mpl
 import os
-import types
+if "SSH_CONNECTION" in os.environ:
+    mpl.use('Agg')
+
+import matplotlib.pyplot as plt
+import matplotlib.tri as tri
+import matplotlib as mpl
+import numpy as np
+import math
+import h5py
+# from mpl_toolkits.basemap import Basemap
 import sys
-
-
-plt.rc('font', family='serif')
-plt.rc('font',serif='Palatino')
-# for Palatino and other serif fonts use:
-# rc('font',**{'family':'serif','serif':['Palatino']})
-plt.rc('text', usetex=True)
-plt.rc('text.latex',preamble='\\usepackage{siunitx}')
-
-plt.rcParams['contour.negative_linestyle'] = 'solid'
-
-
-
-# plt.rcParams['animation.ffmpeg_path'] = '/usr/bin/ffmpeg'
-directory = os.getcwd()
-file = "/dataSSD/hamish/paper2/var_thickness_test/h2km"
-# file = "/inResTime"
-
-def GrabData(i,name_id):
-    num = i
-    snum = str(num)
-    name = [file+"/EastVelocity/u_vel_"+snum+".txt", file+"/NorthVelocity/v_vel_"+snum+".txt", file+ "/Displacement/eta_"+snum+".txt"]
-
-
-    # path = directory + name[name_id]
-    path = name[name_id]
-    data = []
-    if os.path.exists(path):
-        print("Retrieving data from:", path)
-        init = open(path,'r')
-        lines = init.readlines()
-        init.close()
-
-        for line in lines:
-            line = line.split('\t')
-            data.append([float(j) for j in line[:-1]])
-        data = np.array(data)
-
-        return data
-
-
-
-first = 1
-last = int(sys.argv[1])
-frames = range(first,last)
-
-out_time = 0.01
-res = 10
-
-data_diss = np.loadtxt(file+"/Energy/diss_energy.txt")[first:last]
-orbit_num = np.linspace((first-1)*out_time,len(data_diss)*out_time,len(data_diss))
-
-print(orbit_num[-1])
-
-mins = []
-maxs = []
-
-for i in frames:
-    data = GrabData(i,2)
-    mins.append(data.min())
-    maxs.append(data.max())
-
-disp_min = min(mins)
-disp_max = max(maxs)
-disp_max = 200
-disp_min = -800
-
-mins = []
-maxs = []
-
-for i in frames:
-    data_u = GrabData(i,0)[:-1,:]
-    data_v = GrabData(i,1)
-    data = np.sqrt(data_u**2 + data_v**2)
-    mins.append(data.min())
-    maxs.append(data.max())
-
-vel_min = min(mins)
-vel_max = max(maxs)
-vel_max = 1.2
-
-
-data_disp = GrabData(1,2)
-data_u = GrabData(1,0)[:-1,:]
-data_v = GrabData(1,1)
-
-
-
-#plt.plot(orbit_num,data_diss)
-#plt.show()
-#fig = plt.gcf()
-#fig.savefig("test.png")
-
-x = np.linspace(0,360,len(data_disp[0]))
-y = np.linspace(90,-90,len(data_disp))
-
-x2 = np.linspace(0,360,len(data_v[0]))
-y2 = np.linspace(90,-90,len(data_v))
-
-X, Y = np.meshgrid(x, y)
-
-
-cont_num = 21
-levels = np.linspace(disp_min,disp_max,cont_num)
-levels_u = np.linspace(vel_min,vel_max,cont_num)
-cmap = cm.winter
-
-
-fig = plt.figure(figsize=(20/1.2,8/1.2),dpi=300)
-# fig = plt.figure()
-gs = gridspec.GridSpec(2,2,height_ratios=[4,1])
-ax1 = plt.subplot(gs[0,0], aspect='equal')
-quad = ax1.pcolormesh(x, y, data_disp,cmap=cmap,vmin=disp_min,vmax=disp_max)
-plt.hold('on')
-quad2 = ax1.contour(x,y,data_disp,levels=levels,colors='k',linewidths=0.4)
-
-# pos1 = ax1.get_position()
-# axColor = plt.axes([pos1.x0*1.05 + pos1.width * 1.05, pos1.y0, 0.01, pos1.height])
-
-# cbpos1 = cb1.get_position()
-# cb1.set_position
-
-divider = make_axes_locatable(ax1)
-cax1 = divider.append_axes("right", size="5%", pad=0.06)
-cb1 = fig.colorbar(quad,cax=cax1)
-
-ax2 = plt.subplot(gs[0,1], aspect='equal')
-
-quad3 = ax2.pcolormesh(x, y, data_u,cmap=cmap,vmin=vel_min,vmax=vel_max)
-plt.hold('on')
-# quad5 = ax2.contour(x,y,data_u,levels=levels_u,colors='k',linewidths=0.4)
-# quad4 = ax2.streamplot(x2, y2, data_u,data_v,color='k',linewidth=0.4,density=4)#, start_points=seeds)
-quad4 = ax2.quiver(x2[::res], y2[::res], data_u[::res,::res],data_v[::res,::res],color='k')#,scale=0.05*np.amax(vel)/vel_max)#,linewidth=0.4,density=0.8,arrowsize=3)#, start_points=seeds)
-
-
-plt.hold('off')
-
-divider = make_axes_locatable(ax2)
-cax2 = divider.append_axes("right", size="5%", pad=0.06)
-cb2 = fig.colorbar(quad3,cax=cax2)
-
-ax3 = plt.subplot(gs[1,:])
-line1, = ax3.plot([],[],'r-',linewidth=1.0)
-
-ax3.set_xlim(0, orbit_num[-1])
-ax3.set_ylim(0, 1)#1.2*max(data_diss))
-ax3.set_ylabel('Dissipation (\si{\watt\per\metre\squared})')
-ax3.set_xlabel('Orbit Number')
-#ax3.set_yscale('log')
-# plt.show()
-
-print(0.05*vel_max/vel_max)
-
-def init():
-    quad = ax1.pcolormesh(x, y, data_disp,cmap=cmap,vmin=disp_min,vmax=disp_max)
-    quad2 = ax1.contour(x,y,data_disp,levels=levels,colors='k',linewidths=0.7)
-
-    vel = np.sqrt(data_u**2 + data_v**2)
-    quad3 = ax2.pcolormesh(x, y, vel,cmap=cmap,vmin=vel_min,vmax=vel_max)
-    plt.hold('on')
-    quad4 = ax2.streamplot(x2, y2, data_u,data_v,color='k',linewidth=0.4,density=0.8,arrowsize=3)#, start_points=seeds)
-    plt.hold('off')
-
-    line1, = ax3.plot([],[])
-
-    return line1, quad, quad3,
-
-
-def animate(i):
-    # fig.clf()
-    ax1.cla()
-    data_disp = GrabData(i,2)
-    quad = ax1.pcolormesh(x, y, data_disp,cmap=cmap,vmin=disp_min,vmax=disp_max)
-    quad2 = ax1.contour(x,y,data_disp,levels=levels,colors='k',linewidths=0.7)
-    ax1.set_xlim(x[0], x[-1])
-    ax1.set_ylim(y[0], y[-1])
-    ax1.set_yticks([90,60,30,0,-30,-60,-90])
-    ax1.set_xticks(np.linspace(0,360,9))
-    ax1.invert_yaxis()
-
-    ax1.set_ylabel("Latitude ($^{\circ}$)")
-    ax1.set_xlabel('Longitude ($^{\circ}$)')
-    ax1.set_title("Displacement, $\\eta$ (m)")
-
-    ax2.cla()
-    data_u = GrabData(i,0)[:-1,:]
-    data_v = GrabData(i,1)
-    vel = np.sqrt(data_u**2 + data_v**2)
-    quad3 = ax2.pcolormesh(x, y, vel,cmap=cmap,vmin=vel_min,vmax=vel_max)
-    quad5 = ax2.contour(x2,y2,vel,levels=levels_u,colors='k',linewidths=0.7)
-    plt.hold('on')
-    vel = vel/vel_max
-    quad4 = ax2.quiver(x2[::res], y2[::res], data_u[::res,::res],data_v[::res,::res],color='k',scale=1/0.04,width=0.002,pivot='mid')#,arrowsize=3)#, start_points=seeds)
-    # quad4.set_UVC(data_u[::res,::res],data_v[::res,::res])
-
-
-    # ax2.plot(seeds[0], seeds[1], 'ro')
-    plt.hold('off')
-    ax2.set_xlim(x[0], x[-1])
-    ax2.set_ylim(y[0], y[-1])
-    ax2.set_yticks([90,60,30,0,-30,-60,-90])
-    ax2.set_xticks(np.linspace(0,360,9))
-    ax2.set_title("Velocity, $\\left|\\mathbf{u}\\right|$ (\\si{\\metre\\per\\second})")
-    ax2.invert_yaxis()
-
-
-    ax2.set_ylabel("Latitude ($^{\circ}$)")
-    ax2.set_xlabel("Longitude ($^{\circ}$)")
-
-    line1.set_data(orbit_num[:i], data_diss[:i])
-
-
-    return line1, quad, quad3,
-
-gs.tight_layout(fig)
-print(frames)
-
-anim = manimation.FuncAnimation(fig, animate,init_func=init,frames = frames,blit=False,interval=1000,repeat=False)
-mywriter = manimation.FFMpegWriter(fps=40,bitrate=8000)
-
-# anim.save('h1000_cD0.1_2.gif', writer = 'imagemagick',dpi=300,fps=10)
-anim.save('var_thick.mp4', writer = mywriter,dpi=300, extra_args=['-vcodec', 'libx264'])
+import math
+from pyshtools.expand import SHExpandLSQ
+import pyshtools
+import cartopy.crs as ccrs
+from cartopy.vector_transform import vector_scalar_to_grid
+
+
+plt.style.use("dark_background")
+plt.rcParams['axes.facecolor'] = 'k'
+plt.rcParams['contour.negative_linestyle']= 'solid'
+
+# plt.rcParams['mathtext.fontset'] = 'custom'
+# plt.rcParams['mathtext.rm'] = 'Avante Garde'
+# plt.rcParams['mathtext.it'] = 'Avante Garde:italic'
+# plt.rcParams['mathtext.bf'] = 'Avante Garde:bold'
+# # plt.rc('font',sans_serif="Avante Garde")
+# plt.rc('font',**{'family':'sans-serif','sans-serif':['Avante Garde']})
+# # plt.rc('font',serif='Palatino')
+# # for Palatino and other serif fonts use:
+# # rc('font',**{'family':'serif','serif':['Palatino']})
+# plt.rc('text', usetex=True)
+# plt.rc('text.latex',preamble='\\usepackage{siunitx},\\usepackage{sfmath}')
+
+plt.rc('lines', linewidth=0.6)
+
+plt.rc('figure', dpi=100)
+
+# Creating a Triangulation without specifying the triangles results in the
+# Delaunay triangulation of the points.
+
+nn = int(sys.argv[1])
+in_file = h5py.File("DATA/data.h5", 'r')
+
+for i in range(nn, nn+1):
+    n = i
+    # in_file = h5py.File("DATA_G6_T1000/data.h5", 'r')
+
+    data_u = in_file["east velocity"][n]
+    data_v = in_file["north velocity"][n]
+    vel_lon = in_file["face longitude"][:] - 180.0
+    vel_lat = in_file["face latitude"][:]
+
+    data_eta = in_file["displacement"][n]
+
+    input_coord_system = ccrs.PlateCarree()
+
+    this_plot_projection =  ccrs.PlateCarree()
+
+    (v_lon, v_lat, v_u, v_v, v_speed) = vector_scalar_to_grid(input_coord_system,     \
+                            this_plot_projection, \
+                            (20,10), \
+                            vel_lon, vel_lat, \
+                            data_u, \
+                            data_v, \
+                            data_v )
+    #
+    # print(vel_lon)
+
+    # data_u = np.mean(in_file["east velocity"][-10*1000:-1], axis=0)
+    # data_v = np.mean(in_file["north velocity"][-10*1000:-1], axis=0)
+
+    # data_diss = in_file["east velocity"][:]**2 + in_file["north velocity"][:]**2
+    # data_diss = 1.2e3 * 1000 * np.mean(data_diss, axis=0)
+    
+    # print(np.max(in_file["displacement"][-3*1000:]))
+    N = int(1 + 0.5 * math.log((len(data_eta)-2)/10, 2))
+    data_eta = data_eta #- np.mean(in_file["displacement"][-2001:-2], axis=0)
+    lmin = np.amin(in_file["displacement"][n:n+100,:])
+    lmax = np.amax(in_file["displacement"][n:n+100,:])
+    norm = max(abs(lmin), abs(lmax))
+    
+    levels = np.linspace(lmin, lmax, 13)
+
+    P = 2*np.pi/(2.05e-5)
+
+    # data_u = np.mean(in_file["east velocity"][-101:-2], axis=0)
+    # data_diss = np.mean(in_file["dissipated energy"][-101:-2], axis=0)
+
+
+    try:
+        grid = np.loadtxt("input_files/grid_l" + str(N) + ".txt",skiprows=1,usecols=(1,2))
+    except:
+        d = input("Can't find grid file for level " + str(N) +"!!!")
+        sys.exit()
+
+    x = grid[:,1] - 180.0
+    y = grid[:,0]
+
+    colat = np.radians(y)
+    lons = np.radians(y)
+   
+    mag = np.amax(abs(np.sqrt(in_file["east velocity"][n:n+100]**2.0 + in_file["north velocity"][n:n+100]**2.0)))
+    # reg = mag > 1e-7
+    # # print(reg)
+    # x = x[reg]
+    # y = y[reg]
+    # # for i in range(len(reg)):
+    # #     print(x[i], y[i])
+    #
+    # # print(x, y)
+    # data_eta = data_eta[reg]
+    # data_u = data_u[reg]
+    # data_v = data_v[reg]
+    # region = region[region]
+
+    # data_diss = in_file["dissipated energy"][n]
+
+    # print(np.max(abs(data_u)), np.max(abs(data_v)), np.amax(data_eta))
+    # print(np.max(abs(data_u)), np.max(abs(data_v)), np.amin(data_eta))
+    print("TRIANGULATING POSITIONS")
+    # Create the Triangulation; no triangles so Delaunay triangulation created.
+    triang = tri.Triangulation(x, y)
+    # for i,j in zip(vel_lon, vel_lat):
+    #     print(i,j)
+    tri_vel = tri.Triangulation(vel_lon, vel_lat)
+
+    
+
+    fig, ax1 = plt.subplots(ncols=1, figsize=(6,4))#,subplot_kw={'projection': ccrs.PlateCarree()})
+    
+    
+    # c2 = ax2.tricontourf(tri_vel,data_diss,11,transform=ccrs.PlateCarree())
+    print(lmin, lmax)
+    norm = mpl.colors.Normalize(vmin=lmin, vmax=lmax)
+    
+    c1 = [ax1.tricontourf(triang,data_eta,levels)]#, norm=norm, transform=ccrs.PlateCarree())]
+    # Q = ax1.quiver(tri_vel.x, tri_vel.y, data_u/mag, data_v/mag, scale=40.0,transform=ccrs.PlateCarree(),regrid_shape=25, pivot='mid')
+    # c1 = ax1.scatter(x, y, c=data_eta)
+    # c2 = [ax1.tricontour(triang, data_eta, levels=levels, colors=[(0.2, 0.2, 0.2)])]
+    plt.colorbar(c1[0], ax = ax1, orientation="horizontal", label='Tidal Amplitude [m]')
+    # c2 = 
+    # gridlines = ax1.gridlines(draw_labels=True)
+    # Q = ax1.quiver(v_lon, v_lat, v_u, v_v,zorder=10, scale=1.0, color=(0.1,0.1,0.1))
+
+    # gridlines.xlabels_top = False
+    # gridlines.ylabels_right = False
+    # gridlines.xlines = False
+    # gridlines.ylines = False
+    # gridlines.xlocator = mpl.ticker.FixedLocator(np.arange(-180,181,45))
+
+    # ax1.set_facecolor("k")
+    # ax1.background_patch.set_facecolor('k')
+    # ax1.outline_patch.set_edgecolor('w')
+from potential import potential_ecc 
+# LON, COLAT = np.meshgrid(lons, colat)    
+times = in_file['kinetic avg output']
+
+def update(i):
+    print(i)
+    data_new = in_file["displacement"][n+i]
+    data_u = in_file["east velocity"][n+i]
+    data_v = in_file["north velocity"][n+i]
+
+    # (v_lon, v_lat, v_u, v_v, v_speed) = vector_scalar_to_grid(input_coord_system,     \
+    #                         this_plot_projection, \
+    #                         (20,10), \
+    #                         vel_lon, vel_lat, \
+    #                         data_u, \
+    #                         data_v, \
+    #                         data_v )
+   
+    time = times[n+i] 
+    # print(time)
+    U = potential_ecc(0.0094, 1565.e3, 2.05e-5, time, np.radians(90-triang.y), np.radians(triang.x))
+
+
+    # ax1.set_facecolor("k")
+    for tp in c1[0].collections:
+        tp.remove()
+    c1[0] = ax1.tricontourf(triang,data_new,levels=levels)#transform=ccrs.PlateCarree())
+    ax1.set_title("{:1.1f} Days".format(i/100.0 * 3.55))
+
+    # for tp in c2[0].collections:
+    #     tp.remove()
+
+    # c2[0] = ax1.tricontour(triang, U/1.3, levels=levels, colors=[(0.05, 0.05, 0.05)])
+    # Q = ax1.quiver(v_lon, v_lat, v_u, v_v)
+
+    # Q.set_UVC(v_u, v_v)
+
+    ax1.set_xlim([-180,180])
+    ax1.set_ylim([-90,90])
+    # Q = ax1.quiver(tri_vel.x, tri_vel.y, data_u/mag, data_v/mag, scale=40.0,transform=ccrs.PlateCarree(),regrid_shape=17, pivot='mid', color=(0.1,0.1,0.1))
+    return  c1[0].collections#, Q#, c2[0].collections
+
+
+from matplotlib import animation
+ani = animation.FuncAnimation(fig, update, 100, interval=60)
+
+ani.save("/home/hamish/Dropbox/Tests/plottings.gif", writer='imagemagick', dpi=120)

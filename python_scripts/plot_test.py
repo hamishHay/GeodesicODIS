@@ -68,7 +68,8 @@ for i in range(nn, nn+1):
     # data_eta = data_diss
     #data_eta = data_diss
 
-    # data_eta = np.mean(in_file["dissipated energy"][-101:-2], axis=0)
+    # data_u = np.mean(in_file["east velocity"][-101:-2], axis=0)
+    data_diss = np.mean(in_file["dissipated energy"][-101:-2], axis=0)
 
 
     try:
@@ -134,18 +135,18 @@ for i in range(nn, nn+1):
 
     # plt.colorbar(c, ax = ax, orientation="horizontal")
 
-    cilm, chi2 = SHExpandLSQ (data_eta, y, x, 12, norm=1)
-
-    print(cilm[0])
-
-    power_per_l = pyshtools.spectralanalysis.spectrum(cilm)
-    degrees = np.arange(cilm.shape[1])
-
-    fig, ax = plt.subplots(1, 1)
-    ax.plot(degrees, power_per_l, 'o-')
-    ax.set(yscale='log', xscale='log', xlabel='Spherical harmonic degree', ylabel='Power')
-    # ax.grid()
-    fig.savefig("/home/hamish/Dropbox/Tests/eta_spectrum.pdf", bbox_inches='tight')
+    # cilm, chi2 = SHExpandLSQ (data_eta, y, x, 12, norm=1)
+    #
+    # print(cilm[0])
+    #
+    # power_per_l = pyshtools.spectralanalysis.spectrum(cilm)
+    # degrees = np.arange(cilm.shape[1])
+    #
+    # fig, ax = plt.subplots(1, 1)
+    # ax.plot(degrees, power_per_l, 'o-')
+    # ax.set(yscale='log', xscale='log', xlabel='Spherical harmonic degree', ylabel='Power')
+    # # ax.grid()
+    # fig.savefig("/home/hamish/Dropbox/Tests/eta_spectrum.pdf", bbox_inches='tight')
 
     # ax.plot(np.sum(cilm[0]**2.0, axis=-1), 'o')
 
@@ -158,13 +159,13 @@ for i in range(nn, nn+1):
     # c1 = ax1.tricontourf(triang,data_u,11)
     # c2 = ax2.tricontourf(triang,data_v,11)
     c1 = ax1.tricontourf(tri_vel,data_u,11,transform=ccrs.PlateCarree())
-    c2 = ax2.tricontourf(tri_vel,data_v,11,transform=ccrs.PlateCarree())
+    # c2 = ax2.tricontourf(tri_vel,data_diss,11,transform=ccrs.PlateCarree())
     c3 = ax3.tricontourf(triang,data_eta,11,transform=ccrs.PlateCarree())
     ax3.quiver(tri_vel.x, tri_vel.y, data_u/mag, data_v/mag, scale=40.0,transform=ccrs.PlateCarree(),regrid_shape=25, pivot='mid')
     # c3 = ax3.scatter(x, y, c=data_eta)
 
     plt.colorbar(c1, ax = ax1, orientation="horizontal")
-    plt.colorbar(c2, ax = ax2, orientation="horizontal")
+    # plt.colorbar(c2, ax = ax2, orientation="horizontal")
     plt.colorbar(c3, ax = ax3, orientation="horizontal")
 
     # ax2.set_xlim([160, 200])
