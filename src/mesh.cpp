@@ -236,22 +236,26 @@ int Mesh::AssignFaces(void)
 {
     struct face_friends
     {
-        int ID;
-        int rel_ID;
-        double angle;
+        int ID;         // Global ID of face
+        int rel_ID;     // ID of face relative to parent face
+        double angle;   // Angle between face and parent face
     };
 
 
     int friend_num=6;
     int face_count;
 
-    // std::cout<<face_num;
+    // Mark all faces as unassigned (<0)
     for (int i=0; i<node_num; i++) {
         for (int j=0; j<friend_num; j++) {
             faces(i, j) = -1;
         }
     }
 
+    // Loop through all faces and assign:
+    //  A unique ID (faces)
+    //  The direction of the face normal (in or out)
+    //  Distance between the nodes either side of the face (face_node_dist)
     face_count = 0;
     for (int i=0; i<node_num; i++) {
         friend_num = 6;
@@ -272,9 +276,6 @@ int Mesh::AssignFaces(void)
                 if (node_friends(f,5) < 0) friend_num2--;
 
                 double sph1[2], sph2[2], sph3[2], sph4[2], sphc[2];
-
-
-
                 for (int k=0; k<2; k++) {
                     sph1[k] = centroid_pos_sph(i, (j+friend_num-1)%friend_num, k);
                     sph2[k] = centroid_pos_sph(i, (j)%friend_num, k);
@@ -324,7 +325,6 @@ int Mesh::AssignFaces(void)
 
                 // Calculate intersection point between the face length vector
                 // and the vector between the shared nodes
-
                 for (int k=0; k<2; k++) {
                     sph3[k] = node_pos_sph(i, k);
                     sph4[k] = node_pos_sph(f, k);
@@ -335,13 +335,8 @@ int Mesh::AssignFaces(void)
                 face_intercept_pos_sph(face_count, 0) = sphc[0];
                 face_intercept_pos_sph(face_count, 1) = sphc[1];
 
-                // if (face_count==4195) {
-                //     std::cout<<std::endl<<i<<' '<<std::endl;
-                //     std::cout<<sph1[0]*180/pi<<' '<<sph2[0]*180/pi<<' '<<sphc[0]*180/pi<<std::endl;
-                //     std::cout<<sph1[1]*180/pi<<' '<<sph2[1]*180/pi<<' '<<sphc[1]*180/pi<<std::endl;
-                //
-                // }
-
+                // Find friend on opposite side of the face
+                // and update the values accordingly
                 int k=0;
                 for (int j2=0; j2<friend_num2; j2++) {
                     if (node_friends(f, j2) == i) {
@@ -359,6 +354,9 @@ int Mesh::AssignFaces(void)
         }
     }
 
+    // Now each face must be looped over in order to calculate interpolation weights
+    // This means finding the vertices and faces that are joined to the parent face, 
+    // in a anticlockwise order
     for (int i=0; i<face_num; i++)
     {
         int j_add = 0;
@@ -374,31 +372,31 @@ int Mesh::AssignFaces(void)
             // friends_list[0].ID = i;
             // friends_list[0].angle = 360.0;
 
+            // Loop through the friend faces, calculating the angle between
             int j = 0,  added = 0;
             while (added < friend_num) {
                 int ID = faces(node_ID, j);
-                // if (ID != i) {
-                    friends_list[added].ID = ID;
+                friends_list[added].ID = ID;
 
-                    double angle = 0.0;
-                    double sph1[2], sph2[2], sphc[2];
+                double angle = 0.0;
+                double sph1[2], sph2[2], sphc[2];
 
-                    for (int ii=0; ii<2; ii++) {
-                        sph1[ii] = face_intercept_pos_sph(i,ii);
-                        sph2[ii] = face_intercept_pos_sph(ID,ii);
-                        sphc[ii] = node_pos_sph(node_ID, ii);
-                    }
-                    angleBetweenMap(sph1, sph2, sphc, angle);
+                for (int ii=0; ii<2; ii++) {
+                    sph1[ii] = face_intercept_pos_sph(i,ii);
+                    sph2[ii] = face_intercept_pos_sph(ID,ii);
+                    sphc[ii] = node_pos_sph(node_ID, ii);
+                }
+                angleBetweenMap(sph1, sph2, sphc, angle);
 
-                    friends_list[added].angle = angle*180./pi;
-                    if (friends_list[added].angle > 0.0+1e-8) friends_list[added].angle -= 360.0;
-                    // if (added == 0) friends_list[added].angle = 0.0;
-                    added++;
-                // }
+                friends_list[added].angle = angle*180./pi;
+                if (friends_list[added].angle > 0.0+1e-8) friends_list[added].angle -= 360.0;
+
+                added++;
                 j++;
             }
 
             // Get list of vertexes attached to node
+            // Loop through the friend vertexes, calculating the angle between
             std::vector<face_friends> face_vertex_list(friend_num);
             for (j=0; j<friend_num; j++) {
                 face_vertex_list[j].ID = vertexes(node_ID, j);
@@ -425,13 +423,6 @@ int Mesh::AssignFaces(void)
             // order vertexes relative to face i in an anti-clockwise direction
             std::sort( face_vertex_list.begin( ), face_vertex_list.end( ), [ ]( const face_friends &lhs, const face_friends &rhs )
             { return lhs.angle > rhs.angle; });
-
-        //     if (i==2381 || i==2377) {
-        //     for (int j=0; j<friend_num; j++) {
-        //             std::cout<<i<<' '<<friends_list[j].ID<<" angle: "<<friends_list[j].angle<<'\t';
-        //             std::cout<<' '<<face_vertex_list[j].ID<<" angle: "<<face_vertex_list[j].angle<<std::endl;
-        //     }
-        // }
 
             // Now we know the right order of faces and vertexes relative to face
             // i, so we can now compute the R weights
@@ -461,8 +452,6 @@ int Mesh::AssignFaces(void)
 
                 // sum areas and divide by cv area to get R_iv
                 area_cv += a1;
-
-                // area_t += area;
 
             }
 
@@ -503,18 +492,13 @@ int Mesh::AssignFaces(void)
 
                 triangularAreaSph(a2, sph1[0], sph2[0], sph_int[0], sph1[1], sph2[1], sph_int[1], r);
 
-                area = (a1+a2)/area_cv;//control_volume_surf_area_map(node_ID);
+                area = (a1+a2)/area_cv;
 
                 R_weights[j] = area;
 
                 area_t += area;
 
-                // sum areas and divide by cv area to get R_iv
-                // node_R(node_ID, face_vertex_list[j].rel_ID) ;
-
             }
-
-            // std::cout<<i<<' '<<area_t<<std::endl;
 
 
             for (j=0; j<friend_num; j++) {
@@ -543,23 +527,15 @@ int Mesh::AssignFaces(void)
                     // happens under the asusmption that the weights are
                     // calculated in an anti-clockwise sense
                     int t_ev = 1;
-                    if (face_nodes(i, 0) == node_ID) t_ev = 1;//face_dir(i,0);
-                    else t_ev = -1;//face_dir(i,1);
-                    // t_ev = -face_dir(i,0);
+                    if (face_nodes(i, 0) == node_ID) t_ev = 1;
+                    else t_ev = -1;
 
                     face_interp_weights(i, j_add) *= t_ev;
 
                     j_add++;
                 }
-                // face_interp_friends(j, j2) = friends_list[(j)%friend_num].ID;
-                // //sum over relevant faces e' to calc w_ee'
-
-
             }
-
-
         }
-
     }
 
     for (int i=0; i<face_num; i++)
@@ -588,13 +564,11 @@ int Mesh::AssignFaces(void)
             triangularAreaSph(a, sph1[0], sph2[0], sph3[0], sph1[1], sph2[1], sph3[1], r);
 
             area += a;
-
         }
 
         face_area(i) = area;
 
         face_area(i) = face_node_dist(i)*face_len(i)/2.0;
-
     }
 
     std::cout<<"FACE NUM: "<<face_count<<' '<<face_num<<std::endl;
