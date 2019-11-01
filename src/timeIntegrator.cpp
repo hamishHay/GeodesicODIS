@@ -401,7 +401,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     }
 
     // Save initial conditions!
-    // writeInitialConditions(globals, grid, v_t0, dv_dt, p_t0, dp_dt);
+    writeInitialConditions(globals, grid, v_t0, dv_dt, p_t0, dp_dt);
 
     Output->Write(OUT_MESSAGE, &outstring);
 

@@ -161,10 +161,10 @@ class FieldPlot2:
         # data *= (1./(252.1e3))**2.0
         # data *= ((252.1e3-self.h_ocean)/(252.1e3))**3.
         #data *= 4. * np.pi * (self.radius)**2.0/1e9 / (2. * self.drag_coeff)
-        print(data)
-        print(np.mean(data[-102:-2]))
-        print(simps(data[-102:-2], time[-102:-2])/P)
-        print(time[-102]/P, time[-2]/P)
+        # print(data)
+        # print(np.mean(data[-102:-2]))
+        # print(simps(data[-102:-2], time[-102:-2])/P)
+        # print(time[-102]/P, time[-2]/P)
         # print(time[998:1001])
 
 
