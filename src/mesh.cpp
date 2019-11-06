@@ -161,7 +161,7 @@ Mesh::Mesh(Globals * Globals, int N, int face_N, int vertex_N, int N_ll, int l_m
 
     GenerateMomentumOperator();
 
-    // ReadWeightingFile();
+    ReadWeightingFile();
 
     globals->Output->DumpGridData(this);
 };
