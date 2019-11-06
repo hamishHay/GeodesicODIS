@@ -1,4 +1,4 @@
-# GeodesicODIS 1.1
+# GeodesicODIS 1.11
 GeodesicODIS is a finite volume fluid dynamics code for simulating global oceanic 
 flow in icy satellites and other bodies. GeodesicODIS currently solves the Laplace 
 Tidal Equations (LTE) assuming a 1-layer free-surface or subsurface ocean of uniform thickness. 
@@ -30,7 +30,9 @@ to begin subsurface ocean simulations on Enceladus.
 Lab](https://www.lpl.arizona.edu/graduate/students/hamish-hay)
 
 ## Version History
-GeodesicODIS 1.1 (April 2019): Parallelized code, better grids, optimization and simplification of code.
+GeodesicODIS 1.11 (November 2019): Velocity nodes moved to control volume edges, vastly improved stability, first boundary implementation.
+
+GeodesicODIS 1.10 (April 2019): Parallelized code, better grids, optimization and simplification of code.
 
 GeodesicODIS 1.0 (November 2018): Recorded in branch HayMatsuyama2018.
 
