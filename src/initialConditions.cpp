@@ -16,10 +16,9 @@ int loadInitialConditions(Globals * globals, Mesh * mesh,
     std::ostringstream outstring;
 
     std::string line, val;                 // strings for column and individual number
-    std::string file_str_vel;                  // string with path to mesh file.
+    std::string file_str_vel;              // string with path to mesh file.
     std::string file_str_pres;
 
-    // file_str_vel = globals->path + SEP + "initial_conditions.txt";
     file_str_vel = globals->path + SEP + "InitialConditions/vel_init.txt";
     file_str_pres = globals->path + SEP + "InitialConditions/pres_init.txt";
 
@@ -51,6 +50,11 @@ int loadInitialConditions(Globals * globals, Mesh * mesh,
 
             std::getline(line_ss >> std::ws,val,' ');
             dvdt(i,2) = std::stod(val);
+
+            if (globals->solver_type == RK4) {
+                std::getline(line_ss >> std::ws,val,' ');
+                dvdt(i,3) = std::stod(val);
+            }
 
             i++;
         }
@@ -94,6 +98,11 @@ int loadInitialConditions(Globals * globals, Mesh * mesh,
             std::getline(line_ss >> std::ws,val,' ');
             dpdt(i,2) = std::stod(val);
 
+            if (globals->solver_type == RK4) {
+                std::getline(line_ss >> std::ws,val,' ');
+                dpdt(i,3) = std::stod(val);
+            }
+
             i++;
         }
 
@@ -111,6 +120,11 @@ int loadInitialConditions(Globals * globals, Mesh * mesh,
         dpdt(i,0) = 0.0;
         dpdt(i,1) = 0.0;
         dpdt(i,2) = 0.0;
+
+        if (globals->solver_type == RK4) {
+            dvdt(i, 3) = 0.0;
+            dpdt(i, 3) = 0.0;
+        }
 
 
         outstring << "WARNING: NO INITIAL CONDITION FILE FOUND " + file_str_pres << std::endl;
@@ -137,14 +151,27 @@ int writeInitialConditions(Globals * globals, Mesh * mesh,
 
     outFile = fopen(&initial_condition_file[0], "w");
 
-    for (int i=0; i<face_num; i++)
-    {                   //   u    dudt0  dudt1  dudt2    p    dpdt0  dpdt1  dpdt2
-        // fprintf (outFile, "%1.6E, %1.6E, %1.6E, %1.6E, %1.6E, %1.6E, %1.6E, %1.6E\n",
-        //          v(i),   dvdt(i, 0),    dvdt(i, 1),    dvdt(i, 2),
-        //          p(i),   dpdt(i, 0),    dpdt(i, 1),    dpdt(i, 2) );
-        fprintf (outFile, "%1.6E, %1.6E, %1.6E, %1.6E\n",
-                 v(i),   dvdt(i, 0),    dvdt(i, 1),    dvdt(i, 2));
+    switch (globals->solver_type)
+    {
+    case AB3:
+        for (int i=0; i<face_num; i++)
+        {                   //   u    dudt0  dudt1  dudt2    p    dpdt0  dpdt1  dpdt2
+            fprintf (outFile, "%1.6E, %1.6E, %1.6E, %1.6E\n",
+                    v(i),   dvdt(i, 0),    dvdt(i, 1),    dvdt(i, 2));
+        }
+        break;
+    case RK4:
+        for (int i=0; i<face_num; i++)
+        {                   //   u    dudt0  dudt1  dudt2    p    dpdt0  dpdt1  dpdt2
+            fprintf (outFile, "%1.6E, %1.6E, %1.6E, %1.6E. %1.6E\n",
+                    v(i),   dvdt(i, 0),    dvdt(i, 1),    dvdt(i, 2), dvdt(i, 3));
+        }
+        break;
+    
+    default:
+        break;
     }
+    
 
     fclose(outFile);
 
@@ -153,10 +180,25 @@ int writeInitialConditions(Globals * globals, Mesh * mesh,
 
     outFile = fopen(&initial_condition_file[0], "w");
 
-    for (int i=0; i<node_num; i++)
-    {                   //   u    dudt0  dudt1  dudt2    p    dpdt0  dpdt1  dpdt2
-        fprintf (outFile, "%1.6E, %1.6E, %1.6E, %1.6E\n",
-                 p(i),   dpdt(i, 0),    dpdt(i, 1),    dpdt(i, 2) );
+    switch (globals->solver_type)
+    {
+    case AB3:
+        for (int i=0; i<node_num; i++)
+        {                   //   u    dudt0  dudt1  dudt2    p    dpdt0  dpdt1  dpdt2
+            fprintf (outFile, "%1.6E, %1.6E, %1.6E, %1.6E\n",
+                    p(i),   dpdt(i, 0),    dpdt(i, 1),    dpdt(i, 2));
+        }
+        break;
+    case RK4:
+        for (int i=0; i<node_num; i++)
+        {                   //   u    dudt0  dudt1  dudt2    p    dpdt0  dpdt1  dpdt2
+            fprintf (outFile, "%1.6E, %1.6E, %1.6E, %1.6E. %1.6E\n",
+                    p(i),   dpdt(i, 0),    dpdt(i, 1),    dpdt(i, 2), dpdt(i, 3));
+        }
+        break;
+    
+    default:
+        break;
     }
 
     fclose(outFile);
