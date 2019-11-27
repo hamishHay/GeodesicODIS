@@ -8,6 +8,8 @@
 #include <sstream>
 #include <iomanip>
 
+#include <sys/stat.h>
+
 int loadInitialConditions(Globals * globals, Mesh * mesh,
                           Array1D<double> & v, Array2D<double> & dvdt,
                           Array1D<double> & p, Array2D<double> & dpdt)
@@ -140,13 +142,15 @@ int writeInitialConditions(Globals * globals, Mesh * mesh,
                           Array1D<double> & v, Array2D<double> & dvdt,
                           Array1D<double> & p, Array2D<double> & dpdt)
 {
+    mkdir(&(globals->path +  SEP + "InitialConditions" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
+
     int face_num = globals->face_num;
     int node_num = globals->node_num;
 
     FILE * outFile;
     std::string initial_condition_file;
     
-    initial_condition_file = globals->path + SEP + "InitialConditions/vel_init.txt";
+    initial_condition_file = globals->path + SEP + "InitialConditions" + SEP + "vel_init.txt";
     remove(&initial_condition_file[0]);
 
     outFile = fopen(&initial_condition_file[0], "w");
@@ -175,7 +179,7 @@ int writeInitialConditions(Globals * globals, Mesh * mesh,
 
     fclose(outFile);
 
-    initial_condition_file = globals->path + SEP + "InitialConditions/pres_init.txt";
+    initial_condition_file = globals->path + SEP + "InitialConditions" + SEP + "pres_init.txt";
     remove(&initial_condition_file[0]);
 
     outFile = fopen(&initial_condition_file[0], "w");

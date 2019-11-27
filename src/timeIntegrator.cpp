@@ -147,6 +147,8 @@ int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt
 {
     double sum = 0.0;
     int node_num = globals->node_num;
+    int face_num = globals->face_num;
+    double h = globals->h.Value();
 
     sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
     matrix_descr descript;
@@ -156,13 +158,30 @@ int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt
     double betam = 0.0;
 
     mkl_sparse_d_mv(operation, globals->h.Value(), *(grid->operatorDivergenceX), descript, &(v_t0(0)), 0.0, &(deta_dt(0)));
-    // Array1D<double> hv(globals->face_num, 2);
+    // Array1D<double> hv(globals->face_num);
 
-    // for (int i=0; i<node_num; ++i)
+    // for (int i=0; i<face_num; ++i)
     // {
-    //     hv(i,0) = (eta(i)+globals->h.Value())*v_t0(i, 0);
-    //     hv(i,1) = (eta(i)+globals->h.Value())*v_t0(i, 1);
+    //     int node_in = grid->face_nodes(i, 0);
+    //     int node_out = grid->face_nodes(i, 1);
+    //     double inner = eta(node_in);
+    //     double outer = eta(node_out);
+    //     double diff_thickness = outer - inner;
+    //     double avg_thickness = 0.5 * ( (inner + h) + (outer + h) );
+
+    //     // check if flow is in or out of face
+    //     // if outward, use inner h 
+    //     // if inward, use outer h
+
+    //     // if (v_t0(i) > 0.0) thickness = inner+h;
+    //     // else thickness = outer+h;
+
+    //     hv(i) = v_t0(i) * avg_thickness - 0.5*fabs(v_t0(i))*diff_thickness;///thickness*v_t0(i);
+    //     // hv(i,1) = (eta(i)+globals->h.Value())*v_t0(i);
     // }
+
+    // mkl_sparse_d_mv(operation, 1.0, *(grid->operatorDivergenceX), descript, &(hv(0)), 0.0, &(deta_dt(0)));
+
     // velocityDivergenceN(grid, deta_dt, v_t0, sum, globals->h.Value());
     // velocityDivergence(grid, deta_dt, v_t0, sum, globals->h.Value());
 
