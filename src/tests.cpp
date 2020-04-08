@@ -173,9 +173,12 @@ void runCoriolisTest(Mesh * mesh, double error_norms[])
     // Perform sparse matrix * vector operation
     coriolis_data = mesh->operatorCoriolis * u_data;
 
+    
+
     // for (int i=0; i<mesh->face_num; i++) {
+    //     if (fabs(coriolis_analytic(i)) < 1e-10) coriolis_numerical(i) = coriolis_analytic(i);
     //     // std::cout<<coriolis_data(i)<<'\t'<<coriolis_numerical(i)<<std::endl;
-    //     std::cout<<coriolis_numerical(i)<<"\t\t"<<coriolis_analytic(i)<<"\t\t"<<abs(coriolis_numerical(i)-coriolis_analytic(i))/abs(coriolis_analytic(i))*100<<std::endl;
+    //     // std::cout<<coriolis_numerical(i)<<"\t\t"<<coriolis_analytic(i)<<"\t\t"<<abs(coriolis_numerical(i)-coriolis_analytic(i))/abs(coriolis_analytic(i))*100<<std::endl;
 
     // }
 
