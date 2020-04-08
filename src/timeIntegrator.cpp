@@ -20,8 +20,8 @@
 #include <signal.h>
 
 
-#include <mkl.h>
-#include <omp.h>
+//#include <mkl.h>
+//#include <omp.h>
 
 #include <sys/time.h>
 
@@ -91,9 +91,9 @@ int updateVelocity(Globals * globals, Mesh * grid, Array1D<double> & dvdt, Array
             break;
     }
 
-    sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
-    matrix_descr descript;
-    descript.type = SPARSE_MATRIX_TYPE_GENERAL;
+    // sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
+    // matrix_descr descript;
+    // descript.type = SPARSE_MATRIX_TYPE_GENERAL;
 
     double alpham = 1.0;
     double betam = 0.0;
@@ -116,7 +116,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array1D<double> & dvdt, Array
         soln_new(i) = p_tm1(i) - forcing_potential(i)/g;
     }
 
-    mkl_sparse_d_mv(operation, 1.0, *(grid->operatorGradient), descript, &(soln_new(0)), betam, &(dvdt(0)));
+    // mkl_sparse_d_mv(operation, 1.0, *(grid->operatorGradient), descript, &(soln_new(0)), betam, &(dvdt(0)));
     // pressureGradientN(grid, dvdt, soln_new, node_num, g);
 
     // mkl_sparse_d_mv(operation, 1.0, *(grid->operatorLinearDrag), descript, &(v_tm1(0)), 1.0, &(dvdt(0)));
@@ -126,7 +126,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array1D<double> & dvdt, Array
     // timestamp_t t0 = get_timestamp();
 
     // Perform A*d = dvdt where A is operatorMomentum, and d = [u, v, eta-U/g]
-    mkl_sparse_d_mv(operation, 1.0, *(grid->operatorMomentum), descript, &(v_tm1(0)), 1.0, &(dvdt(0)));
+    // mkl_sparse_d_mv(operation, 1.0, *(grid->operatorMomentum), descript, &(v_tm1(0)), 1.0, &(dvdt(0)));
 
 
     // timestamp_t t1 = get_timestamp();
@@ -150,14 +150,14 @@ int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt
     int face_num = globals->face_num;
     double h = globals->h.Value();
 
-    sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
-    matrix_descr descript;
-    descript.type = SPARSE_MATRIX_TYPE_GENERAL;
+    // sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
+    // matrix_descr descript;
+    // descript.type = SPARSE_MATRIX_TYPE_GENERAL;
 
     double alpham = 1.0;
     double betam = 0.0;
 
-    mkl_sparse_d_mv(operation, globals->h.Value(), *(grid->operatorDivergenceX), descript, &(v_t0(0)), 0.0, &(deta_dt(0)));
+    // mkl_sparse_d_mv(operation, globals->h.Value(), *(grid->operatorDivergenceX), descript, &(v_t0(0)), 0.0, &(deta_dt(0)));
     // Array1D<double> hv(globals->face_num);
 
     // for (int i=0; i<face_num; ++i)
@@ -201,8 +201,8 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     //------------------------- DECLARE VARIABLES ------------------------------
     //--------------------------------------------------------------------------
 
-    omp_set_num_threads( globals->core_num.Value() );
-    mkl_set_num_threads( globals->core_num.Value() );
+    // omp_set_num_threads( globals->core_num.Value() );
+    // mkl_set_num_threads( globals->core_num.Value() );
 
     std::ostringstream outstring;
     int i, j, k, iter, out_count;
@@ -437,8 +437,8 @@ int rk4Explicit(Globals * globals, Mesh * grid)
     //------------------------- DECLARE VARIABLES ------------------------------
     //--------------------------------------------------------------------------
 
-    omp_set_num_threads( globals->core_num.Value() );
-    mkl_set_num_threads( globals->core_num.Value() );
+    // omp_set_num_threads( globals->core_num.Value() );
+    // mkl_set_num_threads( globals->core_num.Value() );
 
     std::ostringstream outstring;
     int i, j, k, iter, out_count;

@@ -5,7 +5,7 @@
 #include "array1d.h"
 #include "sphericalHarmonics.h"
 #include "interpolation.h"
-#include "mkl.h"
+// #include "mkl.h"
 
 extern "C"{
 // FORTRAN adds _ after all the function names
@@ -566,26 +566,26 @@ void velocityDiffusion(Mesh * mesh, Array2D<double> & dvdt, Array2D<double> & ve
     // vel_transform = &(mesh->node_vel_trans);
     // node_friend_dists = &(mesh->node_dists);
 
-    sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
-    matrix_descr descript;
-    // struct matrix_descr {
-    //     sparse_matrix_type_t type;
-    // } descript;
-    descript.type = SPARSE_MATRIX_TYPE_GENERAL;
-    double alpham = 1.0;
-    double betam = 1.0;
+    // sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
+    // matrix_descr descript;
+    // // struct matrix_descr {
+    // //     sparse_matrix_type_t type;
+    // // } descript;
+    // descript.type = SPARSE_MATRIX_TYPE_GENERAL;
+    // double alpham = 1.0;
+    // double betam = 1.0;
 
-    double * vec = new double[3*node_num];
-    for (i=0; i<node_num; i++)
-    {
-        vec[3*i] = velocity(i,0);
-        vec[3*i+1] = velocity(i,1);
-        vec[3*i+2] = 0.0;
-    }
+    // double * vec = new double[3*node_num];
+    // for (i=0; i<node_num; i++)
+    // {
+    //     vec[3*i] = velocity(i,0);
+    //     vec[3*i+1] = velocity(i,1);
+    //     vec[3*i+2] = 0.0;
+    // }
 
-    mkl_sparse_d_mv(operation, viscosity, *(mesh->operatorLaplacian2), descript, vec, betam, &(dvdt(0,0)));
+    // mkl_sparse_d_mv(operation, viscosity, *(mesh->operatorLaplacian2), descript, vec, betam, &(dvdt(0,0)));
 
-    delete[] vec;
+    // delete[] vec;
 
     // for (i=0; i<node_num; i++)
     // {

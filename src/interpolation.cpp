@@ -131,24 +131,24 @@ int interpolateGG2LLConservative(Globals * globals,
     double alpha = 1.0;
     double beta = 1.0;
 
-    matrix_descr descrp;
-    descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
+    // matrix_descr descrp;
+    // descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
 
-    sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
+    // sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
 
-    sparse_status_t err;
+    // sparse_status_t err;
 
-    sparse_matrix_t dest;
-    sparse_index_base_t index_type = SPARSE_INDEX_BASE_ZERO;
-    int nrows = (360/dLat)*(180/dLat);
-    int ncols = 3*node_num_gg;
+    // sparse_matrix_t dest;
+    // sparse_index_base_t index_type = SPARSE_INDEX_BASE_ZERO;
+    // int nrows = (360/dLat)*(180/dLat);
+    // int ncols = 3*node_num_gg;
 
-    // -------------------------------------------------------------------------
-    // Multiply the sparse interpolation matrix by the geodesic grid data vector
-    // and return the interpolated solution in ll_data_1D
-    // -------------------------------------------------------------------------
+    // // -------------------------------------------------------------------------
+    // // Multiply the sparse interpolation matrix by the geodesic grid data vector
+    // // and return the interpolated solution in ll_data_1D
+    // // -------------------------------------------------------------------------
 
-    err = mkl_sparse_d_mv (operation, alpha, *(mesh->interpMatrix), descrp, gg_data_1D, beta, &(ll_data(0,0)));
+    // err = mkl_sparse_d_mv (operation, alpha, *(mesh->interpMatrix), descrp, gg_data_1D, beta, &(ll_data(0,0)));
 
     delete[] gg_data_1D;
     delete gradient;

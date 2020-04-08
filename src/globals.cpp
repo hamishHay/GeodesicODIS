@@ -41,8 +41,8 @@
 #include <cstring>
 #include <math.h>
 
-#include <mkl.h>
-#include <omp.h>
+// #include <mkl.h>
+// #include <omp.h>
 
 // Points constructor to second, optional constructor. --> Not actually necessary?
 Globals::Globals() :Globals(1) {};
@@ -289,8 +289,8 @@ Globals::Globals(int action) {
 
     applySurfaceBCs(this);
 
-    mkl_set_num_threads(core_num.Value());
-    omp_set_num_threads(core_num.Value());
+    // mkl_set_num_threads(core_num.Value());
+    // omp_set_num_threads(core_num.Value());
 
     // Print out all constants to output.txt
     OutputConsts();

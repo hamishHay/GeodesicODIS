@@ -14,10 +14,12 @@ public:
  ~Array1D();                              // Destructor
   Array1D(const Array1D& m);               // Copy constructor
   Array1D& operator= (const Array1D& m);   // Assignment operator
+
+  T* data_;
   // ...
 private:
   unsigned rows_;
-  T* data_;
+  
 };
 
 

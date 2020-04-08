@@ -11,8 +11,8 @@
 #include <sstream>
 #include <iomanip>
 
-#include <mkl.h>
-#include <omp.h>
+// #include <mkl.h>
+// #include <omp.h>
 
 int integrateAB3scalar(Globals * globals,
                  Mesh * grid,

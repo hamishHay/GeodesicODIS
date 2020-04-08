@@ -8,11 +8,17 @@
 #include "mathRoutines.h"
 #include "sphericalHarmonics.h"
 
-#include <mkl.h>
-#include <mkl_spblas.h>
-// #include <Eigen/Sparse>
-//
-// typedef Eigen::SparseMatrix<double, Eigen::RowMajor> SpMat;
+//#include <mkl.h>
+//#include <mkl_spblas.h>
+#include <Eigen/Sparse>
+#include <Eigen/Dense>
+
+typedef Eigen::SparseMatrix<double, Eigen::RowMajor> SpMat;
+typedef Eigen::Triplet<double> Triplet;
+// typedef Eigen::Vector<doub
+
+typedef Eigen::Matrix<double,1,Eigen::Dynamic> DenVector;
+typedef Eigen::Map<DenVector> MapVector;
 
 class Globals;
 
@@ -176,21 +182,24 @@ public:
 
   // Handle to the Intel MKL direct sparse matrix solver to solve an elliptical
   // equation in pressure correction
-  _MKL_DSS_HANDLE_t pressureSolverHandle;
+  // _MKL_DSS_HANDLE_t pressureSolverHandle;
 
-  sparse_matrix_t * interpMatrix;
+  // sparse_matrix_t * interpMatrix;
 
-  sparse_matrix_t * operatorMomentum;
-  sparse_matrix_t * operatorLaplacian;
-  sparse_matrix_t * operatorLaplacian2;
-  sparse_matrix_t * operatorGradientX;
-  sparse_matrix_t * operatorGradientY;
-  sparse_matrix_t * operatorGradient;
-  sparse_matrix_t * operatorDivergence;
-  sparse_matrix_t * operatorDivergenceX;
-  sparse_matrix_t * operatorDivergenceY;
-  sparse_matrix_t * operatorCoriolis;
-  sparse_matrix_t * operatorLinearDrag;
+  SpMat operatorLinearDrag;
+  SpMat operatorCoriolis;
+
+  // sparse_matrix_t * operatorMomentum;
+  // sparse_matrix_t * operatorLaplacian;
+  // sparse_matrix_t * operatorLaplacian2;
+  // sparse_matrix_t * operatorGradientX;
+  // sparse_matrix_t * operatorGradientY;
+  // sparse_matrix_t * operatorGradient;
+  // sparse_matrix_t * operatorDivergence;
+  // sparse_matrix_t * operatorDivergenceX;
+  // sparse_matrix_t * operatorDivergenceY;
+  // sparse_matrix_t * operatorCoriolis;
+  // sparse_matrix_t * operatorLinearDrag;
 
   Globals * globals;
 
