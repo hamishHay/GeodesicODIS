@@ -116,6 +116,17 @@ int updateVelocity(Globals * globals, Mesh * grid, Array1D<double> & dvdt, Array
         soln_new(i) = p_tm1(i) - forcing_potential(i)/g;
     }
 
+    Eigen::Map<Eigen::VectorXd> solnEigen(&soln_new(0), grid->node_num);
+    Eigen::Map<Eigen::VectorXd> dvdtEigen(&dvdt(0), grid->face_num);
+    Eigen::Map<Eigen::VectorXd> velEigen(&v_tm1(0), grid->face_num);
+
+    // Perform sparse matrix * vector operation
+    dvdtEigen -= g*grid->operatorGradient * solnEigen;
+
+    dvdtEigen += grid->operatorCoriolis * velEigen;
+
+    dvdtEigen += grid->operatorLinearDrag * velEigen;
+
     // mkl_sparse_d_mv(operation, 1.0, *(grid->operatorGradient), descript, &(soln_new(0)), betam, &(dvdt(0)));
     // pressureGradientN(grid, dvdt, soln_new, node_num, g);
 
@@ -156,6 +167,14 @@ int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt
 
     double alpham = 1.0;
     double betam = 0.0;
+
+    // Eigen::Map<Eigen::VectorXd> solnEigen(&soln_new(0), grid->node_num);
+    Eigen::Map<Eigen::VectorXd> detadtEigen(&deta_dt(0), grid->node_num);
+    Eigen::Map<Eigen::VectorXd> velEigen(&v_t0(0), grid->face_num);
+    // Perform sparse matrix * vector operation
+    // dvdtEigen -= g * grid->operatorGradient * solnEigen;
+
+    detadtEigen = globals->h.Value() * grid->operatorDivergence * velEigen;
 
     // mkl_sparse_d_mv(operation, globals->h.Value(), *(grid->operatorDivergenceX), descript, &(v_t0(0)), 0.0, &(deta_dt(0)));
     // Array1D<double> hv(globals->face_num);
@@ -350,21 +369,21 @@ int ab3Explicit(Globals * globals, Mesh * grid)
             integrateAB3scalar(globals, grid, v_t0, dv_dt, iter, grid->face_num);
 
 
-            for (i=0; i<face_num; ++i)
-            {
-                int inner, outer;
-                inner = grid->face_nodes(i, 0);
-                outer = grid->face_nodes(i, 1);
-                if ((grid->cell_is_boundary(inner) == 1 && grid->cell_is_boundary(outer) == 0) ||
-                    (grid->cell_is_boundary(inner) == 0 && grid->cell_is_boundary(outer) == 1))
-                {
-                    v_t0(i) = 0.0;
-                }
-                else if (grid->cell_is_boundary(inner) && grid->cell_is_boundary(outer))
-                {
-                    v_t0(i) = 0.0;
-                }
-            }
+            // for (i=0; i<face_num; ++i)
+            // {
+            //     int inner, outer;
+            //     inner = grid->face_nodes(i, 0);
+            //     outer = grid->face_nodes(i, 1);
+            //     if ((grid->cell_is_boundary(inner) == 1 && grid->cell_is_boundary(outer) == 0) ||
+            //         (grid->cell_is_boundary(inner) == 0 && grid->cell_is_boundary(outer) == 1))
+            //     {
+            //         v_t0(i) = 0.0;
+            //     }
+            //     else if (grid->cell_is_boundary(inner) && grid->cell_is_boundary(outer))
+            //     {
+            //         v_t0(i) = 0.0;
+            //     }
+            // }
 
             // UPDATE ENERGY DISSIPATION
             interpolateVelocity(globals, grid, v_avg, v_t0);
@@ -380,13 +399,13 @@ int ab3Explicit(Globals * globals, Mesh * grid)
             // MARCH PRESSURE FORWARD IN TIME
             integrateAB3scalar(globals, grid, p_t0, dp_dt, iter, grid->node_num);
 
-            for (i=0; i<node_num; ++i)
-            {
-                if (grid->cell_is_boundary(i) == 1)
-                {
-                    p_t0(i) = 0.0;
-                }
-            }
+            // for (i=0; i<node_num; ++i)
+            // {
+            //     if (grid->cell_is_boundary(i) == 1)
+            //     {
+            //         p_t0(i) = 0.0;
+            //     }
+            // }
 
         }
 

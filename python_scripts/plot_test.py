@@ -14,8 +14,8 @@ import sys
 import math
 from pyshtools.expand import SHExpandLSQ
 import pyshtools
-import cartopy.crs as ccrs
-from cartopy.vector_transform import vector_scalar_to_grid
+# import cartopy.crs as ccrs
+# from cartopy.vector_transform import vector_scalar_to_grid
 
 # plt.rcParams['mathtext.fontset'] = 'custom'
 # plt.rcParams['mathtext.rm'] = 'Avante Garde'
@@ -150,28 +150,29 @@ for i in range(nn, nn+1):
 
     # ax.plot(np.sum(cilm[0]**2.0, axis=-1), 'o')
 
-    fig, (ax1,ax2,ax3) = plt.subplots(ncols=3, figsize=(15,4),subplot_kw={'projection': ccrs.PlateCarree()})
+    fig, (ax1,ax2,ax3) = plt.subplots(ncols=3, figsize=(15,4))#,subplot_kw={'projection': ccrs.PlateCarree()})
     # c1 = ax1.tripcolor(triang,data_u)
     # c2 = ax2.tripcolor(triang,data_v)
     # c3 = ax3.tripcolor(triang,data_eta)
     # ax3.triplot(triang)
     # ax3.patch.set_color('.25')
-    # c1 = ax1.tricontourf(triang,data_u,11)
-    # c2 = ax2.tricontourf(triang,data_v,11)
-    c1 = ax1.tricontourf(tri_vel,data_u,11,transform=ccrs.PlateCarree())
+    c1 = ax1.tricontourf(tri_vel,data_u,11)
+    c2 = ax2.tricontourf(tri_vel,data_v,11)
+    # c1 = ax1.tricontourf(tri_vel,data_u,11,transform=ccrs.PlateCarree())
     # c2 = ax2.tricontourf(tri_vel,data_diss,11,transform=ccrs.PlateCarree())
-    c3 = ax3.tricontourf(triang,data_eta,11,transform=ccrs.PlateCarree())
-    ax3.quiver(tri_vel.x, tri_vel.y, data_u/mag, data_v/mag, scale=40.0,transform=ccrs.PlateCarree(),regrid_shape=25, pivot='mid')
+    c3 = ax3.tricontourf(triang,data_eta,11)#,transform=ccrs.PlateCarree())
+    # ax3.quiver(tri_vel.x, tri_vel.y, data_u/mag, data_v/mag, scale=40.0,transform=ccrs.PlateCarree(),regrid_shape=25, pivot='mid')
     # c3 = ax3.scatter(x, y, c=data_eta)
 
     plt.colorbar(c1, ax = ax1, orientation="horizontal")
-    # plt.colorbar(c2, ax = ax2, orientation="horizontal")
+    plt.colorbar(c2, ax = ax2, orientation="horizontal")
     plt.colorbar(c3, ax = ax3, orientation="horizontal")
 
     # ax2.set_xlim([160, 200])
     # ax2.set_ylim([-30, 30])
     # ax3.set_xlim([90, 270])
     # ax3.set_ylim([-90, 90])
+    plt.show()
 
     fig.savefig("/home/hamish/Dropbox/Tests/plottings.pdf")
     # fig.savefig("/home/hamish/Dropbox/Tests/plottings_{:03d}.png".format(n), bbox_inches='tight', dpi=300)
