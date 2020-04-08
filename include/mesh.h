@@ -188,6 +188,8 @@ public:
 
   SpMat operatorLinearDrag;
   SpMat operatorCoriolis;
+  SpMat operatorDivergence;
+  SpMat operatorGradient;
 
   // sparse_matrix_t * operatorMomentum;
   // sparse_matrix_t * operatorLaplacian;

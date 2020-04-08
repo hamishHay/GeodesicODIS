@@ -10,11 +10,15 @@
 
 #include <Eigen/Dense>
 
-void getErrorNorms(double approx[], double exact[], int length, double error_norms[]) {
+void getErrorNorms(double approx[], double exact[], int length, double error_norms[]) 
+{
     double diff;
 
+    error_norms[0] = 0;
+    error_norms[1] = 0;
+    error_norms[2] = 0;
     for (int i=0; i<length; i++) {
-        std::cout<<approx[i]<<'\t'<<exact[i]<<std::endl;
+        // std::cout<<approx[i]<<'\t'<<exact[i]<<std::endl;
         diff = fabs(approx[i] - exact[i]);
         error_norms[0] += diff;
         error_norms[1] += diff*diff;
@@ -178,6 +182,116 @@ void runCoriolisTest(Mesh * mesh, double error_norms[])
     getErrorNorms(&coriolis_numerical(0), &coriolis_analytic(0), mesh->face_num, error_norms);
 }
 
+void runDivergenceTest(Mesh *mesh, double error_norms[])
+{
+    Array1D<double> un_faces(mesh->face_num);    // normal vel component at each face
+    Array2D<double> uv_faces(mesh->face_num, 2);
+
+    Array1D<double> div_analytic(mesh->node_num);
+    Array1D<double> div_numerical(mesh->node_num);
+
+    setU(uv_faces, 1, 1, mesh->face_num, mesh->face_centre_pos_sph);
+    setDivU(div_analytic, 1, 1, mesh->node_num, mesh->globals->radius.Value(), mesh->node_pos_sph);
+
+    for (int i = 0; i < mesh->face_num; i++)
+    {
+        double u_face = uv_faces(i, 0);
+        double v_face = uv_faces(i, 1);
+
+        double vel_mag = sqrt(pow(u_face, 2.0) + pow(v_face, 2.0));
+
+        // ********* get the velocity component normal to the face *****************************
+        // get unit vector of velocity
+        double nx = u_face / vel_mag;
+        double ny = v_face / vel_mag;
+
+        if (vel_mag < 1e-10)
+        {
+            nx = 0.0;
+            ny = 0.0;
+        }
+
+        // take dot product of vel unit vector with face normal vector
+        double cos_a = nx * mesh->face_normal_vec_map(i, 0) + ny * mesh->face_normal_vec_map(i, 1);
+
+        // get the velocity component normal to the face
+        un_faces(i) = vel_mag * cos_a;
+    }
+
+        // *********** calculate coriolis term numerically *********************************
+
+        // Must define the mapped object as below to avoid copying memory!
+        // i.e. do NOT do: Eigen::VectorXd u_data = Eigen::Map<Eigen::VectorXd>(&un_faces(0), mesh->face_num);
+        Eigen::Map<Eigen::VectorXd> u_data(&un_faces(0), mesh->face_num);
+        Eigen::Map<Eigen::VectorXd> div_data(&div_numerical(0), mesh->node_num);
+
+        // Perform sparse matrix * vector operation
+        div_data = -mesh->operatorDivergence * u_data;
+
+        // for (int i=0; i<mesh->face_num; i++) {
+        //     // std::cout<<coriolis_data(i)<<'\t'<<coriolis_numerical(i)<<std::endl;
+        //     std::cout<<coriolis_numerical(i)<<"\t\t"<<coriolis_analytic(i)<<"\t\t"<<abs(coriolis_numerical(i)-coriolis_analytic(i))/abs(coriolis_analytic(i))*100<<std::endl;
+
+        // }
+
+        getErrorNorms(&div_numerical(0), &div_analytic(0), mesh->node_num, error_norms);
+    }
+
+    void runGradientTest(Mesh *mesh, double error_norms[])
+    {
+        Array1D<double> beta_nodes(mesh->node_num); // normal vel component at each face
+
+        Array2D<double> grad_analytic_xy(mesh->face_num, 2);
+        Array1D<double> grad_analytic(mesh->face_num);
+        Array1D<double> grad_numerical(mesh->face_num);
+
+        setBeta(beta_nodes, 1, 1, mesh->node_num, mesh->node_pos_sph);
+        setGradBeta(grad_analytic_xy, 1, 1, mesh->face_num, mesh->globals->radius.Value(), mesh->face_centre_pos_sph);
+
+        for (int i = 0; i < mesh->face_num; i++)
+        {
+            double u_face = grad_analytic_xy(i, 0);
+            double v_face = grad_analytic_xy(i, 1);
+
+            double vel_mag = sqrt(pow(u_face, 2.0) + pow(v_face, 2.0));
+
+            // ********* get the velocity component normal to the face *****************************
+            // get unit vector of velocity
+            double nx = u_face / vel_mag;
+            double ny = v_face / vel_mag;
+
+            if (vel_mag < 1e-10)
+            {
+                nx = 0.0;
+                ny = 0.0;
+            }
+
+            // take dot product of vel unit vector with face normal vector
+            double cos_a = nx * mesh->face_normal_vec_map(i, 0) + ny * mesh->face_normal_vec_map(i, 1);
+
+            // get the velocity component normal to the face
+            grad_analytic(i) = vel_mag * cos_a;
+        }
+
+        // *********** calculate gradient term numerically *********************************
+
+        // Must define the mapped object as below to avoid copying memory!
+        // i.e. do NOT do: Eigen::VectorXd u_data = Eigen::Map<Eigen::VectorXd>(&un_faces(0), mesh->face_num);
+        Eigen::Map<Eigen::VectorXd> beta_data(&beta_nodes(0), mesh->node_num);
+        Eigen::Map<Eigen::VectorXd> grad_data(&grad_numerical(0), mesh->face_num);
+
+        // Perform sparse matrix * vector operation
+        grad_data = mesh->operatorGradient * beta_data;
+
+        // for (int i=0; i<mesh->face_num; i++) {
+        //     // std::cout<<coriolis_data(i)<<'\t'<<coriolis_numerical(i)<<std::endl;
+        //     std::cout<<grad_numerical(i)<<"\t\t"<<grad_analytic(i)<<"\t\t"<<abs(grad_numerical(i)-grad_analytic(i))/abs(grad_analytic(i))*100<<std::endl;
+
+        // }
+
+        getErrorNorms(&grad_numerical(0), &grad_analytic(0), mesh->face_num, error_norms);
+    }
+
 void runOperatorTests(Globals * globals, Mesh * mesh)
 {
     double error_norms[3];
@@ -190,11 +304,17 @@ void runOperatorTests(Globals * globals, Mesh * mesh)
     std::cout << ",  L2=" << error_norms[1];
     std::cout << ",  Linf=" << error_norms[2] << std::endl;
 
+    runGradientTest(mesh, error_norms);
 
+    std::cout << "Gradient operator error norms: L1=" << error_norms[0];
+    std::cout << ",  L2=" << error_norms[1];
+    std::cout << ",  Linf=" << error_norms[2] << std::endl;
 
+    runDivergenceTest(mesh, error_norms);
 
-
-
+    std::cout << "Divergence operator error norms: L1=" << error_norms[0];
+    std::cout << ",  L2=" << error_norms[1];
+    std::cout << ",  Linf=" << error_norms[2] << std::endl;
 
     // int node_num;
     // int i, m, n;

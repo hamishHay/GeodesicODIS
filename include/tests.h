@@ -22,5 +22,7 @@ void setDivU(Array1D<double> &, int, int, int, double, Array2D<double> &);
 void setGradBeta(Array2D<double> &, int, int, int, double, Array2D<double> &);
 
 void runCoriolisTest(Mesh *, double error_norms[]);
+void runDivergenceTest(Mesh *, double error_norms[]);
+void runGradientTest(Mesh *, double error_norms[]);
 
 #endif
