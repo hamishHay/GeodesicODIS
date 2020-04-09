@@ -68,28 +68,28 @@ int updateVelocity(Globals * globals, Mesh * grid, Array1D<double> & dvdt, Array
 
     forcing(globals, grid, forcing_potential, globals->tide_type, current_time, e, obliq);
 
-    // Array1D<double> self_gravity(node_num);
+    // // Array1D<double> self_gravity(node_num);
 
-    // TODO - Move these pressure grad calls to a function that makes sense
-    switch (globals->surface_type)
-    {
-        case FREE_LOADING:
-            pressureGradientSH(globals, grid, dvdt, p_tm1, forcing_potential, g);
-            break;
+    // // TODO - Move these pressure grad calls to a function that makes sense
+    // switch (globals->surface_type)
+    // {
+    //     case FREE_LOADING:
+    //         pressureGradientSH(globals, grid, dvdt, p_tm1, forcing_potential, g);
+    //         break;
 
-        case LID_LOVE:
-            pressureGradientSH(globals, grid, dvdt, p_tm1, forcing_potential, g);
-            break;
+    //     case LID_LOVE:
+    //         pressureGradientSH(globals, grid, dvdt, p_tm1, forcing_potential, g);
+    //         break;
 
-        case LID_MEMBR:
-            pressureGradientSH(globals, grid, dvdt, p_tm1, forcing_potential, g);
-            break;
+    //     case LID_MEMBR:
+    //         pressureGradientSH(globals, grid, dvdt, p_tm1, forcing_potential, g);
+    //         break;
 
-        case LID_INF:
-            // pressureGradient(grid, dvdt, p_tm1, 1.0/1000.0);
-            // pressureGradientSH(globals, grid, dvdt, p_tm1, -1.0/1000.0);
-            break;
-    }
+    //     case LID_INF:
+    //         // pressureGradient(grid, dvdt, p_tm1, 1.0/1000.0);
+    //         // pressureGradientSH(globals, grid, dvdt, p_tm1, -1.0/1000.0);
+    //         break;
+    // }
 
     sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
     matrix_descr descript;
@@ -142,6 +142,81 @@ int updateVelocity(Globals * globals, Mesh * grid, Array1D<double> & dvdt, Array
     return 1;
 
 };
+
+int applyForcing(Globals * globals, Mesh * grid, Array1D<double> & dvdt, Array1D<double> & v_tm1, Array1D<double> & p_tm1, double current_time)
+{
+    double r, omega, e, obliq, h, drag_coeff, visc, g, dt;
+    int node_num;
+
+    r =       globals->radius.Value();
+    g =       globals->g.Value();
+    dt =      globals->timeStep.Value();
+    omega =   globals->angVel.Value();
+    e =       globals->e.Value();
+    drag_coeff = globals->alpha.Value();
+    obliq =   globals->theta.Value();
+    h =       globals->h.Value();
+    node_num = globals->node_num;
+    int face_num = globals->face_num;
+
+    // std::cout<<omega<<' '<<r<<' '<<g<<' '<<h<<' '<<globals->period.Value()<<std::endl;
+
+    visc = 5e3;
+
+    Array1D<double> forcing_potential(node_num);
+
+    forcing(globals, grid, forcing_potential, globals->tide_type, current_time, e, obliq);
+
+    // Array1D<double> self_gravity(node_num);
+
+    // TODO - Move these pressure grad calls to a function that makes sense
+    switch (globals->surface_type)
+    {
+        case FREE_LOADING:
+            pressureGradientSH(globals, grid, dvdt, p_tm1, forcing_potential, g);
+            break;
+
+        case LID_LOVE:
+            pressureGradientSH(globals, grid, dvdt, p_tm1, forcing_potential, g);
+            break;
+
+        case LID_MEMBR:
+            pressureGradientSH(globals, grid, dvdt, p_tm1, forcing_potential, g);
+            break;
+
+        case LID_INF:
+            // pressureGradient(grid, dvdt, p_tm1, 1.0/1000.0);
+            // pressureGradientSH(globals, grid, dvdt, p_tm1, -1.0/1000.0);
+            break;
+    }
+
+    sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
+    matrix_descr descript;
+    descript.type = SPARSE_MATRIX_TYPE_GENERAL;
+
+    double alpham = 1.0;
+    double betam = 1.0;
+    //
+    // Array2D<double> soln_old(node_num, 3);
+    Array1D<double> soln_new(node_num);
+
+    // for (int i=0; i<face_num; ++i)
+    // {
+    //   dvdt(i) = 0.0;
+    //   // dvdt(i, 1) = 0.0;
+    // }
+
+    // #pragma omp parallel for
+    for (int i=0; i<node_num; ++i)
+    {
+        // soln_old(i, 0) = v_tm1(i, 0);
+        // soln_old(i, 1) = v_tm1(i, 1);
+        // soln_old(i, 2) = p_tm1(i);// - forcing_potential(i)/g;
+        soln_new(i) = -forcing_potential(i)/g*dt;
+    }
+
+    mkl_sparse_d_mv(operation, 1.0, *(grid->operatorGradient), descript, &(soln_new(0)), betam, &(v_tm1(0)));
+}
 
 int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt, Array1D<double> & v_t0, Array1D<double> & eta)
 {
@@ -347,29 +422,6 @@ int ab3Explicit(Globals * globals, Mesh * grid)
             for (i=0; i<face_num; ++i) dv_dt(i, 0) = dv_dt_t0(i);
 
             // MARCH VELOCITY FORWARD IN TIME
-            integrateAB3scalar(globals, grid, v_t0, dv_dt, iter, grid->face_num);
-
-
-            for (i=0; i<face_num; ++i)
-            {
-                int inner, outer;
-                inner = grid->face_nodes(i, 0);
-                outer = grid->face_nodes(i, 1);
-                if ((grid->cell_is_boundary(inner) == 1 && grid->cell_is_boundary(outer) == 0) ||
-                    (grid->cell_is_boundary(inner) == 0 && grid->cell_is_boundary(outer) == 1))
-                {
-                    v_t0(i) = 0.0;
-                }
-                else if (grid->cell_is_boundary(inner) && grid->cell_is_boundary(outer))
-                {
-                    v_t0(i) = 0.0;
-                }
-            }
-
-            // UPDATE ENERGY DISSIPATION
-            interpolateVelocity(globals, grid, v_avg, v_t0);
-            updateEnergy(globals, e_diss, energy_diss, v_avg, grid->face_area);
-            total_diss[0] = e_diss;
 
             // SOLVE THE CONTINUITY EQUATION
             updateDisplacement(globals, grid, dp_dt_t0, v_t0, p_t0);
@@ -379,14 +431,51 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
             // MARCH PRESSURE FORWARD IN TIME
             integrateAB3scalar(globals, grid, p_t0, dp_dt, iter, grid->node_num);
+            
+            
+            integrateAB3scalar(globals, grid, v_t0, dv_dt, iter, grid->face_num);
+            applyForcing(globals, grid, dv_dt_t0, v_t0, p_t0, current_time+dt);
 
-            for (i=0; i<node_num; ++i)
+            interpolateVelocity(globals, grid, v_avg, v_t0);
+            updateEnergy(globals, e_diss, energy_diss, v_avg, grid->face_area);
+
+            for (i=0; i<face_num; ++i)
             {
-                if (grid->cell_is_boundary(i) == 1)
-                {
-                    p_t0(i) = 0.0;
-                }
+                // int inner, outer;
+                // inner = grid->face_nodes(i, 0);
+                // outer = grid->face_nodes(i, 1);
+                // if ((grid->cell_is_boundary(inner) == 1 && grid->cell_is_boundary(outer) == 0) ||
+                //     (grid->cell_is_boundary(inner) == 0 && grid->cell_is_boundary(outer) == 1))
+                // {
+                //     v_t0(i) = 0.0;
+                // }
+                // else if (grid->cell_is_boundary(inner) && grid->cell_is_boundary(outer))
+                // {
+                //     v_t0(i) = 0.0;
+                // }
+
+                v_t0(i) -= v_t0(i)*alpha*dt;
             }
+
+            // UPDATE ENERGY DISSIPATION
+            
+            total_diss[0] = e_diss;
+
+            // for (i=0; i<face_num; ++i)
+            // {
+            //    v_t0(i) -= v_t0(i)*globals->alpha.Value();
+            // }
+
+
+            
+
+            // for (i=0; i<node_num; ++i)
+            // {
+            //     if (grid->cell_is_boundary(i) == 1)
+            //     {
+            //         p_t0(i) = 0.0;
+            //     }
+            // }
 
         }
 

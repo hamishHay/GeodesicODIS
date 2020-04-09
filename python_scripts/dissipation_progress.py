@@ -16,7 +16,7 @@ except ValueError:
         # continue
 
 t = data[0,:]
-diss = data[1,:]
+diss = data[1,:]*1e9
 print(diss)
 plt.ion()
 fig, ax = plt.subplots(figsize=(16,4))
@@ -33,7 +33,7 @@ while True:
 
     try:
         t = data[0,:]
-        diss = data[1,:]
+        diss = data[1,:]*1e9
 
         line1.set_xdata(t)
         line1.set_ydata(diss)

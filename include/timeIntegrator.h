@@ -13,6 +13,7 @@ int ab3Explicit(Globals *, Mesh *);
 int rk4Explicit(Globals *, Mesh *);
 
 int updateVelocity(Globals *, Mesh *, Array1D<double> &, Array1D<double> &, Array1D<double> &, double, int);
+int applyForcing(Globals *, Mesh *, Array1D<double> &, Array1D<double> &, Array1D<double> &, double, int);
 int updateDisplacement(Globals *, Mesh *, Array1D<double> &, Array1D<double> &, Array1D<double> &);
 
 #endif
