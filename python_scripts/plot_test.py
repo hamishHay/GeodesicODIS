@@ -161,7 +161,7 @@ for i in range(nn, nn+1):
     # print(len(triang), len(data_diss))
     c1 = ax1.tricontourf(tri_vel,data_u,11,transform=ccrs.PlateCarree())
     c2 = ax2.tricontourf(tri_vel,data_v,11,transform=ccrs.PlateCarree())
-    c3 = ax3.tricontourf(tri_vel,data_diss,11,transform=ccrs.PlateCarree())
+    c3 = ax3.tricontourf(triang,data_eta,11,transform=ccrs.PlateCarree())
     # ax3.quiver(tri_vel.x, tri_vel.y, data_u/mag, data_v/mag, scale=40.0,transform=ccrs.PlateCarree(),regrid_shape=25, pivot='mid')
     # c3 = ax3.scatter(x, y, c=data_eta)
 
