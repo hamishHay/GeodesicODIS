@@ -174,7 +174,7 @@ int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt
     // Perform sparse matrix * vector operation
     // dvdtEigen -= g * grid->operatorGradient * solnEigen;
 
-    detadtEigen = globals->h.Value() * grid->operatorDivergence * velEigen;
+    // detadtEigen = globals->h.Value() * grid->operatorDivergence * velEigen;
 
     // mkl_sparse_d_mv(operation, globals->h.Value(), *(grid->operatorDivergenceX), descript, &(v_t0(0)), 0.0, &(deta_dt(0)));
     // Array1D<double> hv(globals->face_num);
@@ -201,7 +201,7 @@ int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt
 
     // mkl_sparse_d_mv(operation, 1.0, *(grid->operatorDivergenceX), descript, &(hv(0)), 0.0, &(deta_dt(0)));
 
-    // velocityDivergenceN(grid, deta_dt, v_t0, sum, globals->h.Value());
+    velocityDivergenceN(grid, deta_dt, v_t0, sum, globals->h.Value());
     // velocityDivergence(grid, deta_dt, v_t0, sum, globals->h.Value());
 
     // for (int i=0; i<node_num; ++i)

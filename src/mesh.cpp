@@ -1739,6 +1739,8 @@ int Mesh::CalcLinearDragOperatorCoeffs(void)
           // count++;
     }
 
+    operatorLinearDrag.makeCompressed();
+
     // assign the row indexes for the sparse matrix in CSR format
     // rowIndxX[0] = 0;         // first element is always zero
 
