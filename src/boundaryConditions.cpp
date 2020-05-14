@@ -116,6 +116,7 @@ int applySurfaceBCs(Globals * globals)
             double * beta_factor;
             double upsilon_factor;
             std::string path;
+            int count_row;
 
             // TODO - tidy up this terrible code
 
@@ -126,211 +127,244 @@ int applySurfaceBCs(Globals * globals)
 
             hs = globals->shell_thickness.Value();
 
+            beta_factor[0] = 0.0;          // set l=0 to zero.
 
-            // Check if ice shell value is within table range. TODO - define where this range comes from!
-            if ((hs < 1e3) || (hs > 100e3)) {
-                outstring << "ERROR:\t\t User selected ice shell thickness of " << hs/1e3;
-                outstring << " km is outside of calculated shell thickness range. " << std::endl;
-                outstring << "\t\t Shell behaviour is therefore undefined. "<<std::endl;
+            
+            count_row = 1; 
 
-                globals->Output->Write(ERR_MESSAGE, &outstring);
+            std::string file_str_beta;              // string with path to mesh file.
+            // std::string file_str_pres;
 
-                globals->Output->TerminateODIS();
-            }
-            // if ice shell thickness is not an integer value in kilometers, we must
-            // interpolate
-            else if (fmod(hs/1e3,1.0) > 1e-8) {
-                double x_l, x_r, x_interp;       // i and i+1 and interpolated beta values
-                double dhs;                      // distance from nearest int shell thickness
-                int count_col;                   // counter for counting file column position
-                int count_row;                   // counter for counting file row position
-                std::string line, val;           // strings for column and individual number
+            file_str_beta = globals->path + SEP + "input_files/beta.txt";
+            // file_str_pres = globals->path + SEP + "InitialConditions/pres_init.txt";
 
-                path = globals->path;
-
-
-                outstring << "WARNING:\t User selected shell thickness of " << hs/1e3;
-                outstring << " km is not an integer value of kilometers." << std::endl;
-                outstring << "\t\t ODIS will interpolate shell coefficients from between ";
-                outstring << int(hs)/1000 << " km and " << int(hs)/1000 + 1 << " km." << std::endl;
-
-                globals->Output->Write(ERR_MESSAGE, &outstring);
-
-                // in stream for input.in file
-                std::ifstream betaFile( globals->grav_coeff_file.Value(), std::ifstream::in);
-
-                dhs = fmod(hs/1e3,1.0);
-
-                // --------- h1 --------- h ------------- h2 --------
-                //             <--------->
-                //                 dhs
-
-                beta_factor[0] = 0.0;          // set l=0 to zero.
-
-                count_col = 1;
-                count_row = 1;                 // start counter at l=1
-                if (betaFile.is_open())
-                {
-
-                    outstring << "Beta coefficients found." << std::endl;
-                    globals->Output->Write(OUT_MESSAGE, &outstring);
-
-                    while (std::getline(betaFile, line) && count_row <= l_max)
-                    {
-                        x_l = 0.0;
-                        x_r = 0.0;
-                        x_interp = 0.0;
-
-                        std::istringstream line_ss(line);
-                        while (std::getline(line_ss,val,'\t'))
-                        {
-                            if (count_col == int(hs)/1000) {          // get h1 value
-                            x_l = std::atof(val.c_str());
-                        }
-                        else if (count_col == int(hs)/1000+1)     // get h2 value
-                        {
-                            x_r = std::atof(val.c_str());
-                            count_col = 1;
-                            break;
-                        }
-                        count_col++;
-                    }
-
-                    x_interp = x_l + dhs * (x_r - x_l)/1.0;     // linear interpolate to find h
-                    beta_factor[count_row] = x_interp;
-                    count_row++;
-                };
-
-                betaFile.close();
-            }
-
-            std::ifstream upsilonFile( globals->forcing_coeff_file.Value() , std::ifstream::in);
-
-            count_col = 1;
-            count_row = 1;
-            if (upsilonFile.is_open())
-            {
-
-                outstring << "Nu coefficients found." << std::endl;
-                globals->Output->Write(OUT_MESSAGE, &outstring);
-
-                while (std::getline(upsilonFile, line) && count_row <= 2)
-                {
-                    x_l = 0.0;
-                    x_r = 0.0;
-                    x_interp = 0.0;
-
-                    std::istringstream line_ss(line);
-                    while (std::getline(line_ss,val,'\t'))
-                    {
-                        if (count_col == int(hs)/1000) {
-                            x_l = std::atof(val.c_str());
-                        }
-                        else if (count_col == int(hs)/1000+1)
-                        {
-                            x_r = std::atof(val.c_str());
-                            count_col = 1;
-                            break;
-                        }
-                        count_col++;
-                    }
-
-                    x_interp = x_l + dhs * (x_r - x_l)/1.0;
-                    upsilon_factor = x_interp;
-
-                    count_row++;
-                };
-
-                upsilonFile.close();
-            }
-
-            globals->loveReduct.SetValue(upsilon_factor);
-        }
-        else
-        {
-            double x;                        // beta values
-            int count_col;                   // counter for counting file column position
-            int count_row;                   // counter for counting file row position
-            std::string line, val;           // strings for column and individual number
-
-            path = globals->path;
-
-            std::ifstream betaFile( globals->grav_coeff_file.Value(), std::ifstream::in);
-
-            // std::cout<<globals->grav_coeff_file.Value()<<std::endl;
-            count_col = 1;
-            count_row = 1;
+            // std::ifstream betaFile( globals->grav_coeff_file.Value(), std::ifstream::in);
+            std::ifstream betaFile( file_str_beta, std::ifstream::in);
             if (betaFile.is_open())
             {
+                std::string line, val;
 
                 outstring << "Beta coefficients found." << std::endl;
                 globals->Output->Write(OUT_MESSAGE, &outstring);
 
-                while (std::getline(betaFile, line) && count_row <= l_max)
+                while (std::getline(betaFile, line) && (count_row <= l_max) )
                 {
-                    x = 0.0;
                     std::istringstream line_ss(line);
-                    while (std::getline(line_ss,val,'\t'))
-                    {
-                        if (count_col == int(hs)/1000) {
-                            x = std::atof(val.c_str());
-                            count_col = 1;
-                            break;
+                    std::getline(line_ss,val,'\t');
 
-                        }
-                        count_col++;
-                    }
-
-                    beta_factor[count_row] = x;
+                    beta_factor[count_row] = std::atof( val.c_str() );
                     count_row++;
-                };
+                }
+    
+            };
 
-                betaFile.close();
-            }
-            else
-            {
-                outstring << "Gravity coefficient file could not be read: "<< globals->grav_coeff_file.Value() << std::endl;
-                globals->Output->Write(ERR_MESSAGE, &outstring);
-                globals->Output->TerminateODIS();
-            }
+            betaFile.close();
 
-            std::ifstream upsilonFile( globals->forcing_coeff_file.Value(), std::ifstream::in);
 
-            count_col = 1;
-            count_row = 1;
-            if (upsilonFile.is_open())
-            {
+            // // Check if ice shell value is within table range. TODO - define where this range comes from!
+            // if ((hs < 1e3) || (hs > 100e3)) {
+            //     outstring << "ERROR:\t\t User selected ice shell thickness of " << hs/1e3;
+            //     outstring << " km is outside of calculated shell thickness range. " << std::endl;
+            //     outstring << "\t\t Shell behaviour is therefore undefined. "<<std::endl;
 
-                outstring << "Nu coefficients found." << std::endl;
-                globals->Output->Write(OUT_MESSAGE, &outstring);
+            //     globals->Output->Write(ERR_MESSAGE, &outstring);
 
-                while (std::getline(upsilonFile, line) && count_row <= 2)
-                {
-                    x = 0.0;
+            //     globals->Output->TerminateODIS();
+            // }
+            // // if ice shell thickness is not an integer value in kilometers, we must
+            // // interpolate
+            // else if (fmod(hs/1e3,1.0) > 1e-8) {
+            //     double x_l, x_r, x_interp;       // i and i+1 and interpolated beta values
+            //     double dhs;                      // distance from nearest int shell thickness
+            //     int count_col;                   // counter for counting file column position
+            //     int count_row;                   // counter for counting file row position
+            //     std::string line, val;           // strings for column and individual number
 
-                    std::istringstream line_ss(line);
-                    while (std::getline(line_ss,val,'\t'))
-                    {
-                        if (count_col == int(hs)/1000) {
-                            x = std::atof(val.c_str());
+            //     path = globals->path;
 
-                            count_col = 1;
-                            break;
 
-                        }
-                        count_col++;
-                    }
-                    upsilon_factor = x;
+            //     outstring << "WARNING:\t User selected shell thickness of " << hs/1e3;
+            //     outstring << " km is not an integer value of kilometers." << std::endl;
+            //     outstring << "\t\t ODIS will interpolate shell coefficients from between ";
+            //     outstring << int(hs)/1000 << " km and " << int(hs)/1000 + 1 << " km." << std::endl;
 
-                    count_row++;
-                };
+            //     globals->Output->Write(ERR_MESSAGE, &outstring);
 
-                upsilonFile.close();
-            }
+            //     // in stream for input.in file
+            //     std::ifstream betaFile( globals->grav_coeff_file.Value(), std::ifstream::in);
 
-            globals->loveReduct.SetValue(upsilon_factor);
+            //     dhs = fmod(hs/1e3,1.0);
 
-        }
+            //     // --------- h1 --------- h ------------- h2 --------
+            //     //             <--------->
+            //     //                 dhs
+
+            //     beta_factor[0] = 0.0;          // set l=0 to zero.
+
+            //     count_col = 1;
+            //     count_row = 1;                 // start counter at l=1
+            //     if (betaFile.is_open())
+            //     {
+
+            //         outstring << "Beta coefficients found." << std::endl;
+            //         globals->Output->Write(OUT_MESSAGE, &outstring);
+
+            //         while (std::getline(betaFile, line) && count_row <= l_max)
+            //         {
+            //             x_l = 0.0;
+            //             x_r = 0.0;
+            //             x_interp = 0.0;
+
+            //             std::istringstream line_ss(line);
+            //             while (std::getline(line_ss,val,'\t'))
+            //             {
+            //                 if (count_col == int(hs)/1000) {          // get h1 value
+            //                 x_l = std::atof(val.c_str());
+            //             }
+            //             else if (count_col == int(hs)/1000+1)     // get h2 value
+            //             {
+            //                 x_r = std::atof(val.c_str());
+            //                 count_col = 1;
+            //                 break;
+            //             }
+            //             count_col++;
+            //         }
+
+            //         x_interp = x_l + dhs * (x_r - x_l)/1.0;     // linear interpolate to find h
+            //         beta_factor[count_row] = x_interp;
+            //         count_row++;
+            //     };
+
+            //     betaFile.close();
+            // }
+
+            // std::ifstream upsilonFile( globals->forcing_coeff_file.Value() , std::ifstream::in);
+
+            // count_col = 1;
+            // count_row = 1;
+            // if (upsilonFile.is_open())
+            // {
+
+            //     outstring << "Nu coefficients found." << std::endl;
+            //     globals->Output->Write(OUT_MESSAGE, &outstring);
+
+            //     while (std::getline(upsilonFile, line) && count_row <= 2)
+            //     {
+            //         x_l = 0.0;
+            //         x_r = 0.0;
+            //         x_interp = 0.0;
+
+            //         std::istringstream line_ss(line);
+            //         while (std::getline(line_ss,val,'\t'))
+            //         {
+            //             if (count_col == int(hs)/1000) {
+            //                 x_l = std::atof(val.c_str());
+            //             }
+            //             else if (count_col == int(hs)/1000+1)
+            //             {
+            //                 x_r = std::atof(val.c_str());
+            //                 count_col = 1;
+            //                 break;
+            //             }
+            //             count_col++;
+            //         }
+
+            //         x_interp = x_l + dhs * (x_r - x_l)/1.0;
+            //         upsilon_factor = x_interp;
+
+            //         count_row++;
+            //     };
+
+            //     upsilonFile.close();
+            // }
+
+        //     globals->loveReduct.SetValue(upsilon_factor);
+        // }
+        // else
+        // {
+        //     double x;                        // beta values
+        //     int count_col;                   // counter for counting file column position
+        //     int count_row;                   // counter for counting file row position
+        //     std::string line, val;           // strings for column and individual number
+
+        //     path = globals->path;
+
+        //     std::ifstream betaFile( globals->grav_coeff_file.Value(), std::ifstream::in);
+
+        //     // std::cout<<globals->grav_coeff_file.Value()<<std::endl;
+        //     count_col = 1;
+        //     count_row = 1;
+        //     if (betaFile.is_open())
+        //     {
+
+        //         outstring << "Beta coefficients found." << std::endl;
+        //         globals->Output->Write(OUT_MESSAGE, &outstring);
+
+        //         while (std::getline(betaFile, line) && count_row <= l_max)
+        //         {
+        //             x = 0.0;
+        //             std::istringstream line_ss(line);
+        //             while (std::getline(line_ss,val,'\t'))
+        //             {
+        //                 if (count_col == int(hs)/1000) {
+        //                     x = std::atof(val.c_str());
+        //                     count_col = 1;
+        //                     break;
+
+        //                 }
+        //                 count_col++;
+        //             }
+
+        //             beta_factor[count_row] = x;
+        //             count_row++;
+        //         };
+
+        //         betaFile.close();
+        //     }
+        //     else
+        //     {
+        //         outstring << "Gravity coefficient file could not be read: "<< globals->grav_coeff_file.Value() << std::endl;
+        //         globals->Output->Write(ERR_MESSAGE, &outstring);
+        //         globals->Output->TerminateODIS();
+        //     }
+
+        //     std::ifstream upsilonFile( globals->forcing_coeff_file.Value(), std::ifstream::in);
+
+        //     count_col = 1;
+        //     count_row = 1;
+        //     if (upsilonFile.is_open())
+        //     {
+
+        //         outstring << "Nu coefficients found." << std::endl;
+        //         globals->Output->Write(OUT_MESSAGE, &outstring);
+
+        //         while (std::getline(upsilonFile, line) && count_row <= 2)
+        //         {
+        //             x = 0.0;
+
+        //             std::istringstream line_ss(line);
+        //             while (std::getline(line_ss,val,'\t'))
+        //             {
+        //                 if (count_col == int(hs)/1000) {
+        //                     x = std::atof(val.c_str());
+
+        //                     count_col = 1;
+        //                     break;
+
+        //                 }
+        //                 count_col++;
+        //             }
+        //             upsilon_factor = x;
+
+        //             count_row++;
+        //         };
+
+        //         upsilonFile.close();
+        //     }
+
+        //     globals->loveReduct.SetValue(upsilon_factor);
+
+        // }
 
         int l;
         for (l=0; l<l_max+1; l++)
@@ -339,7 +373,7 @@ int applySurfaceBCs(Globals * globals)
             beta_factor[l] = 1.0 - beta_factor[l];
         }
         //
-        std::cout<<upsilon_factor<<std::endl;
+        std::cout<<globals->loveReduct.Value()<<std::endl;
         }
 
 

@@ -249,6 +249,7 @@ Globals::Globals(int action) {
     else if (potential.Value() == "OBLIQ_WEST") tide_type = OBLIQ_WEST;
     else if (potential.Value() == "OBLIQ_EAST") tide_type = OBLIQ_EAST;
     else if (potential.Value() == "FULL")       tide_type = FULL;
+    else if (potential.Value() == "FULL2")      tide_type = FULL2;
     else if (potential.Value() == "TOTAL")      tide_type = TOTAL;
     else if (potential.Value() == "ECC_W3")     tide_type = ECC_W3;
     else if (potential.Value() == "OBLIQ_W3")   tide_type = OBLIQ_W3;

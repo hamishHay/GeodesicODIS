@@ -46,8 +46,6 @@ Mesh::Mesh(Globals * Globals, int N, int face_N, int vertex_N, int N_ll, int l_m
     control_volume_mass(N),
     node_friend_element_areas_map(N,6,3),
     centroid_node_dists_map(N,6),
-    grad_coeffs(N, 7, 2),
-    div_coeffs(N, 7, 2),
 
     trigLat(N,2),
     trigLon(N,2),
@@ -66,6 +64,7 @@ Mesh::Mesh(Globals * Globals, int N, int face_N, int vertex_N, int N_ll, int l_m
     face_normal_vec_map(face_N, 2),
     face_normal_vec_dir(face_N),
     face_nodes(face_N, 2), //---> ID of nodes that belong to each face
+    face_node_vel_trans(face_N, 2, 2),
     face_vertexes(face_N, 2), //---> ID of vertexes that belong to each face
     // face_friends(face_N, 2),
     face_interp_friends(face_N, 10),
@@ -85,6 +84,7 @@ Mesh::Mesh(Globals * Globals, int N, int face_N, int vertex_N, int N_ll, int l_m
     vertex_pos_sph(vertex_N, 2),
     vertex_R(vertex_N, 3),
     vertex_nodes(vertex_N, 3),
+    vertex_faces(vertex_N, 3),
     node_R(N, 6),
 
 
@@ -113,8 +113,7 @@ Mesh::Mesh(Globals * Globals, int N, int face_N, int vertex_N, int N_ll, int l_m
 
     CalcNodeDists();
 
-    // Calculate velocity transform factors
-    CalcVelocityTransformFactors();
+    
 
     // Find control volume edge lengths in mapping coords
     CalcControlVolumeEdgeLengths();
@@ -125,6 +124,9 @@ Mesh::Mesh(Globals * Globals, int N, int face_N, int vertex_N, int N_ll, int l_m
 
     // Find control volume edge outward normal unit vectors
     CalcControlVolumeEdgeNormals();
+
+    // Calculate velocity transform factors
+    CalcVelocityTransformFactors();
 
     // Find control volume area for each node
     CalcControlVolumeArea();
@@ -147,6 +149,8 @@ Mesh::Mesh(Globals * Globals, int N, int face_N, int vertex_N, int N_ll, int l_m
 
     AssignFaces();
 
+    CalcVelocityTransformFactors();
+
     DefineBoundaryCells();
 
     CalcGradOperatorCoeffs();
@@ -166,9 +170,48 @@ Mesh::Mesh(Globals * Globals, int N, int face_N, int vertex_N, int N_ll, int l_m
     if (globals->surface_type != FREE) {
         ReadWeightingFile();
     }
+
+    CalcControlVolumeInterpMatrix();
     
 
     globals->Output->DumpGridData(this);
+};
+
+int Mesh::CalcControlVolumeInterpMatrix(void)
+{
+
+    interpSolvers = new Eigen::ColPivHouseholderQR<Eigen::MatrixXd>[node_num];
+
+    int row_count = 0;
+    int row_target = 6;
+    for (int i=0; i<node_num; i++) {
+        
+        int f_num = 6;
+        if ( node_friends(i, 5) == -1 ) f_num--;
+
+        Vandermonde V(f_num+1, 6);
+
+        int j = 0;
+        for (j=0; j<f_num+1; j++) {
+            double x, y; 
+           
+            x = node_pos_map(i, j, 0);
+            y = node_pos_map(i, j, 1);
+
+            V(j, 0) = 1.0;
+            V(j, 1) = x;
+            V(j, 2) = y;
+            V(j, 3) = pow(x, 2.0);
+            V(j, 4) = x*y;
+            V(j, 5) = pow(y, 2.0); 
+            
+        }
+        row_count += j;
+
+        interpSolvers[i].compute(V);
+        
+    }
+
 };
 
 int Mesh::CalcControlVolumeVertexR(void)
@@ -439,7 +482,7 @@ int Mesh::AssignFaces(void)
                 // get intersect position
                 int v_ID = face_vertex_list[j].ID;
                 int v_ID2 = face_vertex_list[(j+1)%friend_num].ID;
-                int f_ID = friends_list[j].ID;
+
                 double sph_int[2], sph1[2], sph2[2];
 
                 sph1[0] = node_pos_sph(node_ID, 0);
@@ -503,6 +546,18 @@ int Mesh::AssignFaces(void)
 
                 area_t += area;
 
+                bool added = false;
+                int count = 0;
+                while (!added) {
+                    if (vertex_nodes(v_ID, count) == node_ID) {
+                        vertex_R(v_ID, count) = R_weights[j];
+                        added = true;
+                    }
+                    count++;
+                }
+
+                // if vertex_nodes(v_ID, 0 or 1 or 2) == node_ID, vertex_R(v_ID, 0 or 1 or 2) = R_weights[j]
+
             }
 
 
@@ -541,6 +596,72 @@ int Mesh::AssignFaces(void)
                 }
             }
         }
+    }
+
+    for (int i=0; i<vertex_num; i++) {
+        vertex_faces(i,0) = -1;
+        vertex_faces(i,1) = -1;
+        vertex_faces(i,2) = -1;
+
+    }
+
+    for (int i=0; i<face_num; i++)
+    {
+        int v1 = face_vertexes(i,0);
+        int v2 = face_vertexes(i,1);
+
+        for (int j=0; j<3; j++)
+        {
+            if (vertex_faces(v1, j) < 0)
+            {
+                vertex_faces(v1, j) = i;
+                // vertex_face_dir(v1, j) = ?
+
+                double sphf[2], sphv[2];
+                sphf[0] = face_centre_pos_sph(i, 0);
+                sphf[1] = face_centre_pos_sph(i, 1);
+                sphv[0] = vertex_pos_sph(v1, 0);
+                sphv[1] = vertex_pos_sph(v1, 1);
+
+                double lat1, lon1, lat2, lon2;
+                double m = 0.0;
+                double xv = 0.0;
+                double yv = 0.0;
+                double fnx = 0.0;
+                double fny = 0.0;
+
+                lat1 = sphc[0];           lon1 = sphc[1];
+                lat2 = sphv[0];           lon2 = sphv[1]);
+
+                mapAtPoint(m, xv, yv, lat1, lat2, lon1, lon2, r);
+
+                fnx = face_normal_vec_map(i, 0);
+                fny = face_normal_vec_map(i, 1);
+
+                double cross = xv*fny - yv*fnx;
+
+                // take cross product between face normal 
+                // and vertex vector. The sign indicates if 
+                // the face normal points in the clockwise or
+                // anticlockwise direction!
+
+
+
+                if (cross > 0) vertex_face_dir(v1, j) = 1; // clockwise
+                else vertex_face_dir(v1, j) = -1;          // anti-clockwise
+
+                break;
+            } 
+        }
+
+        for (int j=0; j<3; j++)
+        {
+           int face_ID = vertex_faces(v1, j);
+           int node_ID = face_nodes(i, 0);
+
+           //check if vertex has inner or outer 
+        }
+        
     }
 
     for (int i=0; i<face_num; i++)
@@ -689,6 +810,118 @@ int Mesh::CalcVelocityTransformFactors(void)
         }
     }
 
+    for (i = 0; i < face_num; i++)
+    {
+        lat2 = face_intercept_pos_sph(i, 0);
+        lon2 = face_intercept_pos_sph(i, 1);
+
+        int n1 = face_nodes(i, 0);
+        int n2 = face_nodes(i, 1);
+
+        // lat1 = node_pos_sph(n1, 0);
+        // lon1 = node_pos_sph(n1, 1);
+
+        // double cos_a, sin_a;
+
+        // // find which friend number face i is associated with for node n1
+        // int face_friend_ID;
+        // int friend_num = 6;
+        // if ( node_friends(n1, 5) == -1 ) friend_num--;
+        // for (j = 0; j<friend_num; j++) {
+        //     if (node_friends(n1, j) == n2) {
+        //         face_friend_ID = (j+friend_num-1)%friend_num;
+        //         break;
+        //     }
+        // }
+
+        // // Get the face normal direction in mapped coords with node n1 at 
+        // // the coordinate centre
+        // double face_nx = control_vol_edge_normal_map(n1, face_friend_ID, 0);
+        // double face_ny = control_vol_edge_normal_map(n1, face_friend_ID, 1);
+
+        // // Make sure normal vector points in the positive direction
+        // face_nx *= face_dir(i, 0);
+        // face_ny *= face_dir(i, 0);
+
+        // // Find angle between the mapping coordinate unit vectors and the
+        // // face normal vector
+
+        // // unit vector in x-direction = (1.0, 0.0)^T
+        // double node_x_nx = 1.0;
+        // double node_x_ny = 0.0;
+
+        // double dot = face_nx*node_x_nx + face_ny*node_x_ny;      // dot product between [face_nx, face_ny] and [node_x_nx, node_x_ny]
+        // double det = face_nx*node_x_ny - face_ny*node_x_nx ;     // determinant
+        // double angle = atan2(det, dot);
+
+        // cos_a = cos(angle);//face_nx*node_x_nx + face_ny*node_x_ny;
+        // sin_a = sin(angle);//face_ny*node_x_nx - face_nx*node_x_ny;
+
+        // face_node_vel_trans(i, 0, 0) = cos_a;
+        // face_node_vel_trans(i, 0, 1) = sin_a;
+
+
+
+        // friend_num = 6;
+        // if ( node_friends(n2, 5) == -1 ) friend_num--;
+        // for (j = 0; j<friend_num; j++) {
+        //     if (node_friends(n2, j) == n1) {
+        //         face_friend_ID = (j+friend_num-1)%friend_num;
+        //         break;
+        //     }
+        // }
+
+        // // Get the face normal direction in mapped coords with node n1 at 
+        // // the coordinate centre
+        // face_nx = control_vol_edge_normal_map(n2, face_friend_ID, 0);
+        // face_ny = control_vol_edge_normal_map(n2, face_friend_ID, 1);
+
+        // // Make sure normal vector points in the positive direction
+        // face_nx *= face_dir(i, 1);
+        // face_ny *= face_dir(i, 1);
+
+        // // Find angle between the mapping coordinate unit vectors and the
+        // // face normal vector
+
+        // dot = face_nx*node_x_nx + face_ny*node_x_ny;      // dot product between [face_nx, face_ny] and [node_x_nx, node_x_ny]
+        // det = face_nx*node_x_ny - face_ny*node_x_nx;      // determinant
+        // angle = atan2(det, dot);
+
+        // cos_a = cos(angle);//face_nx*node_x_nx + face_ny*node_x_ny;
+        // sin_a = sin(angle);
+
+        // // cos_a = face_nx*node_x_nx + face_ny*node_x_ny;
+        // // sin_a = face_ny*node_x_nx - face_nx*node_x_ny;
+
+        // face_node_vel_trans(i, 1, 0) = cos_a;
+        // face_node_vel_trans(i, 1, 1) = sin_a;
+
+        // // std::cout<<cos_a<<' '<<sin_a<<' '<<face_ny<<std::endl;
+
+        lat1 = face_intercept_pos_sph(i, 0);
+        lon1 = face_intercept_pos_sph(i, 1);
+
+        lat2 = node_pos_sph(n1, 0);
+        lon2 = node_pos_sph(n1, 1);
+
+        // Set pointers to address of variables we want to change
+        cos_a = &face_node_vel_trans(i, 0, 0);
+        sin_a = &face_node_vel_trans(i, 0, 1);
+
+        // Pass pointers by reference
+        velTransform(*cos_a, *sin_a, lat1, lat2, lon1, lon2);
+
+        lat2 = node_pos_sph(n2, 0);
+        lon2 = node_pos_sph(n2, 1);
+
+        // Set pointers to address of variables we want to change
+        cos_a = &face_node_vel_trans(i, 1, 0);
+        sin_a = &face_node_vel_trans(i, 1, 1);
+
+        // Pass pointers by reference
+        velTransform(*cos_a, *sin_a, lat1, lat2, lon1, lon2);
+
+    }
     return 1;
 };
 
@@ -894,7 +1127,7 @@ int Mesh::CalcMaxTimeStep(void)
       globals->surface_type == FREE_LOADING ||
       globals->surface_type == LID_LOVE)
   {
-      // if (globals->surface_type == LID_LOVE) g *= -(globals->shell_factor_beta[globals->l_max.Value()]-1.0);
+      if (globals->surface_type == LID_LOVE) g *= -(globals->shell_factor_beta[globals->l_max.Value()]-1.0);
       // std::cout<<g<<std::endl;
       for (i=0; i<node_num; i++)
       {
@@ -905,7 +1138,7 @@ int Mesh::CalcMaxTimeStep(void)
           }
           for (j=0; j<friend_num; j++)                      // Loop through all centroids in the control volume
           {
-              dist = node_dists(i,j) * 0.5;                 // consider half node-node distance
+              dist = node_dists(i,j)*0.25;                 // consider one quater node-node distance
               dt = std::min(dt, dist/sqrt(g*h_max));
           }
       }
@@ -913,7 +1146,7 @@ int Mesh::CalcMaxTimeStep(void)
       dt *= 0.85;         // take some caution
   }
 
-  // std::cout<<"DT: "<<dt<<std::endl;
+  std::cout<<"DT: "<<dt<<std::endl;
 
   globals->timeStep.SetValue(dt);
 
@@ -1636,36 +1869,6 @@ int Mesh::CalcCoriolisOperatorCoeffs(void)
     // Fill the sparse operator with the list of triplets
     operatorCoriolis.setFromTriplets(coefficients.begin(), coefficients.end());
     operatorCoriolis.makeCompressed();
-
-    // assign the row indexes for the sparse matrix in CSR format
-    // rowIndxX[0] = 0;         // first element is always zero
-
-    // // last element is always the number of non-zero coefficients
-    // rowIndxX[face_num] = nNonZeroGrad;
-    // // for (i=1; i<face_num; i++) {
-    // //   rowIndxX[i] = i;
-    // // }
-
-
-    // for (i=0; i<face_num; i++) {
-    //   rowStartX[i] = rowIndxX[i];
-    //   rowEndX[i] = rowIndxX[i+1]; }
-
-    // Create the operator for the x and y components
-    // operatorCoriolis = new sparse_matrix_t;
-    // // sparse_matrix_t * operatorCoriolisTemp = new sparse_matrix_t;
-    // error = mkl_sparse_d_create_csr(operatorCoriolis, indexing, face_num, face_num, rowStartX, rowEndX, colIndx, nzCoeffsX);
-
-    // matrix_descr descrp;
-    // descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
-    // error = mkl_sparse_copy (*operatorCoriolisTemp, descrp, operatorCoriolis);
-
-    // delete[] rowStartX;
-    // delete[] rowEndX;
-    // delete[] rowIndxX;
-    // delete[] colIndx;
-    // delete[] nzCoeffsX;
-    // delete operatorCoriolisTemp;
 
     return 1;
 }
@@ -2997,8 +3200,30 @@ int Mesh::ReadWeightingFile(void)
     // sparse_index_base_t index_type = SPARSE_INDEX_BASE_ZERO;     // we employ 0-based indexing.
     // sparse_status_t err;
 
-    // int nrows = (360/N_ll)*(180/N_ll);
-    // int ncols = 3*node_num;
+    // sm1(rows,cols,nnz,outerIndexPtr, // read-write
+    //                            innerIndices,values);
+    
+
+    int nrows = (360/N_ll)*(180/N_ll);
+    int ncols = 3*node_num;
+
+    interpMatrix = Eigen::Map<SpMat>(nrows, ncols, dims_data[0], interpRows, interpCols, interpWeights );
+
+
+    // std::cout<<interpMatrix.cols()<<' '<<dims_data[0]<<std::endl;
+
+    // interpMatrix.makeCompressed();
+
+    // interpMatrix = SpMat(nrows, ncols);
+
+
+
+    // // Allocate memory for non-zero entries
+    // interpMatrix.reserve(dims_data[0]);
+
+    // std::vector<Triplet> coefficients;
+    // coefficients.reserve(dims_data[0]);
+
 
     // interpMatrix = new sparse_matrix_t;
     // err = mkl_sparse_d_create_csr(interpMatrix, index_type, nrows, ncols, interpRows, interpRows+1, interpCols, interpWeights);

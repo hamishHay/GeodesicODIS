@@ -17,11 +17,20 @@ FOBJ = $(FSRC:$(SRC_DIR)/%.f95=$(OBJ_DIR)/%.o)
 
 EXE = ODIS
 
-CFLAGS = -Ofast -ffast-math -c -Wall -Iinclude -Wno-sign-compare -Wunused-but-set-variable  -msse4 -std=c++14 -I/home/hamish/Eigen -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp
+
+# HOME MACHINE
+# CFLAGS = -Ofast -ffast-math -c -Wall -Iinclude -Wno-sign-compare -Wunused-but-set-variable  -msse4 -std=c++14 -I/home/hamish/Eigen -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp
+# CLINK =  -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial  -Iinclude -I/home/hamish/Eigen -lhdf5 -lhdf5_cpp -lblas #-mkl #-ipo
+
+# FFLAGS= -c -I/home/hamish/SHTOOLS/modules -m64 -fPIC -Ofast -ffast-math -L/home/hamish/SHTOOLS/lib  -L/usr/local/lib -lfftw3 -lm -llapack -lblas
+# FLINK =  -lgfortran -L/home/hamish/SHTOOLS/lib -lSHTOOLS -Llib -lfftw3 -llapack -lgfortran
+
+# WORK MACHINE
+CFLAGS = -Ofast -ffast-math -c -Wall -Iinclude -Wno-sign-compare -Wunused-but-set-variable  -msse4 -std=c++14 -I/home/hamish/Research/Eigen -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial -lhdf5 -lhdf5_cpp
 CLINK =  -L/usr/include/hdf5/serial -I/usr/include/hdf5/serial  -Iinclude -I/home/hamish/Eigen -lhdf5 -lhdf5_cpp -lblas #-mkl #-ipo
 
-FFLAGS= -c -I/home/hamish/SHTOOLS/modules -m64 -fPIC -Ofast -ffast-math -L/home/hamish/SHTOOLS/lib  -L/usr/local/lib -lfftw3 -lm -llapack -lblas
-FLINK =  -lgfortran -L/home/hamish/SHTOOLS/lib -lSHTOOLS -Llib -lfftw3 -llapack -lgfortran
+FFLAGS= -c -I/home/hamish/Research/SHTOOLS/modules -m64 -fPIC -Ofast -ffast-math -L/home/hamish/Research/SHTOOLS/lib  -L/usr/local/lib -lfftw3 -lm -llapack -lblas
+FLINK =  -lgfortran -L/home/hamish/Research/SHTOOLS/lib -lSHTOOLS -Llib -lfftw3 -llapack -lgfortran
 
 # gfortran -I/home/hamish/SHTOOLS/modules -m64 -fPIC -O3 -std=f2003 -ffast-math -L/home/hamish/SHTOOLS/lib -lSHTOOLS -L/usr/local/lib -lfftw3 -lm -llapack -lblas
 

@@ -14,11 +14,14 @@
 #include <Eigen/Dense>
 
 typedef Eigen::SparseMatrix<double, Eigen::RowMajor> SpMat;
+typedef Eigen::Map< SpMat > SpMatMap;
 typedef Eigen::Triplet<double> Triplet;
 // typedef Eigen::Vector<doub
 
 typedef Eigen::Matrix<double,1,Eigen::Dynamic> DenVector;
 typedef Eigen::Map<DenVector> MapVector;
+
+typedef Eigen::Matrix<double, Eigen::Dynamic, 6, Eigen::RowMajor> Vandermonde;
 
 class Globals;
 
@@ -28,6 +31,7 @@ private:
   int ReadMeshFile(void);
   int ReadLatLonFile(void);
   int ReadWeightingFile(void);
+  int ReadLeastSquaresFile(void);
   int CalcMappingCoords(void);
   int CalcVelocityTransformFactors(void);
   int CalcControlVolumeEdgeLengths(void);
@@ -41,6 +45,7 @@ private:
   int CalcTrigFunctions(void);
   int CalcNodeDists(void);
   int CalcMaxTimeStep(void);
+  int CalcControlVolumeInterpMatrix(void);
 
   int AssignFaces(void);
 
@@ -54,8 +59,6 @@ private:
   int CalcLinearDragOperatorCoeffs(void);
   int GeneratePressureSolver(void);
   int GenerateMomentumOperator(void);
-
-
 
 public:
 //	Mesh(); //constructor
@@ -118,10 +121,6 @@ public:
   // volume surroinding the central node
   Array3D<double> control_vol_edge_normal_map;
 
-  // Array to store the gradient, divergence, and Laplacian operator coefficients
-  Array3D<double> grad_coeffs;
-  Array3D<double> div_coeffs;
-
   // Array to store the area of the control volume for each node
   Array1D<double> control_volume_surf_area_map;
 
@@ -156,6 +155,7 @@ public:
   Array1D<double> face_len;
   Array2D<int> node_face_dir;
   Array3D<double> node_face_vel_trans;
+  Array3D<double> face_node_vel_trans;
   Array1D<int> face_is_boundary;
 
   Array2D<int> vertexes;
@@ -163,6 +163,7 @@ public:
   Array2D<double> vertex_R;
   Array2D<int> vertex_nodes;
   Array2D<double> node_R;
+  Array2D<int> vertex_faces;
 
   Array2D<int> face_interp_friends;
   Array2D<double> face_interp_weights;
@@ -190,6 +191,13 @@ public:
   SpMat operatorCoriolis;
   SpMat operatorDivergence;
   SpMat operatorGradient;
+  SpMat operatorCurl;
+
+  SpMat interpMatrix;
+
+  Eigen::ColPivHouseholderQR<Eigen::MatrixXd> * interpSolvers;
+
+  // Eigen::Matrix5d * interpSolvers;
 
   // sparse_matrix_t * operatorMomentum;
   // sparse_matrix_t * operatorLaplacian;

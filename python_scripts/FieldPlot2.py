@@ -151,23 +151,26 @@ class FieldPlot2:
         if data == None:
             data = self.load_data(data_name=data_name, slices=None)
             time = self.load_data(data_name="kinetic avg output", slices=None)/self.period
+            vel_u = self.load_data(data_name='east velocity', slices=None)
+            vel_v = self.load_data(data_name='north velocity', slices=None)
+            eta = self.load_data(data_name='displacement', slices=None)
         # data *= 4*np.pi * (self.radius-)
-        P = 2*np.pi/2.05e-5
+        P = 2*np.pi/self.omega
         # print(time[-1002], time[-2])
-        time *= P
-        data *= 4. * np.pi * (self.radius)**2.0 /1e9
+        # time *= P
+        data *= 4. * np.pi * (self.radius - (self.h_shell - self.h_ocean))**2.0 /1e9
         # data *= 4. * np.pi * (self.radius)**2.0/1e9
         # data *= (252.1e3 - self.h_shell + self.h_ocean)**2.0
         # data *= (1./(252.1e3))**2.0
         # data *= ((252.1e3-self.h_ocean)/(252.1e3))**3.
         #data *= 4. * np.pi * (self.radius)**2.0/1e9 / (2. * self.drag_coeff)
         # print(data)
-        print(np.mean(data[-102:-2]))
+        # print(np.mean(data[-102:-2]))
         # print(simps(data[-102:-2], time[-102:-2])/P)
         # print(time[-102]/P, time[-2]/P)
         # print(time[998:1001])
 
-
+        # Ek = np.sqrt(vel_u**2.0 + vel_v**2.0)
 
         ax_current = self.fig.add_subplot(111)
 
@@ -183,7 +186,22 @@ class FieldPlot2:
         # time = time[-70000*dt:-69800*dt]
         # data = data[-70000*dt:-69800*dt]
         # t2 = np.linspace(0,dt*2,len(data))
-        ax_current.semilogy(data, lw=2.0)
+        # ax_current.semilogy(data, lw=2.0)
+
+        # print(Ek[-201:-1, 137]/np.amax(Ek[-201:, 137]))
+
+
+        # print(np.amax(Ek[-102:-1, 137]), np.amin(Ek[-102:-1, 137]))
+
+        # print(np.mean(Ek[-102:-1, 137]))
+
+        # print(time[-1001], time[-1])
+        # ax_current.plot(time[-1002:-1], Ek[-1002:-1, 0])
+
+        # ax_current.plot(time[-1002:-1], data[-1002:-1])
+        ax_current.semilogy(time[:-1], data[:-1])
+        # ax_current
+
 
         # ax_current.set_xticks(np.arange(0, t2[-1]+1, 0.5))
         # ax_current.set_xticks(np.arange(0, t2[-1], 0.25), minor=True)
@@ -199,6 +217,8 @@ class FieldPlot2:
 
         ax_current.set_xlabel('Time [Orbit \#]')
         ax_current.set_ylabel('Dissipated Power [\si{\giga\watt}]')
+
+        # ax_current.set_xlim([9900, 10000])
 
         # if title=='':
         #     ax_current.set_title(self.data_title[self.potential])
@@ -254,7 +274,7 @@ class FieldPlot2:
         in_file = h5py.File(root + "DATA/data.h5", 'r')
 
         if slices==None:
-            data = np.array(in_file[data_name])
+            data = in_file[data_name][:]
             return data
 
         if not avg:

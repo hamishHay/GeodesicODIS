@@ -60,7 +60,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array1D<double> & dvdt, Array
     node_num = globals->node_num;
     int face_num = globals->face_num;
 
-    // std::cout<<omega<<' '<<r<<' '<<g<<' '<<h<<' '<<globals->period.Value()<<std::endl;
+    // std::cout<<omega<<' '<<r<<std::endl;
 
     visc = 5e3;
 
@@ -125,7 +125,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array1D<double> & dvdt, Array
 
     dvdtEigen += grid->operatorCoriolis * velEigen;
 
-    dvdtEigen += grid->operatorLinearDrag * velEigen;
+    // dvdtEigen += grid->operatorLinearDrag * velEigen;
 
     // mkl_sparse_d_mv(operation, 1.0, *(grid->operatorGradient), descript, &(soln_new(0)), betam, &(dvdt(0)));
     // pressureGradientN(grid, dvdt, soln_new, node_num, g);
@@ -170,34 +170,66 @@ int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt
 
     // Eigen::Map<Eigen::VectorXd> solnEigen(&soln_new(0), grid->node_num);
     Eigen::Map<Eigen::VectorXd> detadtEigen(&deta_dt(0), grid->node_num);
-    Eigen::Map<Eigen::VectorXd> velEigen(&v_t0(0), grid->face_num);
-    // Perform sparse matrix * vector operation
-    // dvdtEigen -= g * grid->operatorGradient * solnEigen;
+    // Eigen::Map<Eigen::VectorXd> velEigen(&v_t0(0), grid->face_num);
+    // // // Perform sparse matrix * vector operation
+    // // // dvdtEigen -= g * grid->operatorGradient * solnEigen;
 
-    detadtEigen = globals->h.Value() * grid->operatorDivergence * velEigen;
+    // detadtEigen = globals->h.Value() * grid->operatorDivergence * velEigen;
 
     // mkl_sparse_d_mv(operation, globals->h.Value(), *(grid->operatorDivergenceX), descript, &(v_t0(0)), 0.0, &(deta_dt(0)));
-    // Array1D<double> hv(globals->face_num);
+    Array1D<double> hv(globals->face_num);
+    Array1D<double> h_space(globals->node_num);
+
+    
+
+
+    for (int i=0; i<node_num; ++i) {
+        h_space(i) = h+eta(i);
+    }
+
+    interpolateLSQFlux(globals, grid, hv, v_t0, h_space);
+
+    // for (int i = 0; i < node_num; ++i)
+    // {
+    //     int f_num = 6;
+    //     if (grid->node_friends(i, 5) == -1) f_num--;
+
+    //     for (int j=0; j<f_num; j++) {
+    //         int face_ID = grid->faces(i, j);
+    //         // std::cout<<hv(face_ID);
+    //         deta_dt(i) -= hv(face_ID)*grid->node_face_dir(i,j);
+    //     }
+        
+    // }
 
     // for (int i=0; i<face_num; ++i)
     // {
-    //     int node_in = grid->face_nodes(i, 0);
-    //     int node_out = grid->face_nodes(i, 1);
-    //     double inner = eta(node_in);
-    //     double outer = eta(node_out);
-    //     double diff_thickness = outer - inner;
-    //     double avg_thickness = 0.5 * ( (inner + h) + (outer + h) );
+    //     // int node_in = grid->face_nodes(i, 0);
+    //     // int node_out = grid->face_nodes(i, 1);
+    //     // double inner = eta(node_in);
+    //     // double outer = eta(node_out);
+    //     // double diff_thickness = outer - inner;
+    //     // double avg_thickness = 0.5 * ( (inner + h) + (outer + h) );
+    //     // double thickness;
 
-    //     // check if flow is in or out of face
-    //     // if outward, use inner h 
-    //     // if inward, use outer h
+    //     // // check if flow is in or out of face
+    //     // // if outward, use inner h 
+    //     // // if inward, use outer h
 
     //     // if (v_t0(i) > 0.0) thickness = inner+h;
     //     // else thickness = outer+h;
 
-    //     hv(i) = v_t0(i) * avg_thickness - 0.5*fabs(v_t0(i))*diff_thickness;///thickness*v_t0(i);
+    //     hv(i) = v_t0(i);// * avg_thickness - 0.5*fabs(v_t0(i))*diff_thickness;///thickness*v_t0(i);
     //     // hv(i,1) = (eta(i)+globals->h.Value())*v_t0(i);
+
+    //     // hv(i) = v_t0(i) * avg_thickness;
     // }
+
+    Eigen::Map<Eigen::VectorXd> hvEigen(&hv(0), grid->face_num);
+    // Perform sparse matrix * vector operation
+    // dvdtEigen -= g * grid->operatorGradient * solnEigen;
+
+    detadtEigen = grid->operatorDivergence * hvEigen;
 
     // mkl_sparse_d_mv(operation, 1.0, *(grid->operatorDivergenceX), descript, &(hv(0)), 0.0, &(deta_dt(0)));
 
@@ -306,7 +338,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
         v_avg(i,0) = 0.0;
         v_avg(i,1) = 0.0;
         double lat=0*pi/180;
-        double lon=150*pi/180;
+        double lon=180.0*pi/180;
         double llat=30*pi/180.0;
         double dist, lat1, lon1;
         double llon = 0.0;
@@ -316,12 +348,20 @@ int ab3Explicit(Globals * globals, Mesh * grid)
         lat1 = grid->node_pos_sph(i,0);
         lon1 = grid->node_pos_sph(i,1);
 
-        distanceBetweenSph(dist, lat, lat1, lon, lon1, rr);
+        distanceBetweenSph(dist, lat, lat1, lon, lon1, r);
         distanceBetweenSph(dist2, llat, lat1, lon, lon1, rr);
 
-        // p_t0(i) = 400./(1.+dist*dist+3*dist2);
+        if (dist< r/3.0) {
+            p_t0(i) = 1000.0*0.5 * ( 1 + cos(pi*dist/(r/3.0) ) );
+        }
+        else {
+            p_t0(i) = 0.0;
+        }
 
         p_t0(i) = 0.0;
+        
+
+        
 
         cv_mass(i) = grid->control_volume_mass(i);
     }
@@ -336,7 +376,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     }
     else iter = 0;
 
-    interpolateVelocity(globals, grid, v_avg, v_t0);
+    // interpolateVelocity(globals, grid, v_avg, v_t0);
 
     //--------------------------------------------------------------------------
     //------------------------- BEGIN TIME LOOP --------------------------------
@@ -345,6 +385,8 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     out_count = 1;
     current_time = 0.0;
     out_time = 0.0;
+
+    // Output->DumpData(globals, out_count, pp);
 
     double h = globals->h.Value();
     double alpha = globals->alpha.Value();
@@ -362,7 +404,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
             if (globals->fric_type == QUADRATIC)
                 quadraticDrag(face_num, alpha, h, dv_dt_t0, v_avg, v_t0);
 
-            #pragma omp parallel for
+            // #pragma omp parallel for
             for (i=0; i<face_num; ++i) dv_dt(i, 0) = dv_dt_t0(i);
 
             // MARCH VELOCITY FORWARD IN TIME
@@ -390,10 +432,34 @@ int ab3Explicit(Globals * globals, Mesh * grid)
             updateEnergy(globals, e_diss, energy_diss, v_avg, grid->face_area);
             total_diss[0] = e_diss;
 
+            // for (i=0; i<face_num; ++i)
+            // {
+            //     double u, v;
+            //     double u0 = 2*pi*r/(10*globals->period.Value());
+
+            //     double lat = grid->face_intercept_pos_sph(i,0);
+            //     double lon = grid->face_intercept_pos_sph(i,1);
+            
+            //     double nx = grid->face_normal_vec_map(i, 0);
+            //     double ny = grid->face_normal_vec_map(i, 1);
+
+            //     double a = 0.0;
+
+            //     u = cos(lat)*cos(a) + sin(lat)*cos(lon)*sin(a);
+            //     u *= u0;
+
+            //     v = 0.0;//-u0*sin(lon)*sin(a);
+
+            //     v_t0(i) = u*nx + v*ny;
+
+            
+            // }
+            // interpolateVelocity(globals, grid, v_avg, v_t0);
+
             // SOLVE THE CONTINUITY EQUATION
             updateDisplacement(globals, grid, dp_dt_t0, v_t0, p_t0);
 
-            #pragma omp parallel for
+            // #pragma omp parallel for
             for (i=0; i<node_num; ++i) dp_dt(i, 0) = dp_dt_t0(i);
 
             // MARCH PRESSURE FORWARD IN TIME

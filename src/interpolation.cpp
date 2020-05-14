@@ -7,6 +7,9 @@
 #include <iostream>
 #include "spatialOperators.h"
 
+#include <Eigen/Sparse>
+#include <Eigen/Dense>
+#include <Eigen/QR>
 // #include <mkl_spblas.h>
 // #include <mkl.h>
 
@@ -149,9 +152,146 @@ int interpolateGG2LLConservative(Globals * globals,
     // // -------------------------------------------------------------------------
 
     // err = mkl_sparse_d_mv (operation, alpha, *(mesh->interpMatrix), descrp, gg_data_1D, beta, &(ll_data(0,0)));
+    Eigen::Map<Eigen::VectorXd> gg_data_eigen(gg_data_1D, 3*node_num_gg);
+    Eigen::Map<Eigen::VectorXd> ll_data_eigen(&ll_data(0,0), node_num_ll);
+
+    // std::cout<<mesh->interpMatrix.cols()<<' '<<3*node_num_gg<<std::endl;
+    ll_data_eigen = mesh->interpMatrix*gg_data_eigen;
 
     delete[] gg_data_1D;
     delete gradient;
+
+    return 1;
+}
+
+template <typename T>
+int sgn(T val)
+{
+    return (T(0) < val) - (val < T(0));
+}
+
+
+
+
+
+int interpolateLSQFlux(Globals *globals,
+                        Mesh *mesh,
+                        Array1D<double> & flux,
+                        Array1D<double> & edge_vel,
+                        Array1D<double> & node_scalar,
+                        double beta)
+{
+    double r = globals->radius.Value();
+
+    int N_face = mesh->face_num;
+    int N_node = mesh->node_num;
+
+
+    Array2D<double> d2sdx2(N_node, 3);
+    
+    // Loop through every node and solve the least squares
+    // inverse problem to find coefficients of the second 
+    // order polynomial for the scalar node_salar(i) over 
+    // the control volume 
+    // Vc = s --> c = V^-1 s, where V is the Vandermonde
+    // matrix
+    for (int i=0; i<N_node; ++i) {
+        
+        int f_num = 6;
+        if ( mesh->node_friends(i, 5) == -1 ) f_num--;
+
+        // Build solution vector
+        Array1D<double> s(f_num+1);
+        Array1D<double> c(6);
+
+        s(0) = node_scalar(i);
+        for (int j=0; j<f_num; ++j) { 
+            int f_ID = mesh->node_friends(i, j);
+
+            s(j+1) = node_scalar(f_ID);    
+        }
+
+        Eigen::Map<Eigen::VectorXd> b(&s(0), f_num+1);
+        Eigen::Map<Eigen::VectorXd> cVec(&c(0), 6);
+
+        cVec = mesh->interpSolvers[i].solve(b);
+
+        d2sdx2(i, 0) = c(3);
+        d2sdx2(i, 1) = c(4);
+        d2sdx2(i, 2) = c(5);
+    }
+
+
+    // Then loop through each face, and calculate flux across face 
+
+    for (int i=0; i<N_face; ++i) {
+        double d2_inner, d2_outer;
+        double dx = mesh->face_node_dist(i);
+
+        int inner_ID = mesh->face_nodes(i, 0);
+        int outer_ID = mesh->face_nodes(i, 1);
+
+        double nx = mesh->face_normal_vec_map(i, 0);
+        double ny = mesh->face_normal_vec_map(i, 1);
+
+        double cosa = mesh->face_node_vel_trans(i, 0, 0);
+        double sina = mesh->face_node_vel_trans(i, 0, 1);
+
+        // Get second derivative in direction normal to face
+        double c3, c4, c5;
+        c3 = d2sdx2(inner_ID, 0);
+        c4 = d2sdx2(inner_ID, 1);
+        c5 = d2sdx2(inner_ID, 2);
+
+        // c3, c4, c5 are the second derivatives in the xx, xy, and yy 
+        // directions at the node(inner_ID)
+
+        // Now rotate the 3 components of the second derivative 
+        // to be in map coordinates centered on the face.
+        // This is derived by writing R^T H R, where R is the 
+        // mapping rotation matrix and H is the hermitian matrix 
+        // at the node centre
+        double fxx, fyy, fxy;
+
+        fxx = 2*(c3*cosa*cosa - c4*cosa*sina + c5*sina*sina);
+        fyy = 2*(c3*sina*sina + c4*cosa*sina + c5*cosa*cosa);
+        fxy = 2*(c3 - c5)*cosa*sina + c4*(cosa*cosa - sina*sina);
+
+        // Now take the directional derivative of the second derivative
+        // to get the second derivative in the direction of the face 
+        // normal vector
+        d2_inner = nx *nx *fxx + 2 *nx *ny * fxy + ny *ny * fyy;
+
+
+        // Now repeat the above for the outer node 
+        cosa = mesh->face_node_vel_trans(i, 1, 0);
+        sina = mesh->face_node_vel_trans(i, 1, 1);
+        
+        c3 = d2sdx2(outer_ID, 0);
+        c4 = d2sdx2(outer_ID, 1);
+        c5 = d2sdx2(outer_ID, 2);
+
+        fxx = 2*(c3*cosa*cosa - c4*cosa*sina + c5*sina*sina);
+        fyy = 2*(c3*sina*sina + c4*cosa*sina + c5*cosa*cosa);
+        fxy = 2*(c3 - c5)*cosa*sina + c4*(cosa*cosa - sina*sina);
+
+        d2_outer = nx *nx *fxx + 2 *nx *ny * fxy + ny *ny * fyy;
+
+        // beta = 0.75;
+
+
+        // Calculate the high order flux (Eq. 11, Skamarock and Gassmann 2011)
+        // beta = 1.0 is third order, beta = 0.0 is fourth order
+        flux(i) = 0.5 * ( node_scalar(inner_ID) + node_scalar(outer_ID) )
+                  - dx*dx/12.0 * (d2_outer + d2_inner);
+                   + dx*dx*beta/12.0 * sgn(edge_vel(i)) * (d2_outer - d2_inner);
+
+        flux(i) *= edge_vel(i);
+    }
+
+    // Return face flu array
+
+    // globals->Output->TerminateODIS();
 
     return 1;
 }
