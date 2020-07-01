@@ -85,6 +85,7 @@ Mesh::Mesh(Globals * Globals, int N, int face_N, int vertex_N, int N_ll, int l_m
     vertex_R(vertex_N, 3),
     vertex_nodes(vertex_N, 3),
     vertex_faces(vertex_N, 3),
+    vertex_face_dir(vertex_N, 3),
     node_R(N, 6),
 
 
@@ -607,6 +608,9 @@ int Mesh::AssignFaces(void)
 
     for (int i=0; i<face_num; i++)
     {
+
+        double r = globals->radius.Value();
+
         int v1 = face_vertexes(i,0);
         int v2 = face_vertexes(i,1);
 
@@ -630,8 +634,8 @@ int Mesh::AssignFaces(void)
                 double fnx = 0.0;
                 double fny = 0.0;
 
-                lat1 = sphc[0];           lon1 = sphc[1];
-                lat2 = sphv[0];           lon2 = sphv[1]);
+                lat1 = sphf[0];           lon1 = sphf[1];
+                lat2 = sphv[0];           lon2 = sphv[1];
 
                 mapAtPoint(m, xv, yv, lat1, lat2, lon1, lon2, r);
 

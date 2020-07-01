@@ -164,6 +164,7 @@ public:
   Array2D<int> vertex_nodes;
   Array2D<double> node_R;
   Array2D<int> vertex_faces;
+  Array2D<int> vertex_face_dir;
 
   Array2D<int> face_interp_friends;
   Array2D<double> face_interp_weights;
