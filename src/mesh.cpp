@@ -86,6 +86,7 @@ Mesh::Mesh(Globals * Globals, int N, int face_N, int vertex_N, int N_ll, int l_m
     vertex_nodes(vertex_N, 3),
     vertex_faces(vertex_N, 3),
     vertex_face_dir(vertex_N, 3),
+    vertex_area(vertex_N),
     node_R(N, 6),
 
 
@@ -159,6 +160,8 @@ Mesh::Mesh(Globals * Globals, int N, int face_N, int vertex_N, int N_ll, int l_m
     CalcDivOperatorCoeffs();
 
     // // CalcLaplaceOperatorCoeffs();
+
+    CalcCurlOperatorCoeffs();
 
     CalcCoriolisOperatorCoeffs();
 
@@ -591,6 +594,8 @@ int Mesh::AssignFaces(void)
                     if (face_nodes(i, 0) == node_ID) t_ev = 1;
                     else t_ev = -1;
 
+                    // std::cout<<i<<' '<<t_ev<<std::endl;
+
                     face_interp_weights(i, j_add) *= t_ev;
 
                     j_add++;
@@ -606,6 +611,8 @@ int Mesh::AssignFaces(void)
 
     }
 
+    
+
     for (int i=0; i<face_num; i++)
     {
 
@@ -619,6 +626,7 @@ int Mesh::AssignFaces(void)
             if (vertex_faces(v1, j) < 0)
             {
                 vertex_faces(v1, j) = i;
+                
                 // vertex_face_dir(v1, j) = ?
 
                 double sphf[2], sphv[2];
@@ -642,31 +650,89 @@ int Mesh::AssignFaces(void)
                 fnx = face_normal_vec_map(i, 0);
                 fny = face_normal_vec_map(i, 1);
 
-                double cross = xv*fny - yv*fnx;
-
                 // take cross product between face normal 
                 // and vertex vector. The sign indicates if 
                 // the face normal points in the clockwise or
                 // anticlockwise direction!
 
-
+                double cross = xv * fny - yv * fnx;
 
                 if (cross > 0) vertex_face_dir(v1, j) = 1; // clockwise
                 else vertex_face_dir(v1, j) = -1;          // anti-clockwise
 
+                // double mag_v = 0.0;
+                // double zero = 0.0;
+                // distanceBetween(mag_v, zero, xv, zero, yv);
+                // double mag_v2 = 0.0;
+                // double xv2 = xv-fny;
+                // double yv2 = yv+fnx;
+                // distanceBetween(mag_v2, zero, xv2,zero, yv2);
+
+                // std::cout<<v1<<' '<<mag_v/mag_v2<<' '<<vertex_face_dir(v1, j)<<std::endl;
+
+
                 break;
-            } 
+            }
         }
 
-        for (int j=0; j<3; j++)
+        for (int j = 0; j < 3; j++)
         {
-           int face_ID = vertex_faces(v1, j);
-           int node_ID = face_nodes(i, 0);
+            if (vertex_faces(v2, j) < 0)
+            {
+                vertex_faces(v2, j) = i;
 
-           //check if vertex has inner or outer 
+                // vertex_face_dir(v2, j) = ?
+
+                double sphf[2], sphv[2];
+                sphf[0] = face_centre_pos_sph(i, 0);
+                sphf[1] = face_centre_pos_sph(i, 1);
+                sphv[0] = vertex_pos_sph(v2, 0);
+                sphv[1] = vertex_pos_sph(v2, 1);
+
+                double lat1, lon1, lat2, lon2;
+                double m = 0.0;
+                double xv = 0.0;
+                double yv = 0.0;
+                double fnx = 0.0;
+                double fny = 0.0;
+
+                lat1 = sphf[0];
+                lon1 = sphf[1];
+                lat2 = sphv[0];
+                lon2 = sphv[1];
+
+                mapAtPoint(m, xv, yv, lat1, lat2, lon1, lon2, r);
+
+                fnx = face_normal_vec_map(i, 0);
+                fny = face_normal_vec_map(i, 1);
+
+                // take cross product between face normal
+                // and vertex vector. The sign indicates if
+                // the face normal points in the clockwise or
+                // anticlockwise direction!
+
+                double cross = xv * fny - yv * fnx;
+
+                if (cross > 0)
+                    vertex_face_dir(v2, j) = 1; // clockwise
+                else
+                    vertex_face_dir(v2, j) = -1; // anti-clockwise
+
+                break;
+            }
         }
+
+        // for (int j=0; j<3; j++)
+        // {
+        //    int face_ID = vertex_faces(v1, j);
+        //    int node_ID = face_nodes(i, 0);
+
+        //    //check if vertex has inner or outer 
+        // }
         
     }
+
+    
 
     for (int i=0; i<face_num; i++)
     {
@@ -699,6 +765,42 @@ int Mesh::AssignFaces(void)
         face_area(i) = area;
 
         face_area(i) = face_node_dist(i)*face_len(i)/2.0;
+    }
+
+
+    // --------------------------------------------------------------
+    // Calculate area associated with each vertex -------------------
+    for (int i=0; i<vertex_num; i++) 
+    {
+        double a = 0.0, area = 0.0;
+        double r = globals->radius.Value();
+
+        double sphv[2], sphn1[2], sphn2[2];
+
+        sphv[0] = vertex_pos_sph(i, 0);
+        sphv[1] = vertex_pos_sph(i, 1);
+
+        for (int j=0; j<3; j++) { 
+            // get two nodes associated with this vertex
+            int n1 = vertex_nodes(i, j);
+            int n2 = vertex_nodes(i, (j+1)%3);
+
+            sphn1[0] = node_pos_sph(n1, 0);
+            sphn1[1] = node_pos_sph(n1, 1);
+
+            sphn2[0] = node_pos_sph(n2, 0);
+            sphn2[1] = node_pos_sph(n2, 1);
+
+            triangularAreaSph(a, sphv[0], sphn1[0], sphn2[0], sphv[1], sphn1[1], sphn2[1], r);
+
+            area += fabs(a);
+
+            // std::cout << i << ' ' << j << ' ' << vertex_faces(i, j) << std::endl;
+        }
+
+        vertex_area(i) = area;
+
+        
     }
 
     std::cout<<"FACE NUM: "<<face_count<<' '<<face_num<<std::endl;
@@ -2092,6 +2194,59 @@ int Mesh::CalcGradOperatorCoeffs(void)
     // delete[] rowIndxX;
     // // delete[] nzCoeffsX;
     // delete[] colIndx;
+
+    return 1;
+}
+
+int Mesh::CalcCurlOperatorCoeffs(void)
+{
+    int i, j;
+
+    //--------------- Define objects to construct matrix -----------------------
+
+    // Here we assign the number of non-zero matrix elements for each operator.
+    // The curl operator is computed at each vertex using the velocity normal to
+    // each adjoining face. Each vertex has three faces, so the total number of 
+    // non-zero coefficients is:
+    int nNonZeroCoeffs = vertex_num * 3;
+
+    operatorCurl = SpMat(vertex_num, face_num);
+
+    // Allocate memory for non-zero entries
+    operatorCurl.reserve( nNonZeroCoeffs );
+
+    std::vector<Triplet> coefficients;
+    coefficients.reserve( nNonZeroCoeffs );
+
+    // assign the non-zero coefficients
+    for (i = 0; i < vertex_num; i++)
+    {
+        // f_num = 6;
+        // if (node_friends(i, 5) == -1)
+        //     f_num = 5;
+        double area = vertex_area(i);
+
+        for (j = 0; j < 3; j++)
+        {
+            int face_id = vertex_faces(i, j);
+
+            // get distance between nodes crossing face
+            // face_id
+            double node_dist = face_node_dist(face_id);
+
+            // get indicator function (does a face velocity
+            // contribute positively or negatively to the 
+            // curl at a vertex?)
+            double t_ev = vertex_face_dir(i, j);
+
+            double coeff = node_dist * t_ev / area;
+
+            coefficients.push_back( Triplet(i, face_id, coeff) );
+        }
+    }
+
+    operatorCurl.setFromTriplets(coefficients.begin(), coefficients.end());
+    operatorCurl.makeCompressed();
 
     return 1;
 }

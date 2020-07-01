@@ -10,6 +10,8 @@
 
 #include <Eigen/Dense>
 
+// TODO - WRITE UP THE ANALYTICAL SOLUTIONS PROPERLY
+
 void getErrorNorms(double approx[], double exact[], int length, double error_norms[]) 
 {
     double diff;
@@ -54,14 +56,22 @@ void setU(Array2D<double> & u, int m, int n, int node_num, Array2D<double> & sph
         lat = sph(i, 0);
         lon = sph(i, 1);
 
+        // Northward
         u(i, 0) = -4. * 1e6* n * sin(lon) * cos(m*lon);
         u(i, 0) *= sin(n*lat);
         u(i, 0) *= pow(cos(n*lat), 3.0);
 
-
+        // Eastward
         u(i, 1) = -m * 1e6*sin(lon) * sin(m*lon);
         u(i, 1) *= pow(cos(n*lat),4.0)/cos(lat);
 
+        u(i, 1) = -4. * 1e6 * n * sin(lon) * cos(m * lon);
+        u(i, 1) *= sin(n * lat);
+        u(i, 1) *= pow(cos(n * lat), 3.0);
+
+        // Eastward
+        u(i, 0) = -m * 1e6 * sin(lon) * sin(m * lon);
+        u(i, 0) *= pow(cos(n * lat), 4.0) / cos(lat);
     }
 };
 
@@ -83,6 +93,29 @@ void setDivU(Array1D<double> & divU, int m, int n, int node_num, double r, Array
     }
 };
 
+void setCurlU(Array1D<double> &curlU, int m, int n, int node_num, double r, Array2D<double> &sph)
+{
+    int i;
+    double lon, lat;
+
+    for (i = 0; i < node_num; i++)
+    {
+        lat = sph(i, 0);
+        lon = sph(i, 1);
+
+        // curlU(i) = sin(lat)*sin(n*lat)*cos(n*lat);
+        // curlU(i) -= n*cos(lat) * (pow(cos(n*lat), 2.0) - 3*pow(sin(n*lat), 2.0) );
+        // curlU(i) *= 4*n*sin(lon)*cos(m*lon)*pow(cos(lat*n), 2.0);
+
+        curlU(i) = -m*sin(lon)*sin(m*lon) + cos(lon)*cos(m*lon);
+        curlU(i) *= 4*n*sin(lat*n)*pow( cos(lat*n), 3.0); 
+
+        curlU(i) += 4*m*n*sin(lon)*sin(m*lon)*sin(lat*n)*pow( cos(lat*n), 3.0);
+        
+        curlU(i) *= 1e6/ ( r * cos(lat));
+    }
+};
+
 void setGradBeta(Array2D<double> & gradBeta, int m, int n, int node_num, double r,  Array2D<double> & sph)
 {
     int i;
@@ -92,11 +125,13 @@ void setGradBeta(Array2D<double> & gradBeta, int m, int n, int node_num, double 
         lat = sph(i, 0);
         lon = sph(i, 1);
 
+        // Northward (y-dir)
         gradBeta(i, 1) =  -1e6 * 4.0 * n * cos(m*lon);
         gradBeta(i, 1) *= sin(n*lat);
         gradBeta(i, 1) *= pow(cos(n*lat), 3.0);
         gradBeta(i, 1) /= r;
 
+        // Eastward (x-dir)
         gradBeta(i, 0) = -m * 1e6 * sin(m*lon);
         gradBeta(i, 0) *= pow(cos(n*lat), 4.0);
         gradBeta(i, 0) /= r*cos(lat);
@@ -295,6 +330,55 @@ void runDivergenceTest(Mesh *mesh, double error_norms[])
         getErrorNorms(&grad_numerical(0), &grad_analytic(0), mesh->face_num, error_norms);
     }
 
+    void runCurlTest(Mesh *mesh, double error_norms[])
+    {
+        Array1D<double> un_faces(mesh->face_num); // normal vel component at each face
+        Array2D<double> uv_faces(mesh->face_num, 2);
+
+        Array1D<double> curl_analytic(mesh->vertex_num);
+        Array1D<double> curl_numerical(mesh->vertex_num);
+
+        setU(uv_faces, 1, 1, mesh->face_num, mesh->face_centre_pos_sph);
+        setCurlU(curl_analytic, 1, 1, mesh->vertex_num, mesh->globals->radius.Value(), mesh->vertex_pos_sph);
+
+        for (int i = 0; i < mesh->face_num; i++)
+        {
+            double u_face = uv_faces(i, 0);
+            double v_face = uv_faces(i, 1);
+
+            double vel_mag = sqrt(pow(u_face, 2.0) + pow(v_face, 2.0));
+
+            // ********* get the velocity component normal to the face *****************************
+            // get unit vector of velocity
+            double nx = u_face / vel_mag;
+            double ny = v_face / vel_mag;
+
+            if (vel_mag < 1e-10)
+            {
+                nx = 0.0;
+                ny = 0.0;
+            }
+
+            // take dot product of vel unit vector with face normal vector
+            double cos_a = nx * mesh->face_normal_vec_map(i, 0) + ny * mesh->face_normal_vec_map(i, 1);
+
+            // get the velocity component normal to the face
+            un_faces(i) = vel_mag * cos_a;
+        }
+
+        // *********** calculate curl term numerically *********************************
+
+        // Must define the mapped object as below to avoid copying memory!
+        // i.e. do NOT do: Eigen::VectorXd u_data = Eigen::Map<Eigen::VectorXd>(&un_faces(0), mesh->face_num);
+        Eigen::Map<Eigen::VectorXd> u_data(&un_faces(0), mesh->face_num);
+        Eigen::Map<Eigen::VectorXd> curl_data(&curl_numerical(0), mesh->vertex_num);
+
+        // Perform sparse matrix * vector operation
+        curl_data = mesh->operatorCurl * u_data;
+
+        getErrorNorms(&curl_numerical(0), &curl_analytic(0), mesh->vertex_num, error_norms);
+    }
+
 void runOperatorTests(Globals * globals, Mesh * mesh)
 {
     double error_norms[3];
@@ -316,6 +400,12 @@ void runOperatorTests(Globals * globals, Mesh * mesh)
     runDivergenceTest(mesh, error_norms);
 
     std::cout << "Divergence operator error norms: L1=" << error_norms[0];
+    std::cout << ",  L2=" << error_norms[1];
+    std::cout << ",  Linf=" << error_norms[2] << std::endl;
+
+    runCurlTest(mesh, error_norms);
+
+    std::cout << "Curl operator error norms: L1=" << error_norms[0];
     std::cout << ",  L2=" << error_norms[1];
     std::cout << ",  Linf=" << error_norms[2] << std::endl;
 

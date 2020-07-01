@@ -57,6 +57,7 @@ private:
   int CalcLaplaceOperatorCoeffs(void);
   int CalcCoriolisOperatorCoeffs(void);
   int CalcLinearDragOperatorCoeffs(void);
+  int CalcCurlOperatorCoeffs(void);
   int GeneratePressureSolver(void);
   int GenerateMomentumOperator(void);
 
@@ -165,6 +166,7 @@ public:
   Array2D<double> node_R;
   Array2D<int> vertex_faces;
   Array2D<int> vertex_face_dir;
+  Array1D<double> vertex_area;
 
   Array2D<int> face_interp_friends;
   Array2D<double> face_interp_weights;
