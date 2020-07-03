@@ -79,8 +79,8 @@ for i in range(nn, nn+1):
     # data_eta = np.mean(in_file["displacement"][-1001:-1], axis=0)
     
 
-    start = -1001
-    end = -1
+    start = -1002
+    end = -3
 
     print(time[start]/P, time[end]/P)
     data_u = get_time_average(in_file["east velocity"][start:end], time[start:end])
