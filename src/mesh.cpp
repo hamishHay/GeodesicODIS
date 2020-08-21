@@ -1249,7 +1249,20 @@ int Mesh::CalcMaxTimeStep(void)
           }
       }
 
-      dt *= 0.85;         // take some caution
+    //   dt *= 0.85;         // take some caution
+  }
+
+  double target_dt = dt;
+  int dt_num = 10;
+
+  dt = globals->period.Value()*globals->outputTime.Value();
+
+  while (dt > target_dt) 
+  {
+      dt = globals->period.Value() * globals->outputTime.Value() / dt_num;
+
+      dt_num += 5;
+      std::cout<<dt<<' '<<globals->period.Value()/dt<<std::endl;
   }
 
   std::cout<<"DT: "<<dt<<std::endl;

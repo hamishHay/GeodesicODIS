@@ -212,6 +212,12 @@ Globals::Globals(int action) {
 
   period.SetValue(2.*pi/angVel.Value());
 
+  int int_time = (int)round(period.Value() / 2) * 2;
+
+  period.SetValue((double)int_time);
+  angVel.SetValue(2*pi/(double)int_time);
+  std::cout << int_time << ' ' << 2*pi/(double)int_time<< std::endl;
+
   // Convert end time from units of orbital period to seconds.
   endTime.SetValue(endTime.Value()*period.Value());
 

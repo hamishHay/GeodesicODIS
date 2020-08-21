@@ -110,6 +110,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array1D<double> & dvdt, Array
     }
 
     // #pragma omp parallel for
+    double R = pi/9.0;
     for (int i=0; i<node_num; ++i)
     {
         // soln_old(i, 0) = v_tm1(i, 0);
@@ -120,6 +121,23 @@ int updateVelocity(Globals * globals, Mesh * grid, Array1D<double> & dvdt, Array
 //        soln_new(i) = p_tm1(i) - forcing_potential(i)/g;
         total_thickness(i) = h + p_tm1(i);
 
+//=======
+//        soln_new(i) = p_tm1(i) - h;// - forcing_potential(i)/g;
+//        total_thickness(i) = p_tm1(i);//h + p_tm1(i);
+
+        // double latc = pi / 6.0;
+        // double lonc = pi / 2.0;
+        // double dist, lat1, lon1;
+        // lat1 = grid->node_pos_sph(i, 0);
+        // lon1 = grid->node_pos_sph(i, 1);
+
+        // double b = 0.0;
+        // b = sqrt(std::min(R * R, pow(lat1 - latc, 2.0) + pow(lon1 - lonc, 2.0)));
+
+        // b = 2000.0 * (1 - b / R);
+
+        // total_thickness(i) = p_tm1(i);
+        // soln_new(i) = p_tm1(i) + b;
     }
 
     Eigen::Map<Eigen::VectorXd> solnEigen(&soln_new(0), grid->node_num);
@@ -186,11 +204,15 @@ int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt
 
     // Eigen::Map<Eigen::VectorXd> solnEigen(&soln_new(0), grid->node_num);
     Eigen::Map<Eigen::VectorXd> detadtEigen(&deta_dt(0), grid->node_num);
-    Eigen::Map<Eigen::VectorXd> velEigen(&v_t0(0), grid->face_num);
+    //Eigen::Map<Eigen::VectorXd> velEigen(&v_t0(0), grid->face_num);
     // // // Perform sparse matrix * vector operation
     // // // dvdtEigen -= g * grid->operatorGradient * solnEigen;
 
-    detadtEigen = globals->h.Value() * grid->operatorDivergence * velEigen;
+    d//etadtEigen = globals->h.Value() * grid->operatorDivergence * velEigen;
+
+
+
+
 
 
 
@@ -200,13 +222,36 @@ int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt
     Array1D<double> h_space(globals->node_num);
 
     
-
-
     for (int i=0; i<node_num; ++i) {
         h_space(i) = h+eta(i);
     }
 
+    // double R = pi/9.0;
+    // for (int i = 0; i < node_num; ++i)
+    // {
+    //     double latc = pi/6.0;
+    //     double lonc = 3*pi/2.0;
+    //     double dist, lat1, lon1;
+    //     lat1 = grid->node_pos_sph(i, 0);
+    //     lon1 = grid->node_pos_sph(i, 1);
+
+    //     double b = 0.0;
+    //     b = sqrt(std::min(R*R, pow(lat1 - latc, 2.0) + pow(lon1 - lonc, 2.0)));
+
+    //     b = 2000.0 * (1 - b/R);
+
+    //     h_space(i) -= b;
+
+
+    // }
+
     interpolateLSQFlux(globals, grid, hv, v_t0, h_space);
+
+    Eigen::Map<Eigen::VectorXd> hvEigen(&hv(0), grid->face_num);
+    // // Perform sparse matrix * vector operation
+    // // dvdtEigen -= g * grid->operatorGradient * solnEigen;
+
+    detadtEigen = grid->operatorDivergence * hvEigen;
 
     // for (int i = 0; i < node_num; ++i)
     // {
@@ -218,7 +263,7 @@ int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt
     //         // std::cout<<hv(face_ID);
     //         deta_dt(i) -= hv(face_ID)*grid->node_face_dir(i,j);
     //     }
-        
+
     // }
 
     // for (int i=0; i<face_num; ++i)
@@ -232,7 +277,7 @@ int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt
     //     // double thickness;
 
     //     // // check if flow is in or out of face
-    //     // // if outward, use inner h 
+    //     // // if outward, use inner h
     //     // // if inward, use outer h
 
     //     // if (v_t0(i) > 0.0) thickness = inner+h;
@@ -243,12 +288,6 @@ int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt
 
     //     // hv(i) = v_t0(i) * avg_thickness;
     // }
-
-    Eigen::Map<Eigen::VectorXd> hvEigen(&hv(0), grid->face_num);
-    // Perform sparse matrix * vector operation
-    // dvdtEigen -= g * grid->operatorGradient * solnEigen;
-
-    detadtEigen = grid->operatorDivergence * hvEigen;
 
     // mkl_sparse_d_mv(operation, 1.0, *(grid->operatorDivergenceX), descript, &(hv(0)), 0.0, &(deta_dt(0)));
 
@@ -261,7 +300,7 @@ int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt
     // }
 
     return 1;
-};
+    };
 
 // Function to implement the time loop to solve mass and momentum equations over
 // the geodesic grid using the Adams-Bashforth 3rd order forward method.
@@ -350,8 +389,36 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     for (i=0; i<face_num; i++) {
         v_t0(i) = 0.0;
         // (*v_t0)(i) = 10.0*grid->face_normal_vec_map(i,0);
+
+        double u, v;
+        double u0 = 20.0;// 2*pi*r/(12*globals->period.Value());
+
+        double lat = grid->face_intercept_pos_sph(i,0);
+        double lon = grid->face_intercept_pos_sph(i,1);
+
+        double nx = grid->face_normal_vec_map(i, 0);
+        double ny = grid->face_normal_vec_map(i, 1);
+
+        double a = 0.0;
+
+        u = cos(lat)*cos(a) + sin(lat)*cos(lon)*sin(a);
+        u *= u0;
+
+        v = -u0*sin(lon)*sin(a);
+
+        if (lat>0) u = 5*cos(lat);
+        else u=-5.0*cos(lat);
+
+        // u = 10.0 * cos(lat)*cos(lat)*sin(10*lat);
+
+        // v=0.0;
+
+        v_t0(i) = u*nx + v*ny;
+
+        
     }
 
+    double R = pi/9.0;
     for (i=0; i<node_num; i++)
     {
         v_avg(i,0) = 0.0;
@@ -377,10 +444,32 @@ int ab3Explicit(Globals * globals, Mesh * grid)
             p_t0(i) = 0.0;
         }
 
-        p_t0(i) = 0.0;
-        
+        //p_t0(i) = globals->h.Value();// 0.0;
 
-        
+        // lat = grid->node_pos_sph(i, 0);
+        // lon = grid->node_pos_sph(i, 1);
+
+        // double a = 0.0;
+        // double u0 = 20;//2 * pi * r / (12*globals->period.Value());
+        // double g = globals->g.Value();
+
+        // p_t0(i) = pow(-cos(lon)*cos(lat)*sin(a) + sin(lat)*cos(a), 2.0);
+        // p_t0(i) *= r*globals->angVel.Value()*u0 + u0*u0*0.5;
+        // p_t0(i) = 1/g * (g*globals->h.Value() - p_t0(i));
+
+        // double latc = pi / 6.0;
+        // double lonc = pi/2.0;
+
+        // lat1 = grid->node_pos_sph(i, 0);
+        // lon1 = grid->node_pos_sph(i, 1);
+
+        // double b = 0.0;
+        // b = sqrt(std::min(R*R, pow(lat1 - latc, 2.0) + pow(lon1 - lonc, 2.0)));
+
+        // b = 2000.0 * (1 - b/R);
+
+        // p_t0(i) -= b;
+        // p_t0(i) = -1/g * p_t0(i);
 
         cv_mass(i) = grid->control_volume_mass(i);
     }
@@ -404,6 +493,16 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     out_count = 1;
     current_time = 0.0;
     out_time = 0.0;
+
+    outstring << std::fixed << "DUMPING DATA AT " << current_time / orbit_period;
+    outstring << " AVG DISS: " << std::scientific << *total_diss * 4 * pi * r * r / 1e9 << " GW" << out_count;
+
+    Output->Write(OUT_MESSAGE, &outstring);
+
+    out_time -= out_frac * orbit_period;
+
+    Output->DumpData(globals, out_count, pp);
+    out_count++;
 
     // Output->DumpData(globals, out_count, pp);
 
