@@ -486,4 +486,4 @@ if __name__=='__main__':
 
     plt.show()
 
-    Plotter.save_fig(name='/home/hamish/Dropbox/Tests/diss_eng.pdf')
+    Plotter.save_fig(name='diss_eng.pdf')

@@ -145,7 +145,7 @@ Mesh::Mesh(Globals * Globals, int N, int face_N, int vertex_N, int N_ll, int l_m
 
     CalcMaxTimeStep();
 
-    CalcLegendreFuncs();
+    //CalcLegendreFuncs();
 
     CalcControlVolumeVertexR();
 
@@ -1777,7 +1777,7 @@ int Mesh::CalcTrigFunctions(void)
     return 1;
 };
 
-int Mesh::CalcLegendreFuncs(void)
+/*int Mesh::CalcLegendreFuncs(void)
 {
     int i, l, m, l_max;
     double cosCoLat;
@@ -1883,6 +1883,7 @@ int Mesh::CalcLegendreFuncs(void)
 
     return 1;
 }
+*/
 
 int Mesh::CalcCoriolisOperatorCoeffs(void)
 {

@@ -64,12 +64,12 @@ int updateVelocity(Globals * globals, Mesh * grid, Array1D<double> & dvdt, Array
 
     visc = 5e3;
 
-    Array1D<double> forcing_potential(node_num);
+    //Array1D<double> forcing_potential(node_num);
 
-    forcing(globals, grid, forcing_potential, globals->tide_type, current_time, e, obliq);
+    //forcing(globals, grid, forcing_potential, globals->tide_type, current_time, e, obliq);
 
     // Array1D<double> self_gravity(node_num);
-
+/*
     // TODO - Move these pressure grad calls to a function that makes sense
     switch (globals->surface_type)
     {
@@ -90,7 +90,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array1D<double> & dvdt, Array
             // pressureGradientSH(globals, grid, dvdt, p_tm1, -1.0/1000.0);
             break;
     }
-
+*/
     // sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
     // matrix_descr descript;
     // descript.type = SPARSE_MATRIX_TYPE_GENERAL;
@@ -113,7 +113,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array1D<double> & dvdt, Array
         // soln_old(i, 0) = v_tm1(i, 0);
         // soln_old(i, 1) = v_tm1(i, 1);
         // soln_old(i, 2) = p_tm1(i);// - forcing_potential(i)/g;
-        soln_new(i) = p_tm1(i) - forcing_potential(i)/g;
+        soln_new(i) = p_tm1(i);// - forcing_potential(i)/g;
     }
 
     Eigen::Map<Eigen::VectorXd> solnEigen(&soln_new(0), grid->node_num);
@@ -170,24 +170,27 @@ int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt
 
     // Eigen::Map<Eigen::VectorXd> solnEigen(&soln_new(0), grid->node_num);
     Eigen::Map<Eigen::VectorXd> detadtEigen(&deta_dt(0), grid->node_num);
-    // Eigen::Map<Eigen::VectorXd> velEigen(&v_t0(0), grid->face_num);
+    Eigen::Map<Eigen::VectorXd> velEigen(&v_t0(0), grid->face_num);
     // // // Perform sparse matrix * vector operation
     // // // dvdtEigen -= g * grid->operatorGradient * solnEigen;
 
-    // detadtEigen = globals->h.Value() * grid->operatorDivergence * velEigen;
+    detadtEigen = globals->h.Value() * grid->operatorDivergence * velEigen;
+
+
+
 
     // mkl_sparse_d_mv(operation, globals->h.Value(), *(grid->operatorDivergenceX), descript, &(v_t0(0)), 0.0, &(deta_dt(0)));
-    Array1D<double> hv(globals->face_num);
-    Array1D<double> h_space(globals->node_num);
+    //Array1D<double> hv(globals->face_num);
+    //Array1D<double> h_space(globals->node_num);
 
     
 
 
-    for (int i=0; i<node_num; ++i) {
-        h_space(i) = h+eta(i);
-    }
+    //for (int i=0; i<node_num; ++i) {
+    //    h_space(i) = h+eta(i);
+    //}
 
-    interpolateLSQFlux(globals, grid, hv, v_t0, h_space);
+    //interpolateLSQFlux(globals, grid, hv, v_t0, h_space);
 
     // for (int i = 0; i < node_num; ++i)
     // {
@@ -225,11 +228,11 @@ int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt
     //     // hv(i) = v_t0(i) * avg_thickness;
     // }
 
-    Eigen::Map<Eigen::VectorXd> hvEigen(&hv(0), grid->face_num);
+    //Eigen::Map<Eigen::VectorXd> hvEigen(&hv(0), grid->face_num);
     // Perform sparse matrix * vector operation
     // dvdtEigen -= g * grid->operatorGradient * solnEigen;
 
-    detadtEigen = grid->operatorDivergence * hvEigen;
+    //detadtEigen = grid->operatorDivergence * hvEigen;
 
     // mkl_sparse_d_mv(operation, 1.0, *(grid->operatorDivergenceX), descript, &(hv(0)), 0.0, &(deta_dt(0)));
 
@@ -401,8 +404,6 @@ int ab3Explicit(Globals * globals, Mesh * grid)
             // SOLVE THE MOMENTUM EQUATION
             updateVelocity(globals, grid, dv_dt_t0, v_t0, p_t0, current_time);
 
-            if (globals->fric_type == QUADRATIC)
-                quadraticDrag(face_num, alpha, h, dv_dt_t0, v_avg, v_t0);
 
             // #pragma omp parallel for
             for (i=0; i<face_num; ++i) dv_dt(i, 0) = dv_dt_t0(i);
@@ -410,6 +411,28 @@ int ab3Explicit(Globals * globals, Mesh * grid)
             // MARCH VELOCITY FORWARD IN TIME
             integrateAB3scalar(globals, grid, v_t0, dv_dt, iter, grid->face_num);
 
+            Array1D<double> forcing_potential(node_num);
+            Array1D<double> drag(face_num);
+            forcing(globals, grid, forcing_potential, globals->tide_type, current_time, globals->e.Value(), globals->theta.Value());
+
+            
+            Eigen::Map<Eigen::VectorXd> forcingEigen(&forcing_potential(0), node_num);
+            Eigen::Map<Eigen::VectorXd> velEigen(&v_t0(0), face_num);
+            Eigen::Map<Eigen::VectorXd> dragEigen(&drag(0), face_num);
+            // Perform sparse matrix * vector operation
+
+
+            if (globals->fric_type == QUADRATIC)
+                quadraticDrag(face_num, alpha, h, drag, v_avg, v_t0);
+            else
+                dragEigen = grid->operatorLinearDrag * velEigen;
+
+
+
+            velEigen += dt*(grid->operatorGradient * forcingEigen - dragEigen);
+
+
+            //std::cout<<velEigen<<std::endl;
 
             // for (i=0; i<face_num; ++i)
             // {
