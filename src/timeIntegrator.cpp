@@ -13,6 +13,7 @@
 #include "pressure.h"
 #include "drag.h"
 #include "initialConditions.h"
+#include "momAdvection.h"
 #include <math.h>
 #include <iostream>
 #include <sstream>
@@ -100,6 +101,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array1D<double> & dvdt, Array
     //
     // Array2D<double> soln_old(node_num, 3);
     Array1D<double> soln_new(node_num);
+    Array1D<double> total_thickness(node_num);
 
     for (int i=0; i<face_num; ++i)
     {
@@ -113,19 +115,33 @@ int updateVelocity(Globals * globals, Mesh * grid, Array1D<double> & dvdt, Array
         // soln_old(i, 0) = v_tm1(i, 0);
         // soln_old(i, 1) = v_tm1(i, 1);
         // soln_old(i, 2) = p_tm1(i);// - forcing_potential(i)/g;
+
         soln_new(i) = p_tm1(i);// - forcing_potential(i)/g;
+//        soln_new(i) = p_tm1(i) - forcing_potential(i)/g;
+        total_thickness(i) = h + p_tm1(i);
+
     }
 
     Eigen::Map<Eigen::VectorXd> solnEigen(&soln_new(0), grid->node_num);
-    Eigen::Map<Eigen::VectorXd> dvdtEigen(&dvdt(0), grid->face_num);
-    Eigen::Map<Eigen::VectorXd> velEigen(&v_tm1(0), grid->face_num);
+    Eigen::Map<Eigen::VectorXd> dvdtEigen(&dvdt(0), face_num);
+    Eigen::Map<Eigen::VectorXd> velEigen(&v_tm1(0), face_num);
 
     // Perform sparse matrix * vector operation
     dvdtEigen -= g*grid->operatorGradient * solnEigen;
 
-    dvdtEigen += grid->operatorCoriolis * velEigen;
+//    dvdtEigen += grid->operatorLinearDrag * velEigen;
 
-    // dvdtEigen += grid->operatorLinearDrag * velEigen;
+    // dvdtEigen += grid->operatorCoriolis * velEigen;
+
+    Array1D<double> advection_term(face_num);
+
+    calculateMomentumAdvection(globals, grid, v_tm1, total_thickness, advection_term);
+
+    Eigen::Map<Eigen::VectorXd> adv_eig(&advection_term(0), face_num);
+
+    dvdtEigen += adv_eig;
+
+    
 
     // mkl_sparse_d_mv(operation, 1.0, *(grid->operatorGradient), descript, &(soln_new(0)), betam, &(dvdt(0)));
     // pressureGradientN(grid, dvdt, soln_new, node_num, g);
@@ -180,17 +196,17 @@ int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt
 
 
     // mkl_sparse_d_mv(operation, globals->h.Value(), *(grid->operatorDivergenceX), descript, &(v_t0(0)), 0.0, &(deta_dt(0)));
-    //Array1D<double> hv(globals->face_num);
-    //Array1D<double> h_space(globals->node_num);
+    Array1D<double> hv(globals->face_num);
+    Array1D<double> h_space(globals->node_num);
 
     
 
 
-    //for (int i=0; i<node_num; ++i) {
-    //    h_space(i) = h+eta(i);
-    //}
+    for (int i=0; i<node_num; ++i) {
+        h_space(i) = h+eta(i);
+    }
 
-    //interpolateLSQFlux(globals, grid, hv, v_t0, h_space);
+    interpolateLSQFlux(globals, grid, hv, v_t0, h_space);
 
     // for (int i = 0; i < node_num; ++i)
     // {
@@ -228,11 +244,11 @@ int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt
     //     // hv(i) = v_t0(i) * avg_thickness;
     // }
 
-    //Eigen::Map<Eigen::VectorXd> hvEigen(&hv(0), grid->face_num);
+    Eigen::Map<Eigen::VectorXd> hvEigen(&hv(0), grid->face_num);
     // Perform sparse matrix * vector operation
     // dvdtEigen -= g * grid->operatorGradient * solnEigen;
 
-    //detadtEigen = grid->operatorDivergence * hvEigen;
+    detadtEigen = grid->operatorDivergence * hvEigen;
 
     // mkl_sparse_d_mv(operation, 1.0, *(grid->operatorDivergenceX), descript, &(hv(0)), 0.0, &(deta_dt(0)));
 
