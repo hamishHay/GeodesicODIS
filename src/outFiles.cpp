@@ -1,18 +1,18 @@
-#ifdef _WIN32
-#include <direct.h>
-#include <Windows.h>
-#define getcwd _getcwd
+// #ifdef _WIN32
+// #include <direct.h>
+// #include <Windows.h>
+// #define getcwd _getcwd
 
-#elif _WIN64
-#include <direct.h>
-#define getcwd _getcwd
+// #elif _WIN64
+// #include <direct.h>
+// #define getcwd _getcwd
 
-#elif __linux__
+// #elif __linux__
 #include <unistd.h>
 
-#else
-#error "OS not supported!"
-#endif
+// #else
+// #error "OS not supported!"
+// #endif
 
 #include "mesh.h"
 #include "outFiles.h"
@@ -34,39 +34,14 @@ using namespace H5;
 OutFiles::OutFiles() {
 	char buffer[PATH];
 
-#ifdef _WIN64
-	GetModuleFileName(NULL, buffer, sizeof(buffer)-1);
-#elif __linux__
-	readlink("/proc/self/exe", buffer, sizeof(buffer)-1);
-#endif
+    // OS-independent way to retrieve current filepath
+    path = std::filesystem::current_path();
 
-  char buff[PATH];
-  memset(buff, 0, sizeof(buff));
 
-  /* Note we use sizeof(buf)-1 since we may need an extra char for NUL. */
-  if (readlink("/proc/self/exe", buff, sizeof(buff)-1) < 0)
-  {
-    // TODO - add some clever error checks in here
-   /* There was an error...  Perhaps the path does not exist
-    * or the buffer is not big enough.  errno has the details. */
-   perror("readlink");
-  }
-
-  // char *buff_copy;
-  // buff_copy = strdup(buff);
-
-  // dirname(buff_copy);
-  // std::cout<<buff<<std::endl;
-  // getcwd( buff, PATH );
-
-  path = buff; // set char array to std::string
-  path = path.substr(0, path.find_last_of("\\/"));
-
-	outName = path + SEP + "OUTPUT.txt";
-	errName = path + SEP + "ERROR.txt";
+	outName = path + SEP + "DATA" + SEP + "OUTPUT.txt";
+	errName = path + SEP + "DATA" + SEP + "ERROR.txt";
 	dataPath = path + SEP + "DATA" + SEP + "data.h5";
 
-  // std::cout<<path + SEP + "OUTPUT.txt"<<std::endl;
 
 	remove(&outName[0]); //Converts std::string to char array
 	output.open(&outName[0], std::ofstream::out | std::ofstream::app);
@@ -184,6 +159,8 @@ void OutFiles::CreateHDF5Framework(Globals * globals)
     mkdir(&(globals->path +  SEP + "DATA" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
 
   #endif
+
+    mkdir(&(globals->path +  SEP + "DATA" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
 
     // eta_1D
     eta_1D = new float[node_num];
