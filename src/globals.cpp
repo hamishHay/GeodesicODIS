@@ -9,24 +9,8 @@
 //     0.1      |        13/09/2016        |        H. Hay        |
 // ---- Initial version of ODIS, described in Hay and Matsuyama (2017)
 
-#ifdef _WIN32
-#include <direct.h>
-#include <Windows.h>
-#define getcwd _getcwd
-#define SEP "\\"
-
-#elif _WIN64
-#include <direct.h>
-#define getcwd _getcwd
-#define SEP "\\"
-
-#elif __linux__
 #include <unistd.h>
 #define SEP "/"
-
-#else
-#error "OS not supported!"
-#endif
 
 #include "globals.h"
 #include "outFiles.h"
