@@ -92,10 +92,10 @@ void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, int for
                                       + 4.*sinM*sin2Lon[i*2]));
 
 
-            double U2 = 9./2. * cos2M * (0.75*cosSqLat[i*2] - 0.5);
-            U2 += 17* 3/8. * cosSqLat[i*2] * (sin2M*sin2Lon[i*2] + cos2M*cos2Lon[2*i]);
-            U2 *= factor * 4./3. * ecc;
-            potential(i) += U2;
+            //double U2 = 9./2. * cos2M * (0.75*cosSqLat[i*2] - 0.5);
+            //U2 += 17* 3/8. * cosSqLat[i*2] * (sin2M*sin2Lon[i*2] + cos2M*cos2Lon[2*i]);
+            //U2 *= factor * 4./3. * ecc;
+            //potential(i) += U2;
 
           }
       }

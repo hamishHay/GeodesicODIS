@@ -12,8 +12,8 @@ COBJ = $(CSRC:$(SRC_DIR)/%.cpp=$(OBJ_DIR)/%.o)
 
 # $(COBJ): src/%.o : src/%.c
 
-FSRC = $(wildcard $(SRC_DIR)/*.f95)
-FOBJ = $(FSRC:$(SRC_DIR)/%.f95=$(OBJ_DIR)/%.o)
+FSRC = #$(wildcard $(SRC_DIR)/*.f95)
+FOBJ = #$(FSRC:$(SRC_DIR)/%.f95=$(OBJ_DIR)/%.o)
 
 EXE = ODIS
 

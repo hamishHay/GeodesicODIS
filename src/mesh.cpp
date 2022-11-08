@@ -1790,7 +1790,7 @@ int Mesh::CalcTrigFunctions(void)
     return 1;
 };
 
-int Mesh::CalcLegendreFuncs(void)
+/*int Mesh::CalcLegendreFuncs(void)
 {
     // int i, l, m, l_max;
     // double cosCoLat;
@@ -1896,6 +1896,7 @@ int Mesh::CalcLegendreFuncs(void)
 
     // return 1;
 }
+*/
 
 int Mesh::CalcCoriolisOperatorCoeffs(void)
 {

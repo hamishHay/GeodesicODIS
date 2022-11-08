@@ -7,23 +7,23 @@
 #include "interpolation.h"
 // #include "mkl.h"
 
-extern "C"{
+//extern "C"{
 // FORTRAN adds _ after all the function names
 // and all variables are called by reference
 
 // define FORTRAN matrix-vector multiplication function
-double dgemv_( const char * TRANS,
-               const int * m,
-               const int * n,
-               const double * alpha,
-               const double * V,
-               const int * ldv,
-               const double * x,
-               const int * incx,
-               const double * beta,
-               const double * y,
-               const int * incy);
-}
+//double dgemv_( const char * TRANS,
+//               const int * m,
+//               const int * n,
+//               const double * alpha,
+//               const double * V,
+//               const int * ldv,
+//               const double * x,
+//               const int * incx,
+//               const double * beta,
+//               const double * y,
+//               const int * incy);
+//}
 
 void pressureGradientN(Mesh * mesh, Array1D<double> & dvdt, Array1D<double> & pressure, int x=1, double g = 1.0)
 {
@@ -391,7 +391,7 @@ void velocityDivergenceN(Mesh * mesh, Array1D<double> & dpdt, Array1D<double> & 
 
 
 // TODO - move this function to a new file -- maybe selfGravity.cpp ?
-void pressureGradientSH(Globals * globals, Mesh * mesh, Array1D<double> & dvdt, Array1D<double> & gg_scalar, Array1D<double> & gg_soln, double factor)
+/*void pressureGradientSH(Globals * globals, Mesh * mesh, Array1D<double> & dvdt, Array1D<double> & gg_scalar, Array1D<double> & gg_soln, double factor)
 {
 
     int node_num, l_max, N_ll;
@@ -465,6 +465,8 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array1D<double> & dvdt, 
     delete[] sh_coeffs;
 
 };
+
+*/
 
 // void velocityDivergence(Mesh * mesh, Array1D<double> & dpdt, Array2D<double> & velocity, double & sum, double h = 1.0)
 // {
