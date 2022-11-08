@@ -7,7 +7,7 @@
 #include "array3d.h"
 #include "pressure.h"
 #include "spatialOperators.h"
-#include "sphericalHarmonics.h"
+// #include "sphericalHarmonics.h"
 #include "interpolation.h"
 #include <math.h>
 #include <iostream>
@@ -158,7 +158,7 @@ int updatePressure(Globals * globals,
                                          *ll_v_div,
                                          *v_div);
 
-                getSHCoeffsLL(*ll_v_div, *div_lm, N_ll, l_max);
+                // getSHCoeffsLL(*ll_v_div, *div_lm, N_ll, l_max);
 
                 // SOLVE POISSON EQUATION FOR PRESSURE
                 for (l=1; l<l_max+1; l++)
@@ -267,7 +267,7 @@ int updatePressure(Globals * globals,
                                          *ll_v_div,
                                          *v_div);
 
-                getSHCoeffsLL(*ll_v_div, *div_lm, N_ll, l_max);
+                // getSHCoeffsLL(*ll_v_div, *div_lm, N_ll, l_max);
 
                 // SOLVE POISSON EQUATION FOR PRESSURE
                 for (l=1; l<l_max+1; l++)

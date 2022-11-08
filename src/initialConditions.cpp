@@ -3,10 +3,12 @@
 #include "array3d.h"
 #include "array2d.h"
 #include "array1d.h"
+#include "analyticalLTE.h"
 
 #include <iostream>
 #include <sstream>
 #include <iomanip>
+#include <array>
 
 #include <sys/stat.h>
 
@@ -137,6 +139,70 @@ int loadInitialConditions(Globals * globals, Mesh * mesh,
 
 };
 
+int analyticalInitialConditions(Globals * globals, Mesh * mesh,
+                          Array1D<double> & v, Array2D<double> & dvdt,
+                          Array1D<double> & p, Array2D<double> & dpdt)
+{
+    int i, j;
+    int face_num = globals->face_num;
+    int node_num = globals->node_num;
+
+    double t = 0.0*2*pi/globals->angVel.Value();
+    double lat, lon, nx, ny;
+    double dt = globals->timeStep.Value();
+
+    std::array<double, 6> initArr;
+
+    for (i=0; i<face_num; i++) {
+        lat = mesh->face_centre_pos_sph(i, 0);
+        lon = mesh->face_centre_pos_sph(i, 1);
+
+        nx = mesh->face_normal_vec_map(i,0);
+        ny = mesh->face_normal_vec_map(i,1);
+
+        initArr = analyticalLTE(globals, mesh, globals->tide_type, lat, lon, t);
+
+        v(i) = initArr[0]*nx + initArr[1]*ny;
+        dvdt(i,0) = initArr[2]*nx + initArr[3]*ny;
+
+        initArr = analyticalLTE(globals, mesh, globals->tide_type, lat, lon, t-dt);
+        dvdt(i,1) = initArr[2]*nx + initArr[3]*ny;
+        
+        initArr = analyticalLTE(globals, mesh, globals->tide_type, lat, lon, t-2*dt);
+        dvdt(i,2) = initArr[2]*nx + initArr[3]*ny;
+
+        if (globals->solver_type == RK4) {
+            initArr = analyticalLTE(globals, mesh, globals->tide_type, lat, lon, t-3*dt); 
+            dvdt(i,3) = initArr[2]*nx + initArr[3]*ny;
+        }
+
+    }
+
+    for (i=0; i<node_num; i++) {
+        lat = mesh->node_pos_sph(i, 0);
+        lon = mesh->node_pos_sph(i, 1);
+
+        initArr = analyticalLTE(globals, mesh, globals->tide_type, lat, lon, t);
+        p(i) = initArr[4];
+        dpdt(i,0) = initArr[5];
+
+        initArr = analyticalLTE(globals, mesh, globals->tide_type, lat, lon, t-dt);
+        dpdt(i,1) = initArr[5];
+
+        initArr = analyticalLTE(globals, mesh, globals->tide_type, lat, lon, t-2*dt);
+        dpdt(i,2) = initArr[5];
+
+        if (globals->solver_type == RK4) {
+            initArr = analyticalLTE(globals, mesh, globals->tide_type, lat, lon, t-3*dt);
+            dpdt(i,3) = initArr[5];
+        }
+
+    }
+
+    return 1;
+
+};
+
 
 int writeInitialConditions(Globals * globals, Mesh * mesh,
                           Array1D<double> & v, Array2D<double> & dvdt,
@@ -209,3 +275,5 @@ int writeInitialConditions(Globals * globals, Mesh * mesh,
     return 1;
 
 };
+
+
