@@ -15,18 +15,18 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
-#ifdef _WIN32
-#define SEP "\\"
+// #ifdef _WIN32
+// #define SEP "\\"
 
-#elif _WIN64
-#define SEP "\\"
+// #elif _WIN64
+// #define SEP "\\"
 
-#elif __linux__
+// #elif __linux__
 #define SEP "/"
 
-#else
-#error "OS not supported!"
-#endif
+// #else
+// #error "OS not supported!"
+// #endif
 
 #include <string>
 #include <array>

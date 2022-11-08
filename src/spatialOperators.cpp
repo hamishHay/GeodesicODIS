@@ -3,7 +3,7 @@
 #include "array3d.h"
 #include "array2d.h"
 #include "array1d.h"
-#include "sphericalHarmonics.h"
+// #include "sphericalHarmonics.h"
 #include "interpolation.h"
 // #include "mkl.h"
 
@@ -425,7 +425,7 @@ void pressureGradientSH(Globals * globals, Mesh * mesh, Array1D<double> & dvdt, 
 
     // FIND SPHERICAL HARMONIC EXPANSION COEFFICIENTS
     // OF THE PRESSURE FIELD
-    getSHCoeffsLL(*ll_scalar, *scalar_lm, N_ll, l_max);
+    // getSHCoeffsLL(*ll_scalar, *scalar_lm, N_ll, l_max);
 
     double * sh_matrix;
     double * soln_vec;

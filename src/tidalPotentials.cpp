@@ -115,6 +115,20 @@ void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, int for
       }
       break;
 
+      case OBLIQ_WEST:
+      {
+          factor = 0.5 * consts->loveReduct.Value() * pow(omega,2.0)*pow(radius,2.0)*obl;
+
+          #pragma omp parallel for
+          for (i=0; i<node_num; ++i) {
+              j = i*2;
+
+              potential(i) = -3*factor * sinLat[j]*cosLat[j]*(cosLon[j]*cosM - sinLon[j]*sinM);
+          }
+
+      }
+      break;
+
       case FULL2:
       {
           factor = 1/32. * consts->loveReduct.Value() * pow(omega,2.0)*pow(radius,2.0);

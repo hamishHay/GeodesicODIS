@@ -145,7 +145,7 @@ Mesh::Mesh(Globals * Globals, int N, int face_N, int vertex_N, int N_ll, int l_m
 
     CalcMaxTimeStep();
 
-    CalcLegendreFuncs();
+    // CalcLegendreFuncs();
 
     CalcControlVolumeVertexR();
 
@@ -1792,109 +1792,109 @@ int Mesh::CalcTrigFunctions(void)
 
 int Mesh::CalcLegendreFuncs(void)
 {
-    int i, l, m, l_max;
-    double cosCoLat;
+    // int i, l, m, l_max;
+    // double cosCoLat;
 
-    Array2D<double> * temp_legendre;    // temp array for legendre polynomials
-    Array2D<double> * temp_dlegendre;   // temp array for legendre polynomial derivs
+    // Array2D<double> * temp_legendre;    // temp array for legendre polynomials
+    // Array2D<double> * temp_dlegendre;   // temp array for legendre polynomial derivs
 
-    //-----------------------------
+    // //-----------------------------
 
-    l_max = globals->l_max.Value();
+    // l_max = globals->l_max.Value();
 
-    temp_legendre = new Array2D<double>(2 * (l_max+1), 2 * (l_max+1));
-    temp_dlegendre = new Array2D<double>(2 * (l_max+1), 2 * (l_max+1));
+    // temp_legendre = new Array2D<double>(2 * (l_max+1), 2 * (l_max+1));
+    // temp_dlegendre = new Array2D<double>(2 * (l_max+1), 2 * (l_max+1));
 
-    Array3D<double> Pbar_lm(node_num, l_max+1, l_max+1);
-    Array3D<double> Pbar_cosMLon(node_num, l_max+1, l_max+1);
-    Array3D<double> Pbar_sinMLon(node_num, l_max+1, l_max+1);
+    // Array3D<double> Pbar_lm(node_num, l_max+1, l_max+1);
+    // Array3D<double> Pbar_cosMLon(node_num, l_max+1, l_max+1);
+    // Array3D<double> Pbar_sinMLon(node_num, l_max+1, l_max+1);
 
-    for (i=0; i<node_num; ++i)
-    {
-        cosCoLat = cos(pi*0.5 - node_pos_sph(i,0));     // cos(colatitude) of node i
+    // for (i=0; i<node_num; ++i)
+    // {
+    //     cosCoLat = cos(pi*0.5 - node_pos_sph(i,0));     // cos(colatitude) of node i
 
-        getLegendreFuncs(cosCoLat, *temp_legendre, l_max);
-        getLegendreFuncsDeriv(cosCoLat, *temp_dlegendre, l_max);
-
-
-
-        for (l = 0; l < l_max+1; l++)
-        {
-            for (m = 0; m <= l; m++)
-            {
-
-                // assign legendre pol at node i for degree l and order m
-                Pbar_lm(i, l, m) = (*temp_legendre)(l, m);
-
-                // assign legendre pol derivative at node i for degree l and order m
-                // Pbar_lm_deriv(i, l, m) = (*temp_dlegendre)(l, m)*sin(pi*0.5 - node_pos_sph(i, 0));
-
-                if ((l==2) && (m==0)) Pbar_20(i) = (*temp_legendre)(l, m);
-                if ((l==2) && (m==2)) Pbar_22(i) = (*temp_legendre)(l, m);
-
-            }
-        }
-
-        // calculate cos(m*longitude) and sin(m*longitude) for node i
-        for (m=0; m < l_max+1; m++)
-        {
-            trigMLon(i, m, 0) = cos( (double)m * node_pos_sph( i, 1 ) );
-            trigMLon(i, m, 1) = sin( (double)m * node_pos_sph( i, 1 ) );
-        }
-
-        // int count = 0;
-        for (l = 0; l < l_max+1; l++)
-        {
-            for (m = 0; m <= l; m++)
-            {
-                Pbar_cosMLon(i, l, m) = Pbar_lm(i, l, m)*trigMLon(i, m, 0);
-                Pbar_sinMLon(i, l, m) = Pbar_lm(i, l, m)*trigMLon(i, m, 1);
-
-                // Pbar_deriv_cosMLon(i, l, m) = Pbar_lm_deriv(i, l, m)*trigMLon(i, m, 0);
-                // Pbar_deriv_sinMLon(i, l, m) = Pbar_lm_deriv(i, l, m)*trigMLon(i, m, 1);
-
-            }
-        }
-
-        int count = 0;
-        for (l = 2; l < l_max+1; l++)
-        {
-            for (m = 0; m <= l; m++)
-            {
-                sh_matrix(i, count) = Pbar_cosMLon(i, l, m);
-                if (globals->surface_type == FREE_LOADING) sh_matrix(i, count) *= globals->loading_factor[l];
-                else if (globals->surface_type == LID_MEMBR ||
-                         globals->surface_type == LID_LOVE) sh_matrix(i, count) *= globals->shell_factor_beta[l];
+    //     getLegendreFuncs(cosCoLat, *temp_legendre, l_max);
+    //     getLegendreFuncsDeriv(cosCoLat, *temp_dlegendre, l_max);
 
 
-                count++;
 
-                sh_matrix(i, count) = Pbar_sinMLon(i, l, m);
-                if (globals->surface_type == FREE_LOADING) sh_matrix(i, count) *= globals->loading_factor[l];
-                else if (globals->surface_type == LID_MEMBR ||
-                         globals->surface_type == LID_LOVE) sh_matrix(i, count) *= globals->shell_factor_beta[l];
+    //     for (l = 0; l < l_max+1; l++)
+    //     {
+    //         for (m = 0; m <= l; m++)
+    //         {
 
-                count++;
-            }
-        }
-    }
+    //             // assign legendre pol at node i for degree l and order m
+    //             Pbar_lm(i, l, m) = (*temp_legendre)(l, m);
 
-    int count = 0;
-    for (m = 0; m < (l_max+1)*(l_max+2) - 6; m++)
-    {
-        for (i=0; i<node_num; i++)
-        {
-            sh_matrix_fort(count) = sh_matrix(i, m);
-            // std::cout<<sh_matrix_fort(count)<<std::endl;
-            count++;
-        }
-    }
+    //             // assign legendre pol derivative at node i for degree l and order m
+    //             // Pbar_lm_deriv(i, l, m) = (*temp_dlegendre)(l, m)*sin(pi*0.5 - node_pos_sph(i, 0));
 
-    // free up memory!
-    delete temp_legendre;
-    delete temp_dlegendre;
+    //             if ((l==2) && (m==0)) Pbar_20(i) = (*temp_legendre)(l, m);
+    //             if ((l==2) && (m==2)) Pbar_22(i) = (*temp_legendre)(l, m);
 
-    return 1;
+    //         }
+    //     }
+
+    //     // calculate cos(m*longitude) and sin(m*longitude) for node i
+    //     for (m=0; m < l_max+1; m++)
+    //     {
+    //         trigMLon(i, m, 0) = cos( (double)m * node_pos_sph( i, 1 ) );
+    //         trigMLon(i, m, 1) = sin( (double)m * node_pos_sph( i, 1 ) );
+    //     }
+
+    //     // int count = 0;
+    //     for (l = 0; l < l_max+1; l++)
+    //     {
+    //         for (m = 0; m <= l; m++)
+    //         {
+    //             Pbar_cosMLon(i, l, m) = Pbar_lm(i, l, m)*trigMLon(i, m, 0);
+    //             Pbar_sinMLon(i, l, m) = Pbar_lm(i, l, m)*trigMLon(i, m, 1);
+
+    //             // Pbar_deriv_cosMLon(i, l, m) = Pbar_lm_deriv(i, l, m)*trigMLon(i, m, 0);
+    //             // Pbar_deriv_sinMLon(i, l, m) = Pbar_lm_deriv(i, l, m)*trigMLon(i, m, 1);
+
+    //         }
+    //     }
+
+    //     int count = 0;
+    //     for (l = 2; l < l_max+1; l++)
+    //     {
+    //         for (m = 0; m <= l; m++)
+    //         {
+    //             sh_matrix(i, count) = Pbar_cosMLon(i, l, m);
+    //             if (globals->surface_type == FREE_LOADING) sh_matrix(i, count) *= globals->loading_factor[l];
+    //             else if (globals->surface_type == LID_MEMBR ||
+    //                      globals->surface_type == LID_LOVE) sh_matrix(i, count) *= globals->shell_factor_beta[l];
+
+
+    //             count++;
+
+    //             sh_matrix(i, count) = Pbar_sinMLon(i, l, m);
+    //             if (globals->surface_type == FREE_LOADING) sh_matrix(i, count) *= globals->loading_factor[l];
+    //             else if (globals->surface_type == LID_MEMBR ||
+    //                      globals->surface_type == LID_LOVE) sh_matrix(i, count) *= globals->shell_factor_beta[l];
+
+    //             count++;
+    //         }
+    //     }
+    // }
+
+    // int count = 0;
+    // for (m = 0; m < (l_max+1)*(l_max+2) - 6; m++)
+    // {
+    //     for (i=0; i<node_num; i++)
+    //     {
+    //         sh_matrix_fort(count) = sh_matrix(i, m);
+    //         // std::cout<<sh_matrix_fort(count)<<std::endl;
+    //         count++;
+    //     }
+    // }
+
+    // // free up memory!
+    // delete temp_legendre;
+    // delete temp_dlegendre;
+
+    // return 1;
 }
 
 int Mesh::CalcCoriolisOperatorCoeffs(void)

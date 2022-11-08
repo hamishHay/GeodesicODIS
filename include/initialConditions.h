@@ -15,4 +15,8 @@ int writeInitialConditions(Globals *, Mesh *,
                            Array1D<double> &, Array2D<double> &,
                            Array1D<double> &, Array2D<double> &);
 
+int analyticalInitialConditions(Globals *, Mesh *,
+                                Array1D<double> &, Array2D<double> &,
+                                Array1D<double> &, Array2D<double> &);
+
 #endif
