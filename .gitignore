@@ -246,3 +246,7 @@ ODIS
 *.png
 PLOT/obliq_diss.pdf
 *.pdf
+InitialConditions/vel_init.txt
+DATA/DATA_orbit.h5
+DATA/data.h5
+InitialConditions/pres_init.txt
