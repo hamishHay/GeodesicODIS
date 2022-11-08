@@ -116,7 +116,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array1D<double> & dvdt, Array
         // soln_old(i, 0) = v_tm1(i, 0);
         // soln_old(i, 1) = v_tm1(i, 1);
         // soln_old(i, 2) = p_tm1(i);// - forcing_potential(i)/g;
-        soln_new(i) = p_tm1(i) - h - forcing_potential(i)/g;
+        soln_new(i) = p_tm1(i) - h;// - forcing_potential(i)/g;
         total_thickness(i) = p_tm1(i);//h + p_tm1(i);
 
         // double latc = pi / 6.0;
@@ -202,7 +202,7 @@ int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt
     // // // Perform sparse matrix * vector operation
     // // // dvdtEigen -= g * grid->operatorGradient * solnEigen;
 
-    d//etadtEigen = globals->h.Value() * grid->operatorDivergence * velEigen;
+    //detadtEigen = globals->h.Value() * grid->operatorDivergence * velEigen;
 
 
 
@@ -216,9 +216,9 @@ int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt
     // Array1D<double> h_space(globals->node_num);
 
     
-    for (int i=0; i<node_num; ++i) {
-        h_space(i) = h+eta(i);
-    }
+    // for (int i=0; i<node_num; ++i) {
+    //     h_space(i) = h+eta(i);
+    // }
 
     // double R = pi/9.0;
     // for (int i = 0; i < node_num; ++i)
