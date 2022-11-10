@@ -1234,7 +1234,7 @@ int Mesh::CalcMaxTimeStep(void)
       globals->surface_type == LID_LOVE)
   {
       if (globals->surface_type == LID_LOVE) g *= -(globals->shell_factor_beta[globals->l_max.Value()]-1.0);
-      // std::cout<<g<<std::endl;
+
       for (i=0; i<node_num; i++)
       {
           f = node_friends(i,5);
@@ -1262,11 +1262,8 @@ int Mesh::CalcMaxTimeStep(void)
       dt = globals->period.Value() / dt_num;
 
       dt_num += 100;
-    //   std::cout<<dt<<' '<<globals->period.Value()/dt<<std::endl;
   }
   dt_num -= 100;
-
-//   std::cout<<"DT: "<<dt<<std::endl;
 
   globals->timeStep.SetValue(dt);
   globals->totalIter.SetValue(dt_num);
