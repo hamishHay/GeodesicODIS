@@ -154,7 +154,7 @@ class FieldPlot2:
             self.axes.append(ax_current)
 
             # cnt = ax_current.tricontourf(triang1, data[i][:len(x1)], levels=clevels, cmap = plt.cm.plasma)
-            cnt = ax_current.tricontourf(triang, data_eta[i]-self.h_ocean)
+            cnt = ax_current.tricontourf(triang, data_eta[i])
             ax_current.quiver(x1,y1,data_u[:len(x1)],data_v[:len(x1)])#,scale=0.01)
 
         cb = self.im_grid.cbar_axes[0].colorbar(cnt, norm=norm)
@@ -308,7 +308,7 @@ class FieldPlot2:
         return data
 
     def save_fig(self,name="FieldPlot2_plot.pdf"):
-        self.fig.savefig(name, dpi=400, bbox_inches='tight', transparent=True)
+        self.fig.savefig(name, dpi=400, bbox_inches='tight', transparent=False)
 
     def set_defaults(self, poster=False):
         # plt.rcParams['mathtext.fontset'] = 'custom'
@@ -458,7 +458,7 @@ if __name__=='__main__':
     #                     lvl_num=11)
 
     # plt.show()
-    # Plotter.plot_vector(slices=[10])#slices=slices,
+    Plotter.plot_vector(slices=[-1])#slices=slices,
                         # b_slice=-100,
                         # ax_ind=plot_ax,
                         # crange=None,
@@ -494,10 +494,11 @@ if __name__=='__main__':
     # data = np.mean(data, axis=1)
     # Plotter.plot_avg_vs 
 
-    # Plotter.save_fig(name='diss_eng.png')
+    Plotter.save_fig(name='velocity_soln.png')
 
     fig,ax = plt.subplots()
     data = Plotter.load_data(data_name="dissipation avg output", slices=None)
     print(data)
-    ax.plot(data)
-    fig.savefig("diss_energy.png",dpi=400)
+    print(len(data))
+    ax.plot(data[data>0])
+    fig.savefig("dissipation.png",dpi=400,bbox_inches='tight')
