@@ -98,12 +98,12 @@ void OutFiles::WelcomeMessage(void) {
 
 	sstream <<std::endl<<std::endl<< "        | Welcome to Ocean Dissipation in Icy Satellites (ODIS)! |" << std::endl;
 	sstream << "        |--------------------------------------------------------|" << std::endl;
-	sstream << "        |               ___________ _____ _____                  |" << std::endl;
-	sstream << "        |              |  _  |  _  \\_   _/  ___|                 |" << std::endl;
-	sstream << "        |              | | | | | | | | | \\ `--.                  |" << std::endl;
-	sstream << "        |              | | | | | | | | |  `--. \\                 |" << std::endl;
-	sstream << "        |              \\ \\_/ / |/ / _| |_/\\__/ /                 |" << std::endl;
-	sstream << "        |               \\___/|___/  \\___/\\____/                  |" << std::endl;
+	sstream << "        |                ___________ _____ _____                  |" << std::endl;
+	sstream << "        |               |  _  |  _  \\_   _/  ___|                |" << std::endl;
+	sstream << "        |               | | | | | | | | | \\ `--.                 |" << std::endl;
+	sstream << "        |               | | | | | | | | |  `--. \\                |" << std::endl;
+	sstream << "        |               \\ \\_/ / |/ / _| |_/\\__/ /                |" << std::endl;
+	sstream << "        |                \\___/|___/  \\___/\\____/                 |" << std::endl;
 	sstream << "        |                                                        |" << std::endl;
 	sstream << "        |--------------------------------------------------------|" << std::endl;
 	sstream << "        | ODIS is a numerical finite volume ocean dynamics       |" << std::endl;
@@ -137,32 +137,28 @@ void OutFiles::CreateHDF5Framework(Globals * globals)
 {
 
   unsigned int i, l_max;
-  double end_time, orbit_period, output_time;
+  int output_num, orbit_num;
 
   tags = &globals->out_tags;
   node_num = globals->node_num;
   face_num = globals->face_num;
   l_max = globals->l_max.Value();
 
-  end_time = (double)globals->endTime.Value();
-  orbit_period = globals->period.Value();
-  output_time = globals->outputTime.Value();
+  output_num = globals->outputTime.Value();
+  orbit_num = globals->endTime.Value();
 
   #if _WIN32
     // mkdir(&(globals->path + SEP + "Grid" + SEP)[0], NULL);
 
     mkdir(&(globals->path +  SEP + "DATA" + SEP)[0], NULL);
 
-  #elif __linux__
+  #else
     // mkdir(&(globals->path +  SEP + "Grid" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
 
     mkdir(&(globals->path +  SEP + "DATA" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
 
   #endif
 
-    mkdir(&(globals->path +  SEP + "DATA" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
-
-    // eta_1D
     eta_1D = new float[node_num];
     v_1D = new float[face_num];
     u_1D = new float[face_num];
@@ -173,7 +169,7 @@ void OutFiles::CreateHDF5Framework(Globals * globals)
     kinetic_avg_1D = new float[node_num];
     // harm_coeff_1D = new float[2*(l_max+1)*(l_max+1)];
 
-    time_slices = (end_time/orbit_period)/output_time + 1;
+    time_slices = orbit_num*output_num+1;
 
     //
     rank_cv = 2;
