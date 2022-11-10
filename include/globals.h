@@ -137,6 +137,7 @@ public:
   GlobalVar<std::string> solver;        // string for type of time sovler
   GlobalVar<bool> init;                 // boolean for using initial conditions
   GlobalVar<double> converge;           // convergence criteria for ODIS.
+  GlobalVar<bool> advection;     // switch for advection 
 
   GlobalVar<int> freq;                  // Planet-planet freq
   GlobalVar<double> a20;                // Fourier coeffs for general forcing

@@ -111,6 +111,9 @@ Globals::Globals(int action) {
     period.SetStringID("orbital period");
     allGlobals.push_back(&period);
 
+    advection.SetStringID("advection");
+    allGlobals.push_back(&advection);
+
     endTime.SetStringID("simulation end time");
     allGlobals.push_back(&endTime);
 
@@ -448,6 +451,8 @@ void Globals::SetDefault(void)
   // it would be safer to simply require a fully populated input.in file?
 
   core_num.SetValue(1);
+
+  advection.SetValue(false);
 
   totalIter.SetValue(1000);
 
