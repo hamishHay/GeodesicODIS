@@ -80,7 +80,6 @@ class Globals {
 private:
   // Two member functions for setting all constants (default is for Titan)
   void SetDefault(void);
-  void OutputConsts(void); // Print all constants to output file.
 
 public:
   // Class containing functions to output errors and messages, or terminate ODIS.
@@ -161,8 +160,10 @@ public:
 
   GlobalVar<int>  core_num;
 
+  GlobalVar<int> totalIter;
+
   // Time in fraction of orbital period for output of all parameters
-  GlobalVar<double> outputTime;
+  GlobalVar<int> outputTime;
 
   GlobalVar<std::string> grav_coeff_file;      // file name containing beta coeffs
   GlobalVar<std::string> forcing_coeff_file;   // file name containing upsilon coeffs
@@ -187,6 +188,8 @@ public:
 
   // Member function to read global variables from input.in file.
   int ReadGlobals(void);
+
+  void OutputConsts(void); // Print all constants to output file.
 
   int GetShellCoeffs(void);
 };

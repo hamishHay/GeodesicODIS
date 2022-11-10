@@ -177,6 +177,9 @@ Globals::Globals(int action) {
     outputTime.SetStringID("output time");
     allGlobals.push_back(&outputTime);
 
+    totalIter.SetStringID("total iterations");
+    allGlobals.push_back(&totalIter);
+
     core_num.SetStringID("core number");
     allGlobals.push_back(&core_num);
 
@@ -203,7 +206,8 @@ Globals::Globals(int action) {
   std::cout << int_time << ' ' << 2*pi/(double)int_time<< std::endl;
 
   // Convert end time from units of orbital period to seconds.
-  endTime.SetValue(endTime.Value()*period.Value());
+  // endTime.SetValue(endTime.Value()*period.Value());
+  endTime.SetValue(endTime.Value());
 
   // geodesic node num expression (Lee and Macdonald, 2008)
   node_num = 10 * pow(pow(2, geodesic_l.Value() - 1), 2) + 2;
@@ -283,8 +287,6 @@ Globals::Globals(int action) {
     // mkl_set_num_threads(core_num.Value());
     // omp_set_num_threads(core_num.Value());
 
-    // Print out all constants to output.txt
-    OutputConsts();
 };
 
 int Globals::ReadGlobals(void)
@@ -446,6 +448,8 @@ void Globals::SetDefault(void)
   // it would be safer to simply require a fully populated input.in file?
 
   core_num.SetValue(1);
+
+  totalIter.SetValue(1000);
 
   //Satellite Radius
   radius.SetValue(2574.73e3);
