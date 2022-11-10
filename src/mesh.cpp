@@ -1253,21 +1253,23 @@ int Mesh::CalcMaxTimeStep(void)
   }
 
   double target_dt = dt;
-  int dt_num = 10;
+  int dt_num = 100;
 
-  dt = globals->period.Value()*globals->outputTime.Value();
+  dt = globals->period.Value();
 
   while (dt > target_dt) 
   {
-      dt = globals->period.Value() * globals->outputTime.Value() / dt_num;
+      dt = globals->period.Value() / dt_num;
 
-      dt_num += 5;
-      std::cout<<dt<<' '<<globals->period.Value()/dt<<std::endl;
+      dt_num += 100;
+    //   std::cout<<dt<<' '<<globals->period.Value()/dt<<std::endl;
   }
+  dt_num -= 100;
 
-  std::cout<<"DT: "<<dt<<std::endl;
+//   std::cout<<"DT: "<<dt<<std::endl;
 
   globals->timeStep.SetValue(dt);
+  globals->totalIter.SetValue(dt_num);
 
 
 
