@@ -139,9 +139,9 @@ std::array<double, 6> analyticalLTE(Globals * consts, Mesh * grid, int forcing_t
         std::complex<double> Phi21 = -j*L1/pn(2,1)*Psi11;
         // std::complex 
 
-        std::complex<double> Y31 = -1.5 * (5*pow(cos(pi*0.5 - lat),2.0) - 1)*sin(pi*0.5 - lat)*exp(j * 1.0 * lon);
-        std::complex<double> Y21 = -3 * cos(pi*0.5 - lat)*sin(pi*0.5 - lat) * std::exp(j * 1.0 * lon);
-        std::complex<double> Y11 = -sin(pi*0.5 - lat)*std::exp(j*1.0*lon);
+        std::complex<double> Y31 = 1.5 * (5*pow(cos(pi*0.5 - lat),2.0) - 1)*sin(pi*0.5 - lat)*exp(j * 1.0 * lon);
+        std::complex<double> Y21 = 3 * cos(pi*0.5 - lat)*sin(pi*0.5 - lat) * std::exp(j * 1.0 * lon);
+        std::complex<double> Y11 = sin(pi*0.5 - lat)*std::exp(j*1.0*lon);
 
         U = (-1/3. * (Psi11 * Y21) + j*Phi21*Y21)*std::exp(-j*w*t);
         dUdt = -j*w*U;
@@ -151,18 +151,18 @@ std::array<double, 6> analyticalLTE(Globals * consts, Mesh * grid, int forcing_t
         dUdt += std::conj(dUdt);
         dUdt /= 2*radius*sin(pi*0.5 - lat);
 
-        V = (j*Psi11 *Y11 + Phi21*(4.0*Y31 - 9.0*Y11)/5.)*std::exp(-j*w*t);
+        V = -(j*Psi11 *Y11 + Phi21*(4.0*Y31 - 9.0*Y11)/5.)*std::exp(-j*w*t);
         dVdt = -j*w*V;
         V += std::conj(V);         // Add complex conjugate 
         V /= 2*radius*sin(pi*0.5 - lat);
 
-        V *= -1.0;
-        dVdt *= -1.0;
+        // V *= -1.0;
+        // dVdt *= -1.0;
 
         dVdt += std::conj(dVdt);
         dVdt /= 2*radius*sin(pi*0.5 - lat);
 
-        ETA = -j*6.0/pow(radius,2.0) * h/w * Phi21 * Y21  * std::exp(-j*w*t);
+        ETA = j*6.0/pow(radius,2.0) * h/w * Phi21 * Y21  * std::exp(-j*w*t);
         dETAdt = -j*w*ETA;
         ETA += std::conj(ETA);
         ETA *= 0.5;
@@ -173,7 +173,7 @@ std::array<double, 6> analyticalLTE(Globals * consts, Mesh * grid, int forcing_t
         // double Uedge = grid->face_normal_vec_map(i, 0)*std::real(U) + grid->face_normal_vec_map(i, 1)*std::real(V);
         // double dUdtedge = grid->face_normal_vec_map(i, 0)*std::real(dUdt) + grid->face_normal_vec_map(i, 1)*std::real(dVdt);
 
-        std::array<double, 6> data = {std::real(U), std::real(V), std::real(dUdt), std::real(dVdt), std::real(ETA)+h, std::real(dETAdt)};
+        std::array<double, 6> data = {std::real(U), std::real(V), std::real(dUdt), std::real(dVdt), std::real(ETA), std::real(dETAdt)};
 
         return data;
 
