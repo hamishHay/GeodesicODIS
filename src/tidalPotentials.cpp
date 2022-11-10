@@ -123,7 +123,7 @@ void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, int for
           for (i=0; i<node_num; ++i) {
               j = i*2;
 
-              potential(i) = -3*factor * sinLat[j]*cosLat[j]*(cosLon[j]*cosM - sinLon[j]*sinM);
+              potential(i) = 3*factor * sinLat[j]*cosLat[j]*(cosLon[j]*cosM - sinLon[j]*sinM);
           }
 
       }
