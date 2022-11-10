@@ -65,9 +65,9 @@ int updateVelocity(Globals * globals, Mesh * grid, Array1D<double> & dvdt, Array
 
     visc = 5e3;
 
-    //Array1D<double> forcing_potential(node_num);
+    Array1D<double> forcing_potential(node_num);
 
-    //forcing(globals, grid, forcing_potential, globals->tide_type, current_time, e, obliq);
+    forcing(globals, grid, forcing_potential, globals->tide_type, current_time, e, obliq);
 
     // Array1D<double> self_gravity(node_num);
 /*
@@ -116,7 +116,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array1D<double> & dvdt, Array
         // soln_old(i, 0) = v_tm1(i, 0);
         // soln_old(i, 1) = v_tm1(i, 1);
         // soln_old(i, 2) = p_tm1(i);// - forcing_potential(i)/g;
-        soln_new(i) = p_tm1(i) - h;// - forcing_potential(i)/g;
+        soln_new(i) = p_tm1(i) - forcing_potential(i)/g;
         total_thickness(i) = p_tm1(i);//h + p_tm1(i);
 
         // double latc = pi / 6.0;
@@ -141,7 +141,7 @@ int updateVelocity(Globals * globals, Mesh * grid, Array1D<double> & dvdt, Array
     // Perform sparse matrix * vector operation
     dvdtEigen -= g*grid->operatorGradient * solnEigen;
 
-//    dvdtEigen += grid->operatorLinearDrag * velEigen;
+   dvdtEigen += grid->operatorLinearDrag * velEigen;
 
     dvdtEigen += grid->operatorCoriolis * velEigen;
 
@@ -280,10 +280,10 @@ int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt
         // hv(i) = v_t0(i);// * avg_thickness - 0.5*fabs(v_t0(i))*diff_thickness;///thickness*v_t0(i);
         // hv(i,1) = (eta(i)+globals->h.Value())*v_t0(i);
 
-        hv(i) = v_t0(i) * h;//avg_thickness;
+        hv(i) = v_t0(i);//avg_thickness;
     }
 
-    detadtEigen = grid->operatorDivergence * hvEigen;
+    detadtEigen = h*grid->operatorDivergence * hvEigen;
 
     // mkl_sparse_d_mv(operation, 1.0, *(grid->operatorDivergenceX), descript, &(hv(0)), 0.0, &(deta_dt(0)));
 
@@ -326,7 +326,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     // Array1D<double> * energy_diss;
     // Array1D<double> * cv_mass;
 
-    double end_time, current_time, dt, out_frac, orbit_period, out_time;
+    double end_time, current_time, dt, orbit_period;
 
     double r = globals->radius.Value();
 
@@ -344,7 +344,6 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
     end_time     = globals->endTime.Value();
     dt           = globals->timeStep.Value();
-    out_frac     = globals->outputTime.Value();
     orbit_period = globals->period.Value();
 
     Output = globals->Output;
@@ -440,7 +439,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
             p_t0(i) = 0.0;
         }
 
-        //p_t0(i) = globals->h.Value();// 0.0;
+        p_t0(i) = 0.0;//globals->h.Value();// 0.0;
 
         // lat = grid->node_pos_sph(i, 0);
         // lon = grid->node_pos_sph(i, 1);
@@ -474,31 +473,31 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
     if (globals->init.Value())
     {
-    //    loadInitialConditions(globals, grid, v_t0, dv_dt, p_t0, dp_dt);
+       loadInitialConditions(globals, grid, v_t0, dv_dt, p_t0, dp_dt);
 
-       analyticalInitialConditions(globals, grid, v_t0, dv_dt, p_t0, dp_dt);
-       interpolateVelocity(globals, grid, v_avg, v_t0);
+    //    analyticalInitialConditions(globals, grid, v_t0, dv_dt, p_t0, dp_dt);
 
-       iter = 3;
+       iter = 0;
     }
     else iter = 0;
 
-    // interpolateVelocity(globals, grid, v_avg, v_t0);
+    updateEnergy(globals, e_diss, energy_diss, v_avg, grid->face_area);
+    total_diss[0] = e_diss;
+
+    interpolateVelocity(globals, grid, v_avg, v_t0);
 
     //--------------------------------------------------------------------------
     //------------------------- BEGIN TIME LOOP --------------------------------
     //--------------------------------------------------------------------------
 
     out_count = 1;
-    current_time = 0.0;
-    out_time = 0.0;
+    current_time = dt*iter;
+    int out_freq = globals->totalIter.Value() / globals->outputTime.Value();
 
     outstring << std::fixed << "DUMPING DATA AT " << current_time / orbit_period;
     outstring << " AVG DISS: " << std::scientific << *total_diss * 4 * pi * r * r / 1e9 << " GW" << out_count;
 
     Output->Write(OUT_MESSAGE, &outstring);
-
-    out_time -= out_frac * orbit_period;
 
     Output->DumpData(globals, out_count, pp);
     out_count++;
@@ -508,7 +507,8 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     double h = globals->h.Value();
     double alpha = globals->alpha.Value();
 
-    while (current_time <= end_time)
+    // while (current_time <= end_time)#
+    while (iter < globals->totalIter.Value()*globals->endTime.Value())
     {
         if (globals->surface_type == FREE ||
             globals->surface_type == FREE_LOADING ||
@@ -525,25 +525,25 @@ int ab3Explicit(Globals * globals, Mesh * grid)
             // MARCH VELOCITY FORWARD IN TIME
             integrateAB3scalar(globals, grid, v_t0, dv_dt, iter, grid->face_num);
 
-            Array1D<double> forcing_potential(node_num);
-            Array1D<double> drag(face_num);
-            forcing(globals, grid, forcing_potential, globals->tide_type, current_time, globals->e.Value(), globals->theta.Value());
+            // Array1D<double> forcing_potential(node_num);
+            // Array1D<double> drag(face_num);
+            // forcing(globals, grid, forcing_potential, globals->tide_type, current_time, globals->e.Value(), globals->theta.Value());
 
             
-            Eigen::Map<Eigen::VectorXd> forcingEigen(&forcing_potential(0), node_num);
-            Eigen::Map<Eigen::VectorXd> velEigen(&v_t0(0), face_num);
-            Eigen::Map<Eigen::VectorXd> dragEigen(&drag(0), face_num);
+            // Eigen::Map<Eigen::VectorXd> forcingEigen(&forcing_potential(0), node_num);
+            // Eigen::Map<Eigen::VectorXd> velEigen(&v_t0(0), face_num);
+            // Eigen::Map<Eigen::VectorXd> dragEigen(&drag(0), face_num);
             // Perform sparse matrix * vector operation
 
 
-            if (globals->fric_type == QUADRATIC)
-                quadraticDrag(face_num, alpha, h, drag, v_avg, v_t0);
-            else
-                dragEigen = grid->operatorLinearDrag * velEigen;
+            // if (globals->fric_type == QUADRATIC)
+            //     quadraticDrag(face_num, alpha, h, drag, v_avg, v_t0);
+            // else
+            //     dragEigen = grid->operatorLinearDrag * velEigen;
 
 
 
-            velEigen += dt*(grid->operatorGradient * forcingEigen - dragEigen);
+            // velEigen += dt*(grid->operatorGradient * forcingEigen - dragEigen);
 
 
             //std::cout<<velEigen<<std::endl;
@@ -612,20 +612,16 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
         }
 
-        current_time += dt;
-        out_time += dt;
-
         iter ++;
+        current_time = dt*iter;
 
         // Check for output
-        if (out_time >= out_frac*orbit_period)
+        if (iter%out_freq == 0)
         {
             outstring << std::fixed <<"DUMPING DATA AT "<<current_time/orbit_period;
             outstring << " AVG DISS: "<<std::scientific<<*total_diss*4*pi*r*r/1e9<<" GW"<<out_count;
 
             Output->Write(OUT_MESSAGE, &outstring);
-
-            out_time -= out_frac*orbit_period;
 
             Output->DumpData(globals, out_count, pp);
             out_count++;
