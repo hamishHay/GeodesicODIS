@@ -14,6 +14,7 @@
 #include "drag.h"
 #include "initialConditions.h"
 #include "momAdvection.h"
+#include "gridConstants.h"
 #include <math.h>
 #include <iostream>
 #include <sstream>
@@ -34,6 +35,63 @@ void CatchExit(int sig) {
 }
 
 
+// Array1D<double> vorticity_v(VERTEX_NUM);
+
+
+
+
+
+Array1D<double> soln_new(NODE_NUM);
+Array1D<double> total_thickness(NODE_NUM);
+
+Array1D<double> advection_term(FACE_NUM);
+Eigen::Map<Eigen::VectorXd> adv_eig(&advection_term(0), FACE_NUM);
+Array1D<double> Ekin(NODE_NUM);
+
+Array1D<double> forcing_potential(NODE_NUM);
+Eigen::Map<Eigen::VectorXd> forcing_potential_eig(&forcing_potential(0), NODE_NUM);
+
+Array1D<double> hv(FACE_NUM);
+Array1D<double> h_space(NODE_NUM);
+
+Array1D<double> v_t0    (FACE_NUM);     // velocity array
+Eigen::Map<Eigen::VectorXd> v_t0_eig(&v_t0(0), FACE_NUM);
+
+Array1D<double> v_guess    (FACE_NUM);     // velocity array
+Eigen::Map<Eigen::VectorXd> v_guess_eig(&v_guess(0), FACE_NUM);
+
+Array1D<double> drag_term    (FACE_NUM);     // velocity array
+Eigen::Map<Eigen::VectorXd> drag_term_eig(&drag_term(0), FACE_NUM);
+Array1D<double> dv_dt_t0(FACE_NUM);     // velocity rate of change array
+
+Array2D<double> v_xyz   (NODE_NUM, 3);  // Cartesian velocity components 
+
+Array2D<double> v_avg(FACE_NUM, 2);     // velocity components array
+
+Array1D<double> p_t0    (NODE_NUM);     // pressure array
+Eigen::Map<Eigen::VectorXd> p_t0_eig(&p_t0(0), NODE_NUM);
+Array1D<double> p_guess    (NODE_NUM);     // pressure array
+Eigen::Map<Eigen::VectorXd> p_guess_eig(&p_guess(0), NODE_NUM);
+Array1D<double> dp_dt_t0(NODE_NUM);     // pressure rate of change array
+
+Array2D<double> dv_dt(FACE_NUM, 3);     // [face][dvdt level]
+Array2D<double> dp_dt(NODE_NUM, 3);     // [cv][dpdt level]
+
+Array1D<double> cv_mass     (NODE_NUM); // control volume mass array
+Array1D<double> energy_diss (FACE_NUM); // energy dissipation array
+
+Array1D<double> dummy_vel(FACE_NUM);
+
+Array1D<double> v_t0_old(FACE_NUM);
+    // Array1D<double> dv_dt_t0(face_num);
+
+    // Array1D<double> p_t0    (node_num);
+Array1D<double> p_t0_old(NODE_NUM);
+// Array1D<double> dp_dt_t0(node_num);
+
+Array2D<double> dv_dt4(FACE_NUM, 4);   //[node][vel component][dvdt]
+Array2D<double> dp_dt4(NODE_NUM, 4);      
+
 typedef unsigned long long timestamp_t;
 double total_time=0.0;
 int time_iter=0;
@@ -47,11 +105,12 @@ static timestamp_t get_timestamp ()
 
 int updateVelocity(Globals * globals, Mesh * grid, Array1D<double> & dvdt, Array1D<double> & v_tm1, Array1D<double> & p_tm1, double current_time)
 {
-    double r, omega, e, obliq, h, drag_coeff, visc, g, dt;
+    double r, omega, e, obliq, h, drag_coeff, visc, g, gr, dt;
     int node_num;
 
     r =       globals->radius.Value();
     g =       globals->g.Value();
+    gr = 1.0/g;
     dt =      globals->timeStep.Value();
     omega =   globals->angVel.Value();
     e =       globals->e.Value();
@@ -65,9 +124,9 @@ int updateVelocity(Globals * globals, Mesh * grid, Array1D<double> & dvdt, Array
 
     visc = 5e3;
 
-    Array1D<double> forcing_potential(node_num);
-
-    forcing(globals, grid, forcing_potential, globals->tide_type, current_time, e, obliq);
+    
+    // forcing(globals, grid, forcing_potential, globals->tide_type, current_time, e, obliq);
+    
 
     // Array1D<double> self_gravity(node_num);
 /*
@@ -100,24 +159,25 @@ int updateVelocity(Globals * globals, Mesh * grid, Array1D<double> & dvdt, Array
     double betam = 0.0;
     //
     // Array2D<double> soln_old(node_num, 3);
-    Array1D<double> soln_new(node_num);
-    Array1D<double> total_thickness(node_num);
 
-    for (int i=0; i<face_num; ++i)
-    {
-      dvdt(i) = 0.0;
-      // dvdt(i, 1) = 0.0;
-    }
+    
+    // for (int i=0; i<FACE_NUM; ++i)
+    // {
+    //   dvdt(i) = 0.0;
+    //   // dvdt(i, 1) = 0.0;
+    // }
 
     // #pragma omp parallel for
     double R = pi/9.0;
-    for (int i=0; i<node_num; ++i)
+    for (int i=0; i<NODE_NUM; ++i)
     {
         // soln_old(i, 0) = v_tm1(i, 0);
         // soln_old(i, 1) = v_tm1(i, 1);
         // soln_old(i, 2) = p_tm1(i);// - forcing_potential(i)/g;
-        soln_new(i) = p_tm1(i) - forcing_potential(i)/g;
-        total_thickness(i) = p_tm1(i);//h + p_tm1(i);
+        soln_new(i) = p_tm1(i);// - forcing_potential(i)*gr;
+        total_thickness(i) = h + p_tm1(i);
+
+        // std::cout<<forcing_potential(i)<<' '<<h<<std::endl;
 
         // double latc = pi / 6.0;
         // double lonc = pi / 2.0;
@@ -134,50 +194,40 @@ int updateVelocity(Globals * globals, Mesh * grid, Array1D<double> & dvdt, Array
         // soln_new(i) = p_tm1(i) + b;
     }
 
-    Eigen::Map<Eigen::VectorXd> solnEigen(&soln_new(0), grid->node_num);
-    Eigen::Map<Eigen::VectorXd> dvdtEigen(&dvdt(0), face_num);
-    Eigen::Map<Eigen::VectorXd> velEigen(&v_tm1(0), face_num);
+    Eigen::Map<Eigen::VectorXd> solnEigen(&soln_new(0), NODE_NUM);
+    Eigen::Map<Eigen::VectorXd> dvdtEigen(&dvdt(0), FACE_NUM);
+    Eigen::Map<Eigen::VectorXd> velEigen(&v_tm1(0), FACE_NUM);
 
     // Perform sparse matrix * vector operation
-    dvdtEigen -= g*grid->operatorGradient * solnEigen;
+    dvdtEigen.setZero();
+    // dvdtEigen = -g*grid->operatorGradient * solnEigen;//+ grid->operatorLinearDrag * velEigen;
 
-   dvdtEigen += grid->operatorLinearDrag * velEigen;
-
-    dvdtEigen += grid->operatorCoriolis * velEigen;
-
-    // Array1D<double> advection_term(face_num);
-
-    // calculateMomentumAdvection(globals, grid, v_tm1, total_thickness, advection_term);
-
-    // Eigen::Map<Eigen::VectorXd> adv_eig(&advection_term(0), face_num);
-
-    // dvdtEigen += adv_eig;
+    // dvdtEigen += grid->operatorLinearDrag * velEigen;
 
     
-
-    // mkl_sparse_d_mv(operation, 1.0, *(grid->operatorGradient), descript, &(soln_new(0)), betam, &(dvdt(0)));
-    // pressureGradientN(grid, dvdt, soln_new, node_num, g);
-
-    // mkl_sparse_d_mv(operation, 1.0, *(grid->operatorLinearDrag), descript, &(v_tm1(0)), 1.0, &(dvdt(0)));
-    // // linearDrag(node_num, drag_coeff, dvdt, v_tm1);
-    //
-    // mkl_sparse_d_mv(operation, 1.0, *(grid->operatorCoriolis), descript, &(v_tm1(0)), 1.0, &(dvdt(0)));
     // timestamp_t t0 = get_timestamp();
+    if (globals->advection.Value()) {
+        
+        // timestamp_t t0 = get_timestamp();
+        calculateMomentumAdvection(globals, grid, v_tm1, total_thickness, advection_term, Ekin);
+        // timestamp_t t1 = get_timestamp();
+    
+        // total_time += (t1 - t0) / 1000000.0L;
+        
+        // time_iter += 1;
 
-    // Perform A*d = dvdt where A is operatorMomentum, and d = [u, v, eta-U/g]
-    // mkl_sparse_d_mv(operation, 1.0, *(grid->operatorMomentum), descript, &(v_tm1(0)), 1.0, &(dvdt(0)));
+        // std::cout<<"TIME1: "<<total_time/((double)time_iter)<<std::endl;
+        
 
+        dvdtEigen -= adv_eig;
+    }
+    else {
+        dvdtEigen += grid->operatorCoriolis * velEigen;
+    }
+    
+    
 
-    // timestamp_t t1 = get_timestamp();
-    //
-    // total_time += (t1 - t0) / 1000000.0L;
-    //
-    // time_iter += 1;
-
-    // std::cout<<"TIME: "<<total_time/((double)time_iter)<<std::endl;
-
-    // if (globals->fric_type == QUADRATIC) quadraticDrag(node_num, drag_coeff, h, dvdt, v_tm1);
-
+    
     return 1;
 
 };
@@ -188,6 +238,7 @@ int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt
     int node_num = globals->node_num;
     int face_num = globals->face_num;
     double h = globals->h.Value();
+    int advection = globals->advection.Value();
 
     // sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
     // matrix_descr descript;
@@ -196,8 +247,8 @@ int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt
     double alpham = 1.0;
     double betam = 0.0;
 
-    // Eigen::Map<Eigen::VectorXd> solnEigen(&soln_new(0), grid->node_num);
-    Eigen::Map<Eigen::VectorXd> detadtEigen(&deta_dt(0), grid->node_num);
+    // Eigen::Map<Eigen::VectorXd> solnEigen(&soln_new(0), NODE_NUM);
+    Eigen::Map<Eigen::VectorXd> detadtEigen(&deta_dt(0), NODE_NUM);
     //Eigen::Map<Eigen::VectorXd> velEigen(&v_t0(0), grid->face_num);
     // // // Perform sparse matrix * vector operation
     // // // dvdtEigen -= g * grid->operatorGradient * solnEigen;
@@ -212,13 +263,12 @@ int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt
 
 
     // mkl_sparse_d_mv(operation, globals->h.Value(), *(grid->operatorDivergenceX), descript, &(v_t0(0)), 0.0, &(deta_dt(0)));
-    Array1D<double> hv(globals->face_num);
-    // Array1D<double> h_space(globals->node_num);
+    
 
     
-    // for (int i=0; i<node_num; ++i) {
-    //     h_space(i) = h+eta(i);
-    // }
+    for (int i=0; i<NODE_NUM; ++i) {
+        h_space(i) = h+eta(i);
+    }
 
     // double R = pi/9.0;
     // for (int i = 0; i < node_num; ++i)
@@ -239,51 +289,62 @@ int updateDisplacement(Globals * globals, Mesh * grid, Array1D<double> & deta_dt
 
     // }
 
-    // interpolateLSQFlux(globals, grid, hv, v_t0, h_space);
+    
 
-    Eigen::Map<Eigen::VectorXd> hvEigen(&hv(0), grid->face_num);
-    // // Perform sparse matrix * vector operation
-    // // dvdtEigen -= g * grid->operatorGradient * solnEigen;
+    Eigen::Map<Eigen::VectorXd> hvEigen(&hv(0), FACE_NUM);
+ 
+    // timestamp_t t0 = get_timestamp();
 
-    // detadtEigen = grid->operatorDivergence * hvEigen;
+    if (globals->advection.Value()) {
+        // for (int i=0; i<face_num; ++i)
+        // {
+        //     int node_in = grid->face_nodes(i, 0);
+        //     int node_out = grid->face_nodes(i, 1);
+        //     // double inner = eta(node_in);
+        //     // double outer = eta(node_out);
+        //     // double diff_thickness = outer - inner;
+        //     // double avg_h = 0.5 * ( (inner + h) + (outer + h) );
+        //     // double thickness;
 
-    // for (int i = 0; i < node_num; ++i)
-    // {
-    //     int f_num = 6;
-    //     if (grid->node_friends(i, 5) == -1) f_num--;
+        //     // // check if flow is in or out of face
+        //     // // if outward, use inner h
+        //     // // if inward, use outer h
 
-    //     for (int j=0; j<f_num; j++) {
-    //         int face_ID = grid->faces(i, j);
-    //         // std::cout<<hv(face_ID);
-    //         deta_dt(i) -= hv(face_ID)*grid->node_face_dir(i,j);
-    //     }
+        //     // if (v_t0(i) > 0.0) thickness = inner+h;
+        //     // else thickness = outer+h;
 
-    // }
+        //     hv(i) = v_t0(i) * (h + (eta(node_in) + eta(node_out))*0.5);    // * avg_thickness - 0.5*fabs(v_t0(i))*diff_thickness;///thickness*v_t0(i);
+        // }   
+        // timestamp_t t0 = get_timestamp();
+        interpolateLSQFlux(globals, grid, hv, v_t0, h_space);
+        // timestamp_t t1 = get_timestamp();
+    
+        // total_time += (t1 - t0) / 1000000.0L;
+        
+        // time_iter += 1;
 
-    for (int i=0; i<face_num; ++i)
-    {
-        int node_in = grid->face_nodes(i, 0);
-        int node_out = grid->face_nodes(i, 1);
-        double inner = eta(node_in);
-        double outer = eta(node_out);
-        double diff_thickness = outer - inner;
-        double avg_thickness = 0.5 * ( (inner + h) + (outer + h) );
-        // double thickness;
+        // std::cout<<"TIME1: "<<total_time/((double)time_iter)<<std::endl;
 
-        // // check if flow is in or out of face
-        // // if outward, use inner h
-        // // if inward, use outer h
-
-        // if (v_t0(i) > 0.0) thickness = inner+h;
-        // else thickness = outer+h;
-
-        // hv(i) = v_t0(i);// * avg_thickness - 0.5*fabs(v_t0(i))*diff_thickness;///thickness*v_t0(i);
-        // hv(i,1) = (eta(i)+globals->h.Value())*v_t0(i);
-
-        hv(i) = v_t0(i);//avg_thickness;
+        detadtEigen = grid->operatorDivergence * hvEigen;
     }
+    else {
+        for (int i=0; i<FACE_NUM; ++i)
+        {
+            hv(i) = v_t0(i) ;//* (h + (eta(node_in) + eta(node_out))*0.5*advection);    // * avg_thickness - 0.5*fabs(v_t0(i))*diff_thickness;///thickness*v_t0(i);
+        }
+        detadtEigen = h* grid->operatorDivergence * hvEigen;   
+    }
+     
 
-    detadtEigen = h*grid->operatorDivergence * hvEigen;
+    // timestamp_t t1 = get_timestamp();
+    
+    // total_time += (t1 - t0) / 1000000.0L;
+    
+    // time_iter += 1;
+
+    // std::cout<<"TIME2: "<<total_time/((double)time_iter)<<std::endl;
+
+    
 
     // mkl_sparse_d_mv(operation, 1.0, *(grid->operatorDivergenceX), descript, &(hv(0)), 0.0, &(deta_dt(0)));
 
@@ -358,63 +419,58 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
     outstring << "Defining arrays for Adams-Bashforth time integration..." << std::endl;
 
-    Array1D<double> v_t0    (face_num);     // velocity array
-    Array1D<double> dv_dt_t0(face_num);     // velocity rate of change array
-
-    Array2D<double> v_avg(face_num, 2);     // velocity components array
-
-    Array1D<double> p_t0    (node_num);     // pressure array
-    Array1D<double> dp_dt_t0(node_num);     // pressure rate of change array
-
-    Array2D<double> dv_dt(face_num, 3);     // [face][dvdt level]
-    Array2D<double> dp_dt(node_num, 3);     // [cv][dpdt level]
-
-    Array1D<double> cv_mass     (node_num); // control volume mass array
-    Array1D<double> energy_diss (face_num); // energy dissipation array
+    
 
     for (i=0; i<globals->out_tags.size(); i++)
     {
         if      ((*tags)[i] == "velocity output")        pp[i] = &v_avg(0,0);
+        else if ((*tags)[i] == "velocity cartesian output")   pp[i] = &v_xyz(0,0);
         else if ((*tags)[i] == "displacement output")    pp[i] = &p_t0(0);
         else if ((*tags)[i] == "dissipation output")     pp[i] = &energy_diss(0);
         else if ((*tags)[i] == "dissipation avg output") pp[i] = &total_diss[0];
         else if ((*tags)[i] == "kinetic avg output")     pp[i] = &current_time;
+        else if ((*tags)[i] == "dummy1 output")          pp[i] = &cv_mass(0);
     }
 
-    // for (i=0; i<face_num; i++) {
-    //     v_t0(i) = 0.0;
-    //     // (*v_t0)(i) = 10.0*grid->face_normal_vec_map(i,0);
+    for (i=0; i<FACE_NUM; i++) {
+        v_t0(i) = 0.0;
+        // (*v_t0)(i) = 10.0*grid->face_normal_vec_map(i,0);
 
-    //     double u, v;
-    //     double u0 = 20.0;// 2*pi*r/(12*globals->period.Value());
+        double u, v;
+        double u0 = r*globals->angVel.Value()/12;
 
-    //     double lat = grid->face_intercept_pos_sph(i,0);
-    //     double lon = grid->face_intercept_pos_sph(i,1);
+        double lat = grid->face_centre_pos_sph(i,0);
+        double lon = grid->face_centre_pos_sph(i,1);
 
-    //     double nx = grid->face_normal_vec_map(i, 0);
-    //     double ny = grid->face_normal_vec_map(i, 1);
+        double nx = grid->face_normal_vec_map(i, 0);
+        double ny = grid->face_normal_vec_map(i, 1);
 
-    //     double a = 0.0;
+        double a = 0.05;
 
-    //     u = cos(lat)*cos(a) + sin(lat)*cos(lon)*sin(a);
-    //     u *= u0;
+        u = cos(lat)*cos(a) + sin(lat)*cos(lon)*sin(a);
+        u *= u0;
 
-    //     v = -u0*sin(lon)*sin(a);
+        v = -u0*sin(lon)*sin(a);
 
-    //     if (lat>0) u = 5*cos(lat);
-    //     else u=-5.0*cos(lat);
+        // if (lat>0) u = 5*cos(lat);
+        // else u=-5.0*cos(lat);
 
-    //     // u = 10.0 * cos(lat)*cos(lat)*sin(10*lat);
+        // u = 10.0 * cos(lat)*cos(lat)*sin(10*lat);
 
-    //     // v=0.0;
+        // v=0.0;
 
-    //     v_t0(i) = u*nx + v*ny;
+        v_t0(i) = u*nx + v*ny;
+
+        v_t0(i) = 0.0;
 
         
-    // }
+    }
+
+    Eigen::Map<Eigen::VectorXd> div(&cv_mass(0), NODE_NUM);
+    Eigen::Map<Eigen::VectorXd> velocity(&dummy_vel(0), FACE_NUM);
 
     double R = pi/9.0;
-    for (i=0; i<node_num; i++)
+    for (i=0; i<NODE_NUM; i++)
     {
         v_avg(i,0) = 0.0;
         v_avg(i,1) = 0.0;
@@ -439,18 +495,20 @@ int ab3Explicit(Globals * globals, Mesh * grid)
             p_t0(i) = 0.0;
         }
 
-        p_t0(i) = 0.0;//globals->h.Value();// 0.0;
+        double u0 = r*globals->angVel.Value()/12;
 
-        // lat = grid->node_pos_sph(i, 0);
-        // lon = grid->node_pos_sph(i, 1);
+        // p_t0(i) = 0.0;//globals->h.Value();// 0.0;
 
-        // double a = 0.0;
+        lat = grid->node_pos_sph(i, 0);
+        lon = grid->node_pos_sph(i, 1);
+
+        double a = 0.05;
         // double u0 = 20;//2 * pi * r / (12*globals->period.Value());
-        // double g = globals->g.Value();
+        double g = globals->g.Value();
 
-        // p_t0(i) = pow(-cos(lon)*cos(lat)*sin(a) + sin(lat)*cos(a), 2.0);
-        // p_t0(i) *= r*globals->angVel.Value()*u0 + u0*u0*0.5;
-        // p_t0(i) = 1/g * (g*globals->h.Value() - p_t0(i));
+        p_t0(i) = g*globals->h.Value() - (r*globals->angVel.Value()*u0 + u0*u0*0.5)*pow(-cos(lon)*cos(lat)*sin(a) + sin(lat)*cos(a), 2.0);
+        // p_t0(i) *= ;
+        p_t0(i) = p_t0(i)/g - globals->h.Value();
 
         // double latc = pi / 6.0;
         // double lonc = pi/2.0;
@@ -463,28 +521,45 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
         // b = 2000.0 * (1 - b/R);
 
-        // p_t0(i) -= b;
-        // p_t0(i) = -1/g * p_t0(i);
+        // // p_t0(i) -= b;
+        // // p_t0(i) = -1/g * p_t0(i);
 
-        cv_mass(i) = grid->control_volume_mass(i);
+        p_t0(i) = 0.0;
+
+        
     }
 
+    for (int i=0; i<FACE_NUM; ++i)
+        {
+            int node_in = grid->face_nodes(i, 0);
+            int node_out = grid->face_nodes(i, 1);
 
+            dummy_vel(i) = v_t0(i) * ((p_t0(node_in) + p_t0(node_out))*0.5);    // * avg_thickness - 0.5*fabs(v_t0(i))*diff_thickness;///thickness*v_t0(i);
+        }   
+
+    div = grid->operatorDivergence*velocity;
+
+    
 
     if (globals->init.Value())
     {
-       loadInitialConditions(globals, grid, v_t0, dv_dt, p_t0, dp_dt);
+    //    loadInitialConditions(globals, grid, v_t0, dv_dt, p_t0, dp_dt);
 
-    //    analyticalInitialConditions(globals, grid, v_t0, dv_dt, p_t0, dp_dt);
+       analyticalInitialConditions(globals, grid, v_t0, dv_dt, p_t0, dp_dt);
 
        iter = 0;
     }
     else iter = 0;
 
+    interpolateVelocity(globals, grid, v_avg, v_t0);
+    interpolateVelocityCartRBF(globals, grid, v_xyz, v_t0);
+
+    
+
     updateEnergy(globals, e_diss, energy_diss, v_avg, grid->face_area);
     total_diss[0] = e_diss;
 
-    interpolateVelocity(globals, grid, v_avg, v_t0);
+    
 
     //--------------------------------------------------------------------------
     //------------------------- BEGIN TIME LOOP --------------------------------
@@ -502,10 +577,9 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     Output->DumpData(globals, out_count, pp);
     out_count++;
 
-    // Output->DumpData(globals, out_count, pp);
-
     double h = globals->h.Value();
     double alpha = globals->alpha.Value();
+    double gr = 1.0/globals->g.Value();
 
     // while (current_time <= end_time)#
     while (iter < globals->totalIter.Value()*globals->endTime.Value())
@@ -520,17 +594,28 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
 
             // #pragma omp parallel for
-            for (i=0; i<face_num; ++i) dv_dt(i, 0) = dv_dt_t0(i);
+            for (i=0; i<FACE_NUM; ++i) dv_dt(i, 0) = dv_dt_t0(i);
 
-            // MARCH VELOCITY FORWARD IN TIME
-            integrateAB3scalar(globals, grid, v_t0, dv_dt, iter, grid->face_num);
+            // Apply drag and forcing
+            forcing(globals, grid, forcing_potential, globals->tide_type, current_time, globals->e.Value(), globals->theta.Value());
+            drag_term_eig = grid->operatorLinearDrag * v_t0_eig + grid->operatorGradient * forcing_potential_eig; 
 
-            // Array1D<double> forcing_potential(node_num);
+            // Set guess v to v from previous time-level
+            // for (i=0; i<FACE_NUM; i++) v_guess(i) = v_t0(i);
+
+            // Update G and v_guess with G tendencies
+            integrateAB3scalar(globals, grid, v_t0, dv_dt, iter, FACE_NUM);
+
+            // Now remove drag, as it is outside of the AB3 loop
+            v_t0_eig += dt*drag_term_eig;
+        
+            /*
+            // Array1D<double> forcing_potential(NODE_NUM);
             // Array1D<double> drag(face_num);
             // forcing(globals, grid, forcing_potential, globals->tide_type, current_time, globals->e.Value(), globals->theta.Value());
 
             
-            // Eigen::Map<Eigen::VectorXd> forcingEigen(&forcing_potential(0), node_num);
+            // Eigen::Map<Eigen::VectorXd> forcingEigen(&forcing_potential(0), NODE_NUM);
             // Eigen::Map<Eigen::VectorXd> velEigen(&v_t0(0), face_num);
             // Eigen::Map<Eigen::VectorXd> dragEigen(&drag(0), face_num);
             // Perform sparse matrix * vector operation
@@ -563,19 +648,24 @@ int ab3Explicit(Globals * globals, Mesh * grid)
             //         v_t0(i) = 0.0;
             //     }
             // }
+            */
+
+
+            // p_guess_eig = p_t0_eig - h*dt*grid->operatorDivergence*v_t0_eig;
 
             // UPDATE ENERGY DISSIPATION
             interpolateVelocity(globals, grid, v_avg, v_t0);
             updateEnergy(globals, e_diss, energy_diss, v_avg, grid->face_area);
             total_diss[0] = e_diss;
 
+            /*
             // for (i=0; i<face_num; ++i)
             // {
             //     double u, v;
-            //     double u0 = 2*pi*r/(10*globals->period.Value());
+            //     double u0 = r*globals->angVel.Value()/12;
 
-            //     double lat = grid->face_intercept_pos_sph(i,0);
-            //     double lon = grid->face_intercept_pos_sph(i,1);
+            //     double lat = grid->face_centre_pos_sph(i,0);
+            //     double lon = grid->face_centre_pos_sph(i,1);
             
             //     double nx = grid->face_normal_vec_map(i, 0);
             //     double ny = grid->face_normal_vec_map(i, 1);
@@ -585,22 +675,23 @@ int ab3Explicit(Globals * globals, Mesh * grid)
             //     u = cos(lat)*cos(a) + sin(lat)*cos(lon)*sin(a);
             //     u *= u0;
 
-            //     v = 0.0;//-u0*sin(lon)*sin(a);
+            //     v = -u0*sin(lon)*sin(a);
 
             //     v_t0(i) = u*nx + v*ny;
 
             
             // }
             // interpolateVelocity(globals, grid, v_avg, v_t0);
+            */
 
             // SOLVE THE CONTINUITY EQUATION
             updateDisplacement(globals, grid, dp_dt_t0, v_t0, p_t0);
 
             // #pragma omp parallel for
-            for (i=0; i<node_num; ++i) dp_dt(i, 0) = dp_dt_t0(i);
+            for (i=0; i<NODE_NUM; ++i) dp_dt(i, 0) = dp_dt_t0(i);
 
             // MARCH PRESSURE FORWARD IN TIME
-            integrateAB3scalar(globals, grid, p_t0, dp_dt, iter, grid->node_num);
+            integrateAB3scalar(globals, grid, p_t0, dp_dt, iter, NODE_NUM);
 
             // for (i=0; i<node_num; ++i)
             // {
@@ -612,12 +703,28 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
         }
 
+        
+
         iter ++;
         current_time = dt*iter;
 
         // Check for output
         if (iter%out_freq == 0)
         {
+            // for (int i=0; i<FACE_NUM; ++i)
+            // {
+            //     int node_in = grid->face_nodes(i, 0);
+            //     int node_out = grid->face_nodes(i, 1);
+
+            //     dummy_vel(i) = v_t0(i) * ((p_t0(node_in) + p_t0(node_out))*0.5);    // * avg_thickness - 0.5*fabs(v_t0(i))*diff_thickness;///thickness*v_t0(i);
+            // }   
+
+            interpolateVelocityCartRBF(globals, grid, v_xyz, v_t0);
+
+            // std::cout<<v_xyz(15, 0)<<std::endl;
+
+            // div = grid->operatorDivergence*velocity;
+
             outstring << std::fixed <<"DUMPING DATA AT "<<current_time/orbit_period;
             outstring << " AVG DISS: "<<std::scientific<<*total_diss*4*pi*r*r/1e9<<" GW"<<out_count;
 
@@ -696,62 +803,61 @@ int rk4Explicit(Globals * globals, Mesh * grid)
 
     outstring << "Defining arrays for Runge-Kutta time integration..." << std::endl;
 
-    Array1D<double> v_t0    (face_num);
-    Array2D<double> v_avg   (face_num, 2);
-    Array1D<double> v_t0_old(face_num);
-    Array1D<double> dv_dt_t0(face_num);
+    // Array1D<double> v_t0    (face_num);
+    // Array2D<double> v_avg   (face_num, 2);
+    //[node][dpdt]
 
-    Array1D<double> p_t0    (node_num);
-    Array1D<double> p_t0_old(node_num);
-    Array1D<double> dp_dt_t0(node_num);
-
-    Array2D<double> dv_dt(face_num, 4);   //[node][vel component][dvdt]
-    Array2D<double> dp_dt(node_num, 4);      //[node][dpdt]
-
-    Array1D<double> cv_mass    (node_num);
-    Array1D<double> energy_diss(face_num);
+    // Array1D<double> cv_mass    (node_num);
+    // Array1D<double> energy_diss(face_num);
 
     for (i=0; i<globals->out_tags.size(); i++)
     {
         if      ((*tags)[i] == "velocity output")        pp[i] = &v_avg(0,0);
+        else if ((*tags)[i] == "velocity cartesian output")   pp[i] = &v_xyz(0,0);
         else if ((*tags)[i] == "displacement output")    pp[i] = &p_t0(0);
         else if ((*tags)[i] == "dissipation output")     pp[i] = &energy_diss(0);
         else if ((*tags)[i] == "dissipation avg output") pp[i] = &total_diss[0];
         else if ((*tags)[i] == "kinetic avg output")     pp[i] = &current_time;
+        else if ((*tags)[i] == "dummy1 output")          pp[i] = &cv_mass(0);
     }
 
     for (i=0; i<face_num; i++)
         v_t0(i) = 0.00;
 
-    for (i=0; i<node_num; i++)
-    {
-        double lat=0*pi/180;
-        double lon=150*pi/180;
-        double llat=30*pi/180.0;
-        double dist, lat1, lon1;
-        double rr=1.0;
-        dist = 0.0;
-        double dist2 = 0.0;
-        lat1 = grid->node_pos_sph(i,0);
-        lon1 = grid->node_pos_sph(i,1);
+    // for (i=0; i<node_num; i++)
+    // {
+    //     double lat=0*pi/180;
+    //     double lon=150*pi/180;
+    //     double llat=30*pi/180.0;
+    //     double dist, lat1, lon1;
+    //     double rr=1.0;
+    //     dist = 0.0;
+    //     double dist2 = 0.0;
+    //     lat1 = grid->node_pos_sph(i,0);
+    //     lon1 = grid->node_pos_sph(i,1);
 
-        distanceBetweenSph(dist, lat, lat1, lon, lon1, rr);
-        // distanceBetweenSph(dist2, llat, lat1, lon, lon1, rr);
+    //     distanceBetweenSph(dist, lat, lat1, lon, lon1, rr);
+    //     // distanceBetweenSph(dist2, llat, lat1, lon, lon1, rr);
 
-        p_t0(i) = 0.0;//-200./(1.+2*dist+3*dist2);
-        // (*v_t0)(i,1) = 0.0;
+    //     // p_t0(i) = 0.0;//-200./(1.+2*dist+3*dist2);
+    //     // (*v_t0)(i,1) = 0.0;
 
 
-        cv_mass(i) = grid->control_volume_mass(i);
-    }
+    //     cv_mass(i) = grid->control_volume_mass(i);
+    // }
 
     if (globals->init.Value())
     {
        loadInitialConditions(globals, grid, v_t0, dv_dt, p_t0, dp_dt);
-    
+
+    //    analyticalInitialConditions(globals, grid, v_t0, dv_dt, p_t0, dp_dt);
+
        iter = 0;
     }
     else iter = 0;
+
+    interpolateVelocity(globals, grid, v_avg, v_t0);
+    interpolateVelocityCartRBF(globals, grid, v_xyz, v_t0);
 
     //--------------------------------------------------------------------------
     //------------------------- BEGIN TIME LOOP --------------------------------
@@ -761,21 +867,33 @@ int rk4Explicit(Globals * globals, Mesh * grid)
     current_time = 0.0;
     out_time = 0.0;
 
+    out_count = 1;
+    current_time = dt*iter;
+    int out_freq = globals->totalIter.Value() / globals->outputTime.Value();
+
+    outstring << std::fixed << "DUMPING DATA AT " << current_time / orbit_period;
+    outstring << " AVG DISS: " << std::scientific << *total_diss * 4 * pi * r * r / 1e9 << " GW" << out_count;
+
+    Output->Write(OUT_MESSAGE, &outstring);
+
+    Output->DumpData(globals, out_count, pp);
+    out_count++;
 
     double alpha = globals->alpha.Value();
     double h = globals->h.Value();
+    
 
-    while (current_time <= end_time)
+    while (iter < globals->totalIter.Value()*globals->endTime.Value())
     {
         if (globals->surface_type == FREE ||
             globals->surface_type == FREE_LOADING ||
             globals->surface_type == LID_LOVE ||
             globals->surface_type == LID_MEMBR)
         {
-            for (i=0; i<node_num; ++i)
+            for (i=0; i<NODE_NUM; ++i)
               p_t0_old(i) = p_t0(i);
 
-            for (i=0; i<face_num; ++i)
+            for (i=0; i<FACE_NUM; ++i)
               v_t0_old(i) = v_t0(i);
 
 
@@ -792,8 +910,8 @@ int rk4Explicit(Globals * globals, Mesh * grid)
 
               // MARCH VELOCITY FORWARD IN TIME
               #pragma omp parallel for
-              for (i=0; i<face_num; ++i) {
-                dv_dt(i, j) = dv_dt_t0(i);
+              for (i=0; i<FACE_NUM; ++i) {
+                dv_dt4(i, j) = dv_dt_t0(i);
                 v_t0(i) = v_t0_old(i) + dv_dt_t0(i)*dt*x;
               }
 
@@ -802,19 +920,19 @@ int rk4Explicit(Globals * globals, Mesh * grid)
 
               // MARCH PRESSURE FORWARD IN TIME
               #pragma omp parallel for
-              for (i=0; i<node_num; ++i) {
-                dp_dt(i, j) = dp_dt_t0(i);
+              for (i=0; i<NODE_NUM; ++i) {
+                dp_dt4(i, j) = dp_dt_t0(i);
                 p_t0(i)     = p_t0_old(i) + dp_dt_t0(i)*dt*x;
               }
             }
 
             #pragma omp parallel for
-            for (i=0; i<node_num; ++i)
-              p_t0(i) = p_t0_old(i) + dt/6.*(dp_dt(i,0)+2.*dp_dt(i,1)+2.*dp_dt(i,2)+dp_dt(i,3));
+            for (i=0; i<NODE_NUM; ++i)
+              p_t0(i) = p_t0_old(i) + dt/6.*(dp_dt4(i,0)+2.*dp_dt4(i,1)+2.*dp_dt4(i,2)+dp_dt4(i,3));
 
             #pragma omp parallel for
-            for (i=0; i<face_num; ++i)
-              v_t0(i) = v_t0_old(i) + dt/6.*(dv_dt(i,0)+2.*dv_dt(i,1)+2.*dv_dt(i,2)+dv_dt(i,3));
+            for (i=0; i<FACE_NUM; ++i)
+              v_t0(i) = v_t0_old(i) + dt/6.*(dv_dt4(i,0)+2.*dv_dt4(i,1)+2.*dv_dt4(i,2)+dv_dt4(i,3));
 
 
             // UPDATE ENERGY DISSIPATION
@@ -823,17 +941,17 @@ int rk4Explicit(Globals * globals, Mesh * grid)
             total_diss[0] = e_diss;
         }
 
-        current_time += dt;
-        out_time += dt;
-
         iter ++;
+        current_time = dt*iter;
 
         // if (iter >= 3)  globals->Output->TerminateODIS();
 
         // Check for output
-        if (out_time >= out_frac*orbit_period)
+        if (iter%out_freq == 0)
         // if (true)
         {
+
+            interpolateVelocityCartRBF(globals, grid, v_xyz, v_t0);
             outstring << std::fixed <<"DUMPING DATA AT "<<current_time/orbit_period;
             outstring << " AVG DISS: "<<std::scientific<<*total_diss*4*pi*r*r/1e9<<" GW"<<out_count;
 
