@@ -17,7 +17,7 @@ surface type; 	          FREE; 	 	 	 top boundary condition;
 advection;                     true;             advection switch;
 solver type; 	 	 	        AB3; 	 	 	 potential;
 sh degree; 	 	 	              2; 	 	 	 Max sh degree;
-geodesic grid level; 	 	 	8; 	 	 	 recursion level;
+geodesic grid level; 	 	 	5; 	 	 	 recursion level;
 output time; 	 	 	      10; 	 	 	 data out opt;
 dissipation output; 	      false; 	 	 	 data out opt;
 dissipation avg output;       true; 	 	 	 data out opt;

@@ -19,10 +19,13 @@
 #include "globals.h"
 #include "H5Cpp.h"
 #include <cstring>
+#include <string>
 #include <sstream>
 #include <vector>
 #include <unistd.h>
 #include <libgen.h>
+#include <filesystem>
+#include <mpi.h>
 #include <filesystem>
 
 #include <sys/stat.h>
@@ -40,9 +43,22 @@ OutFiles::OutFiles() {
 
     // path = "/Users/hamishhay/Research/GeodesicODIS";
 
-	outName = path + SEP + "DATA" + SEP + "OUTPUT.txt";
-	errName = path + SEP + "DATA" + SEP + "ERROR.txt";
-	dataPath = path + SEP + "DATA" + SEP + "data.h5";
+    int PROC_ID;
+    MPI_Comm_rank(MPI_COMM_WORLD, &PROC_ID);
+
+    if (PROC_ID  == 0) {
+        std::filesystem::remove_all(path + SEP + "DATA");               // Delete DATA directory
+        std::filesystem::create_directory(path + SEP + "DATA" + SEP);   // Create new DATA directory 
+    }
+
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    std::stringstream pid; 
+    pid << std::setfill('0') << std::setw(3)  << PROC_ID;
+
+	outName = path + SEP + "DATA" + SEP + "OUTPUT." + pid.str() + ".txt";
+	errName = path + SEP + "DATA" + SEP + "ERROR." + pid.str() + ".txt";
+	dataPath = path + SEP + "DATA" + SEP + "data." + pid.str() + ".h5";
 
 
 	remove(&outName[0]); //Converts std::string to char array
@@ -54,7 +70,7 @@ OutFiles::OutFiles() {
 
 	output.close();
 
-	WelcomeMessage();
+    if (PROC_ID == 0) WelcomeMessage();
 
 	remove(&errName[0]); //Converts std::string to char array
 	error.open(&errName[0], std::ofstream::out | std::ofstream::app);
@@ -148,34 +164,7 @@ void OutFiles::CreateHDF5Framework(Globals * globals)
 
   output_num = globals->outputTime.Value();
   orbit_num = globals->endTime.Value();
-
-  #if _WIN32
-    // mkdir(&(globals->path + SEP + "Grid" + SEP)[0], NULL);
-
-    mkdir(&(globals->path +  SEP + "DATA" + SEP)[0], NULL);
-
-  #else
-    // mkdir(&(globals->path +  SEP + "Grid" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
-
-    mkdir(&(globals->path +  SEP + "DATA" + SEP)[0], S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP);
-
-  #endif
-
-    // These get allocated whether or not they are being output... Seems bad
-    // eta_1D = new float[node_num];
-    // v_1D = new float[face_num];
-    // u_1D = new float[face_num];
-    // ux_1D = new float[node_num];
-    // uy_1D = new float[node_num];
-    // uz_1D = new float[node_num];
-    // press_1D = new float[node_num];
-    // diss_1D = new float[face_num];
-    // kinetic_1D = new float[node_num];
-    // diss_avg_1D = new float[1];
-    // kinetic_avg_1D = new float[node_num];
-    // dummy1_1D = new float[node_num];
-    // harm_coeff_1D = new float[2*(l_max+1)*(l_max+1)];
-
+    
     time_slices = orbit_num*output_num+1;
 
     //
@@ -196,10 +185,7 @@ void OutFiles::CreateHDF5Framework(Globals * globals)
     //
     start_1D = new hsize_t[1];
     count_1D = new hsize_t[1];
-    //
-    // start_harm = new hsize_t[4];
-    // count_harm = new hsize_t[4];
-    //
+
     // Create HDF5 file
     file = H5Fcreate(dataFile, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
@@ -224,20 +210,6 @@ void OutFiles::CreateHDF5Framework(Globals * globals)
 
     max_dims_1D_diss_avg = new hsize_t[1];
     max_dims_1D_diss_avg[0] = time_slices;
-    // max_dims_harm_coeff = new hsize_t[4];
-    // max_dims_harm_coeff[0] = time_slices;
-    // max_dims_harm_coeff[1] = 2;
-    // max_dims_harm_coeff[2] = harm_rows;
-    // max_dims_harm_coeff[3] = harm_cols;
-    //
-
-    
-    
-    
-    
-    
-    
-    
     
 
     if (globals->field_velocity_output.Value())
@@ -278,20 +250,15 @@ void OutFiles::CreateHDF5Framework(Globals * globals)
         data_set_eta = H5Dcreate(file, "displacement", H5T_NATIVE_FLOAT, data_space_eta, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         mem_space_eta = H5Screate_simple(rank_cv, dims_cv, NULL);
     }
-    if (globals->field_pressure_output.Value())
-    {
-        press_1D = new float[node_num];
-
-        data_space_press = H5Screate_simple(rank_cv, max_dims_cv, NULL); // 2D data space
-        data_set_press = H5Dcreate(file, "displacement", H5T_NATIVE_FLOAT, data_space_press, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-        mem_space_press = H5Screate_simple(rank_cv, dims_cv, NULL);
-    }
     // if (globals->field_pressure_output.Value())
     // {
+    //     press_1D = new float[node_num];
+
     //     data_space_press = H5Screate_simple(rank_cv, max_dims_cv, NULL); // 2D data space
     //     data_set_press = H5Dcreate(file, "displacement", H5T_NATIVE_FLOAT, data_space_press, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
     //     mem_space_press = H5Screate_simple(rank_cv, dims_cv, NULL);
     // }
+
     if (globals->field_diss_output.Value())
     {
         diss_1D = new float[face_num];
@@ -300,14 +267,14 @@ void OutFiles::CreateHDF5Framework(Globals * globals)
         data_set_diss = H5Dcreate(file, "dissipated energy", H5T_NATIVE_FLOAT, data_space_diss, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         mem_space_diss = H5Screate_simple(rank_face, dims_face, NULL);
     }
-    if (globals->field_kinetic_output.Value())
-    {
-        kinetic_1D = new float[node_num];
+    // if (globals->field_kinetic_output.Value())
+    // {
+    //     kinetic_1D = new float[node_num];
 
-        data_space_kinetic = H5Screate_simple(rank_cv, max_dims_cv, NULL); // 2D data space
-        data_set_kinetic = H5Dcreate(file, "displacement", H5T_NATIVE_FLOAT, data_space_kinetic, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-        mem_space_kinetic = H5Screate_simple(rank_cv, dims_cv, NULL);
-    }
+    //     data_space_kinetic = H5Screate_simple(rank_cv, max_dims_cv, NULL); // 2D data space
+    //     data_set_kinetic = H5Dcreate(file, "displacement", H5T_NATIVE_FLOAT, data_space_kinetic, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    //     mem_space_kinetic = H5Screate_simple(rank_cv, dims_cv, NULL);
+    // }
     if (globals->diss_avg.Value())
     {
         diss_avg_1D = new float[1];
@@ -332,28 +299,13 @@ void OutFiles::CreateHDF5Framework(Globals * globals)
         data_set_dummy1 = H5Dcreate(file, "dummy1 output", H5T_NATIVE_FLOAT, data_space_dummy1, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         mem_space_dummy1 = H5Screate_simple(rank_cv, dims_cv, NULL);
     }
-    if (globals->field_dummy2_output.Value())
-    {
-        data_space_dummy2 = H5Screate_simple(rank_cv, max_dims_cv, NULL); // 2D data space
-        data_set_dummy2 = H5Dcreate(file, "displacement", H5T_NATIVE_FLOAT, data_space_dummy2, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-        mem_space_dummy2 = H5Screate_simple(rank_cv, dims_cv, NULL);
-    }
-
-
-
-
-
-    // data_space_1D_kinetic_avg = H5Screate_simple(rank_1D, max_dims_1D_diss_avg, NULL);
-    // data_set_1D_kinetic_avg = H5Dcreate(file, globals->kinetic_avg.StringID().c_str(), H5T_NATIVE_FLOAT, data_space_1D_kinetic_avg, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    // mem_space_1D_kinetic_avg = H5Screate_simple(rank_1D, dims_1D_diss_avg, NULL);
-
-    //
-    // if (consts->sh_coeff_output.Value()) {
-    //     data_space_harm_coeff = H5Screate_simple(rank_harm, max_dims_harm_coeff, NULL);
-    //     data_set_harm_coeff = H5Dcreate(file, "sh coefficients", H5T_NATIVE_FLOAT, data_space_harm_coeff, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    //     mem_space_harm_coeff = H5Screate_simple(rank_harm, dims_harm_coeff, NULL);
+    // if (globals->field_dummy2_output.Value())
+    // {
+    //     data_space_dummy2 = H5Screate_simple(rank_cv, max_dims_cv, NULL); // 2D data space
+    //     data_set_dummy2 = H5Dcreate(file, "displacement", H5T_NATIVE_FLOAT, data_space_dummy2, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    //     mem_space_dummy2 = H5Screate_simple(rank_cv, dims_cv, NULL);
     // }
-    //
+
     start_cv[0] = 0;
     start_cv[1] = 0;
     //
@@ -369,95 +321,7 @@ void OutFiles::CreateHDF5Framework(Globals * globals)
     //
     start_1D[0] = 0;
     count_1D[0] = 1;
-    //
-    // start_harm[0] = 0;
-    // start_harm[1] = 0;
-    // start_harm[2] = 0;
-    // start_harm[3] = 0;
-    //
-    // count_harm[0] = 1;
-    // count_harm[1] = 2;
-    // count_harm[2] = harm_rows;
-    // count_harm[3] = harm_cols;
-    //
-    // //-----------------------Write dataset attributes---------------------------
-    //
-    // hsize_t dims_coord[1];
-    // dims_coord[0] = 2;
-    //
-    // hid_t attr_space;
-    // hid_t attr;
-    //
-    // int data_set_size[2];
-    // float data_set_dx[2];
-    //
-    //
-    // //---------------------------Displacement-----------------------------------
-    // if (consts->field_displacement_output.Value()) {
-    //     attr_space = H5Screate_simple(rank_size, dims_coord, NULL);
-    //
-    //     attr = H5Acreate(data_set_eta, "nlat; nlon", H5T_NATIVE_INT, attr_space, H5P_DEFAULT, H5P_DEFAULT);
-    //
-    //     data_set_size[0] = etaLatLen;
-    //     data_set_size[1] = etaLonLen;
-    //
-    //     H5Awrite(attr, H5T_NATIVE_INT, data_set_size);
-    //
-    //     attr = H5Acreate(data_set_eta, "dlat; dlon", H5T_NATIVE_FLOAT, attr_space, H5P_DEFAULT, H5P_DEFAULT);
-    //
-    //     data_set_dx[0] = (float)etadLat*1.0/radConv;
-    //     data_set_dx[1] = (float)etadLon*1.0/radConv;
-    //
-    //     H5Awrite(attr, H5T_NATIVE_FLOAT, data_set_dx);
-    // }
-    //
-    // //---------------------------Velocity---------------------------------------
-    // if (consts->field_velocity_output.Value()) {
-    //     attr = H5Acreate(data_set_v, "nlat; nlon", H5T_NATIVE_INT, attr_space, H5P_DEFAULT, H5P_DEFAULT);
-    //
-    //     data_set_size[0] = vLatLen;
-    //     data_set_size[1] = vLonLen;
-    //
-    //     H5Awrite(attr, H5T_NATIVE_INT, data_set_size);
-    //
-    //     attr = H5Acreate(data_set_v, "dlat; dlon", H5T_NATIVE_FLOAT, attr_space, H5P_DEFAULT, H5P_DEFAULT);
-    //
-    //     data_set_dx[0] = (float)vdLat*1.0/radConv;
-    //     data_set_dx[1] = (float)vdLon*1.0/radConv;
-    //
-    //     H5Awrite(attr, H5T_NATIVE_FLOAT, data_set_dx);
-    //
-    //     attr = H5Acreate(data_set_u, "nlat; nlon", H5T_NATIVE_INT, attr_space, H5P_DEFAULT, H5P_DEFAULT);
-    //
-    //     data_set_size[0] = uLatLen;
-    //     data_set_size[1] = uLonLen;
-    //
-    //     H5Awrite(attr, H5T_NATIVE_INT, data_set_size);
-    //
-    //     attr = H5Acreate(data_set_u, "dlat; dlon", H5T_NATIVE_FLOAT, attr_space, H5P_DEFAULT, H5P_DEFAULT);
-    //
-    //     data_set_dx[0] = (float)udLat*1.0/radConv;
-    //     data_set_dx[1] = (float)udLon*1.0/radConv;
-    //
-    //     H5Awrite(attr, H5T_NATIVE_FLOAT, data_set_dx);
-    // }
-    //
-    // //-------------------------Dissipated energy----------------------------------
-    // if (consts->field_diss_output.Value()) {
-    //     attr = H5Acreate(data_set_diss, "nlat; nlon", H5T_NATIVE_INT, attr_space, H5P_DEFAULT, H5P_DEFAULT);
-    //
-    //     data_set_size[0] = etaLatLen;
-    //     data_set_size[1] = etaLonLen;
-    //
-    //     H5Awrite(attr, H5T_NATIVE_INT, data_set_size);
-    //
-    //     attr = H5Acreate(data_set_diss, "dlat; dlon", H5T_NATIVE_FLOAT, attr_space, H5P_DEFAULT, H5P_DEFAULT);
-    //
-    //     data_set_dx[0] = (float)etadLat*1.0/radConv;
-    //     data_set_dx[1] = (float)etadLon*1.0/radConv;
-    //
-    //     H5Awrite(attr, H5T_NATIVE_FLOAT, data_set_dx);
-    // }
+
 
 };
 

@@ -1,4 +1,4 @@
-CC = g++ #icpc #
+CC = mpic++ #g++ #icpc #
 
 F = gfortran
 
@@ -29,16 +29,16 @@ EXE = $(OUTPUT_DIR)/ODIS
 
 # WORK MACHINE
 
-CFLAGS = -Ofast -I/usr/local/opt/libomp/include -c -Wall -Iinclude -I$(CONSTS_DIR)  -DNDEBUG -Wno-sign-compare -Wunused-but-set-variable -Xclang -fopenmp -msse4 -lstdc++ -std=c++17 -I/usr/local/ -I/Users/hamishhay/Desktop/Research/ -I/usr/local/Cellar/hdf5/1.12.2_2/include -march=native
-# CFLAGS = -O3 -c -Wall -Iinclude -DNDEBUG -diag-disable=10441 -Wno-sign-compare -Wunused-but-set-variable -fopenmp -msse4 -std=c++17 -I/usr/local/ -I/Users/hamishhay/Desktop/Research/ -I/usr/local/Cellar/hdf5/1.12.2_2/include -march=native #-L/usr/include/hdf5/serial -I/usr/include/hdf5/serial #-lhdf5 -lhdf5_cpp
-CLINK = -L/usr/local/opt/libomp/lib -L/usr/local/Cellar/hdf5/1.12.2_2/lib/ -L/usr/local/Cellar/hdf5/1.12.2_2/include -lhdf5 -lomp -lhdf5_cpp -lblas #-mkl #-ipo
+# CFLAGS = -Ofast -I/usr/local/opt/libomp/include -c -Wall -Iinclude -I$(CONSTS_DIR)  -DNDEBUG -Wno-sign-compare -Wunused-but-set-variable -Xclang -fopenmp -msse4 -lstdc++ -std=c++17 -I/usr/local/ -I/Users/hamishhay/Desktop/Research/ -I/usr/local/Cellar/hdf5/1.12.2_2/include -march=native
+# # CFLAGS = -O3 -c -Wall -Iinclude -DNDEBUG -diag-disable=10441 -Wno-sign-compare -Wunused-but-set-variable -fopenmp -msse4 -std=c++17 -I/usr/local/ -I/Users/hamishhay/Desktop/Research/ -I/usr/local/Cellar/hdf5/1.12.2_2/include -march=native #-L/usr/include/hdf5/serial -I/usr/include/hdf5/serial #-lhdf5 -lhdf5_cpp
+# CLINK = -L/usr/local/opt/libomp/lib -L/usr/local/Cellar/hdf5/1.12.2_2/lib/ -L/usr/local/Cellar/hdf5/1.12.2_2/include -lhdf5 -lomp -lhdf5_cpp -lblas #-mkl #-ipo
 
 # FFLAGS= -c -I/home/hamish/Research/SHTOOLS/modules -m64 -fPIC -Ofast -ffast-math -L/home/hamish/Research/SHTOOLS/lib  -L/usr/local/lib -lfftw3 -lm -llapack -lblas
 # FLINK =  -lgfortran -L/home/hamish/Research/SHTOOLS/lib -lSHTOOLS -Llib -lfftw3 -llapack -lgfortran
 
 # FRAMEWORK 
-# CFLAGS = -O3 -ffast-math -c -Wall -Iinclude -Wno-ls sign-compare -Wunused-but-set-variable -msse4 -std=c++17 -I/usr/local/ -I/usr/local/include/hdf5/ -I/usr/include/hdf5/serial -march=native #-lhdf5 -lhdf5_cpp -Ofast -ffast-math 
-# CLINK =  -L/usr/lib/x86_64-linux-gnu/hdf5/serial/ -I/usr/local/include/hdf5 -lhdf5 -lhdf5_cpp  -lblas #-mkl #-ipo 
+CFLAGS = -c -Wall -Iinclude -Wno-sign-compare -I$(CONSTS_DIR) -Wunused-but-set-variable -msse4 -std=c++17 -I/usr/local/ -I/usr/local/include/hdf5/ -I/usr/include/hdf5/serial -march=native #-lhdf5 -lhdf5_cpp -Ofast -ffast-math 
+CLINK =  -L/usr/lib/x86_64-linux-gnu/hdf5/serial/ -I/usr/local/include/hdf5 -lhdf5 -lhdf5_cpp  -lblas #-mkl #-ipo 
 
 FFLAGS= -c -I/home/hamish/Research/SHTOOLS/modules -m64 -fPIC -Ofast -ffast-math -L/home/hamish/Research/SHTOOLS/lib  -L/usr/local/lib -lfftw3 -lm -llapack -lblas
 FLINK =  -lgfortran -L/home/hamish/Research/SHTOOLS/lib -lSHTOOLS -Llib -lfftw3 -llapack -lgfortran

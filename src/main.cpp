@@ -28,41 +28,47 @@
 
 #include "outFiles.h"
 #include "mesh.h"
-// #include "field.h"
-// #include "depth.h"
 #include "globals.h"
-// #include "solver.h"
-// #include "mass.h"
-// #include "energy.h"
-//#include "tidalPotentials.h"
-#include "array2d.h"
 #include "solver.h"
 #include "tests.h"
 #include "gridConstants.h"
+#include <filesystem>
+#include <mpi.h>
 
 
 #include <iostream>
 
-int main(void)
+int main(int argc, char** argv)
 {
+  MPI_Init(NULL, NULL);
+
+  int NPROC;
+  MPI_Comm_size(MPI_COMM_WORLD, &NPROC);
+
+  int PROC_ID;
+  MPI_Comm_rank(MPI_COMM_WORLD, &PROC_ID);
   // Read in global constants from input.in file with 0, and use defaults
   // with 1 (currently set to Titan parameters). All constants are stored in the
   // class "Globals".
 
+  // Every process reads the same input file
   Globals * constants = new Globals(0);
+  
 
   // Create the numerical grid using the minimum node spacing from "constants"
   // Globals instance.
 
   Mesh * grid = new Mesh(constants, constants->node_num, constants->face_num, constants->vertex_num, (int)constants->dLat.Value(), constants->l_max.Value());
 
-  constants->OutputConsts();
+//   constants->OutputConsts();
 
-  #if defined(TEST_OPERATORS)
-    runOperatorTests(constants, grid);
-  #else
-    solveODIS(constants, grid);
-  #endif 
+//   #if defined(TEST_OPERATORS)
+//     runOperatorTests(constants, grid);
+//   #else
+//     solveODIS(constants, grid);
+//   #endif 
+
+  MPI_Finalize();
 
   return 0;
 }

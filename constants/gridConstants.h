@@ -4,7 +4,7 @@
 #include <math.h>
 
 
-#define TESTS  // Uncomment to prevent all testing
+// #define TESTS  // Uncomment to prevent all testing
 
 #if defined(TESTS)
     // #define TEST_SW1            // Advection of a cosine bell curve
@@ -14,7 +14,7 @@
     // #define TEST_OPERATORS
 #endif
 
-constexpr int GRID_LVL = 8;
+constexpr int GRID_LVL = 5;
 
 constexpr int get_node_num(int glvl)
 {

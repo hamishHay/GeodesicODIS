@@ -20,6 +20,7 @@
 #include <cstring>
 
 #include "H5Cpp.h"
+#include "mpi.h"
 
 #include <Eigen/Sparse>
 
@@ -60,8 +61,8 @@ Mesh::Mesh(Globals * Globals, int N, int face_N, int vertex_N, int N_ll, int l_m
     trigSqLat(NODE_NUM,2),
     trigSqLon(NODE_NUM,2),
 
-    Pbar_20(NODE_NUM),
-    Pbar_22(NODE_NUM),
+    // Pbar_20(NODE_NUM),
+    // Pbar_22(NODE_NUM),
 
     // Pbar_lm(NODE_NUM),
 
@@ -84,7 +85,7 @@ Mesh::Mesh(Globals * Globals, int N, int face_N, int vertex_N, int N_ll, int l_m
     face_area(FACE_NUM),
     face_len(FACE_NUM),
     node_face_dir(NODE_NUM, 6),
-    face_is_boundary(FACE_NUM),
+    // face_is_boundary(FACE_NUM),
 
     vertexes(NODE_NUM, 6),
     vertex_pos_sph(VERTEX_NUM, 2),
@@ -95,100 +96,101 @@ Mesh::Mesh(Globals * Globals, int N, int face_N, int vertex_N, int N_ll, int l_m
     vertex_area(VERTEX_NUM),
     vertex_area_r(VERTEX_NUM),
     node_R(NODE_NUM, 6),
-    vertex_sinlat(VERTEX_NUM),
+    vertex_sinlat(VERTEX_NUM)
 
 
-    sh_matrix(NODE_NUM, (l_max+1)*(l_max+2) - 6), //-6 is to ignore degrees 0 and 1
-    sh_matrix_fort(NODE_NUM*((l_max+1)*(l_max+2) - 6)),
+    // sh_matrix(NODE_NUM, (l_max+1)*(l_max+2) - 6), //-6 is to ignore degrees 0 and 1
+    // sh_matrix_fort(NODE_NUM*((l_max+1)*(l_max+2) - 6)),
 
-    cell_is_boundary(NODE_NUM),
+    // cell_is_boundary(NODE_NUM)
 
 
-    trigMLon(NODE_NUM, l_max+1, 2)
+    // trigMLon(NODE_NUM, l_max+1, 2)
 {
 
     globals = Globals;                   // define reference to all constants
 
+    // Array2D<double> node_pos_sph(NODE_NUM, 2);
     // Read in grid file
     ReadMeshFile();
 
     // Calculate mapping coordinates
-    CalcMappingCoords();
+    // CalcMappingCoords();
 
-    CalcNodeDists();
+    // CalcNodeDists();
 
     
 
-    // Find control volume edge lengths in mapping coords
-    CalcControlVolumeEdgeLengths();
+    // // Find control volume edge lengths in mapping coords
+    // CalcControlVolumeEdgeLengths();
 
-    // Find control volume edge midpoints in mapping coords
-    CalcControlVolumeEdgeCentres();
+    // // Find control volume edge midpoints in mapping coords
+    // CalcControlVolumeEdgeCentres();
 
 
-    // Find control volume edge outward normal unit vectors
-    CalcControlVolumeEdgeNormals();
+    // // Find control volume edge outward normal unit vectors
+    // CalcControlVolumeEdgeNormals();
 
-    // Calculate velocity transform factors
-    CalcVelocityTransformFactors();
+    // // Calculate velocity transform factors
+    // CalcVelocityTransformFactors();
 
-    // Find control volume area for each node
-    CalcControlVolumeArea();
+    // // Find control volume area for each node
+    // CalcControlVolumeArea();
 
-    CalcControlVolumeMass();
+    // CalcControlVolumeMass();
 
-    // Find the area of each sub triangle within each element
-    CalcElementAreas();
+    // // Find the area of each sub triangle within each element
+    // CalcElementAreas();
 
-    CalcCentNodeDists();
+    // CalcCentNodeDists();
 
-    // Evaluate trig functions at every node
-    CalcTrigFunctions();
+    // // Evaluate trig functions at every node
+    // CalcTrigFunctions();
 
-    CalcMaxTimeStep();
+    // CalcMaxTimeStep();
 
-    // // CalcLegendreFuncs();
+    // // // CalcLegendreFuncs();
 
-    CalcControlVolumeVertexR();
+    // CalcControlVolumeVertexR();
 
-    AssignFaces();
+    // AssignFaces();
 
-    CalcVelocityTransformFactors();
+    // CalcVelocityTransformFactors();
 
-    // DefineBoundaryCells();
+    // // DefineBoundaryCells();
 
    
 
-    CalcGradOperatorCoeffs();
+    // CalcGradOperatorCoeffs();
 
-    CalcDivOperatorCoeffs();
+    // CalcDivOperatorCoeffs();
 
-    // // CalcLaplaceOperatorCoeffs();
+    // // // CalcLaplaceOperatorCoeffs();
 
-    CalcCurlOperatorCoeffs();
+    // CalcCurlOperatorCoeffs();
 
-    CalcCoriolisOperatorCoeffs();
+    // CalcCoriolisOperatorCoeffs();
 
-    CalcLinearDragOperatorCoeffs();
+    // CalcLinearDragOperatorCoeffs();
 
     
 
-    // // // GeneratePressureSolver();
+    // // // // GeneratePressureSolver();
 
-    // // GenerateMomentumOperator();
+    // // // GenerateMomentumOperator();
 
-    // if (globals->surface_type != FREE) {
-    //     ReadWeightingFile();
-    // }
+    // // if (globals->surface_type != FREE) {
+    // //     ReadWeightingFile();
+    // // }
 
-    CalcAdjacencyMatrix();
+    // CalcAdjacencyMatrix();
 
-    CalcControlVolumeInterpMatrix();
+    // CalcControlVolumeInterpMatrix();
     
-    CalcRBFInterpMatrix();
-    CalcRBFInterpMatrix2();
+    // CalcRBFInterpMatrix();
+    // CalcRBFInterpMatrix2();
 
-    CalcFreeSurfaceSolver();
+    // CalcFreeSurfaceSolver();
 
 
     globals->Output->DumpGridData(this);
@@ -538,7 +540,7 @@ int Mesh::AssignFaces(void)
             if (faces(i, j) < 0) {
                 faces(i, j) = face_count;
                 face_nodes(face_count, 0) = i;
-                face_is_boundary(face_count) = 0;
+                // face_is_boundary(face_count) = 0;
                 // face_friends(face_count, 0) = j;
                 face_dir(face_count, 0) = 1;
                 face_node_dist(face_count) = node_dists(i, j);
@@ -1153,67 +1155,67 @@ int Mesh::AssignFaces(void)
     return 1;
 }
 
-int Mesh::DefineBoundaryCells(void)
-{
-    // simply define if a control volume is either interior to a boundary (0),
-    // shares a face with a boundary (1), or is completely outside of the
-    // boundary (2).
-    int i, j, f, friend_num;
-    double lat1, lat2, lon1, lon2, dist;
-    double r = 1.0;
+// int Mesh::DefineBoundaryCells(void)
+// {
+//     // simply define if a control volume is either interior to a boundary (0),
+//     // shares a face with a boundary (1), or is completely outside of the
+//     // boundary (2).
+//     int i, j, f, friend_num;
+//     double lat1, lat2, lon1, lon2, dist;
+//     double r = 1.0;
 
-    // r = globals->radius.Value();
+//     // r = globals->radius.Value();
 
-    for (i=0; i<NODE_NUM; i++)
-    {
-        f = node_friends(i,5);
+//     for (i=0; i<NODE_NUM; i++)
+//     {
+//         f = node_friends(i,5);
 
-        friend_num = 6;                                     // Assume hexagon (6 centroids)
-        if (f == -1) {
-            friend_num = 5;                                 // Check if pentagon (5 centroids)
-            node_dists(i,5) = -1.0;
-        }
+//         friend_num = 6;                                     // Assume hexagon (6 centroids)
+//         if (f == -1) {
+//             friend_num = 5;                                 // Check if pentagon (5 centroids)
+//             node_dists(i,5) = -1.0;
+//         }
 
-        lat1 = 0.0;                     // set map coords for first
-        lon1 = pi;
+//         lat1 = 0.0;                     // set map coords for first
+//         lon1 = pi;
 
-        lat2 = node_pos_sph(i, 0);                     // set map coords for second centroid
-        lon2 = node_pos_sph(i, 1);
-
-
-        distanceBetweenSph(dist, lat1, lat2, lon1, lon2, r);
-        // dist /= r;
-
-        // std::cout<<dist*180./pi<<std::endl;
-        if (dist*180./pi <= 90) cell_is_boundary(i) = 0;
-        else cell_is_boundary(i) = 1;
-
-        // if (cell_is_boundary(i) == 0)
-        // {
-        //   for (j=0; j<friend_num; j++)                        // Loop through all centroids in the control volume
-        //   {
-        //     int f_ID = faces(i,j);
-        //     lat2 = face_intercept_pos_sph(f_ID, 0);                     // set map coords for second centroid
-        //     lon2 = face_intercept_pos_sph(f_ID, 1);
-        //
-        //     distanceBetweenSph(dist, lat1, lat2, lon1, lon2, r);   //
-        //     // dist /= r;
-        //     // std::cout<<i<<'\t'<<dist*180./pi<<std::endl;
-        //     if (dist*180./pi < 20) {
-        //       // cell_is_boundary(i) = 1;
-        //       face_is_boundary(f_ID) = 1;
-        //       // break;
-        //     }
-        //   }
-        // }
-        // if (cell_is_boundary(i) == 2) std::cout<<i<<'\t'<<cell_is_boundary(i)<<std::endl;
-
-        cell_is_boundary(i) = 0;
-    }
+//         lat2 = node_pos_sph(i, 0);                     // set map coords for second centroid
+//         lon2 = node_pos_sph(i, 1);
 
 
+//         distanceBetweenSph(dist, lat1, lat2, lon1, lon2, r);
+//         // dist /= r;
 
-}
+//         // std::cout<<dist*180./pi<<std::endl;
+//         if (dist*180./pi <= 90) cell_is_boundary(i) = 0;
+//         else cell_is_boundary(i) = 1;
+
+//         // if (cell_is_boundary(i) == 0)
+//         // {
+//         //   for (j=0; j<friend_num; j++)                        // Loop through all centroids in the control volume
+//         //   {
+//         //     int f_ID = faces(i,j);
+//         //     lat2 = face_intercept_pos_sph(f_ID, 0);                     // set map coords for second centroid
+//         //     lon2 = face_intercept_pos_sph(f_ID, 1);
+//         //
+//         //     distanceBetweenSph(dist, lat1, lat2, lon1, lon2, r);   //
+//         //     // dist /= r;
+//         //     // std::cout<<i<<'\t'<<dist*180./pi<<std::endl;
+//         //     if (dist*180./pi < 20) {
+//         //       // cell_is_boundary(i) = 1;
+//         //       face_is_boundary(f_ID) = 1;
+//         //       // break;
+//         //     }
+//         //   }
+//         // }
+//         // if (cell_is_boundary(i) == 2) std::cout<<i<<'\t'<<cell_is_boundary(i)<<std::endl;
+
+//         cell_is_boundary(i) = 0;
+//     }
+
+
+
+// }
 
 // Function to calculate the cosine(alpha) and sine(alpha) velocity tranform
 // factors from Lee and Macdonald (2009). These factors are constant in time,

@@ -80,6 +80,7 @@ public:
 
   // Each row in node_pos_sph represents the lat,lon coords of node. Node ID 5
   // corresponds to node_pos_sph(5,x).
+//   Array2D<double> node_pos_sph;
   Array2D<double> node_pos_sph;
 
   // Same as node_pos_sph but in mapped coords
@@ -141,7 +142,7 @@ public:
   // Array to store the triangular areas within each subelement.
   Array3D<double> node_friend_element_areas_map;
 
-  Array1D<int> cell_is_boundary;
+//   Array1D<int> cell_is_boundary;
 
   // Arrays to store trig functions evaluated at each node
   Array2D<double> trigLat;
@@ -170,7 +171,7 @@ public:
   Array1D<double> face_len;
   Array2D<int> node_face_dir;
   Array3D<double> face_node_vel_trans;
-  Array1D<int> face_is_boundary;
+//   Array1D<int> face_is_boundary;
 
   Array2D<int> vertexes;
   Array2D<double> vertex_pos_sph;
@@ -188,12 +189,12 @@ public:
 
   // ArrayD<int> * faces;
 
-  Array3D<double> trigMLon;
-  Array2D<double> sh_matrix;
-  Array1D<double> sh_matrix_fort;
+//   Array3D<double> trigMLon;
+//   Array2D<double> sh_matrix;
+//   Array1D<double> sh_matrix_fort;
 
-  Array1D<double> Pbar_20;
-  Array1D<double> Pbar_22;
+//   Array1D<double> Pbar_20;
+//   Array1D<double> Pbar_22;
 
   int * interpRows;
   int * interpCols;

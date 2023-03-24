@@ -130,155 +130,155 @@ void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, int for
       }
       break;
 
-      case FULL2:
-      {
-          factor = 1/32. * consts->loveReduct.Value() * pow(omega,2.0)*pow(radius,2.0);
-          for (i=0; i<NODE_NUM; i++) {
-              j = i*2;
-              double T1, T2, T3;
+    //   case FULL2:
+    //   {
+    //       factor = 1/32. * consts->loveReduct.Value() * pow(omega,2.0)*pow(radius,2.0);
+    //       for (i=0; i<NODE_NUM; i++) {
+    //           j = i*2;
+    //           double T1, T2, T3;
 
-              T1 = 3.*ecc*(4. - 7.*obl*obl) * cosM + 6*(obl*obl + ecc*ecc *(3 - 7*obl*obl) ) * cos2M;
-              T1 += 3*ecc*obl*obl * ( 7*cos3M + 17*ecc*cos4M );
-              T1 *= -(1 - 3* cos2Lat[j]);
+    //           T1 = 3.*ecc*(4. - 7.*obl*obl) * cosM + 6*(obl*obl + ecc*ecc *(3 - 7*obl*obl) ) * cos2M;
+    //           T1 += 3*ecc*obl*obl * ( 7*cos3M + 17*ecc*cos4M );
+    //           T1 *= -(1 - 3* cos2Lat[j]);
 
-              T2 = (4 + 15*ecc*ecc + 20*ecc*cosM + 43*ecc*ecc*cos2M)*cosLon[j];
-              T2 += 2*ecc * (4 + 25*ecc*cosM) * sinM * sinLon[j];
-              T2 *= 24 * obl * cosLat[j] * sinLat[j] * sinM;
+    //           T2 = (4 + 15*ecc*ecc + 20*ecc*cosM + 43*ecc*ecc*cos2M)*cosLon[j];
+    //           T2 += 2*ecc * (4 + 25*ecc*cosM) * sinM * sinLon[j];
+    //           T2 *= 24 * obl * cosLat[j] * sinLat[j] * sinM;
 
-              T3 = obl*obl * (2 + 3*ecc*ecc + 6*ecc*cosM + 9*ecc*ecc*cos2M)*(cosM*cosLon[j] + sinM*sinLon[j]);
-              T3 += -(obl*obl - 2) * ( (6*ecc*cosM + 17*ecc*ecc*cos2M)*cos2Lon[j] + 2*ecc*(4+ 17*ecc*cosM) * sinM *sin2Lon[j] );
-              T3 *= 6*cosSqLat[j];
+    //           T3 = obl*obl * (2 + 3*ecc*ecc + 6*ecc*cosM + 9*ecc*ecc*cos2M)*(cosM*cosLon[j] + sinM*sinLon[j]);
+    //           T3 += -(obl*obl - 2) * ( (6*ecc*cosM + 17*ecc*ecc*cos2M)*cos2Lon[j] + 2*ecc*(4+ 17*ecc*cosM) * sinM *sin2Lon[j] );
+    //           T3 *= 6*cosSqLat[j];
 
-              potential(i) = factor*(T1 + T2 + T3);
+    //           potential(i) = factor*(T1 + T2 + T3);
 
-          }
-      }
-      break;
+    //       }
+    //   }
+    //   break;
 
-      case FULL:
-      {
-          factor = 0.75 * consts->loveReduct.Value() * pow(omega,2.0)*pow(radius,2.0)*ecc;
+    //   case FULL:
+    //   {
+    //       factor = 0.75 * consts->loveReduct.Value() * pow(omega,2.0)*pow(radius,2.0)*ecc;
 
-          factor2 = -3./2. * consts->loveReduct.Value() * pow(omega,2.0)*pow(radius,2.0)*obl;
+    //       factor2 = -3./2. * consts->loveReduct.Value() * pow(omega,2.0)*pow(radius,2.0)*obl;
 
-          #pragma omp parallel for
-          for (i=0; i<NODE_NUM; ++i) {
-              j = i*2;
+    //       #pragma omp parallel for
+    //       for (i=0; i<NODE_NUM; ++i) {
+    //           j = i*2;
 
-              potential(i) = factor*((1-3*sinSqLat[j])*cosM
-                                      + cosSqLat[j] * (3*cosM*cos2Lon[j]
-                                      + 4*sinM*sin2Lon[j]))
-                            + factor2 * cosM * sin2Lat[j] * cosLon[j];
-          }
-      }
-      break;
+    //           potential(i) = factor*((1-3*sinSqLat[j])*cosM
+    //                                   + cosSqLat[j] * (3*cosM*cos2Lon[j]
+    //                                   + 4*sinM*sin2Lon[j]))
+    //                         + factor2 * cosM * sin2Lat[j] * cosLon[j];
+    //       }
+    //   }
+    //   break;
 
-      case PLANET:
-      {
-          double a1, a2;  //semimajor axes
-          double n1, n2;  //mean motions
-          double m2;
-          double cosnt, sinnt;
-          double cosphi, sinphi;
-          double dist;
-          double cosgam;
+    //   case PLANET:
+    //   {
+    //       double a1, a2;  //semimajor axes
+    //       double n1, n2;  //mean motions
+    //       double m2;
+    //       double cosnt, sinnt;
+    //       double cosphi, sinphi;
+    //       double dist;
+    //       double cosgam;
 
-          m2 = 8.931938e+22;  // Io
-          // m2 = 1.4815e23;   // Ganymede
-          // m2 = 4.799e22;  //Europa
+    //       m2 = 8.931938e+22;  // Io
+    //       // m2 = 1.4815e23;   // Ganymede
+    //       // m2 = 4.799e22;  //Europa
 
-          a1 = 421800000.0; // Io
-          // a2 = 1.074e9;   // Ganymede
-          a2 = grid->globals->a.Value();
-          // a2 = 671100000.0; // Europa
+    //       a1 = 421800000.0; // Io
+    //       // a2 = 1.074e9;   // Ganymede
+    //       a2 = grid->globals->a.Value();
+    //       // a2 = 671100000.0; // Europa
 
-          // n2 = 4.11e-5;   // Io
-          // n2 = 1.016e-5;     // Ganymede
-          // n2 = 2.05e-5;     // Europa
-          n2 = grid->globals->angVel.Value();
-          n1 = n2*2.0;
+    //       // n2 = 4.11e-5;   // Io
+    //       // n2 = 1.016e-5;     // Ganymede
+    //       // n2 = 2.05e-5;     // Europa
+    //       n2 = grid->globals->angVel.Value();
+    //       n1 = n2*2.0;
 
-          double nij = (n1-n2);
+    //       double nij = (n1-n2);
 
-          cosnt = cos(nij*time);
-          sinnt = sin(nij*time);
-          double p = pow(a1, 2.0) + pow(a2, 2.0) - 2.*a1*a2*cosnt;
-          dist = sqrt(pow(a1, 2.0) + pow(a2, 2.0) - 2.*a1*a2*cosnt);
+    //       cosnt = cos(nij*time);
+    //       sinnt = sin(nij*time);
+    //       double p = pow(a1, 2.0) + pow(a2, 2.0) - 2.*a1*a2*cosnt;
+    //       dist = sqrt(pow(a1, 2.0) + pow(a2, 2.0) - 2.*a1*a2*cosnt);
 
-          cosphi = (a1 - a2*cosnt);
-          sinphi = a2*sinnt;
+    //       cosphi = (a1 - a2*cosnt);
+    //       sinphi = a2*sinnt;
 
-          factor = 0.5 * 6.67408e-11 * m2 * pow(radius/p, 2.0)/sqrt(p);
+    //       factor = 0.5 * 6.67408e-11 * m2 * pow(radius/p, 2.0)/sqrt(p);
 
-          // std::cout<<nij<<std::endl;
+    //       // std::cout<<nij<<std::endl;
 
-          // if (i=0)
-          #pragma omp parallel for
-          for (i=0; i<NODE_NUM; ++i) {
-              j = i*2;
+    //       // if (i=0)
+    //       #pragma omp parallel for
+    //       for (i=0; i<NODE_NUM; ++i) {
+    //           j = i*2;
 
-              cosgam = cosLat[j] * (cosLon[j]*cosphi + sinLon[j]*sinphi);
-              potential(i) = factor * (3. * pow(cosgam, 2.0) - p);
-              // if (i==0) std::cout<<pow(cosgam, 2.0)<<std::endl;
-          }
-        }
-        break;
+    //           cosgam = cosLat[j] * (cosLon[j]*cosphi + sinLon[j]*sinphi);
+    //           potential(i) = factor * (3. * pow(cosgam, 2.0) - p);
+    //           // if (i==0) std::cout<<pow(cosgam, 2.0)<<std::endl;
+    //       }
+    //     }
+    //     break;
 
-        case GENERAL:
-        {
-            double a1, a2;  //semimajor axes
-            double n1, n2;  //mean motions
-            double m2;
-            // double cosnt, sinnt;
-            double cosphi, sinphi;
-            double dist;
-            double cosgam;
-            // double U20, U22a, U22b
+    //     case GENERAL:
+    //     {
+    //         double a1, a2;  //semimajor axes
+    //         double n1, n2;  //mean motions
+    //         double m2;
+    //         // double cosnt, sinnt;
+    //         double cosphi, sinphi;
+    //         double dist;
+    //         double cosgam;
+    //         // double U20, U22a, U22b
 
-            double * P20 = &(grid->Pbar_20(0));
-            double * P22 = &(grid->Pbar_22(0));
+    //         double * P20 = &(grid->Pbar_20(0));
+    //         double * P22 = &(grid->Pbar_22(0));
 
-            double a20, a22, b22;
-            int q_max = grid->globals->freq.Value();
-
-
-            a20 = -9.991062592506567e-05*2.0;
-            a22 =   0.0012049514054640862*2.0;
-            b22 =  -0.0012017622891820471*2.0;
-
-            n2 = grid->globals->angVel.Value();
-            n1 = n2*2.0;
-
-            double nij = (n1-n2);
-
-            #pragma omp parallel for
-            for (i=0; i<NODE_NUM; i++) {
-                j = i*2;
-                double U20=0.0;
-                double U22a=0.0;
-                double U22b=0.0;
-
-                double cos_qnt = cos( (double)q_max * nij * time);
-                double sin_qnt = sin( (double)q_max * nij * time);
-
-                U20 += (a20 * cos_qnt);
-                U22a += (a22 * cos_qnt);
-                U22b += (b22 * sin_qnt);
+    //         double a20, a22, b22;
+    //         int q_max = grid->globals->freq.Value();
 
 
-                U20 = (U20)*P20[i];
-                U22a = (U22a)*P22[i]*cos2Lon[j];
-                U22b = (U22b)*P22[i]*sin2Lon[j];
+    //         a20 = -9.991062592506567e-05*2.0;
+    //         a22 =   0.0012049514054640862*2.0;
+    //         b22 =  -0.0012017622891820471*2.0;
 
-                potential(i) = (U20 + U22a + U22b);//*grid->globals->loveReduct.Value();
+    //         n2 = grid->globals->angVel.Value();
+    //         n1 = n2*2.0;
 
-                // cosgam = cosLat[j] * (cosLon[j]*cosphi + sinLon[j]*sinphi);
-                // double test = factor * (3. * pow(cosgam, 2.0) - 1.0)*grid->globals->loveReduct.Value();
+    //         double nij = (n1-n2);
 
-                // std::cout<<test<<' '<<(*scalar_dummy)(i)<<' '<<test/(*scalar_dummy)(i)<<std::endl;
-            }
-        }
-        break;
+    //         #pragma omp parallel for
+    //         for (i=0; i<NODE_NUM; i++) {
+    //             j = i*2;
+    //             double U20=0.0;
+    //             double U22a=0.0;
+    //             double U22b=0.0;
+
+    //             double cos_qnt = cos( (double)q_max * nij * time);
+    //             double sin_qnt = sin( (double)q_max * nij * time);
+
+    //             U20 += (a20 * cos_qnt);
+    //             U22a += (a22 * cos_qnt);
+    //             U22b += (b22 * sin_qnt);
+
+
+    //             U20 = (U20)*P20[i];
+    //             U22a = (U22a)*P22[i]*cos2Lon[j];
+    //             U22b = (U22b)*P22[i]*sin2Lon[j];
+
+    //             potential(i) = (U20 + U22a + U22b);//*grid->globals->loveReduct.Value();
+
+    //             // cosgam = cosLat[j] * (cosLon[j]*cosphi + sinLon[j]*sinphi);
+    //             // double test = factor * (3. * pow(cosgam, 2.0) - 1.0)*grid->globals->loveReduct.Value();
+
+    //             // std::cout<<test<<' '<<(*scalar_dummy)(i)<<' '<<test/(*scalar_dummy)(i)<<std::endl;
+    //         }
+    //     }
+    //     break;
 
         case NONE:
             break;

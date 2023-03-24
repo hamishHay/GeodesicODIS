@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <cstring>
 #include <math.h>
+#include <mpi.h>
 
 // #include <mkl.h>
 // #include <omp.h>
@@ -35,6 +36,13 @@ Globals::Globals() :Globals(1) {};
 Globals::Globals(int action) {
   // Constructor assings stringIDs and automatically reads from the input file.
 
+  int PROC_ID;
+  MPI_Comm_rank(MPI_COMM_WORLD, &PROC_ID);
+  // Read in global constants from input.in file with 0, and use defaults
+  // with 1 (currently set to Titan parameters). All constants are stored in the
+  // class "Globals".
+
+//   
   Output = new OutFiles;
 
   // set simulation path to that from the Output class.
@@ -210,7 +218,7 @@ Globals::Globals(int action) {
 
   period.SetValue((double)int_time);
   angVel.SetValue(2*pi/(double)int_time);
-  std::cout << int_time << ' ' << 2*pi/(double)int_time<< std::endl;
+//   std::cout << int_time << ' ' << 2*pi/(double)int_time<< std::endl;
 
   // Convert end time from units of orbital period to seconds.
   // endTime.SetValue(endTime.Value()*period.Value());
@@ -225,7 +233,9 @@ Globals::Globals(int action) {
   face_num = FACE_NUM;
   vertex_num = VERTEX_NUM;
 
+//   if (PROC_ID == 0) {
   Output->CreateHDF5Framework(this);
+//   }
 
     // identify friction type and select the corresponding enum value.
     if (friction.Value() == "LINEAR") fric_type = LINEAR;
@@ -326,7 +336,7 @@ int Globals::ReadGlobals(void)
   // Avoids the need to recompile for each different model setup.
 
   // in stream for input.in file
-  std::cout<<path + SEP + "input.in"<<std::endl;
+//   std::cout<<path + SEP + "input.in"<<std::endl;
   std::ifstream inputFile(path + SEP + "input.in",std::ifstream::in);
 
   // varID: string to contain the variable ID from input.in.
