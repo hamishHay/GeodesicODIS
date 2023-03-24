@@ -7,8 +7,9 @@
 
 void calculateMomentumAdvection(Globals *globals,
                                 Mesh *mesh,
+                                Array1D<double> &dvdt,            // array to apply advection to
                                 Array1D<double> &vel,             // face normal velocities
                                 Array1D<double> &layer_thickness, // node ocean thickness
-                                Array1D<double> &advection);      // advection term at face
+                                Array1D<double> &Ekin);
 
 #endif

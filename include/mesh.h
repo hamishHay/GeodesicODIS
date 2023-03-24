@@ -12,6 +12,7 @@
 //#include <mkl_spblas.h>
 #include <Eigen/Sparse>
 #include <Eigen/Dense>
+#include <Eigen/SparseCholesky>
 
 typedef Eigen::SparseMatrix<double, Eigen::RowMajor> SpMat;
 typedef Eigen::Map< SpMat > SpMatMap;
@@ -22,6 +23,7 @@ typedef Eigen::Matrix<double,1,Eigen::Dynamic> DenVector;
 typedef Eigen::Map<DenVector> MapVector;
 
 typedef Eigen::Matrix<double, Eigen::Dynamic, 6, Eigen::RowMajor> Vandermonde;
+typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> DenseMat;
 
 class Globals;
 
@@ -58,6 +60,10 @@ private:
   int CalcCoriolisOperatorCoeffs(void);
   int CalcLinearDragOperatorCoeffs(void);
   int CalcCurlOperatorCoeffs(void);
+  int CalcAdjacencyMatrix(void);
+  int CalcRBFInterpMatrix(void);
+  int CalcRBFInterpMatrix2(void);
+  int CalcFreeSurfaceSolver(void);
   int GeneratePressureSolver(void);
   int GenerateMomentumOperator(void);
 
@@ -106,6 +112,8 @@ public:
   // from Lee and Macdonald (2009)
   Array3D<double> node_vel_trans;
 
+  Array2D<double> node_node_RBF;
+
   // Array to store the edge length of each side to the control volume surrounding
   // the central node
   Array2D<double> control_vol_edge_len;
@@ -113,6 +121,9 @@ public:
   // Array to store the midpoint of each side to the control volume surrounding
   // the central node
   Array3D<double> control_vol_edge_centre_pos_map;
+  Array3D<double> control_vol_edge_centre_pos_sph;
+  // Array3D<double> node_face_normal_vec_map;
+
 
   // Array to store the midpoint mapping factor of each side to the control
   // volume surrounding the central node
@@ -147,15 +158,17 @@ public:
   // Array2D<int> face_friends;
   Array2D<int> face_dir;
   Array2D<double> face_normal_vec_map;
-  Array1D<int> face_normal_vec_dir;
+  Array2D<double> face_normal_vec_xyz;
   Array1D<double> face_node_dist;
+  Array1D<double> face_node_dist_r;
+  Array2D<double> node_face_arc; // angular distance between node and face center
+  Array2D<double> node_face_RBF;
   Array2D<double> face_centre_pos_sph;
   Array2D<double> face_intercept_pos_sph;
   Array2D<double> face_centre_m;
   Array3D<double> face_node_pos_map;
   Array1D<double> face_len;
   Array2D<int> node_face_dir;
-  Array3D<double> node_face_vel_trans;
   Array3D<double> face_node_vel_trans;
   Array1D<int> face_is_boundary;
 
@@ -167,6 +180,8 @@ public:
   Array2D<int> vertex_faces;
   Array2D<int> vertex_face_dir;
   Array1D<double> vertex_area;
+  Array1D<double> vertex_area_r;
+  Array1D<double> vertex_sinlat;
 
   Array2D<int> face_interp_friends;
   Array2D<double> face_interp_weights;
@@ -195,10 +210,27 @@ public:
   SpMat operatorDivergence;
   SpMat operatorGradient;
   SpMat operatorCurl;
+  SpMat node2faceAdj;
+  SpMat node2nodeAdj;
+  SpMat operatorRBFinterp;
+  // SpMat rbfDeriv2;
+  SpMat operatorSecondDeriv;
+  SpMat operatorDirectionalSecondDeriv;
 
   SpMat interpMatrix;
+  SpMat vandermondeInv;
 
-  Eigen::ColPivHouseholderQR<Eigen::MatrixXd> * interpSolvers;
+  // Eigen::ColPivHouseholderQR<Eigen::MatrixXd> * interpSolvers;
+  Eigen::FullPivLU<Eigen::MatrixXd> * interpSolvers;
+  // Vandermonde * interpVandermonde;
+  std::vector<Eigen::MatrixXd> interpVandermonde;
+  std::vector<Eigen::MatrixXd> interpVandermondeScalar;
+  Eigen::MatrixXd * interpSolversInv;
+  // Eigen::ColPivHouseholderQR<Eigen::MatrixXd> * interpSolvers2;
+  Eigen::LLT<Eigen::MatrixXd> * interpSolvers2;
+  Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> cg;
+  // Eigen::LeastSquaresConjugateGradient<Eigen::SparseMatrix<double>> cg;
+
 
   // Eigen::Matrix5d * interpSolvers;
 

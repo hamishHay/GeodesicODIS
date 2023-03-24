@@ -54,6 +54,9 @@ public:
 
   float * u_1D;
   float * v_1D;
+  float * ux_1D;
+  float * uy_1D;
+  float * uz_1D;
   float * eta_1D;
   float * press_1D;
   float * diss_1D;
@@ -75,6 +78,9 @@ public:
   hid_t data_space_eta;
   hid_t data_space_u;
   hid_t data_space_v;
+  hid_t data_space_ux;
+  hid_t data_space_uy;
+  hid_t data_space_uz;
   hid_t data_space_press;
   hid_t data_space_diss;
   hid_t data_space_kinetic;
@@ -88,6 +94,9 @@ public:
   hid_t mem_space_eta;
   hid_t mem_space_u;
   hid_t mem_space_v;
+  hid_t mem_space_ux;
+  hid_t mem_space_uy;
+  hid_t mem_space_uz;
   hid_t mem_space_press;
   hid_t mem_space_diss;
   hid_t mem_space_kinetic;
@@ -100,6 +109,9 @@ public:
   hid_t data_set_eta;
   hid_t data_set_u;
   hid_t data_set_v;
+  hid_t data_set_ux;
+  hid_t data_set_uy;
+  hid_t data_set_uz;
   hid_t data_set_press;
   hid_t data_set_diss;
   hid_t data_set_kinetic;

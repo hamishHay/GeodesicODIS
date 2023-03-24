@@ -16,6 +16,7 @@
 #include "outFiles.h"
 #include "array1d.h"
 #include "boundaryConditions.h"
+#include "gridConstants.h"
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -156,6 +157,9 @@ Globals::Globals(int action) {
     field_displacement_output.SetStringID("displacement output");
     allGlobals.push_back(&field_displacement_output);
 
+    field_velocity_cart_output.SetStringID("velocity cartesian output");
+    allGlobals.push_back(&field_velocity_cart_output);
+
     field_velocity_output.SetStringID("velocity output");
     allGlobals.push_back(&field_velocity_output);
 
@@ -213,9 +217,13 @@ Globals::Globals(int action) {
   endTime.SetValue(endTime.Value());
 
   // geodesic node num expression (Lee and Macdonald, 2008)
-  node_num = 10 * pow(pow(2, geodesic_l.Value() - 1), 2) + 2;
-  face_num = ((node_num-12)*6 + 12*5)/2;
-  vertex_num = ((node_num-12)*6 + 12*5)/3;
+  // node_num = 10 * pow(pow(2, geodesic_l.Value() - 1), 2) + 2;
+  // face_num = ((node_num-12)*6 + 12*5)/2;
+  // vertex_num = ((node_num-12)*6 + 12*5)/3;
+
+  node_num = NODE_NUM;
+  face_num = FACE_NUM;
+  vertex_num = VERTEX_NUM;
 
   Output->CreateHDF5Framework(this);
 
@@ -253,6 +261,7 @@ Globals::Globals(int action) {
     else if (potential.Value() == "PLANET")     tide_type = PLANET;
     else if (potential.Value() == "PLANET_OBL") tide_type = PLANET_OBL;
     else if (potential.Value() == "GENERAL")    tide_type = GENERAL;
+    else if (potential.Value() == "NONE")       tide_type = NONE;
     else {
         outstring << "ERROR: NO POTENTIAL FORCING FOUND!" << std::endl;
         Output->Write(ERR_MESSAGE, &outstring);
@@ -267,6 +276,15 @@ Globals::Globals(int action) {
     else if (surface.Value() == "LID_INF")      surface_type = LID_INF;
     else {
         outstring << "ERROR: NO OCEAN SURFACE BOUNDARY CONDITION FOUND!" << std::endl;
+        Output->Write(ERR_MESSAGE, &outstring);
+        Output->TerminateODIS();
+    }
+
+    if (init.Value() == "NONE")  initial_condition = INIT_NONE;
+    else if (init.Value() == "LOAD") initial_condition = INIT_LOAD;
+    else if (init.Value() == "ANALYTICAL") initial_condition = INIT_ANALYTICAL;
+    else {
+        outstring << "ERROR: INITIAL CONDITION MUST BE 0 (none), 1 (load from file), or 2 (analytical)!" << std::endl;
         Output->Write(ERR_MESSAGE, &outstring);
         Output->TerminateODIS();
     }
@@ -289,6 +307,16 @@ Globals::Globals(int action) {
 
     // mkl_set_num_threads(core_num.Value());
     // omp_set_num_threads(core_num.Value());
+
+#if defined(TEST_SW2) || defined(TEST_SW5)
+    surface_type = FREE;
+    surface.SetValue("FREE");
+
+    tide_type = NONE;
+    potential.SetValue("NONE");
+
+    alpha.SetValue(0.0);
+#endif
 
 };
 
@@ -399,6 +427,7 @@ int Globals::ReadGlobals(void)
 
     // Add all output tags to the string array out_tags
     if (field_velocity_output.Value())      out_tags.push_back(field_velocity_output.StringID());
+    if (field_velocity_cart_output.Value()) out_tags.push_back(field_velocity_cart_output.StringID());
     if (field_displacement_output.Value())  out_tags.push_back(field_displacement_output.StringID());
     if (field_pressure_output.Value())      out_tags.push_back(field_pressure_output.StringID());
     if (field_diss_output.Value())          out_tags.push_back(field_diss_output.StringID());
@@ -521,7 +550,7 @@ void Globals::SetDefault(void)
   friction.SetValue("QUADRATIC");
 
   //Initial conditions
-  init.SetValue(false);
+  init.SetValue("NONE");
 
   //Output dissipated energy?
   diss_avg.SetValue(true);

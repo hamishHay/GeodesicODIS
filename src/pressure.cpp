@@ -374,7 +374,7 @@ int updatePressure(Globals * globals,
                     p(i) += -1000.0 * (*p_corr)(i);
                 }
 
-                pressureGradient(grid, v, *p_corr, node_num, -dt);
+                // pressureGradient(grid, v, *p_corr, node_num, -dt);
 
                 iter++;
 

@@ -33,7 +33,7 @@ int integrateAB3scalar(Globals * globals,
      b = -16./12.;
      c = 5./12.;
 
-     if ((iter > 1) || globals->init.Value() ) {
+     if ((iter > 1) || globals->initial_condition == INIT_LOAD ) {
           #pragma omp parallel for
           for (i = 0; i<num; ++i)
           {

@@ -27,16 +27,10 @@
 
 void pressureGradientN(Mesh * mesh, Array1D<double> & dvdt, Array1D<double> & pressure, int x=1, double g = 1.0)
 {
-    int node_num, friend_num;
-    int i, j, j1, j2,f1,f2, f3;
 
-    int face_num = mesh->face_num;
-
-
-    for (i=0; i<mesh->face_num; i++) {
+    for (int i=0; i<mesh->face_num; i++) {
         double inner, outer;
         int node_in, node_out;
-        int dir_in, dir_out;
         double dist;
 
         node_in = mesh->face_nodes(i, 0);
@@ -59,12 +53,11 @@ void pressureGradientN(Mesh * mesh, Array1D<double> & dvdt, Array1D<double> & pr
 void velocityDivergenceN(Mesh * mesh, Array1D<double> & dpdt, Array1D<double> & velocity_n, double & sum, double h = 1.0)
 {
     int node_num, friend_num;
-    int i, j, j1, j2, i1, i2, f1, f2, f3;
+    int i, j;
 
     Array1D<double> * cv_areas;
     Array2D<int> * friend_list;
-
-    double m;                          // mapping factor at current cv edge
+                          
     double div;
     double edge_len;
 
@@ -543,97 +536,7 @@ void velocityDivergenceN(Mesh * mesh, Array1D<double> & dpdt, Array1D<double> & 
 // difference operator given as equation 3.2 in Heikes et al (2013).
 void velocityDiffusion(Mesh * mesh, Array2D<double> & dvdt, Array2D<double> & velocity, double viscosity)
 {
-    int i, node_num;
-    // int node_num, friend_num;
-    // int i, j, i1, j1, j2;
-    //
-    // Array2D<int> * friend_list;
-    // Array2D<double> * edge_lens;
-    // Array1D<double> * cv_areas;
-    // Array3D<double> * vel_transform;
-    // Array2D<double> * node_friend_dists;
-    //
-    // double m;                          // mapping factor at current cv edge
-    // double u0, u1, u_temp;
-    // double v0, v1, v_temp;
-    // double edge_len;
-    // double cos_a, sin_a;
-    // double lap_u, lap_v;
-    // double node_friend_dist;
-    //
-    node_num = mesh->node_num;
-    // friend_list = &(mesh->node_friends);
-    // edge_lens = &(mesh->control_vol_edge_len);
-    // cv_areas = &(mesh->control_volume_surf_area_map);
-    // vel_transform = &(mesh->node_vel_trans);
-    // node_friend_dists = &(mesh->node_dists);
 
-    // sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
-    // matrix_descr descript;
-    // // struct matrix_descr {
-    // //     sparse_matrix_type_t type;
-    // // } descript;
-    // descript.type = SPARSE_MATRIX_TYPE_GENERAL;
-    // double alpham = 1.0;
-    // double betam = 1.0;
-
-    // double * vec = new double[3*node_num];
-    // for (i=0; i<node_num; i++)
-    // {
-    //     vec[3*i] = velocity(i,0);
-    //     vec[3*i+1] = velocity(i,1);
-    //     vec[3*i+2] = 0.0;
-    // }
-
-    // mkl_sparse_d_mv(operation, viscosity, *(mesh->operatorLaplacian2), descript, vec, betam, &(dvdt(0,0)));
-
-    // delete[] vec;
-
-    // for (i=0; i<node_num; i++)
-    // {
-    //     friend_num = 6;
-    //     if ((*friend_list)(i, 5) == -1) friend_num = 5;
-    //
-    //     u0 = velocity(i,0);
-    //     v0 = velocity(i,1);
-    //
-    //     lap_u = 0.0;
-    //     lap_v = 0.0;
-    //
-    //     for (j=0; j<friend_num; j++)
-    //     {
-    //           i1 = (*friend_list)(i,j);
-    //
-    //           j1 = (j-1)%friend_num;
-    //           if (j1 < 0) j1 += friend_num;
-    //
-    //           u_temp = velocity(i1,0);
-    //           v_temp = velocity(i1,1);
-    //
-    //           cos_a = (*vel_transform)(i, j+1, 0);
-    //           sin_a = (*vel_transform)(i, j+1, 1);
-    //
-    //           u1 = u_temp * cos_a + v_temp * sin_a;
-    //           v1 = -u_temp * sin_a + v_temp * cos_a;
-    //
-    //           // CHANGED - index of j is now less by 1. The distance between node
-    //           //           and friend is stored in the same index system as the
-    //           //           friends themselves. The control volume edge lengths are
-    //           //           stored in the j-1 index system (i.e., edge s6 lines up
-    //           //           with node-friend length l1)
-    //
-    //           node_friend_dist = (*node_friend_dists)(i, j);  // same j index as the friend node
-    //           edge_len = (*edge_lens)(i, j1);                 // index j-1 due to clockwise storage
-    //
-    //           lap_u += (u1 - u0)/node_friend_dist * edge_len;
-    //           lap_v += (v1 - v0)/node_friend_dist * edge_len;
-    //
-    //     }
-    //
-    //     dvdt(i,0) += viscosity * lap_u/(*cv_areas)(i);
-    //     dvdt(i,1) += viscosity * lap_v/(*cv_areas)(i);
-    //
-    // }
 };
 
 // Function to calculate the Laplacian and diffusion for the velocity field.
@@ -649,11 +552,10 @@ void scalarDiffusion(Mesh * mesh, Array1D<double> & d2s, Array1D<double> & s, do
     Array1D<double> * cv_areas;
     Array2D<double> * node_friend_dists;
 
-    double m;                          // mapping factor at current cv edge
-    double s0, s1, s_temp;
+    double s0, s1;
     double edge_len;
-    double cos_a, sin_a;
-    double lap_s, lap_v;
+
+    double lap_s;
     double node_friend_dist;
 
     node_num = mesh->node_num;
@@ -843,18 +745,14 @@ void scalarDiffusion(Mesh * mesh, Array1D<double> & d2s, Array1D<double> & s, do
 void avgAtPoles(Mesh * mesh, Array2D<double> & velocity)
 {
     int friend_num;
-    int i, j, j1, j2, i1, i2;
+    int i, j, i1;
 
     Array2D<int> * friend_list;
     Array3D<double> * vel_transform;
 
-    double m;                          // mapping factor at current cv edge
-    double a0, a1, a2;
-    double u0, u1, u2, u0_cent, u1_cent, u_avg, u_temp;
-    double v0, v1, v2, v0_cent, v1_cent, v_avg, v_temp;
-    double div;
-    double nx, ny;
-    double edge_len;
+
+    double u1, u_avg, u_temp;
+    double v1, v_avg, v_temp;
 
     double cos_a, sin_a;
 

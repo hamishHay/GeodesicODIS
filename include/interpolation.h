@@ -13,6 +13,8 @@ int interpolateGG2LLConservative(Globals *, Mesh *, Array2D<double> &, Array1D<d
 
 int interpolateVelocity(Globals *, Mesh *, Array2D<double> &, Array1D<double> &);
 
-int interpolateLSQFlux(Globals *, Mesh *, Array1D<double> &, Array1D<double> &, Array1D<double> &, double beta=0.5);
+int interpolateVelocityCartRBF(Globals * globals, Mesh * mesh, Array2D<double> & interp_vel_xyz, Array1D<double> & normal_vel);
+
+int interpolateLSQFlux(Globals *, Mesh *, Array1D<double> &, Array1D<double> &, Array1D<double> &, double beta=1.0);
 
 #endif

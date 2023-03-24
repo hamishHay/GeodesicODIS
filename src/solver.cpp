@@ -34,12 +34,12 @@ int solveODIS(Globals * globals, Mesh * mesh)
         break;
 
     case RK4:
-        outstring << globals->solver.Value() << std::endl << std::endl;
-        outstring << "Entering time solver " << globals->solver.Value() << "...";
-        outstring << std::endl << std::endl;
-        Output->Write(OUT_MESSAGE, &outstring);
+        // outstring << globals->solver.Value() << std::endl << std::endl;
+        // outstring << "Entering time solver " << globals->solver.Value() << "...";
+        // outstring << std::endl << std::endl;
+        // Output->Write(OUT_MESSAGE, &outstring);
 
-        err = rk4Explicit(globals, mesh);
+        // err = rk4Explicit(globals, mesh);
         break;
 
     default:

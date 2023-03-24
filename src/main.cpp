@@ -38,6 +38,7 @@
 #include "array2d.h"
 #include "solver.h"
 #include "tests.h"
+#include "gridConstants.h"
 
 
 #include <iostream>
@@ -57,9 +58,11 @@ int main(void)
 
   constants->OutputConsts();
 
-  // runOperatorTests(constants, grid);
-
-  solveODIS(constants, grid);
+  #if defined(TEST_OPERATORS)
+    runOperatorTests(constants, grid);
+  #else
+    solveODIS(constants, grid);
+  #endif 
 
   return 0;
 }

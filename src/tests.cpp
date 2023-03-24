@@ -4,7 +4,10 @@
 #include "array2d.h"
 #include "array1d.h"
 #include "spatialOperators.h"
-#include <math.h>
+#include "interpolation.h"
+#include "momAdvection.h"
+#include "gridConstants.h"
+#include <cmath>
 #include <iostream>
 // #include <mkl.h>
 
@@ -42,11 +45,11 @@ void setBeta(Array1D<double> & beta, int m, int n, int node_num, Array2D<double>
         lon = sph(i, 1);
         // beta(i) = 1e6*trigMLon(i, m, 0) * trigNLat(i, n, 0) * trigNLat(i, n, 0)
         //           * trigNLat(i, n, 0) * trigNLat(i, n, 0);
-      beta(i) = 1e6*cos(m*lon) * pow(cos(n*lat), 4.0);
+      beta(i) = 1e8*cos(m*lon) * cos(n*lat);
     }
 };
 
-void setU(Array2D<double> & u, int m, int n, int node_num, Array2D<double> & sph)
+void setU(Array2D<double> & u, int m, int n, int node_num, double r, Array2D<double> & sph)
 {
     int i;
     double lon, lat;
@@ -56,22 +59,34 @@ void setU(Array2D<double> & u, int m, int n, int node_num, Array2D<double> & sph
         lat = sph(i, 0);
         lon = sph(i, 1);
 
-        // Northward
-        u(i, 0) = -4. * 1e6* n * sin(lon) * cos(m*lon);
-        u(i, 0) *= sin(n*lat);
-        u(i, 0) *= pow(cos(n*lat), 3.0);
+        // // Northward
+        // u(i, 0) = -4.* n * sin(lon) * cos(m*lon);
+        // u(i, 0) *= sin(n*lat);
+        // u(i, 0) *= pow(cos(n*lat), 3.0);
 
-        // Eastward
-        u(i, 1) = -m * 1e6*sin(lon) * sin(m*lon);
-        u(i, 1) *= pow(cos(n*lat),4.0)/cos(lat);
+        // // Eastward
+        // u(i, 1) = -m *sin(lon) * sin(m*lon);
+        // u(i, 1) *= pow(cos(n*lat),4.0)/(cos(lat));
 
-        u(i, 1) = -4. * 1e6 * n * sin(lon) * cos(m * lon);
+        u(i, 1) = 1e8*-4. * n * sin(lon) * cos(m * lon);
         u(i, 1) *= sin(n * lat);
-        u(i, 1) *= pow(cos(n * lat), 3.0);
+        u(i, 1) *= pow(cos(n * lat), 3.0)/r;
 
         // Eastward
-        u(i, 0) = -m * 1e6 * sin(lon) * sin(m * lon);
-        u(i, 0) *= pow(cos(n * lat), 4.0) / cos(lat);
+        u(i, 0) = 1e8*-m * sin(lon) * sin(m * lon);
+        u(i, 0) *= pow(cos(n * lat), 4.0) / (r*cos(lat));
+
+        // // Curl-free Vel
+        u(i, 1) = -1e8*m*cos(n*lat)*sin(m*lon)/ (cos(lat)*r);
+        u(i, 0) = -1e8*n*cos(m*lon)*sin(n*lat)/r;
+
+        // // Div-free vel 
+        u(i, 0) = 1e8 * n * cos(m*lon)*sin(n*lat)/r;
+        u(i, 1) = -1e8 * m * cos(n*lat) * sin(m*lon) / (r * cos(lat));
+
+        // Obliquity tide
+        // u(i, 0) = -1e8*cos(lon)*sin(lat)/r;
+        // u(i, 1) = 1e8*sin(lon)/r;
     }
 };
 
@@ -85,11 +100,31 @@ void setDivU(Array1D<double> & divU, int m, int n, int node_num, double r, Array
         lat = sph(i, 0);
         lon = sph(i, 1);
 
-        divU(i)  = 2.*m*sin(lon)*sin(m*lon);
-        divU(i) -= cos(lon)*cos(m*lon);
-        divU(i) *= sin(n*lat);
-        divU(i) *= pow(cos(n*lat), 3.0);
-        divU(i) *= 1e6*4.*n/(r * cos(lat));
+        // divU(i)  = 2.*m*sin(lon)*sin(m*lon);
+        // divU(i) -= cos(lon)*cos(m*lon);
+        // divU(i) *= sin(n*lat);
+        // divU(i) *= pow(cos(n*lat), 3.0);
+        // divU(i) *= 1e8*4.*n/(r*r * cos(lat));
+
+        divU(i)  = cos(n*lat)*cos(n*lat) * (4*n*n - m*m/pow(cos(lat), 2.0));
+        divU(i) -= 2*n* (6*n*pow(sin(n*lat), 2.0) + sin(2*n*lat) * tan(lat) );
+        divU(i) *= cos(m*lon) * pow(cos(n*lat),2.0)*sin(lon);
+        divU(i) -= m*cos(lon)*pow(cos(n*lat),4.0) * sin(m*lon)/pow(cos(lat), 2.0);
+        divU(i) /= r*r;
+        divU(i) *= 1e8;
+
+        divU(i)  = cos(n*lat)*cos(n*lat) * (4*n*n + m*m/pow(cos(lat), 2.0));
+        divU(i) -= 2*n* (6*n*pow(sin(n*lat), 2.0) + sin(2*n*lat) * tan(lat) );
+        divU(i) *= cos(m*lon) *sin(lon);
+        divU(i) += m*cos(lon)*pow(cos(n*lat),2.0) * sin(m*lon)/pow(cos(lat), 2.0);
+        divU(i) /= r*r;
+        divU(i) *= -1e8*pow(cos(n*lat),2.0);
+
+        // // Curl-free DIV
+        // divU(i) = -1e8*cos(m*lon)*(cos(n*lat) * (n*n + pow(m/cos(lat), 2.0) ) - n*sin(n*lat)*tan(lat) )/pow(r,2.0);
+
+        // // // Div-free DIV
+        // divU(i) = 0.0;
     }
 };
 
@@ -107,12 +142,19 @@ void setCurlU(Array1D<double> &curlU, int m, int n, int node_num, double r, Arra
         // curlU(i) -= n*cos(lat) * (pow(cos(n*lat), 2.0) - 3*pow(sin(n*lat), 2.0) );
         // curlU(i) *= 4*n*sin(lon)*cos(m*lon)*pow(cos(lat*n), 2.0);
 
-        curlU(i) = -m*sin(lon)*sin(m*lon) + cos(lon)*cos(m*lon);
+        curlU(i) = -2*m*sin(lon)*sin(m*lon) - cos(lon)*cos(m*lon);
         curlU(i) *= 4*n*sin(lat*n)*pow( cos(lat*n), 3.0); 
+        curlU(i) *= 1e8/ ( r*r * cos(lat));
 
-        curlU(i) += 4*m*n*sin(lon)*sin(m*lon)*sin(lat*n)*pow( cos(lat*n), 3.0);
+        // curlU(i) += 4*m*n*sin(lon)*sin(m*lon)*sin(lat*n)*pow( cos(lat*n), 3.0);
+        // curlU(i) = -1e8*4*n*cos(lon)*cos(m*lon)*pow(cos(n*lat),3.0)*sin(n*lat)/cos(lat) / pow(r,2.0);
         
-        curlU(i) *= 1e6/ ( r * cos(lat));
+        // //Curl-free curl,lol
+        // curlU(i) = 0.0;
+
+        // // // Div-free curl
+        curlU(i) = cos(n*lat) * (n*n + pow(m/cos(lat), 2.0)) - n*sin(n*lat)*tan(lat);
+        curlU(i) *= -1e8 * cos(m*lon) / pow(r, 2.0);
     }
 };
 
@@ -126,13 +168,13 @@ void setGradBeta(Array2D<double> & gradBeta, int m, int n, int node_num, double 
         lon = sph(i, 1);
 
         // Northward (y-dir)
-        gradBeta(i, 1) =  -1e6 * 4.0 * n * cos(m*lon);
+        gradBeta(i, 1) =  -1e8 * 4.0 * n * cos(m*lon);
         gradBeta(i, 1) *= sin(n*lat);
         gradBeta(i, 1) *= pow(cos(n*lat), 3.0);
         gradBeta(i, 1) /= r;
 
         // Eastward (x-dir)
-        gradBeta(i, 0) = -m * 1e6 * sin(m*lon);
+        gradBeta(i, 0) = -m * 1e8 * sin(m*lon);
         gradBeta(i, 0) *= pow(cos(n*lat), 4.0);
         gradBeta(i, 0) /= r*cos(lat);
 
@@ -145,21 +187,75 @@ void setGradBeta(Array2D<double> & gradBeta, int m, int n, int node_num, double 
         // gradBeta(i, 0) *= trigNLat(i, n, 0)*trigNLat(i, n, 0)
         //            *trigNLat(i, n, 0)*trigNLat(i, n, 0);
         // gradBeta(i, 0) /= r*trigLat(i, 0);
+
+        // grad of curl-free velocity
+        gradBeta(i, 0) = -1e8*m*cos(n*lat)*sin(m*lon)/(r*cos(lat));
+        gradBeta(i, 1) = -1e8*n*cos(m*lon)*sin(n*lat)/r;
+    }
+};
+
+void setAdvU(Array2D<double> & u, int m, int n, int node_num, double r, Array2D<double> & sph)
+{
+    int i;
+    double x, y, ny, mx;
+
+    for (i = 0 ; i < node_num; i++)
+    {
+        y = sph(i, 0);
+        x = sph(i, 1);
+        ny = n*y;
+        mx = m*x;
+
+        u(i, 1) = m*sin(x)*pow(sin(mx), 2.0) *(-4*n*sin(ny) + cos(ny)*tan(y));
+        u(i,1) += 2*n*cos(x)*sin(2*mx)*sin(ny);
+        u(i,1) *= m*pow(cos(ny),2.0)/pow(cos(y), 2.0);
+        u(i,1) += 16*pow(n,3.0)*pow(cos(mx),2.0)*sin(x) * (-2*sin(ny) + sin(3*ny) );
+        u(i,1) *= 1e16*pow(cos(ny),5.0)*sin(x)/pow(r,3.0);
+
+        // Eastward
+        u(i, 0) = cos(mx)*sin(x)*(pow(m*cos(ny)/cos(y), 2.0) - 16* pow(n*sin(ny), 2.0));
+        // u(i, 0) *= cos(mx)*sin(x);
+        u(i, 0) += m*cos(x)*sin(mx)*pow(cos(ny)/cos(y), 2.0);
+        u(i, 0) *= 1e16*m*pow(cos(ny), 6.0)*sin(x)*sin(mx)/ ( pow(r, 3.0) * cos(y) );
+    
+        // // Curl-free Advection 
+        u(i, 1) = pow(m*sin(mx)/cos(y),2.0) * (cos(ny)*tan(y) - n*sin(ny));
+        u(i, 1) += pow(n,3.0)*pow(cos(mx), 2.0)*sin(ny);
+        u(i, 1) *= 1e8*1e8*cos(ny)/pow(r,3.0);
+
+        u(i, 0) = pow(m*cos(ny)/cos(y), 2.0) - pow(n*sin(ny), 2.0);
+        u(i, 0) *= 1e8*1e8*m*cos(mx)*sin(mx)/cos(y) / pow(r,3.0);
+
+        // // Div-free Advection 
+        u(i, 0) = m*n*sin(2*mx)*(2*n - sin(2*ny)*tan(y));
+        u(i, 0) *= -1e8*1e8 / (4* cos(y) * pow(r,3.0) );
+
+        u(i, 1) = n*pow(cos(mx), 2.0) * (pow(m/cos(y), 2.0)*sin(2*ny) - 2*n*tan(y)*pow(sin(ny), 2.0));
+        u(i, 1) += pow(m*sin(mx)/cos(y), 2.0) * (n*sin(2*ny) - 2*pow(cos(ny), 2.0)*tan(y));
+        u(i, 1) *= -1e8*1e8 / (2 * pow(r, 3.0));
+    
+        // // Div-free advection - grad(kinetic energy)
+        // u(i,0) = cos(ny)*(n*n +pow(m/cos(y), 2.0) ) - n*sin(ny)*tan(y);
+        // u(i,0) *= -1e16*m*cos(mx)*cos(ny)*sin(mx)/(cos(y)*pow(r,3.0));
+
+        // u(i,1) = cos(ny)*(n*n +pow(m/cos(y), 2.0) ) - n*sin(ny)*tan(y);
+        // u(i,1) *= -1e16*n*pow(cos(mx),2.0)*sin(ny)/pow(r,3.0);
     }
 };
 
 void runCoriolisTest(Mesh * mesh, double error_norms[])
 {
-    Array2D<double> uv_faces(mesh->face_num, 2);    // east and north vel components at each face
-    Array1D<double> un_faces(mesh->face_num);       // normal vel component at each face
-    Array1D<double> ut_faces(mesh->face_num);       // tangent vel component at each face
+    
+    Array2D<double> uv_faces(FACE_NUM, 2);    // east and north vel components at each face
+    Array1D<double> un_faces(FACE_NUM);       // normal vel component at each face
+    Array1D<double> ut_faces(FACE_NUM);       // tangent vel component at each face
 
-    Array1D<double> coriolis_analytic(mesh->face_num);
-    Array1D<double> coriolis_numerical(mesh->face_num);
+    Array1D<double> coriolis_analytic(FACE_NUM);
+    Array1D<double> coriolis_numerical(FACE_NUM);
 
-    setU(uv_faces, 1, 1, mesh->face_num, mesh->face_centre_pos_sph);
+    setU(uv_faces, 1, 1, FACE_NUM, mesh->globals->radius.Value(), mesh->face_centre_pos_sph);
 
-    for (int i=0; i<mesh->face_num; i++) {
+    for (int i=0; i<FACE_NUM; i++) {
         double u_face = uv_faces(i, 0);
         double v_face = uv_faces(i, 1);
 
@@ -201,23 +297,150 @@ void runCoriolisTest(Mesh * mesh, double error_norms[])
 
 
     // Must define the mapped object as below to avoid copying memory!
-    // i.e. do NOT do: Eigen::VectorXd u_data = Eigen::Map<Eigen::VectorXd>(&un_faces(0), mesh->face_num);
-    Eigen::Map<Eigen::VectorXd> u_data(&un_faces(0), mesh->face_num);
-    Eigen::Map<Eigen::VectorXd> coriolis_data(&coriolis_numerical(0), mesh->face_num);
+    // i.e. do NOT do: Eigen::VectorXd u_data = Eigen::Map<Eigen::VectorXd>(&un_faces(0), FACE_NUM);
+    Eigen::Map<Eigen::VectorXd> u_data(&un_faces(0), FACE_NUM);
+    Eigen::Map<Eigen::VectorXd> coriolis_data(&coriolis_numerical(0), FACE_NUM);
 
     // Perform sparse matrix * vector operation
     coriolis_data = mesh->operatorCoriolis * u_data;
 
     
+    // std::cout<<"HERE"<<std::endl;
+    double err;
+    for (int i=0; i<FACE_NUM; i++) {
+        // if (fabs(coriolis_analytic(i)) < 1e-10) coriolis_numerical(i) = coriolis_analytic(i);
+        err = (coriolis_analytic(i)-coriolis_numerical(i))/coriolis_analytic(i)*100.0;
+        // std::cout<<coriolis_analytic(i)<<'\t'<<coriolis_numerical(i)<<'\t'<<err<<std::endl;
+        // if ((mesh->node_friends(mesh->face_nodes(i,0),5) < 0) || (mesh->node_friends(mesh->face_nodes(i,1),5) < 0)) std::cout<<coriolis_numerical(i)<<"\t\t"<<coriolis_analytic(i)<<"\t\t"<<abs(coriolis_numerical(i)-coriolis_analytic(i))/abs(coriolis_analytic(i))*100<<std::endl;
 
-    // for (int i=0; i<mesh->face_num; i++) {
-    //     if (fabs(coriolis_analytic(i)) < 1e-10) coriolis_numerical(i) = coriolis_analytic(i);
-    //     // std::cout<<coriolis_data(i)<<'\t'<<coriolis_numerical(i)<<std::endl;
-    //     // std::cout<<coriolis_numerical(i)<<"\t\t"<<coriolis_analytic(i)<<"\t\t"<<abs(coriolis_numerical(i)-coriolis_analytic(i))/abs(coriolis_analytic(i))*100<<std::endl;
+    }
 
+    getErrorNorms(&coriolis_numerical(0), &coriolis_analytic(0), FACE_NUM, error_norms);
+}
+
+void runAdvectionTest(Mesh * mesh, double error_norms[])
+{
+    Array2D<double> uv_faces(FACE_NUM, 2);    // east and north vel components at each face
+    Array1D<double> un_faces(FACE_NUM);       // normal vel component at each face
+    Array1D<double> ut_faces(FACE_NUM);
+    Array2D<double> adv_analytical_xy(FACE_NUM, 2);
+    Array1D<double> thickness(NODE_NUM);
+    Array2D<double> uv_nodes(NODE_NUM, 2);
+    Array2D<double> uv_vertex(VERTEX_NUM, 2);
+
+    Array1D<double> Ekin(NODE_NUM);
+
+    Array1D<double> advection_analytic(FACE_NUM);
+    Array1D<double> advection_numerical(FACE_NUM);
+
+    setU(uv_faces, 1, 1, FACE_NUM, mesh->globals->radius.Value(), mesh->face_centre_pos_sph);
+    setU(uv_nodes, 1, 1, NODE_NUM, mesh->globals->radius.Value(), mesh->node_pos_sph);
+    setU(uv_vertex, 1, 1, VERTEX_NUM, mesh->globals->radius.Value(), mesh->vertex_pos_sph);
+    setAdvU(adv_analytical_xy, 1, 1, FACE_NUM, mesh->globals->radius.Value(), mesh->face_centre_pos_sph);
+
+    for (int i=0; i<NODE_NUM; i++) thickness(i) = 10000.0;
+
+    // for (int i=0; i<VERTEX_NUM; i++) {
+    //     uv_vertex(i, 0) = 10.0;
+    //     uv_vertex(i, 1) = 0.0;
     // }
 
-    getErrorNorms(&coriolis_numerical(0), &coriolis_analytic(0), mesh->face_num, error_norms);
+    // for (int i=0; i<FACE_NUM; i++) {
+    //     uv_faces(i, 0) = 1.0;
+    //     uv_faces(i, 1) = 0.0;
+    // }
+
+    // for (int i=0; i<NODE_NUM; i++) {
+    //     uv_nodes(i, 0) = 0;
+    //     uv_nodes(i, 1) = 1.0;
+    // }
+
+    for (int i=0; i<FACE_NUM; i++) {
+        double u_face = adv_analytical_xy(i, 0);
+        double v_face = adv_analytical_xy(i, 1);
+
+        double vel_mag = sqrt( pow(u_face, 2.0) + pow(v_face, 2.0) );
+
+        
+
+        
+        // ********* get the velocity component normal to the face *****************************
+        // get unit vector of velocity 
+        double nx = u_face / vel_mag;
+        double ny = v_face / vel_mag;
+
+        if (vel_mag < 1e-10) {nx = 0.0; ny = 0.0;}
+
+        // take dot product of vel unit vector with face normal vector
+        double cos_a = nx *mesh->face_normal_vec_map(i, 0) + ny*mesh->face_normal_vec_map(i, 1);
+
+        // ********* calculate advection term analytically (without omega) **********************
+
+        advection_analytic(i) = vel_mag * cos_a;
+
+        u_face = uv_faces(i, 0);
+        v_face = uv_faces(i, 1);
+
+        vel_mag = sqrt( pow(u_face, 2.0) + pow(v_face, 2.0) );
+
+        
+        // ********* get the velocity component normal to the face *****************************
+        // get unit vector of velocity 
+        nx = u_face / vel_mag;
+        ny = v_face / vel_mag;
+
+        if (vel_mag < 1e-10) {nx = 0.0; ny = 0.0;}
+
+        cos_a = nx *mesh->face_normal_vec_map(i, 0) + ny*mesh->face_normal_vec_map(i, 1);
+
+        // get the velocity component normal to the face
+        un_faces(i) = vel_mag * cos_a;
+        
+        cos_a = nx *mesh->face_normal_vec_map(i, 1) - ny*mesh->face_normal_vec_map(i, 0);
+
+        ut_faces(i) = vel_mag * cos_a;
+
+        // std::cout<<sqrt(pow(un_faces(i), 2.0) + pow(ut_faces(i), 2.0) )<<std::endl;
+
+    }
+
+
+    // *********** calculate advection term numerically *********************************
+
+
+    // Must define the mapped object as below to avoid copying memory!
+    // i.e. do NOT do: Eigen::VectorXd u_data = Eigen::Map<Eigen::VectorXd>(&un_faces(0), FACE_NUM);
+    Eigen::Map<Eigen::VectorXd> u_data(&un_faces(0), FACE_NUM);
+    Eigen::Map<Eigen::VectorXd> advection_data(&advection_numerical(0), FACE_NUM);
+
+    // Perform sparse matrix * vector operation
+    // advection_data = mesh->operatoradvection * u_data;
+
+    Array1D<double> advection_term(FACE_NUM);
+
+    calculateMomentumAdvection(mesh->globals, mesh, un_faces, thickness, advection_numerical, Ekin);
+
+    // advection_data -= mesh->operatorCoriolis * u_data;
+
+    for (int i=0; i<FACE_NUM; i++) {
+        // if (isnan(advection_numerical(i))) std::cout<<"NAN AT "<<i<<std::endl;
+        // if (fabs(advection_analytic(i)) < 1e-10) advection_numerical(i) = advection_analytic(i);
+        // std::cout<<advection_data(i)<<'\t'<<advection_numerical(i)<<std::endl;
+        std::cout<<advection_numerical(i)<<"\t\t"<<advection_analytic(i)<<"\t\t"<<abs(advection_numerical(i)-advection_analytic(i))/abs(advection_analytic(i))*100<<std::endl;
+        // if ((mesh->node_friends(mesh->face_nodes(i,0),5) < 0) || (mesh->node_friends(mesh->face_nodes(i,1),5) < 0)) std::cout<<mesh->node_friends(mesh->face_nodes(i,0),0)<<' '<<advection_numerical(i)<<"\t\t"<<advection_analytic(i)<<"\t\t"<<abs(advection_numerical(i)-advection_analytic(i))/abs(advection_analytic(i))*100<<std::endl;
+        // std::cout<<mesh->node_friends(mesh->face_nodes(i,0),0)<<' '<<advection_numerical(i)<<"\t\t"<<advection_analytic(i)<<"\t\t"<<abs(advection_numerical(i)-advection_analytic(i))/abs(advection_analytic(i))*100<<std::endl;
+        uv_faces(i,0) = 0;
+        // uv_faces(i,1) = 1*cos(mesh->face_centre_pos_sph(i, 1));
+    }
+
+    
+
+    // for (int i=0; i<VERTEX_NUM; i++) {
+    //     // if (i<10) std::cout<<i<<' '<<0.5*(pow(uv_vertex(i,0),2.0) + pow(uv_vertex(i,1),2.0)<<' '<<mesh->vertex_pos_sph(i,0)<<' '<<mesh->vertex_pos_sph(i,1)<<std::endl;
+    //     // if (i<12) std::cout<<i<<' '<<uv_vertex(i,0)<<' '<<uv_vertex(i,1)<<' '<<mesh->vertex_pos_sph(i,0)<<' '<<mesh->vertex_pos_sph(i,1)<<std::endl;
+    // }
+
+    getErrorNorms(&advection_numerical(0), &advection_analytic(0), FACE_NUM, error_norms);
 }
 
 void runDivergenceTest(Mesh *mesh, double error_norms[])
@@ -228,8 +451,11 @@ void runDivergenceTest(Mesh *mesh, double error_norms[])
     Array1D<double> div_analytic(mesh->node_num);
     Array1D<double> div_numerical(mesh->node_num);
 
-    setU(uv_faces, 1, 1, mesh->face_num, mesh->face_centre_pos_sph);
+    
+
+    setU(uv_faces, 1, 1, mesh->face_num, mesh->globals->radius.Value(), mesh->face_centre_pos_sph);
     setDivU(div_analytic, 1, 1, mesh->node_num, mesh->globals->radius.Value(), mesh->node_pos_sph);
+
 
     for (int i = 0; i < mesh->face_num; i++)
     {
@@ -243,11 +469,11 @@ void runDivergenceTest(Mesh *mesh, double error_norms[])
         double nx = u_face / vel_mag;
         double ny = v_face / vel_mag;
 
-        if (vel_mag < 1e-10)
-        {
-            nx = 0.0;
-            ny = 0.0;
-        }
+        // if (vel_mag < 1e-10)
+        // {
+        //     nx = 0.0;
+        //     ny = 0.0;
+        // }
 
         // take dot product of vel unit vector with face normal vector
         double cos_a = nx * mesh->face_normal_vec_map(i, 0) + ny * mesh->face_normal_vec_map(i, 1);
@@ -266,14 +492,15 @@ void runDivergenceTest(Mesh *mesh, double error_norms[])
         // Perform sparse matrix * vector operation
         div_data = -mesh->operatorDivergence * u_data;
 
-        // for (int i=0; i<mesh->face_num; i++) {
-        //     // std::cout<<coriolis_data(i)<<'\t'<<coriolis_numerical(i)<<std::endl;
-        //     std::cout<<coriolis_numerical(i)<<"\t\t"<<coriolis_analytic(i)<<"\t\t"<<abs(coriolis_numerical(i)-coriolis_analytic(i))/abs(coriolis_analytic(i))*100<<std::endl;
+        // for (int i=0; i<mesh->node_num; i++) {
+        //     std::cout<<coriolis_data(i)<<'\t'<<coriolis_numerical(i)<<std::endl;
+        //     // std::cout<<div_numerical(i)<<"\t\t"<<div_analytic(i)<<"\t\t"<<abs(div_numerical(i)-div_analytic(i))/abs(div_analytic(i))*100<<std::endl;
 
         // }
 
+
         getErrorNorms(&div_numerical(0), &div_analytic(0), mesh->node_num, error_norms);
-    }
+};
 
     void runGradientTest(Mesh *mesh, double error_norms[])
     {
@@ -298,11 +525,11 @@ void runDivergenceTest(Mesh *mesh, double error_norms[])
             double nx = u_face / vel_mag;
             double ny = v_face / vel_mag;
 
-            if (vel_mag < 1e-10)
-            {
-                nx = 0.0;
-                ny = 0.0;
-            }
+            // if (vel_mag < 1e-10)
+            // {
+            //     nx = 0.0;
+            //     ny = 0.0;
+            // }
 
             // take dot product of vel unit vector with face normal vector
             double cos_a = nx * mesh->face_normal_vec_map(i, 0) + ny * mesh->face_normal_vec_map(i, 1);
@@ -323,6 +550,7 @@ void runDivergenceTest(Mesh *mesh, double error_norms[])
 
         // for (int i=0; i<mesh->face_num; i++) {
         //     // std::cout<<coriolis_data(i)<<'\t'<<coriolis_numerical(i)<<std::endl;
+        //     if ((mesh->node_friends(mesh->face_nodes(i,0),5) < 0) || (mesh->node_friends(mesh->face_nodes(i,1),5) < 0))
         //     std::cout<<grad_numerical(i)<<"\t\t"<<grad_analytic(i)<<"\t\t"<<abs(grad_numerical(i)-grad_analytic(i))/abs(grad_analytic(i))*100<<std::endl;
 
         // }
@@ -338,7 +566,7 @@ void runDivergenceTest(Mesh *mesh, double error_norms[])
         Array1D<double> curl_analytic(mesh->vertex_num);
         Array1D<double> curl_numerical(mesh->vertex_num);
 
-        setU(uv_faces, 1, 1, mesh->face_num, mesh->face_centre_pos_sph);
+        setU(uv_faces, 1, 1, mesh->face_num,mesh->globals->radius.Value(), mesh->face_centre_pos_sph);
         setCurlU(curl_analytic, 1, 1, mesh->vertex_num, mesh->globals->radius.Value(), mesh->vertex_pos_sph);
 
         for (int i = 0; i < mesh->face_num; i++)
@@ -364,6 +592,8 @@ void runDivergenceTest(Mesh *mesh, double error_norms[])
 
             // get the velocity component normal to the face
             un_faces(i) = vel_mag * cos_a;
+
+            // std::cout<<un_faces(i)<<std::endl;
         }
 
         // *********** calculate curl term numerically *********************************
@@ -374,7 +604,96 @@ void runDivergenceTest(Mesh *mesh, double error_norms[])
         Eigen::Map<Eigen::VectorXd> curl_data(&curl_numerical(0), mesh->vertex_num);
 
         // Perform sparse matrix * vector operation
-        curl_data = mesh->operatorCurl * u_data;
+        curl_data = -mesh->operatorCurl * u_data;
+
+        for (int i=0; i<mesh->vertex_num; i++) {
+            double r = mesh->globals->radius.Value();
+            int f1, f2, f3;
+            f1 = mesh->vertex_faces(i,0);
+            f2 = mesh->vertex_faces(i,1);
+            f3 = mesh->vertex_faces(i,2);
+
+            double v1, v2, v3;
+            v1 = un_faces(f1)*mesh->vertex_face_dir(i,0);
+            v2 = un_faces(f2)*mesh->vertex_face_dir(i,1);
+            v3 = un_faces(f3)*mesh->vertex_face_dir(i,2);
+
+            double d1, d2, d3;
+            int n1, n2, n3;
+            double sph1[2], sph2[2], sph3[2];
+            n1 = mesh->face_nodes(f1,0);
+            n2 = mesh->face_nodes(f1,1);
+            sph1[0] = mesh->node_pos_sph(n1,0);
+            sph1[1] = mesh->node_pos_sph(n1,1);
+            sph2[0] = mesh->node_pos_sph(n2,0);
+            sph2[1] = mesh->node_pos_sph(n2,1);
+            d1 = distanceBetweenSph2(sph1, sph2)*r;
+
+            n1 = mesh->face_nodes(f2,0);
+            n2 = mesh->face_nodes(f2,1);
+            sph1[0] = mesh->node_pos_sph(n1,0);
+            sph1[1] = mesh->node_pos_sph(n1,1);
+            sph2[0] = mesh->node_pos_sph(n2,0);
+            sph2[1] = mesh->node_pos_sph(n2,1);
+            d2 = distanceBetweenSph2(sph1, sph2)*r;
+
+            n1 = mesh->face_nodes(f3,0);
+            n2 = mesh->face_nodes(f3,1);
+            sph1[0] = mesh->node_pos_sph(n1,0);
+            sph1[1] = mesh->node_pos_sph(n1,1);
+            sph2[0] = mesh->node_pos_sph(n2,0);
+            sph2[1] = mesh->node_pos_sph(n2,1);
+            d3 = distanceBetweenSph2(sph1, sph2)*r;
+
+            // std::cout<<d1-mesh->face_node_dist(f1)<<std::endl;
+
+            // d1 = mesh->face_node_dist(f1);
+            // d2 = mesh->face_node_dist(f2);
+            // d3 = mesh->face_node_dist(f3);
+
+
+            double area;
+            double lat1, lat2, lat3;
+            double lon1, lon2, lon3;
+            area = mesh->vertex_area(i);
+
+            n1 = mesh->vertex_nodes(i,0);
+            n2 = mesh->vertex_nodes(i,1);
+            n3 = mesh->vertex_nodes(i,2);
+
+            lat1 = mesh->node_pos_sph(n1,0);
+            lon1 = mesh->node_pos_sph(n1,1);
+
+            lat2 = mesh->node_pos_sph(n2,0);
+            lon2 = mesh->node_pos_sph(n2,1);
+
+            lat3 = mesh->node_pos_sph(n3,0);
+            lon3 = mesh->node_pos_sph(n3,1);
+
+            double A, B, C, a, b, c;
+            
+
+            c = fabs(acos(sin(lat1) * sin(lat2) + cos(lat1) * cos(lat2) * cos(fabs(lon2-lon1))));
+            a = fabs(acos(sin(lat2) * sin(lat3) + cos(lat2) * cos(lat3) * cos(fabs(lon3-lon2))));
+            b = fabs(acos(sin(lat3) * sin(lat1) + cos(lat3) * cos(lat1) * cos(fabs(lon1-lon3))));
+
+            A = fabs(acos((cos(a) - cos(b)*cos(c))/(sin(b)*sin(c))));
+            B = fabs(acos((cos(b) - cos(a)*cos(c))/(sin(a)*sin(c))));
+            C = fabs(acos((cos(c) - cos(b)*cos(a))/(sin(b)*sin(a))));
+
+            area = r*r*fabs((A + B + C) - pi);
+
+            // std::cout<<area<<' '<<mesh->vertex_area(i)<<std::endl;
+
+            curl_numerical(i) = -(v1*d1 + v2*d2 + v3*d3)/area;
+
+
+
+        //     // std::cout<<coriolis_data(i)<<'\t'<<coriolis_numerical(i)<<std::endl;
+            // std::cout<<curl_numerical(i)<<"\t\t"<<curl_analytic(i)<<"\t\t"<<abs(curl_numerical(i)-curl_analytic(i))/abs(curl_numerical(i))*100<<std::endl;
+            // std::cout<<curl_numerical(i)<<"\t\t"<<curl_analytic(i)<<"\t\t"<<mesh->vertex_pos_sph(i,0)<<' '<<mesh->vertex_pos_sph(i,1)<<std::endl;
+
+        }
 
         getErrorNorms(&curl_numerical(0), &curl_analytic(0), mesh->vertex_num, error_norms);
     }
@@ -385,27 +704,33 @@ void runOperatorTests(Globals * globals, Mesh * mesh)
     
     
     
-    runCoriolisTest(mesh, error_norms);
+    // runCoriolisTest(mesh, error_norms);
     
-    std::cout << "Coriolis operator error norms: L1=" << error_norms[0];
-    std::cout << ",  L2=" << error_norms[1];
-    std::cout << ",  Linf=" << error_norms[2] << std::endl;
+    // std::cout << "Coriolis operator error norms: L1=" << error_norms[0];
+    // std::cout << ",  L2=" << error_norms[1];
+    // std::cout << ",  Linf=" << error_norms[2] << std::endl;
 
-    runGradientTest(mesh, error_norms);
+    // runGradientTest(mesh, error_norms);
 
-    std::cout << "Gradient operator error norms: L1=" << error_norms[0];
-    std::cout << ",  L2=" << error_norms[1];
-    std::cout << ",  Linf=" << error_norms[2] << std::endl;
+    // std::cout << "Gradient operator error norms: L1=" << error_norms[0];
+    // std::cout << ",  L2=" << error_norms[1];
+    // std::cout << ",  Linf=" << error_norms[2] << std::endl;
 
-    runDivergenceTest(mesh, error_norms);
+    // runDivergenceTest(mesh, error_norms);
 
-    std::cout << "Divergence operator error norms: L1=" << error_norms[0];
-    std::cout << ",  L2=" << error_norms[1];
-    std::cout << ",  Linf=" << error_norms[2] << std::endl;
+    // std::cout << "Divergence operator error norms: L1=" << error_norms[0];
+    // std::cout << ",  L2=" << error_norms[1];
+    // std::cout << ",  Linf=" << error_norms[2] << std::endl;
 
-    runCurlTest(mesh, error_norms);
+    // runCurlTest(mesh, error_norms);
 
-    std::cout << "Curl operator error norms: L1=" << error_norms[0];
+    // std::cout << "Curl operator error norms: L1=" << error_norms[0];
+    // std::cout << ",  L2=" << error_norms[1];
+    // std::cout << ",  Linf=" << error_norms[2] << std::endl;
+
+    runAdvectionTest(mesh, error_norms);
+
+    std::cout << "Advection operator error norms: L1=" << error_norms[0];
     std::cout << ",  L2=" << error_norms[1];
     std::cout << ",  Linf=" << error_norms[2] << std::endl;
 

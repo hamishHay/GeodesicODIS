@@ -72,8 +72,12 @@ enum Potential {OBLIQ,      // Obliquity tide (Tyler 2011)
                 OBLIQ_W3,   // Time-dependent degree-3 obliquity tide
                 PLANET,     // Planet-planet tidal forcing
                 PLANET_OBL,
-                GENERAL};   // Generalised forcing
+                GENERAL,   // Generalised forcing
+                NONE};
 
+enum Init {INIT_NONE,            // No initial conditions
+           INIT_LOAD,            // Load from file
+           INIT_ANALYTICAL};     // Use analytical solution as initial condition
 
 //Class stores all global values
 class Globals {
@@ -95,6 +99,7 @@ public:
   Solver solver_type;
   Potential tide_type;
   Surface surface_type;
+  Init initial_condition;
 
   // Stringstream for composing outgoing messages, which is then passed to Output.
   std::ostringstream outstring;
@@ -135,7 +140,8 @@ public:
   GlobalVar<std::string> friction;      // string for drag type
   GlobalVar<std::string> surface;       // string for surface boundary condition
   GlobalVar<std::string> solver;        // string for type of time sovler
-  GlobalVar<bool> init;                 // boolean for using initial conditions
+//   GlobalVar<bool> init;                 // boolean for using initial conditions
+  GlobalVar<std::string> init;                  // initial conditions: 0=none, 1=load from file, 2=analytical
   GlobalVar<double> converge;           // convergence criteria for ODIS.
   GlobalVar<bool> advection;     // switch for advection 
 
@@ -152,6 +158,7 @@ public:
 
   GlobalVar<bool> field_displacement_output;
   GlobalVar<bool> field_velocity_output;
+  GlobalVar<bool> field_velocity_cart_output;
   GlobalVar<bool> field_pressure_output;
   GlobalVar<bool> field_diss_output;
   GlobalVar<bool> field_kinetic_output;

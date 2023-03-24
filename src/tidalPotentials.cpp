@@ -21,14 +21,14 @@
 #include "tidalPotentials.h"
 #include "array2d.h"
 #include "spatialOperators.h"
+#include "gridConstants.h"
 #include <math.h>
 #include <iomanip>
 
 
 void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, int forcing_type, double time, double ecc, double obl)
 {
-    int i,j, node_num;
-    node_num = grid->node_num;
+    int i,j;
 
     double factor, factor2;
     double radius, omega;
@@ -84,7 +84,7 @@ void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, int for
           factor = 0.75 * consts->loveReduct.Value() * pow(omega,2.0)*pow(radius,2.0)*ecc;
 
           #pragma omp parallel for
-          for (i=0; i<node_num; ++i) {
+          for (i=0; i<NODE_NUM; ++i) {
               j = i*2;
 
               potential(i) = factor*((1. - 3.*sinSqLat[i*2])*cosM
@@ -106,7 +106,7 @@ void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, int for
           factor = -3./2. * consts->loveReduct.Value() * pow(omega,2.0)*pow(radius,2.0)*obl;
 
           #pragma omp parallel for
-          for (i=0; i<node_num; ++i) {
+          for (i=0; i<NODE_NUM; ++i) {
               j = i*2;
 
               potential(i) = factor * cosM * sin2Lat[j] * cosLon[j];
@@ -120,10 +120,11 @@ void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, int for
           factor = 0.5 * consts->loveReduct.Value() * pow(omega,2.0)*pow(radius,2.0)*obl;
 
           #pragma omp parallel for
-          for (i=0; i<node_num; ++i) {
+          for (i=0; i<NODE_NUM; ++i) {
               j = i*2;
 
               potential(i) = 3*factor * sinLat[j]*cosLat[j]*(cosLon[j]*cosM - sinLon[j]*sinM);
+              
           }
 
       }
@@ -132,7 +133,7 @@ void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, int for
       case FULL2:
       {
           factor = 1/32. * consts->loveReduct.Value() * pow(omega,2.0)*pow(radius,2.0);
-          for (i=0; i<node_num; i++) {
+          for (i=0; i<NODE_NUM; i++) {
               j = i*2;
               double T1, T2, T3;
 
@@ -161,7 +162,7 @@ void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, int for
           factor2 = -3./2. * consts->loveReduct.Value() * pow(omega,2.0)*pow(radius,2.0)*obl;
 
           #pragma omp parallel for
-          for (i=0; i<node_num; ++i) {
+          for (i=0; i<NODE_NUM; ++i) {
               j = i*2;
 
               potential(i) = factor*((1-3*sinSqLat[j])*cosM
@@ -213,7 +214,7 @@ void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, int for
 
           // if (i=0)
           #pragma omp parallel for
-          for (i=0; i<node_num; ++i) {
+          for (i=0; i<NODE_NUM; ++i) {
               j = i*2;
 
               cosgam = cosLat[j] * (cosLon[j]*cosphi + sinLon[j]*sinphi);
@@ -251,7 +252,7 @@ void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, int for
             double nij = (n1-n2);
 
             #pragma omp parallel for
-            for (i=0; i<node_num; i++) {
+            for (i=0; i<NODE_NUM; i++) {
                 j = i*2;
                 double U20=0.0;
                 double U22a=0.0;
@@ -276,8 +277,11 @@ void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, int for
 
                 // std::cout<<test<<' '<<(*scalar_dummy)(i)<<' '<<test/(*scalar_dummy)(i)<<std::endl;
             }
-      }
-      break;
+        }
+        break;
+
+        case NONE:
+            break;
     }
 
     // switch (globals->tide_type)
