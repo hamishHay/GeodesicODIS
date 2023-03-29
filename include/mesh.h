@@ -88,7 +88,6 @@ public:
     Array2D<int> face_nodes                 = Array2D<int>(FACE_NUM, 2);
     Array2D<int> face_vertexes              = Array2D<int>(FACE_NUM, 2);
     Array1D<double> face_area               = Array1D<double>(FACE_NUM);
-    Array2D<int> face_dir                   = Array2D<int>(FACE_NUM, 2);
     Array2D<double> face_normal_vec_map     = Array2D<double>(FACE_NUM, 2);
 
     Array1D<unsigned> node_fnum            = Array1D<unsigned>(NODE_NUM);

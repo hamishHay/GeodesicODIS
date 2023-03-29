@@ -69,7 +69,6 @@ Mesh::Mesh(Globals *Globals, int N, int face_N, int vertex_N, int N_ll, int l_ma
       // Pbar_lm(NODE_NUM),
 
     //   faces(NODE_NUM, 6),
-    //   face_dir(FACE_NUM, 2),
     //   face_normal_vec_map(FACE_NUM, 2),
     //   face_normal_vec_xyz(FACE_NUM, 3), // cartesian components of face normal vector.
     //   face_nodes(FACE_NUM, 2),          //---> ID of nodes that belong to each face
@@ -536,7 +535,6 @@ int Mesh::AssignFaces(void)
                 face_nodes(face_count, 0) = i;
                 // face_is_boundary(face_count) = 0;
                 // face_friends(face_count, 0) = j;
-                face_dir(face_count, 0) = 1;
                 face_node_dist(face_count) = node_dists(i, j);
                 node_face_dir(i, j) = 1;
 
@@ -640,18 +638,11 @@ int Mesh::AssignFaces(void)
                 face_normal_vec_xyz(face_count, 1) = normal_vec_xyz[1];
                 face_normal_vec_xyz(face_count, 2) = normal_vec_xyz[2];
 
-                if (normal_vec[0] > 0 && control_vol_edge_normal_map(i, (j + friend_num - 1) % friend_num, 0) > 0)
-                    face_dir(face_count, 0) = 1;
-                else
-                    face_dir(face_count, 0) = -1;
-
                 // double d1 = 0, d2 = 0;
                 // double yyy = face_centre_pos_sph(face_count,0)+normal_vec[1]/r;
                 // double xxx = face_centre_pos_sph(face_count,1)+normal_vec[0]/r;
                 // distanceBetweenSph(d1, node_pos_sph(i,0), face_centre_pos_sph(face_count,0), node_pos_sph(i,1), face_centre_pos_sph(face_count, 1), r);
                 // distanceBetweenSph(d2, node_pos_sph(i,0), yyy, node_pos_sph(i,1), xxx, r);
-
-                // std::cout<<d2-d1<<' '<<face_dir(face_count,0)<<std::endl;
 
                 // Calculate intersection point between the face length vector
                 // and the vector between the shared nodes
@@ -678,10 +669,8 @@ int Mesh::AssignFaces(void)
                     if (node_friends(f, j2) == i)
                     {
                         faces(f, j2) = face_count;
-                        face_dir(face_count, 1) = -face_dir(face_count, 0);
                         face_nodes(face_count, 1) = f;
                         node_face_dir(f, j2) = -1;
-                        // face_dir(f, j2) = -1;
                     }
                 }
 
