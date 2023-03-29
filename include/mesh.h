@@ -47,7 +47,6 @@ private:
     int CalcControlVolumeArea(void);
     int CalcControlVolumeMass(void);
     int CalcControlVolumeVertexR(void);
-    int CalcElementAreas(void);
     int CalcCentNodeDists(void);
     int CalcTrigFunctions(void);
     int CalcNodeDists(void);
@@ -92,7 +91,7 @@ public:
     Array2D<int> face_dir                   = Array2D<int>(FACE_NUM, 2);
     Array2D<double> face_normal_vec_map     = Array2D<double>(FACE_NUM, 2);
 
-     Array1D<unsigned> node_fnum            = Array1D<unsigned>(NODE_NUM);
+    Array1D<unsigned> node_fnum            = Array1D<unsigned>(NODE_NUM);
 
     // Each row in node_friends contains the ID (index)
     // to all surrounding friends. E.g, the ID's of the neighbouring nodes to
@@ -208,9 +207,6 @@ public:
     Array1D<double> control_volume_surf_area_map = Array1D<double>(NODE_NUM);
 
     Array1D<double> control_volume_mass = Array1D<double>(NODE_NUM);
-
-    // Array to store the triangular areas within each subelement.
-    Array3D<double> node_friend_element_areas_map = Array3D<double>(NODE_NUM, 6, 3);  // Unused?
 
     //   Array1D<int> cell_is_boundary;
 

@@ -124,7 +124,7 @@ Mesh::Mesh(Globals *Globals, int N, int face_N, int vertex_N, int N_ll, int l_ma
     // CalcControlVolumeEdgeLengths();
 
     // Find control volume edge midpoints in mapping coords
-    CalcControlVolumeEdgeCentres();
+    CalcControlVolumeEdgeCentres();                             
 
     // Find control volume edge outward normal unit vectors
     CalcControlVolumeEdgeNormals();
@@ -136,9 +136,6 @@ Mesh::Mesh(Globals *Globals, int N, int face_N, int vertex_N, int N_ll, int l_ma
     CalcControlVolumeArea();
 
     CalcControlVolumeMass();
-
-    // Find the area of each sub triangle within each element
-    CalcElementAreas();
 
     CalcCentNodeDists();
 
@@ -187,7 +184,7 @@ Mesh::Mesh(Globals *Globals, int N, int face_N, int vertex_N, int N_ll, int l_ma
 
     CalcFreeSurfaceSolver();
 
-    ReadGridFile();
+    // ReadGridFile();
 
     globals->Output->DumpGridData(this);
 };
@@ -1988,146 +1985,6 @@ int Mesh::CalcControlVolumeMass(void)
 
     return 1;
 }
-
-// Function to fine the areas of each subelement. Each subelement is a triangle
-// subtended by the central node, one friend, and the centroid belonging to the
-// friend. Values are stored in node_friend_element_areas_map
-int Mesh::CalcElementAreas(void)
-{
-    int i, j, k, as, ae, f, f1, f2, friend_num;
-    double *x1, *y1, *x2, *y2, *xc, *yc, *t_area;
-
-    for (i = 0; i < NODE_NUM; i++)
-    {
-
-        f = node_friends(i, 5);
-
-        friend_num = 6; // Assume hexagon (6 centroids)
-        if (f == -1)
-        {
-            friend_num = 5; // Check if pentagon (5 centroids)
-        }
-        for (j = 0; j < friend_num; j++) // Loop through all centroids in the control volume
-        {
-            xc = &centroid_pos_map(i, j, 0); // set pointer element centroid
-            yc = &centroid_pos_map(i, j, 1);
-
-            double lat0 = centroid_pos_sph(i, j, 0);
-            double lon0 = centroid_pos_sph(i, j, 1);
-            f = node_friends(i, j);
-            f1 = node_friends(i, j);
-            f2 = node_friends(i, (j + 1) % friend_num);
-
-            double lat1 = node_pos_sph(i, 0);
-            double lon1 = node_pos_sph(i, 1);
-
-            double lat2 = node_pos_sph(f1, 0);
-            double lon2 = node_pos_sph(f1, 1);
-            double area = 0.0;
-            double rr = globals->radius.Value();
-
-            triangularAreaSph(area, lat0, lat1, lat2, lon0, lon1, lon2, rr);
-            node_friend_element_areas_map(i, j, 0) = area;
-
-            lat1 = node_pos_sph(f1, 0);
-            lon1 = node_pos_sph(f1, 1);
-
-            lat2 = node_pos_sph(f2, 0);
-            lon2 = node_pos_sph(f2, 1);
-
-            triangularAreaSph(area, lat0, lat1, lat2, lon0, lon1, lon2, rr);
-            node_friend_element_areas_map(i, j, 1) = area;
-
-            lat1 = node_pos_sph(f2, 0);
-            lon1 = node_pos_sph(f2, 1);
-
-            lat2 = node_pos_sph(i, 0);
-            lon2 = node_pos_sph(i, 1);
-
-            triangularAreaSph(area, lat0, lat1, lat2, lon0, lon1, lon2, rr);
-            node_friend_element_areas_map(i, j, 2) = area;
-
-            // if (i==137 && (f==1427))// || f==1453 || f ==1457))
-            // {
-            //   // double dist = 0.0;
-            //   // std::cout<<i<<' '<<f<<' '<<*x1<<' '<<*y1<<' '<<*x2<<' '<<*y2<<std::endl;
-            //   // distanceBetween(dist, *xc, *x1, *yc, *y1);
-            //   std::cout<<i<<' '<<f<<' '<<area<<std::endl;
-            //   // std::cout<<i<<' '<<nx<<' '<<ny<<std::endl;
-            //   // std::cout<<i<<' '<<m<<std::endl;
-            //   // std::cout<<i<<' '<<mesh->node_dists(i, (j+1)%friend_num)<<std::endl;
-            //   // for (int k=0; k<3; k++) std::cout<<' '<<f1<<' '<<(*element_areas)(i,(j)%friend_num,k);
-            //   // for (int k=0; k<3; k++) std::cout<<' '<<f2<<' '<<(*element_areas)(i,(j+1)%friend_num,k);
-            //   // for (int k=0; k<3; k++) std::cout<<' '<<f2<<' '<<(*element_areas)(i,(j+2)%friend_num,k);
-            // }
-
-            for (k = 0; k < 3; k++)
-            {
-                t_area = &node_friend_element_areas_map(i, j, k); // set pointer to area of sub element
-
-                // messy code TODO - try and tidy
-                as = j + k;
-                ae = (j + (k + 1) % 3) % (friend_num + 2);
-                if (k == 0)
-                    as = 0;
-                else if (k == 2)
-                {
-                    ae = 0;
-                }
-
-                if (j == friend_num - 1)
-                {
-                    if (k == 1)
-                        ae = 1;
-                    else if (k == 2)
-                        as = 1;
-                }
-
-                x1 = &node_pos_map(i, as, 0); // set map coords for first vertex of the element
-                y1 = &node_pos_map(i, as, 1);
-
-                x2 = &node_pos_map(i, ae, 0); // set map coords for second vertex on the element
-                y2 = &node_pos_map(i, ae, 1);
-
-                // triangularArea(*t_area, *xc, *yc, *x1, *x2, *y1, *y2);     // calculate subelement area
-
-                // double lat1 = node_pos_sph(i, 0);
-                // double lon1 = node_pos_sph(i, 1);
-                //
-                // double lat2 = node_pos_sph(f, 0);
-                // double lon2 = node_pos_sph(f, 1);
-                // double area= 0.0;
-                // double rr = globals->radius.Value();
-                // triangularAreaSph(area, lat0, lat1, lat2, lon0, lon1, lon2, rr);
-
-                // if (i==137 && (f==1427))// || f==1453 || f ==1457))
-                // {
-                //   double dist = 0.0;
-                //   // std::cout<<i<<' '<<f<<' '<<*x1<<' '<<*y1<<' '<<*x2<<' '<<*y2<<std::endl;
-                //   distanceBetween(dist, *xc, *x1, *yc, *y1);
-                //   // std::cout<<i<<' '<<f<<' '<<*t_area<<std::endl;
-                //   // std::cout<<i<<' '<<nx<<' '<<ny<<std::endl;
-                //   // std::cout<<i<<' '<<m<<std::endl;
-                //   // std::cout<<i<<' '<<mesh->node_dists(i, (j+1)%friend_num)<<std::endl;
-                //   // for (int k=0; k<3; k++) std::cout<<' '<<f1<<' '<<(*element_areas)(i,(j)%friend_num,k);
-                //   // for (int k=0; k<3; k++) std::cout<<' '<<f2<<' '<<(*element_areas)(i,(j+1)%friend_num,k);
-                //   // for (int k=0; k<3; k++) std::cout<<' '<<f2<<' '<<(*element_areas)(i,(j+2)%friend_num,k);
-                // }
-                // if (i==1453 && (f==137))// || f==1457 || f ==1427))
-                // {
-                //   double dist = 0.0;
-                //   distanceBetween(dist, *xc, *x1, *yc, *y1);
-                //   // std::cout<<i<<' '<<f<<' '<<dist<<std::endl;
-                //   std::cout<<i<<' '<<f<<' '<<*t_area<<std::endl;
-                //   // std::cout<<i<<' '<<f<<' '<<as<<' '<<ae<<std::endl;
-                //   // std::cout<<i<<' '<<f<<' '<<*x1<<' '<<*y1<<' '<<*x2<<' '<<*y2<<std::endl;
-                // }
-            }
-        }
-    }
-
-    return 1;
-};
 
 // Function to evaluate trigonometric functions over latitude and longitude for
 // every node.
