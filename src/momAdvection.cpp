@@ -62,8 +62,7 @@ void calculateMomentumAdvection(Globals * globals,
                 node_ID = mesh->vertex_nodes(i, j);
 
                 // Eq. 25, Ringler et al (2010)
-                // TO DO: THE THREE AREAS HERE ARE INCONSISTENTLY DEFIINED ON AN XY PLANE AND SPHERICAL!!!
-                thickness += thickness_n(node_ID) * mesh->control_volume_surf_area_map(node_ID) * mesh->vertex_R(i, j);
+                thickness += thickness_n(node_ID) * mesh->cv_area_sph(node_ID) * mesh->vertex_R(i, j);
             }
 
             thickness *= mesh->vertex_area_r(i);

@@ -43,9 +43,7 @@ private:
     int CalcVelocityTransformFactors(void);
     int CalcControlVolumeEdgeLengths(void);
     int CalcControlVolumeArea(void);
-    int CalcControlVolumeMass(void);
     int CalcControlVolumeVertexR(void);
-    int CalcCentNodeDists(void);
     int CalcTrigFunctions(void);
     int CalcNodeDists(void);
     int CalcMaxTimeStep(void);
@@ -172,21 +170,11 @@ public:
     Array3D<double> centroid_pos_sph = Array3D<double>(NODE_NUM, 6, 2);
     Array3D<double> centroid_pos_map = Array3D<double>(NODE_NUM, 6, 2);
 
-    // Array to hold mapping factor at at each node and its friends
-    Array2D<double> node_m = Array2D<double>(NODE_NUM, 7);
-
-    Array2D<double> centroid_node_dists_map = Array2D<double>(NODE_NUM, 6);
-
     // Array to store the edge length of each side to the control volume surrounding
     // the central node
     //   Array2D<double> control_vol_edge_len;
     
     // Array3D<double> node_face_normal_vec_map;
-
-    // Array to store the area of the control volume for each node
-    Array1D<double> control_volume_surf_area_map = Array1D<double>(NODE_NUM);
-
-    Array1D<double> control_volume_mass = Array1D<double>(NODE_NUM);
 
     //   Array1D<int> cell_is_boundary;
 

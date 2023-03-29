@@ -42,14 +42,11 @@ Mesh::Mesh(Globals *Globals, int N, int face_N, int vertex_N, int N_ll, int l_ma
     //   node_node_RBF(NODE_NUM, 7),
     //   centroid_pos_sph(NODE_NUM, 6, 2),
     //   centroid_pos_map(NODE_NUM, 6, 2),
-    //   node_m(NODE_NUM, 7),            // len 7 to include central (parent) node
     //   node_vel_trans(NODE_NUM, 7, 2), // In the last dimension, element 1 is cos_a, element 2 is sin_a
       // control_vol_edge_len(NODE_NUM,6),   // Not needed anymore
       // control_vol_edge_intercept_normal(NODE_NUM,6,2)
-    //   control_volume_surf_area_map(NODE_NUM),
     //   control_volume_mass(NODE_NUM),
     //   node_friend_element_areas_map(NODE_NUM, 6, 3),
-    //   centroid_node_dists_map(NODE_NUM, 6),
 
     //   trigLat(NODE_NUM, 2),
     //   trigLon(NODE_NUM, 2),
@@ -123,10 +120,6 @@ Mesh::Mesh(Globals *Globals, int N, int face_N, int vertex_N, int N_ll, int l_ma
     // Find control volume area for each node
     CalcControlVolumeArea();
 
-    CalcControlVolumeMass();
-
-    CalcCentNodeDists();
-
     // Evaluate trig functions at every node
     CalcTrigFunctions();
 
@@ -137,8 +130,6 @@ Mesh::Mesh(Globals *Globals, int N, int face_N, int vertex_N, int N_ll, int l_ma
     CalcControlVolumeVertexR();
 
     AssignFaces();
-
-    // // CalcVelocityTransformFactors();
 
     // // // DefineBoundaryCells();
 
@@ -172,7 +163,7 @@ Mesh::Mesh(Globals *Globals, int N, int face_N, int vertex_N, int N_ll, int l_ma
 
     CalcFreeSurfaceSolver();
 
-    // ReadGridFile();
+    ReadGridFile();
 
     globals->Output->DumpGridData(this);
 };
@@ -1372,6 +1363,8 @@ int Mesh::CalcMappingCoords(void)
     double *x, *y, *m, r;
     double lat1, lat2, lon1, lon2;
 
+    m = new double;
+
     r = globals->radius.Value();
 
     for (i = 0; i < NODE_NUM; i++)
@@ -1380,7 +1373,6 @@ int Mesh::CalcMappingCoords(void)
         lon1 = node_pos_sph(i, 1);
 
         // Set pointers to address of variables we want to change
-        m = &node_m(i, 0);
         x = &node_pos_map(i, 0, 0);
         y = &node_pos_map(i, 0, 1);
 
@@ -1391,7 +1383,6 @@ int Mesh::CalcMappingCoords(void)
         // Assign node mapping factors and coordinates
         for (j = 1; j < 7; j++)
         {
-            m = &node_m(i, j);
             x = &node_pos_map(i, j, 0);
             y = &node_pos_map(i, j, 1);
 
@@ -1465,6 +1456,8 @@ int Mesh::CalcMappingCoords(void)
             }
         }
     }
+
+    delete m;
 
     return 1;
 };
@@ -1606,45 +1599,6 @@ int Mesh::CalcMaxTimeStep(void)
     return 1;
 }
 
-// Function to find the length of control volume edges for each node, in mapping
-// coordinates. Values are stored in control_vol_edge_len 2D array.
-int Mesh::CalcCentNodeDists(void)
-{
-    int i, j, f, friend_num;
-    double *x1, *y1, *x2, *y2, *edge_len;
-
-    for (i = 0; i < NODE_NUM; i++)
-    {
-
-        f = node_friends(i, 5);
-
-        friend_num = 6; // Assume hexagon (6 centroids)
-        if (f == -1)
-        {
-            friend_num = 5; // Check if pentagon (5 centroids)
-            centroid_node_dists_map(i, 5) = -1.0;
-        }
-
-        for (j = 0; j < friend_num; j++) // Loop through all centroids in the control volume
-        {
-            f = node_friends(i, j);
-
-            edge_len = &centroid_node_dists_map(i, j); // set pointer to edge length array
-
-            x1 = &node_pos_map(i, 0, 0); // set map coords for second centroid
-            y1 = &node_pos_map(i, 0, 1); // automatically loops around using %
-
-            x2 = &centroid_pos_map(i, j % friend_num, 0); // set map coords for second centroid
-            y2 = &centroid_pos_map(i, j % friend_num, 1); // automatically loops around using %
-
-            distanceBetween(*edge_len, *x1, *x2, *y1, *y2); // calculate distance between the two centroids.
-            // Edge_len automatically assigned the length
-        }
-    }
-
-    return 1;
-};
-
 // Function to find the area of each node's control volume. THe function loops
 // over each pair of centroids belonging to a node, while summing the area of
 // each triangle to find the total area of the hexagon or pentagon.
@@ -1667,9 +1621,9 @@ int Mesh::CalcControlVolumeArea(void)
         xc = &node_pos_map(i, 0, 0); // set pointer to edge length array
         yc = &node_pos_map(i, 0, 1);
 
-        t_area = &control_volume_surf_area_map(i);
 
         area = 0.0;
+        double sub_area=0;
         for (j = 0; j < friend_num; j++) // Loop through all centroids in the control volume
         {
             f = node_friends(i, j);
@@ -1680,128 +1634,17 @@ int Mesh::CalcControlVolumeArea(void)
             x2 = &centroid_pos_map(i, (j + 1) % friend_num, 0); // set map coords for second centroid
             y2 = &centroid_pos_map(i, (j + 1) % friend_num, 1); // automatically loops around using %
 
-            triangularArea(*t_area, *xc, *yc, *x1, *x2, *y1, *y2); // calculate center coords between the two centroids.
+            triangularArea(sub_area, *xc, *yc, *x1, *x2, *y1, *y2); // calculate center coords between the two centroids.
             // xc and yc automatically assigned the coords
-            area += *t_area;
+            area += sub_area;
+            sub_area = 0.0;
         }
-        control_volume_surf_area_map(i) = area;
+
+        cv_area_sph(i) = area;
     }
 
     return 1;
 };
-
-int Mesh::CalcControlVolumeMass(void)
-{
-    int i, j, k, as, ae, f, friend_num;
-    double *lat1, *lon1, *lat2, *lon2, *lat3, *lon3, *t_area, r;
-    double area, avg_area;
-    double ax, ay, az;
-    double bx, by, bz;
-    double cx, cy, cz;
-    double *vol;
-    double vol1, vol2;
-
-    // r = globals->radius.Value();//# + globals->shell_thickness.Value();
-    // r_core = r - globals->h.Value();
-    // r_ocean = r;
-    // double mass_sum = 0.0;
-    //
-    // avg_area = 0.0;
-    // for (i=0; i<NODE_NUM; i++)
-    // {
-    //
-    //     f = node_friends(i,5);
-    //
-    //     friend_num = 6;                    // Assume hexagon (6 centroids)
-    //     if (f == -1) {
-    //         friend_num = 5;                // Check if pentagon (5 centroids)
-    //     }
-    //
-    //     lat1 = &node_pos_sph(i,0);
-    //     lon1 = &node_pos_sph(i,1);
-    //
-    //     vol = &control_volume_mass(i);     // set pointer to area of sub element
-    //     *vol = 0.0;
-    //     for (j=0; j<friend_num; j++)                       // Loop through all centroids in the control volume
-    //     {
-    //
-    //         lat2 = &centroid_pos_sph(i,j%friend_num, 0);
-    //         lon2 = &centroid_pos_sph(i,j%friend_num, 1);
-    //
-    //         lat3 = &centroid_pos_sph(i,(j+1)%friend_num, 0);
-    //         lon3 = &centroid_pos_sph(i,(j+1)%friend_num, 1);
-    //
-    //         sph2cart(ax, ay, az, r_ocean, radConv*0.5 - *lat1, *lon1);
-    //         sph2cart(bx, by, bz, r_ocean, radConv*0.5 - *lat2, *lon2);
-    //         sph2cart(cx, cy, cz, r_ocean, radConv*0.5 - *lat3, *lon3);
-    //
-    //         volumeSphericalTriangle(vol1, ax, bx, cx, ay, by, cy, az, bz, cz, r_ocean);
-    //
-    //         sph2cart(ax, ay, az, r_core, radConv*0.5 - *lat1, *lon1);
-    //         sph2cart(bx, by, bz, r_core, radConv*0.5 - *lat2, *lon2);
-    //         sph2cart(cx, cy, cz, r_core, radConv*0.5 - *lat3, *lon3);
-    //
-    //         volumeSphericalTriangle(vol2, ax, bx, cx, ay, by, cy, az, bz, cz, r_core);
-    //
-    //         *vol += fabs(vol1)-fabs(vol2);
-    //     }
-    //     *vol *= 1000.0;
-    // }
-    //
-    // for (i=0; i<NODE_NUM; i++)
-    // {
-    //   vol = &control_volume_mass(i);
-    //   mass_sum += *vol;
-    // }
-    // std::cout<<"MASS: "<<mass_sum<<std::endl;
-    // return 1;
-
-    r = globals->radius.Value(); // # + globals->shell_thickness.Value();
-
-    double mass_sum = 0.0;
-
-    avg_area = 0.0;
-    for (i = 0; i < NODE_NUM; i++)
-    {
-
-        f = node_friends(i, 5);
-
-        friend_num = 6; // Assume hexagon (6 centroids)
-        if (f == -1)
-        {
-            friend_num = 5; // Check if pentagon (5 centroids)
-        }
-
-        lat1 = &node_pos_sph(i, 0);
-        lon1 = &node_pos_sph(i, 1);
-
-        t_area = &control_volume_mass(i);
-        *t_area = 0.0;
-        for (j = 0; j < friend_num; j++) // Loop through all centroids in the control volume
-        {
-
-            lat2 = &centroid_pos_sph(i, j % friend_num, 0);
-            lon2 = &centroid_pos_sph(i, j % friend_num, 1);
-
-            lat3 = &centroid_pos_sph(i, (j + 1) % friend_num, 0);
-            lon3 = &centroid_pos_sph(i, (j + 1) % friend_num, 1);
-
-            triangularAreaSph(area, *lat1, *lat2, *lat3, *lon1, *lon2, *lon3, r); // calculate subelement area
-            *t_area += area;
-        }
-        avg_area += *t_area;
-    }
-    avg_area /= NODE_NUM;
-    for (i = 0; i < NODE_NUM; i++)
-    {
-        t_area = &control_volume_mass(i);
-        *t_area *= avg_area / (*t_area) * 1000.0 * globals->h.Value();
-
-        mass_sum += *t_area;
-    }
-
-    return 1;
-}
 
 // Function to evaluate trigonometric functions over latitude and longitude for
 // every node.
@@ -2829,7 +2672,7 @@ int Mesh::CalcDivOperatorCoeffs(void)
             // get edge length of current edge
             double edge_len = face_len(face_id);
             int dir = node_face_dir(i, j);
-            double area = control_volume_surf_area_map(i);
+            double area = cv_area_sph(i);
 
             nzCoeffsX[count] = -dir * edge_len / area;
             colIndxX[count] = face_id;
@@ -3084,7 +2927,7 @@ int Mesh::ReadGridFile()
         
         // std::cout<<i<<' '<<n_lat_h5[i]*radConv<<' '<<node_pos_sph(i,0)<<std::endl;
         // std::cout<<i<<' '<<n_lon_h5[i]<<' '<<node_pos_sph(i,1)*1.0/radConv<<std::endl;
-        // std::cout<<i<<' '<<n_area_h5[i]<<' '<<control_volume_surf_area_map(i)/rr<<std::endl;
+        std::cout<<i<<' '<<n_area_h5[i]-cv_area_sph(i)/rr<<std::endl;
         // std::cout<<std::endl;
     }
 

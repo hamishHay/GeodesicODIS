@@ -62,7 +62,7 @@ void velocityDivergenceN(Mesh * mesh, Array1D<double> & dpdt, Array1D<double> & 
     double edge_len;
 
     node_num = mesh->node_num;
-    cv_areas = &(mesh->control_volume_surf_area_map);
+    cv_areas = &(mesh->cv_area_sph);
     friend_list = &(mesh->node_friends);
 
 
@@ -542,55 +542,55 @@ void velocityDiffusion(Mesh * mesh, Array2D<double> & dvdt, Array2D<double> & ve
 // Function to calculate the Laplacian and diffusion for the velocity field.
 // The discretized operator used here is the second order accurate finite
 // difference operator given as equation 3.2 in Heikes et al (2013).
-void scalarDiffusion(Mesh * mesh, Array1D<double> & d2s, Array1D<double> & s, double viscosity)
-{
-    int node_num, friend_num;
-    int i, j, i1, j1;
+// void scalarDiffusion(Mesh * mesh, Array1D<double> & d2s, Array1D<double> & s, double viscosity)
+// {
+//     int node_num, friend_num;
+//     int i, j, i1, j1;
 
-    Array2D<int> * friend_list;
-    Array2D<double> * edge_lens;
-    Array1D<double> * cv_areas;
-    Array2D<double> * node_friend_dists;
+//     Array2D<int> * friend_list;
+//     Array2D<double> * edge_lens;
+//     Array1D<double> * cv_areas;
+//     Array2D<double> * node_friend_dists;
 
-    double s0, s1;
-    double edge_len;
+//     double s0, s1;
+//     double edge_len;
 
-    double lap_s;
-    double node_friend_dist;
+//     double lap_s;
+//     double node_friend_dist;
 
-    node_num = mesh->node_num;
-    friend_list = &(mesh->node_friends);
-    edge_lens = &(mesh->control_vol_edge_len);
-    cv_areas = &(mesh->control_volume_surf_area_map);
-    node_friend_dists = &(mesh->node_dists);
+//     node_num = mesh->node_num;
+//     friend_list = &(mesh->node_friends);
+//     edge_lens = &(mesh->control_vol_edge_len);
+//     cv_areas = &(mesh->control_volume_surf_area_map);
+//     node_friend_dists = &(mesh->node_dists);
 
-    for (i=0; i<node_num; i++)
-    {
-        friend_num = 6;
-        if ((*friend_list)(i, 5) == -1) friend_num = 5;
+//     for (i=0; i<node_num; i++)
+//     {
+//         friend_num = 6;
+//         if ((*friend_list)(i, 5) == -1) friend_num = 5;
 
-        s0 = s(i);
+//         s0 = s(i);
 
-        lap_s = 0.0;
+//         lap_s = 0.0;
 
-        for (j=0; j<friend_num; j++)
-        {
-              j1 = j%friend_num;
-              i1 = (*friend_list)(i,j1);
+//         for (j=0; j<friend_num; j++)
+//         {
+//               j1 = j%friend_num;
+//               i1 = (*friend_list)(i,j1);
 
-              s1 = s(i1);
+//               s1 = s(i1);
 
-              node_friend_dist = (*node_friend_dists)(i,j1);
-              edge_len = (*edge_lens)(i,(j1+1)%friend_num);
+//               node_friend_dist = (*node_friend_dists)(i,j1);
+//               edge_len = (*edge_lens)(i,(j1+1)%friend_num);
 
-              lap_s += (s1 - s0)/node_friend_dist * edge_len;
+//               lap_s += (s1 - s0)/node_friend_dist * edge_len;
 
-        }
+//         }
 
-        d2s(i) = viscosity * lap_s/(*cv_areas)(i);
+//         d2s(i) = viscosity * lap_s/(*cv_areas)(i);
 
-    }
-};
+//     }
+// };
 
 // void smoothingSH(Globals * globals, Mesh * mesh, Array1D<double> & gg_scalar)
 // {
