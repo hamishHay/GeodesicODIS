@@ -43,7 +43,6 @@ Mesh::Mesh(Globals *Globals, int N, int face_N, int vertex_N, int N_ll, int l_ma
     //   centroid_pos_sph(NODE_NUM, 6, 2),
     //   centroid_pos_map(NODE_NUM, 6, 2),
     //   node_m(NODE_NUM, 7),            // len 7 to include central (parent) node
-    //   centroid_m(NODE_NUM, 6),        // len 6 as there is are only 5 or 6 centroids
     //   node_vel_trans(NODE_NUM, 7, 2), // In the last dimension, element 1 is cos_a, element 2 is sin_a
       // control_vol_edge_len(NODE_NUM,6),   // Not needed anymore
     //   control_vol_edge_centre_pos_map(NODE_NUM, 6, 2), // THIS IS ALSO A FACE PROPERTY
@@ -1451,7 +1450,6 @@ int Mesh::CalcMappingCoords(void)
         // Assign centroid mapping factors and coordinates
         for (j = 0; j < 6; j++)
         {
-            m = &centroid_m(i, j);
             x = &centroid_pos_map(i, j, 0);
             y = &centroid_pos_map(i, j, 1);
 

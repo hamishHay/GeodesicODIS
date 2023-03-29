@@ -176,9 +176,6 @@ public:
     // Array to hold mapping factor at at each node and its friends
     Array2D<double> node_m = Array2D<double>(NODE_NUM, 7);
 
-    // Array to hold mapping factor at at each centroid
-    Array2D<double> centroid_m = Array2D<double>(NODE_NUM, 6);
-
     Array2D<double> centroid_node_dists_map = Array2D<double>(NODE_NUM, 6);
 
     // Array to store the edge length of each side to the control volume surrounding
