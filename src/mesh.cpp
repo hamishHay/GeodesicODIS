@@ -45,9 +45,6 @@ Mesh::Mesh(Globals *Globals, int N, int face_N, int vertex_N, int N_ll, int l_ma
     //   node_m(NODE_NUM, 7),            // len 7 to include central (parent) node
     //   node_vel_trans(NODE_NUM, 7, 2), // In the last dimension, element 1 is cos_a, element 2 is sin_a
       // control_vol_edge_len(NODE_NUM,6),   // Not needed anymore
-    //   control_vol_edge_centre_pos_map(NODE_NUM, 6, 2), // THIS IS ALSO A FACE PROPERTY
-    //   control_vol_edge_centre_pos_sph(NODE_NUM, 6, 2), // THIS IS ALSO A FACE PROPERTY
-    //   control_vol_edge_centre_m(NODE_NUM, 6),          // THIS IS ALSO A FACE PROPERTY
       // control_vol_edge_intercept_normal(NODE_NUM,6,2)
     //   control_volume_surf_area_map(NODE_NUM),
     //   control_volume_mass(NODE_NUM),
@@ -118,10 +115,7 @@ Mesh::Mesh(Globals *Globals, int N, int face_N, int vertex_N, int N_ll, int l_ma
 
     // DON'T NEED ANY MORE?
     // Find control volume edge lengths in mapping coords
-    // CalcControlVolumeEdgeLengths();
-
-    // Find control volume edge midpoints in mapping coords
-    CalcControlVolumeEdgeCentres();                             
+    // CalcControlVolumeEdgeLengths();                          
 
     // Calculate velocity transform factors
     CalcVelocityTransformFactors();
@@ -1645,89 +1639,6 @@ int Mesh::CalcCentNodeDists(void)
 
             distanceBetween(*edge_len, *x1, *x2, *y1, *y2); // calculate distance between the two centroids.
             // Edge_len automatically assigned the length
-        }
-    }
-
-    return 1;
-};
-
-// FUNCTION NO LONGER NEEDED?
-// Function to find the midpoint of control volume edges for each node, in
-// mapping coordinates. Values are stored in control_vol_edge_centre_pos_map 2D
-// array.
-int Mesh::CalcControlVolumeEdgeCentres(void)
-{
-    int i, j, f, friend_num;
-    double *x1, *y1, *x2, *y2, *xc, *yc, *m;
-    double lat1, lat2, lat3, lon1, lon2, lon3;
-    double *latc, *lonc;
-    double r = globals->radius.Value();
-    double sph1[2], sph2[2], sphc[2];
-
-    for (i = 0; i < NODE_NUM; i++)
-    {
-
-        f = node_friends(i, 5);
-
-        friend_num = 6; // Assume hexagon (6 centroids)
-        if (f == -1)
-        {
-            friend_num = 5; // Check if pentagon (5 centroids)
-            // control_vol_edge_len(i,5) = -1.0;
-            control_vol_edge_centre_m(i, 5) = -1.0;
-        }
-
-        for (j = 0; j < friend_num; j++) // Loop through all centroids in the control volume
-        {
-            f = node_friends(i, j);
-
-            xc = &control_vol_edge_centre_pos_map(i, j, 0); // set pointer to edge length array
-            yc = &control_vol_edge_centre_pos_map(i, j, 1);
-
-            x1 = &centroid_pos_map(i, j, 0); // set map coords for first centroid
-            y1 = &centroid_pos_map(i, j, 1);
-
-            x2 = &centroid_pos_map(i, (j + 1) % friend_num, 0); // set map coords for second centroid
-            y2 = &centroid_pos_map(i, (j + 1) % friend_num, 1); // automatically loops around using %
-
-            midpointBetween(*xc, *yc, *x1, *x2, *y1, *y2); // calculate center coords between the two centroids.
-            // xc and yc automatically assigned the coords
-
-            m = &control_vol_edge_centre_m(i, j); // assign pointer to midpoint map factor
-
-            // lat1 = centroid_pos_sph(i, j, 0);                 // get first centroid coords
-            // lon1 = centroid_pos_sph(i, j, 1);
-
-            sph1[0] = centroid_pos_sph(i, j, 0);
-            sph1[1] = centroid_pos_sph(i, j, 1);
-
-            sph2[0] = centroid_pos_sph(i, (j + 1) % friend_num, 0);
-            sph2[1] = centroid_pos_sph(i, (j + 1) % friend_num, 1);
-
-            midpointBetweenSph(sph1, sph2, sphc);
-
-            control_vol_edge_centre_pos_sph(i, j, 0) = sphc[0];
-            control_vol_edge_centre_pos_sph(i, j, 1) = sphc[1];
-
-            lat1 = node_pos_sph(i, 0); // get first centroid coords
-            lon1 = node_pos_sph(i, 1);
-
-            lat2 = centroid_pos_sph(i, j, 0); // get second centroid coords
-            lon2 = centroid_pos_sph(i, j, 1);
-
-            // lat3 = centroid_pos_sph(i, (j+1)%friend_num, 0);  // get second centroid coords
-            // lon3 = centroid_pos_sph(i, (j+1)%friend_num, 1);
-            //
-            // lat2 = 0.5*(lat2 + lat3);
-            // lon2 = 0.5*(lon2 + lon3);
-
-            mapFactorAtPoint(*m, lat1, lat2, lon1, lon2); // calculate map factor and store
-
-            // Calculate here as the midpoint to the cv edge is only known in
-            // mapped coordinates
-            *m = (4. * pow(r, 2.0) + pow(*xc, 2.0) + pow(*yc, 2.0)) / (4. * pow(r, 2.0));
-
-            // std::cout<<*m<<'\t'<<(4.*r*r + (*xc)*(*xc)+ (*yc)*(*yc))/(4.*r*r)<<std::endl;
         }
     }
 

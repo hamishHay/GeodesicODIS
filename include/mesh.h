@@ -42,7 +42,6 @@ private:
     int CalcMappingCoords(void);
     int CalcVelocityTransformFactors(void);
     int CalcControlVolumeEdgeLengths(void);
-    int CalcControlVolumeEdgeCentres(void);
     int CalcControlVolumeArea(void);
     int CalcControlVolumeMass(void);
     int CalcControlVolumeVertexR(void);
@@ -181,18 +180,8 @@ public:
     // Array to store the edge length of each side to the control volume surrounding
     // the central node
     //   Array2D<double> control_vol_edge_len;
-
-    // Array to store the midpoint of each side to the control volume surrounding
-    // the central node
-    Array3D<double> control_vol_edge_centre_pos_map = Array3D<double>(NODE_NUM, 6, 2);
-    Array3D<double> control_vol_edge_centre_pos_sph = Array3D<double>(NODE_NUM, 6, 2);
     
     // Array3D<double> node_face_normal_vec_map;
-
-
-    // Array to store the midpoint mapping factor of each side to the control
-    // volume surrounding the central node
-    Array2D<double> control_vol_edge_centre_m = Array2D<double>(NODE_NUM, 6);
 
     // Array to store the area of the control volume for each node
     Array1D<double> control_volume_surf_area_map = Array1D<double>(NODE_NUM);
