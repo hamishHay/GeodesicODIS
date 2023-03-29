@@ -49,7 +49,6 @@ Mesh::Mesh(Globals *Globals, int N, int face_N, int vertex_N, int N_ll, int l_ma
     //   control_vol_edge_centre_pos_map(NODE_NUM, 6, 2), // THIS IS ALSO A FACE PROPERTY
     //   control_vol_edge_centre_pos_sph(NODE_NUM, 6, 2), // THIS IS ALSO A FACE PROPERTY
     //   control_vol_edge_centre_m(NODE_NUM, 6),          // THIS IS ALSO A FACE PROPERTY
-    //   control_vol_edge_normal_map(NODE_NUM, 6, 2),     // THIS IS ALSO A FACE PROPERTY
       // control_vol_edge_intercept_normal(NODE_NUM,6,2)
     //   control_volume_surf_area_map(NODE_NUM),
     //   control_volume_mass(NODE_NUM),
@@ -124,9 +123,6 @@ Mesh::Mesh(Globals *Globals, int N, int face_N, int vertex_N, int N_ll, int l_ma
 
     // Find control volume edge midpoints in mapping coords
     CalcControlVolumeEdgeCentres();                             
-
-    // Find control volume edge outward normal unit vectors
-    CalcControlVolumeEdgeNormals();
 
     // Calculate velocity transform factors
     CalcVelocityTransformFactors();
@@ -1734,83 +1730,6 @@ int Mesh::CalcControlVolumeEdgeCentres(void)
             *m = (4. * pow(r, 2.0) + pow(*xc, 2.0) + pow(*yc, 2.0)) / (4. * pow(r, 2.0));
 
             // std::cout<<*m<<'\t'<<(4.*r*r + (*xc)*(*xc)+ (*yc)*(*yc))/(4.*r*r)<<std::endl;
-        }
-    }
-
-    return 1;
-};
-
-// Function to find the unit normal vector to the control volume edge, in
-// mapping coordinates. Values are stored in control_vol_edge_normal_map 2Dd
-// array.
-int Mesh::CalcControlVolumeEdgeNormals(void)
-{
-    int i, j, f, friend_num;
-    double *x1, *y1, *x2, *y2, *xn, *yn;
-
-    for (i = 0; i < NODE_NUM; i++)
-    {
-
-        f = node_friends(i, 5);
-
-        friend_num = 6; // Assume hexagon (6 centroids)
-        if (f == -1)
-        {
-            friend_num = 5; // Check if pentagon (5 centroids)
-            // control_vol_edge_len(i,5) = -1.0;
-            control_vol_edge_normal_map(i, 5, 0) = -1.0; // set pointer to edge length array
-            control_vol_edge_normal_map(i, 5, 1) = -1.0;
-        }
-
-        for (j = 0; j < friend_num; j++) // Loop through all centroids in the control volume
-        {
-
-            xn = &control_vol_edge_normal_map(i, j, 0); // set pointer to edge length array
-            yn = &control_vol_edge_normal_map(i, j, 1);
-
-            x1 = &centroid_pos_map(i, j, 0); // set map coords for first centroid
-            y1 = &centroid_pos_map(i, j, 1);
-
-            x2 = &centroid_pos_map(i, (j + 1) % friend_num, 0); // set map coords for second centroid
-            y2 = &centroid_pos_map(i, (j + 1) % friend_num, 1); // automatically loops around using %
-
-            // double g2 = (*y2-*y1)/(*x2-*x1);
-            // double c2 = *y2 - g2*(*x2);
-
-            normalVectorBetween(*xn, *yn, *x1, *x2, *y1, *y2); // calculate center coords between the two centroids.
-
-            // x1 = &node_pos_map(i, 0, 0);                  // set map coords for first node_pos_map
-            // y1 = &node_pos_map(i, 0, 1);
-            //
-            // x2 = &node_pos_map(i, (j+2)%friend_num, 0);   // set map coords for second node_pos_map
-            // y2 = &node_pos_map(i, (j+2)%friend_num, 1);   // automatically loops around using %
-            // double xn2 = *x2/std::sqrt((*x2)*(*x2)+(*y2)*(*y2));
-            // double yn2 = *y2/std::sqrt((*x2)*(*x2)+(*y2)*(*y2));
-            //
-            // double g1 = (*y2)/(*x2);
-            // double c1 = *y2 - g2*(*x2);
-            //
-            // double xc = (c2-c1)/(g1-g2);
-            // double yc = g1*(xc) + c1;
-            //
-            // double cosTheta = acos(xn2*(*xn) + yn2*(*yn));
-            // // double dist = sqrt(xc*xc + yc*yc);
-            //
-            // // normalVectorBetween(xn2, yn2, *x1, *x2, *y1, *y2);
-            //
-            // std::cout<<i<<' '<<cosTheta*180./pi<<std::endl;
-            // xc and yc automatically assigned the coords
-
-            // For no-normal flow at the edges, can we just set the normal vector components to zero?
-
-            // if boundary face, *xn = 0.0, *yn=0.0;
-
-            // if (cell_is_boundary(i) &&
-            //     cell_is_boundary( node_friends(i, (j+1)%friend_num) ))
-            // {
-            //     *xn = 0.0;
-            //     *yn = 0.0;
-            // }
         }
     }
 
