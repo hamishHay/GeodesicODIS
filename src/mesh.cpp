@@ -8,9 +8,6 @@
 #include "gridConstants.h"
 // #include "sphericalHarmonics.h"
 
-// #include <mkl.h>
-// #include <mkl_spblas.h>
-
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -28,134 +25,31 @@
 using namespace H5;
 #endif
 
-
-
-// Mesh::Mesh():Mesh(2., 2.) {}; //default constructor
-
+// Constructor. Calls the series of tasks needed to contruct all information 
+// relevant to the grid.
 Mesh::Mesh(Globals *Globals, int N, int face_N, int vertex_N, int N_ll, int l_max)
-/*    //: //node_pos_sph(NODE_NUM, 2),
-    //   node_pos_map(NODE_NUM, 7, 2), // len 7 to include central node coords (even though it's zero)
-    //   node_friends(NODE_NUM, 6),
-    //   node_dists(NODE_NUM, 6),
-    //   node_face_arc(NODE_NUM, 6),
-    //   node_face_RBF(NODE_NUM, 6),
-    //   node_node_RBF(NODE_NUM, 7),
-    //   centroid_pos_sph(NODE_NUM, 6, 2),
-    //   centroid_pos_map(NODE_NUM, 6, 2),
-    //   node_vel_trans(NODE_NUM, 7, 2), // In the last dimension, element 1 is cos_a, element 2 is sin_a
-      // control_vol_edge_len(NODE_NUM,6),   // Not needed anymore
-      // control_vol_edge_intercept_normal(NODE_NUM,6,2)
-    //   control_volume_mass(NODE_NUM),
-    //   node_friend_element_areas_map(NODE_NUM, 6, 3),
-
-    //   trigLat(NODE_NUM, 2),
-    //   trigLon(NODE_NUM, 2),
-    //   trig2Lat(NODE_NUM, 2),
-    //   trig2Lon(NODE_NUM, 2),
-    //   trigSqLat(NODE_NUM, 2),
-    //   trigSqLon(NODE_NUM, 2),
-
-      // Pbar_20(NODE_NUM),
-      // Pbar_22(NODE_NUM),
-
-      // Pbar_lm(NODE_NUM),
-
-    //   faces(NODE_NUM, 6),
-    //   face_normal_vec_map(FACE_NUM, 2),
-    //   face_normal_vec_xyz(FACE_NUM, 3), // cartesian components of face normal vector.
-    //   face_nodes(FACE_NUM, 2),          //---> ID of nodes that belong to each face
-    //   face_node_vel_trans(FACE_NUM, 2, 2),
-    //   face_vertexes(FACE_NUM, 2), //---> ID of vertexes that belong to each face
-      // face_friends(FACE_NUM, 2),
-    //   face_interp_friends(FACE_NUM, 10),
-    //   face_interp_weights(FACE_NUM, 10),
-    //   face_node_pos_map(FACE_NUM, 2, 2),
-    //   face_node_dist(FACE_NUM),
-    //   face_node_dist_r(FACE_NUM),
-    //   face_centre_m(FACE_NUM, 2),
-    //   face_centre_pos_sph(FACE_NUM, 2),
-    //   face_intercept_pos_sph(FACE_NUM, 2),
-    //   face_area(FACE_NUM),
-    //   face_len(FACE_NUM),
-    //   node_face_dir(NODE_NUM, 6),
-      // face_is_boundary(FACE_NUM),
-
-    //   vertexes(NODE_NUM, 6),
-    //   vertex_pos_sph(VERTEX_NUM, 2),
-    //   vertex_R(VERTEX_NUM, 3),
-    //   vertex_nodes(VERTEX_NUM, 3),
-    //   vertex_faces(VERTEX_NUM, 3),
-    //   vertex_face_dir(VERTEX_NUM, 3),
-    //   vertex_area(VERTEX_NUM),
-    //   vertex_area_r(VERTEX_NUM),
-    //   node_R(NODE_NUM, 6),
-    //   vertex_sinlat(VERTEX_NUM)
-
-// sh_matrix(NODE_NUM, (l_max+1)*(l_max+2) - 6), //-6 is to ignore degrees 0 and 1
-// sh_matrix_fort(NODE_NUM*((l_max+1)*(l_max+2) - 6)),
-
-// cell_is_boundary(NODE_NUM)
-
-// trigMLon(NODE_NUM, l_max+1, 2)
-*/
 {
     globals = Globals; // define reference to all constants
 
     // Read in grid file
-    ReadMeshFile();
+    // ReadMeshFile(); // Legacy, no longer used.
     
+    ReadGridFile();
 
-    // Calculate mapping coordinates
-    CalcMappingCoords();
-
-    CalcNodeDists();  // NO LONGER NEEDED - INFO READ FROM FILE
-
-    // DON'T NEED ANY MORE?
-    // Find control volume edge lengths in mapping coords
-    // CalcControlVolumeEdgeLengths();                          
-
-    // Calculate velocity transform factors
-    CalcVelocityTransformFactors();
-
-    // Find control volume area for each node
-    CalcControlVolumeArea();
-
-    // Evaluate trig functions at every node
     CalcTrigFunctions();
+    // CalcLegendreFuncs();
+    CalcMappingCoords();
+    CalcVelocityTransformFactors();
+    CalcTangentialVelocityWeights();
+    CalcCartesianComponents();
 
-    CalcMaxTimeStep();
-
-    // // CalcLegendreFuncs();
-
-    CalcControlVolumeVertexR();
-
-    AssignFaces();
-
-    // // // DefineBoundaryCells();
-
-    // // First test just with these two
     CalcGradOperatorCoeffs();
-
     CalcDivOperatorCoeffs();
-
-    // // // CalcLaplaceOperatorCoeffs();
-
     CalcCurlOperatorCoeffs();
-
     CalcCoriolisOperatorCoeffs();
-
     CalcLinearDragOperatorCoeffs();
 
-    // // // GeneratePressureSolver();
-
-    // // GenerateMomentumOperator();
-
-    // if (globals->surface_type != FREE) {
-    //     ReadWeightingFile();
-    // }
-
     CalcAdjacencyMatrix();
-
     CalcControlVolumeInterpMatrix();
 
     CalcRBFInterpMatrix();
@@ -163,14 +57,145 @@ Mesh::Mesh(Globals *Globals, int N, int face_N, int vertex_N, int N_ll, int l_ma
 
     CalcFreeSurfaceSolver();
 
-    ReadGridFile();
+    CalcMaxTimeStep();
 
-    globals->Output->DumpGridData(this);
+    globals->Output->DumpGridData(this); // ?
+};
+
+// Function to convert and store normal vectors to cartesian components
+int Mesh::CalcCartesianComponents(void)
+{
+    double normal_vec_xyz[3];
+    double normal_vec_sph[2];
+    double sph_pos[2];
+    
+    for (unsigned i=0; i<FACE_NUM; i++) {
+        sph_pos[0] = face_centre_pos_sph(i, 0); // latitude 
+        sph_pos[1] = face_centre_pos_sph(i, 1); // longitude
+
+        // Note the swapped index here!
+        normal_vec_sph[0] = face_normal_vec_map(i, 1);  // Get latitude component
+        normal_vec_sph[1] = face_normal_vec_map(i, 0);  // Get longitude component
+
+        // Convert the spherical vector to cartesian
+        normalVectorSph2Cart(sph_pos, normal_vec_sph, normal_vec_xyz); // --> overwrites normal_vec_xyz
+
+        face_normal_vec_xyz(i, 0) = normal_vec_xyz[0];
+        face_normal_vec_xyz(i, 1) = normal_vec_xyz[1];
+        face_normal_vec_xyz(i, 2) = normal_vec_xyz[2];
+    }
+    return 1;
+}
+
+// Function to calculate the w_ee' weights from Eq. 33 Ringler et al (2009).
+// This function requires that the face_friends array has ordered the friends
+// list in clockwise or anti-clockwise fashion.
+int Mesh::CalcTangentialVelocityWeights(void)
+{
+    double vertex_sub_area = 0.0;
+    double weight;
+    int fnum;
+    int tev, ne;
+
+    int vshared_ID;
+    int fstart_ID, face_ID, face_ID2, adj_ID;
+    int node_ID;
+
+    // For each face, loop over each neighbouring node. This will give the corresponding weights.
+    for (unsigned i=0; i<FACE_NUM; i++)
+    {
+        // Loop over each node adjacent to face i
+        for (unsigned k=0; k<2; k++)
+        {
+            node_ID = face_nodes(i, k);
+            fnum = node_fnum(node_ID);
+            tev = 0;
+
+            // Get indicator tev for the vertex shared between 
+            // face i and its adjacent face
+
+            adj_ID = face_friends(i, k, 0); // First friend
+
+            // find shared vertex between face i and face adj_ID
+            if (face_vertexes(adj_ID, 0) == face_vertexes(i,0)) 
+                vshared_ID = face_vertexes(i, 0);
+            else if (face_vertexes(adj_ID, 0) == face_vertexes(i,1)) 
+                vshared_ID = face_vertexes(i, 1);
+            else // face_vertexes(adj_ID, 0) is not shared with face_vertexes(i,:), therefore
+                vshared_ID = face_vertexes(adj_ID, 1);
+
+            // Find tev of vertex vshared_ID with face i
+            for (unsigned j3=0; j3<3; j3++)
+            {
+                if (vertex_faces(vshared_ID, j3) == i) 
+                {
+                    tev = vertex_face_dir(vshared_ID, j3);
+                    break;
+                }
+            }
+
+            // Loop over each face e' to calculate the weights wee'
+            for (int j=0; j<fnum-1; j++)
+            {
+                weight = 0;     // weight w_ee'
+            
+                fstart_ID = face_friends(i, k, j);
+
+                // This statement assumes that the node order in face_nodes gives
+                // the upwind node at face_nodes(:, 0), and the downwind 
+                // node at face_nodes(:, 1)
+                if (face_nodes(fstart_ID,0) == node_ID) ne = 1; // Node is upwind, face points outwards
+                else ne = -1;                                   // Node is downwind of face fstart_ID, face points inwards 
+                
+                // Now sum up all node->vertex areas, starting from face_ID, to the parent face
+                for (int j2 = j; j2>=0; j2--)
+                {
+                    // Get the current face e' ID
+                    face_ID = face_friends(i, k, j2);   // ID of current face friend
+
+                    // Get ID of the face that is next closest to the parent face, i
+                    if (j2==0)  face_ID2 = i;                           // Next closest friend is the parent face, i
+                    else        face_ID2 = face_friends(i, k, j2 - 1);  // ID of next closest face friend
+
+                    // Find the vertex shared by the pair of faces.
+                    if (face_vertexes(face_ID, 0) == face_vertexes(face_ID2,0)) 
+                        vshared_ID = face_vertexes(face_ID2, 0);
+                    else if (face_vertexes(face_ID, 0) == face_vertexes(face_ID2,1)) 
+                        vshared_ID = face_vertexes(face_ID2, 1);
+                    else // face_vertexes(face_ID, 0) is not shared with face_vertexes(face_ID2,:), therefore
+                        vshared_ID = face_vertexes(face_ID, 1);
+
+                    // Find the area that vertex vshared_ID shares with node node_ID.
+                    vertex_sub_area = 0.0;
+                    for (unsigned j3=0; j3<fnum; j3++) {
+                        // Get the correct area by finding the index j3 where
+                        // vshared_ID lives at in the array vertexes (and 
+                        // therefore node_vertex_area)
+                        
+                        if (vertexes(node_ID, j3) == vshared_ID) 
+                        { 
+                            vertex_sub_area = node_vertex_area(node_ID, j3);
+                            break;
+                        }
+                    }
+
+                    weight += vertex_sub_area*cv_area_sph_r(node_ID);  
+                }
+
+                weight = weight - 0.5;  // Eq. 33 Ringler et al
+                
+                face_interp_weights(i, k, j) = weight * -tev * ne;
+            }
+        }     
+    }
+
+    return 1;
 };
 
 int Mesh::CalcControlVolumeInterpMatrix(void)
 {
     double r = globals->radius.Value();
+    double r_recip = 1.0/r;
 
     // interpSolvers = new Eigen::ColPivHouseholderQR<Eigen::MatrixXd>[NODE_NUM];
     interpSolvers = new Eigen::FullPivLU<Eigen::MatrixXd>[NODE_NUM];
@@ -186,9 +211,7 @@ int Mesh::CalcControlVolumeInterpMatrix(void)
     for (int i = 0; i < NODE_NUM; i++)
     {
 
-        int f_num = 6;
-        if (node_friends(i, 5) == -1)
-            f_num--;
+        int f_num = node_fnum(i);
 
         Vandermonde V(f_num + 1, 6);
 
@@ -197,8 +220,8 @@ int Mesh::CalcControlVolumeInterpMatrix(void)
         {
             double x, y;
 
-            x = node_pos_map(i, j, 0) / r;
-            y = node_pos_map(i, j, 1) / r;
+            x = node_pos_map(i, j, 0) * r_recip;
+            y = node_pos_map(i, j, 1) * r_recip;
 
             V(j, 0) = 1.0;
             V(j, 1) = x;
@@ -227,16 +250,13 @@ int Mesh::CalcControlVolumeInterpMatrix(void)
         int friend_num, f_IDj, f_IDi;
         double sphn[2];
         double sphfi[2], sphfj[2];
-        double sph_n[3];
-        double arc, phi, aij;
-        double eps = 0.5; // If you change this, make sure you also change it in CalcRBFInterpMatrix2!!!!
+        double arc;
+        double eps = 0.125; // If you change this, make sure you also change it in CalcRBFInterpMatrix2!!!!
         double x1, x2, y1, y2;
         for (int i = 0; i < NODE_NUM; i++)
         {
             // check if node is pentagon
-            friend_num = 6;
-            if (node_friends(i, 5) < 0)
-                friend_num--;
+            friend_num = node_fnum(i);
 
             DenseMat matrix(friend_num + 1, friend_num + 1);
 
@@ -260,8 +280,8 @@ int Mesh::CalcControlVolumeInterpMatrix(void)
                 // using constant shapre parameter eps=2
                 arc = distanceBetweenSph2(sphn, sphfi);
 
-                x1 = node_pos_map(i, j1 + 1, 0) / r;
-                y1 = node_pos_map(i, j1 + 1, 1) / r;
+                x1 = node_pos_map(i, j1 + 1, 0) * r_recip;
+                y1 = node_pos_map(i, j1 + 1, 1) * r_recip;
                 arc = sqrt(x1 * x1 + y1 * y1);
 
                 matrix(0, j1 + 1) = RBF(arc, eps);
@@ -277,8 +297,8 @@ int Mesh::CalcControlVolumeInterpMatrix(void)
 
                 arc = distanceBetweenSph2(sphfj, sphn);
 
-                x1 = node_pos_map(i, j1 + 1, 0) / r;
-                y1 = node_pos_map(i, j1 + 1, 1) / r;
+                x1 = node_pos_map(i, j1 + 1, 0) * r_recip;
+                y1 = node_pos_map(i, j1 + 1, 1) * r_recip;
                 arc = sqrt(x1 * x1 + y1 * y1);
 
                 matrix(j1 + 1, 0) = RBF(arc, eps);
@@ -298,8 +318,8 @@ int Mesh::CalcControlVolumeInterpMatrix(void)
                     // using constant shapre parameter eps=2
                     arc = distanceBetweenSph2(sphfj, sphfi);
 
-                    x2 = node_pos_map(i, j2 + 1, 0) / r;
-                    y2 = node_pos_map(i, j2 + 1, 1) / r;
+                    x2 = node_pos_map(i, j2 + 1, 0) * r_recip;
+                    y2 = node_pos_map(i, j2 + 1, 1) * r_recip;
                     arc = sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
 
                     matrix(j1 + 1, j2 + 1) = RBF(arc, eps);
@@ -327,14 +347,10 @@ int Mesh::CalcControlVolumeInterpMatrix(void)
         double sphfi[2], sphfj[2];
         double njx, njy, njz;
         double nix, niy, niz;
-        double sph_n[3];
         double arc, phi, aij;
         for (int i = 0; i < NODE_NUM; i++)
         {
-            // check if node is pentagon
-            friend_num = 6;
-            if (node_friends(i, 5) < 0)
-                friend_num--;
+            friend_num = node_fnum(i);
 
             DenseMat matrix(friend_num, friend_num);
 
@@ -392,746 +408,6 @@ int Mesh::CalcControlVolumeInterpMatrix(void)
 
     return 1;
 };
-
-int Mesh::CalcControlVolumeVertexR(void)
-{
-    int vert_count = 0;
-    int friend_num = 6;
-
-    int node_count[NODE_NUM];
-
-    for (int i = 0; i < NODE_NUM; i++)
-    {
-        node_count[i] = 0;
-        for (int j = 0; j < friend_num; j++)
-        {
-            vertexes(i, j) = -1;
-        }
-    }
-
-    for (int i = 0; i < NODE_NUM; i++)
-    {
-        friend_num = 6;
-        if (node_friends(i, 5) < 0)
-            friend_num--;
-
-        for (int j = 0; j < friend_num; j++)
-        {
-            if (vertexes(i, j) < 0)
-            {
-                vertexes(i, j) = vert_count;
-                vertex_pos_sph(vert_count, 0) = centroid_pos_sph(i, j, 0);
-                vertex_pos_sph(vert_count, 1) = centroid_pos_sph(i, j, 1);
-
-                int f1 = node_friends(i, (j) % friend_num);
-                int f2 = node_friends(i, (j + 1) % friend_num);
-
-                int f_num1 = 6;
-                int f_num2 = 6;
-                if (node_friends(f1, 5) < 0)
-                    f_num1--;
-                if (node_friends(f2, 5) < 0)
-                    f_num2--;
-
-                vertex_nodes(vert_count, 0) = i;
-                vertex_nodes(vert_count, 1) = f1;
-                vertex_nodes(vert_count, 2) = f2;
-
-                node_count[i]++;
-                for (int k = 0; k < f_num1; k++)
-                {
-                    if (centroid_pos_sph(f1, k, 0) < vertex_pos_sph(vert_count, 0) + 1e-9 && centroid_pos_sph(f1, k, 0) > vertex_pos_sph(vert_count, 0) - 1e-9 &&
-                        centroid_pos_sph(f1, k, 1) < vertex_pos_sph(vert_count, 1) + 1e-9 && centroid_pos_sph(f1, k, 1) > vertex_pos_sph(vert_count, 1) - 1e-9)
-
-                    {
-                        vertexes(f1, k) = vert_count;
-                    }
-                    //         {
-                }
-
-                for (int k = 0; k < f_num2; k++)
-                {
-                    if (centroid_pos_sph(f2, k, 0) < vertex_pos_sph(vert_count, 0) + 1e-9 && centroid_pos_sph(f2, k, 0) > vertex_pos_sph(vert_count, 0) - 1e-9 &&
-                        centroid_pos_sph(f2, k, 1) < vertex_pos_sph(vert_count, 1) + 1e-9 && centroid_pos_sph(f2, k, 1) > vertex_pos_sph(vert_count, 1) - 1e-9)
-
-                    {
-                        vertexes(f2, k) = vert_count;
-                    }
-                    //         {
-                }
-
-                vert_count++;
-            }
-        }
-    }
-
-    for (int i = 0; i < VERTEX_NUM; i++)
-    {
-        vertex_sinlat(i) = sin(vertex_pos_sph(i, 0));
-    }
-
-    std::cout << "VERTEX NUM: " << vert_count << ' ' << VERTEX_NUM << std::endl;
-
-    return 1;
-};
-
-int Mesh::AssignFaces(void)
-{
-    struct face_friends
-    {
-        int ID;       // Global ID of face
-        int rel_ID;   // ID of face relative to parent face
-        double angle; // Angle between face and parent face
-    };
-
-    int friend_num = 6;
-    int face_count;
-
-    // Mark all faces as unassigned (<0)
-    for (int i = 0; i < NODE_NUM; i++)
-    {
-        for (int j = 0; j < friend_num; j++)
-        {
-            faces(i, j) = -1;
-        }
-    }
-
-    // Loop through all faces and assign:
-    //  A unique ID (faces)
-    //  The direction of the face normal (in or out)
-    //  Distance between the nodes either side of the face (face_node_dist)
-    face_count = 0;
-    for (int i = 0; i < NODE_NUM; i++)
-    {
-        friend_num = 6;
-        if (node_friends(i, 5) < 0)
-            friend_num--;
-
-        for (int j = 0; j < friend_num; j++)
-        {
-            if (faces(i, j) < 0)
-            {
-                faces(i, j) = face_count;
-                face_nodes(face_count, 0) = i;
-                // face_is_boundary(face_count) = 0;
-                // face_friends(face_count, 0) = j;
-                face_node_dist(face_count) = node_dists(i, j);
-                node_face_dir(i, j) = 1;
-
-                int f = node_friends(i, j);
-                int friend_num2 = 6;
-                if (node_friends(f, 5) < 0)
-                    friend_num2--;
-
-                double sph1[2], sph2[2], sph3[2], sph4[2], sphc[2];
-                for (int k = 0; k < 2; k++)
-                {
-                    sph1[k] = centroid_pos_sph(i, (j + friend_num - 1) % friend_num, k);
-                    sph2[k] = centroid_pos_sph(i, (j) % friend_num, k);
-                }
-
-                double dist = 0.0;
-                double r = globals->radius.Value();
-                distanceBetweenSph(dist, sph1[0], sph2[0], sph1[1], sph2[1], r);
-
-                face_len(face_count) = fabs(dist);
-
-                // get position of face centre
-                midpointBetweenSph(sph1, sph2, sphc);
-
-                if (sphc[1] < 0.0)
-                    sphc[1] += 2 * pi;
-
-                // std::cout<<face_count<<' '<<sph1[0]<<' '<<sph1[1]<<' '<<sph2[0]<<' '<<sph2[1]<<std::endl;
-                face_centre_pos_sph(face_count, 0) = sphc[0];
-                face_centre_pos_sph(face_count, 1) = sphc[1];
-
-                // if (i==0) std::cout<<i<<' '<<f<<' '<<sph1[0]<<' '<<sph1[1]<<std::endl;
-
-                // if (i==0) {
-                //     std::cout<<i<<' '<<f<<' '<<sph1[0]<<' '<<sph1[1]<<std::endl;
-                //     std::cout<<i<<' '<<f<<' '<<sph2[0]<<' '<<sph2[1]<<std::endl;
-                // }
-
-                // OR DO WE DEFINE THE CENTRE AT THE MID-POINT BETWEEN THE TWO NODES????
-
-                // NO - this leads to a max error norm that increases with finer resolution
-                // sph3[0] = node_pos_sph(i,0);
-                // sph3[1] = node_pos_sph(i,1);
-                // sph4[0] = node_pos_sph(f,0);
-                // sph4[1] = node_pos_sph(f,1);
-
-                // midpointBetweenSph(sph3, sph4, sphc);
-
-                // if (sphc[1] < 0.0) sphc[1] += 2*pi;
-                // // std::cout<<i<<' '<<sphc[0]<<' '<<sphc[1]<<std::endl;
-                // face_centre_pos_sph(face_count, 0) = sphc[0];
-                // face_centre_pos_sph(face_count, 1) = sphc[1];
-
-                double lat1, lon1, lat2, lon2;
-                double m = 0.0;
-                double x1 = 0.0;
-                double y1 = 0.0;
-                double x2 = 0.0;
-                double y2 = 0.0;
-
-                lat1 = sphc[0];
-                lon1 = sphc[1];
-                lat2 = node_pos_sph(i, 0);
-                lon2 = node_pos_sph(i, 1);
-
-                mapAtPoint(m, x1, y1, lat1, lat2, lon1, lon2, r);
-                face_centre_m(face_count, 0) = m;
-
-                lat2 = node_pos_sph(f, 0);
-                lon2 = node_pos_sph(f, 1);
-
-                mapAtPoint(m, x2, y2, lat1, lat2, lon1, lon2, r);
-                face_centre_m(face_count, 1) = m;
-
-                face_node_dist(face_count) = sqrt(pow(x2 - x1, 2.0) + pow(y2 - y1, 2.0));
-
-                double sphn1[2], sphn2[2];
-                sphn1[0] = node_pos_sph(i, 0);
-                sphn1[1] = node_pos_sph(i, 1);
-                sphn2[0] = node_pos_sph(f, 0);
-                sphn2[1] = node_pos_sph(f, 1);
-
-                face_node_dist(face_count) = distanceBetweenSph2(sphn1, sphn2) * r;
-                face_node_dist_r(face_count) = 1.0 / face_node_dist(face_count);
-
-                double node_node_dist = 0.0;
-                distanceBetweenSph(node_node_dist, node_pos_sph(i, 0), node_pos_sph(f, 0), node_pos_sph(i, 1), node_pos_sph(f, 1), r);
-
-                // std::cout<<node_node_dist<<' '<<face_node_dist(face_count)<<std::endl;
-                // face_node_dist(face_count) = fabs(node_node_dist);
-
-                double normal_vec[2];
-                normalVectorBetweenMap(normal_vec, sph1, sph2);
-                face_normal_vec_map(face_count, 0) = normal_vec[0];
-                face_normal_vec_map(face_count, 1) = normal_vec[1];
-
-                // Now find the normal vector in cartesian coords!
-                double normal_vec_xyz[3];
-                normalVectorBetweenXYZ(sph1, sph2, normal_vec_xyz);
-                face_normal_vec_xyz(face_count, 0) = normal_vec_xyz[0];
-                face_normal_vec_xyz(face_count, 1) = normal_vec_xyz[1];
-                face_normal_vec_xyz(face_count, 2) = normal_vec_xyz[2];
-
-                // double d1 = 0, d2 = 0;
-                // double yyy = face_centre_pos_sph(face_count,0)+normal_vec[1]/r;
-                // double xxx = face_centre_pos_sph(face_count,1)+normal_vec[0]/r;
-                // distanceBetweenSph(d1, node_pos_sph(i,0), face_centre_pos_sph(face_count,0), node_pos_sph(i,1), face_centre_pos_sph(face_count, 1), r);
-                // distanceBetweenSph(d2, node_pos_sph(i,0), yyy, node_pos_sph(i,1), xxx, r);
-
-                // Calculate intersection point between the face length vector
-                // and the vector between the shared nodes
-                for (int k = 0; k < 2; k++)
-                {
-                    sph3[k] = node_pos_sph(i, k);
-                    sph4[k] = node_pos_sph(f, k);
-                }
-
-                intersectPointSph(sph1, sph2, sph3, sph4, sphc);
-
-                face_intercept_pos_sph(face_count, 0) = sphc[0];
-                face_intercept_pos_sph(face_count, 1) = sphc[1];
-
-                // SHOULD WE SET THE FACE CENTRE POSITION TO HERE INSTEAD???
-                // face_centre_pos_sph(face_count, 0) = sphc[0];
-                // face_centre_pos_sph(face_count, 1) = sphc[1];
-
-                // Find friend on opposite side of the face
-                // and update the values accordingly
-                int k = 0;
-                for (int j2 = 0; j2 < friend_num2; j2++)
-                {
-                    if (node_friends(f, j2) == i)
-                    {
-                        faces(f, j2) = face_count;
-                        face_nodes(face_count, 1) = f;
-                        node_face_dir(f, j2) = -1;
-                    }
-                }
-
-                face_count++;
-            }
-        }
-    }
-
-    for (int i = 0; i < NODE_NUM; i++)
-    {
-        double sphn[2], sphf[2];
-        sphn[0] = node_pos_sph(i, 0);
-        sphn[1] = node_pos_sph(i, 1);
-
-        friend_num = 6;
-        if (node_friends(i, 5) < 0)
-            friend_num--;
-
-        for (int j = 0; j < friend_num; j++)
-        {
-            int fID = faces(i, j);
-
-            sphf[0] = face_centre_pos_sph(fID, 0);
-            sphf[1] = face_centre_pos_sph(fID, 1);
-
-            node_face_arc(i, j) = distanceBetweenSph2(sphn, sphf);
-        }
-    }
-
-    // Now each face must be looped over in order to calculate interpolation weights
-    // This means finding the vertices and faces that are joined to the parent face,
-    // in a anticlockwise order
-    for (int i = 0; i < FACE_NUM; i++)
-    {
-        int j_add = 0;
-        for (int k = 0; k < 2; k++)
-        {
-            int node_ID = face_nodes(i, k);
-
-            friend_num = 6;
-            if (node_friends(node_ID, 5) < 0)
-                friend_num--;
-
-            // Get list of faces attached to node
-            std::vector<face_friends> friends_list(friend_num);
-            // friends_list[0].ID = i;
-            // friends_list[0].angle = 360.0;
-
-            // Loop through the friend faces, calculating the angle between
-            int j = 0, added = 0;
-            while (added < friend_num)
-            {
-                int ID = faces(node_ID, j);
-                friends_list[added].ID = ID;
-
-                double angle = 0.0;
-                double sph1[2], sph2[2], sphc[2];
-
-                for (int ii = 0; ii < 2; ii++)
-                {
-                    sph1[ii] = face_intercept_pos_sph(i, ii);
-                    sph2[ii] = face_intercept_pos_sph(ID, ii);
-                    sphc[ii] = node_pos_sph(node_ID, ii);
-                }
-                angleBetweenMap(sph1, sph2, sphc, angle);
-
-                friends_list[added].angle = angle * 180. / pi;
-                if (friends_list[added].angle > 0.0 + 1e-8)
-                    friends_list[added].angle -= 360.0;
-
-                added++;
-                j++;
-            }
-
-            // Get list of vertexes attached to node
-            // Loop through the friend vertexes, calculating the angle between
-            std::vector<face_friends> face_vertex_list(friend_num);
-            for (j = 0; j < friend_num; j++)
-            {
-                face_vertex_list[j].ID = vertexes(node_ID, j);
-                face_vertex_list[j].rel_ID = j;
-
-                double angle = 0.0;
-                double sph1[2], sph2[2], sphc[2];
-
-                for (int ii = 0; ii < 2; ii++)
-                {
-                    sph1[ii] = face_intercept_pos_sph(i, ii);
-                    sph2[ii] = vertex_pos_sph(vertexes(node_ID, j), ii);
-                    sphc[ii] = node_pos_sph(node_ID, ii);
-                }
-                angleBetweenMap(sph1, sph2, sphc, angle);
-
-                face_vertex_list[j].angle = angle * 180. / pi;
-                if (face_vertex_list[j].angle > 0.0 + 1e-8)
-                    face_vertex_list[j].angle -= 360.0;
-            }
-
-            // order faces relative to face i in an anti-clockwise direction
-            std::sort(friends_list.begin(), friends_list.end(), [](const face_friends &lhs, const face_friends &rhs)
-                      { return lhs.angle > rhs.angle; });
-
-            // order vertexes relative to face i in an anti-clockwise direction
-            std::sort(face_vertex_list.begin(), face_vertex_list.end(), [](const face_friends &lhs, const face_friends &rhs)
-                      { return lhs.angle > rhs.angle; });
-
-            // Now we know the right order of faces and vertexes relative to face
-            // i, so we can now compute the R weights
-            double area_cv = 0.0;
-            for (j = 0; j < friend_num; j++)
-            {
-                double a1 = 0.0, a2 = 0.0, area = 0.0;
-                double r = globals->radius.Value();
-
-                // get intersect position
-                int v_ID = face_vertex_list[j].ID;
-                int v_ID2 = face_vertex_list[(j + 1) % friend_num].ID;
-
-                double sph_int[2], sph1[2], sph2[2];
-
-                sph1[0] = node_pos_sph(node_ID, 0);
-                sph1[1] = node_pos_sph(node_ID, 1);
-
-                sph2[0] = vertex_pos_sph(v_ID, 0);
-                sph2[1] = vertex_pos_sph(v_ID, 1);
-
-                // calc triangle area for face_intersect1-node-vertex
-                sph_int[0] = vertex_pos_sph(v_ID2, 0);
-                sph_int[1] = vertex_pos_sph(v_ID2, 1);
-
-                triangularAreaSph(a1, sph1[0], sph2[0], sph_int[0], sph1[1], sph2[1], sph_int[1], r);
-
-                // sum areas and divide by cv area to get R_iv
-                area_cv += a1;
-            }
-
-            double area_t = 0.0;
-            std::vector<double> R_weights(friend_num);
-            for (j = 0; j < friend_num; j++)
-            {
-                double a1 = 0.0, a2 = 0.0, area = 0.0;
-                double r = globals->radius.Value();
-
-                // get intersect position
-                int v_ID = face_vertex_list[j].ID;
-                int f_ID = friends_list[j].ID;
-                double sph_int[2], sph1[2], sph2[2];
-
-                if (j == 1)
-                {
-                    face_vertexes(f_ID, 0) = v_ID;
-                    face_vertexes(f_ID, 1) = face_vertex_list[j - 1].ID;
-                }
-
-                sph1[0] = node_pos_sph(node_ID, 0);
-                sph1[1] = node_pos_sph(node_ID, 1);
-
-                sph2[0] = vertex_pos_sph(v_ID, 0);
-                sph2[1] = vertex_pos_sph(v_ID, 1);
-
-                // calc triangle area for face_intersect1-node-vertex
-                sph_int[0] = face_intercept_pos_sph(f_ID, 0);
-                sph_int[1] = face_intercept_pos_sph(f_ID, 1);
-
-                triangularAreaSph(a1, sph1[0], sph2[0], sph_int[0], sph1[1], sph2[1], sph_int[1], r);
-
-                // calc triangle area for face_intersect2-node-vertex
-                f_ID = friends_list[(j + 1) % friend_num].ID;
-                sph_int[0] = face_intercept_pos_sph(f_ID, 0);
-                sph_int[1] = face_intercept_pos_sph(f_ID, 1);
-
-                triangularAreaSph(a2, sph1[0], sph2[0], sph_int[0], sph1[1], sph2[1], sph_int[1], r);
-
-                area = (a1 + a2) / area_cv;
-
-                R_weights[j] = area;
-
-                area_t += area;
-
-                bool added = false;
-                int count = 0;
-                while (!added)
-                {
-                    if (vertex_nodes(v_ID, count) == node_ID)
-                    {
-                        vertex_R(v_ID, count) = R_weights[j];
-                        added = true;
-                    }
-                    count++;
-                }
-
-                // if vertex_nodes(v_ID, 0 or 1 or 2) == node_ID, vertex_R(v_ID, 0 or 1 or 2) = R_weights[j]
-            }
-
-            for (j = 0; j < friend_num; j++)
-            {
-
-                // Calc each weight w_ee' for e
-                if (i != friends_list[j].ID)
-                {
-                    face_interp_friends(i, j_add) = friends_list[j].ID;
-                    face_interp_weights(i, j_add) = 0.0;
-                    for (int j2 = 0; j2 < j; j2++)
-                    {
-                        face_interp_weights(i, j_add) += R_weights[j2];
-                    }
-                    face_interp_weights(i, j_add) -= 0.5;
-
-                    for (int j2 = 0; j2 < friend_num; j2++)
-                    {
-                        if (friends_list[j].ID == faces(node_ID, j2))
-                        {
-                            face_interp_weights(i, j_add) *= node_face_dir(node_ID, j2);
-                        }
-                    }
-
-                    // THIS STEP IS VERY IMPORTANT
-                    // The edge under interpolation may point in the positive
-                    // or negative vorticity direction; this ensures that this
-                    // happens under the asusmption that the weights are
-                    // calculated in an anti-clockwise sense
-                    int t_ev = 1;
-                    if (face_nodes(i, 0) == node_ID)
-                        t_ev = 1;
-                    else
-                        t_ev = -1;
-
-                    // std::cout<<i<<' '<<t_ev<<std::endl;
-
-                    face_interp_weights(i, j_add) *= t_ev;
-
-                    j_add++;
-                }
-            }
-        }
-    }
-
-    for (int i = 0; i < VERTEX_NUM; i++)
-    {
-        vertex_faces(i, 0) = -1;
-        vertex_faces(i, 1) = -1;
-        vertex_faces(i, 2) = -1;
-    }
-
-    for (int i = 0; i < FACE_NUM; i++)
-    {
-
-        double r = globals->radius.Value();
-
-        int v1 = face_vertexes(i, 0);
-        int v2 = face_vertexes(i, 1);
-
-        for (int j = 0; j < 3; j++)
-        {
-            if (vertex_faces(v1, j) < 0)
-            {
-                vertex_faces(v1, j) = i;
-
-                // vertex_face_dir(v1, j) = ?
-
-                double sphf[2], sphv[2];
-                sphf[0] = face_centre_pos_sph(i, 0);
-                sphf[1] = face_centre_pos_sph(i, 1);
-                sphv[0] = vertex_pos_sph(v1, 0);
-                sphv[1] = vertex_pos_sph(v1, 1);
-
-                double lat1, lon1, lat2, lon2;
-                double m = 0.0;
-                double xv = 0.0;
-                double yv = 0.0;
-                double fnx = 0.0;
-                double fny = 0.0;
-
-                lat1 = sphf[0];
-                lon1 = sphf[1];
-                lat2 = sphv[0];
-                lon2 = sphv[1];
-
-                mapAtPoint(m, xv, yv, lat1, lat2, lon1, lon2, r);
-
-                fnx = face_normal_vec_map(i, 0);
-                fny = face_normal_vec_map(i, 1);
-
-                // take cross product between face normal
-                // and vertex vector. The sign indicates if
-                // the face normal points in the clockwise or
-                // anticlockwise direction!
-
-                double cross = xv * fny - yv * fnx;
-
-                if (cross > 0)
-                    vertex_face_dir(v1, j) = 1; // clockwise
-                else
-                    vertex_face_dir(v1, j) = -1; // anti-clockwise
-
-                // double mag_v = 0.0;
-                // double zero = 0.0;
-                // distanceBetween(mag_v, zero, xv, zero, yv);
-                // double mag_v2 = 0.0;
-                // double xv2 = xv-fny;
-                // double yv2 = yv+fnx;
-                // distanceBetween(mag_v2, zero, xv2,zero, yv2);
-
-                // std::cout<<v1<<' '<<mag_v/mag_v2<<' '<<vertex_face_dir(v1, j)<<std::endl;
-
-                break;
-            }
-        }
-
-        for (int j = 0; j < 3; j++)
-        {
-            if (vertex_faces(v2, j) < 0)
-            {
-                vertex_faces(v2, j) = i;
-
-                // vertex_face_dir(v2, j) = ?
-
-                double sphf[2], sphv[2];
-                sphf[0] = face_centre_pos_sph(i, 0);
-                sphf[1] = face_centre_pos_sph(i, 1);
-                sphv[0] = vertex_pos_sph(v2, 0);
-                sphv[1] = vertex_pos_sph(v2, 1);
-
-                double lat1, lon1, lat2, lon2;
-                double m = 0.0;
-                double xv = 0.0;
-                double yv = 0.0;
-                double fnx = 0.0;
-                double fny = 0.0;
-
-                lat1 = sphf[0];
-                lon1 = sphf[1];
-                lat2 = sphv[0];
-                lon2 = sphv[1];
-
-                mapAtPoint(m, xv, yv, lat1, lat2, lon1, lon2, r);
-
-                fnx = face_normal_vec_map(i, 0);
-                fny = face_normal_vec_map(i, 1);
-
-                // take cross product between face normal
-                // and vertex vector. The sign indicates if
-                // the face normal points in the clockwise or
-                // anticlockwise direction!
-
-                double cross = xv * fny - yv * fnx;
-
-                if (cross > 0)
-                    vertex_face_dir(v2, j) = 1; // clockwise
-                else
-                    vertex_face_dir(v2, j) = -1; // anti-clockwise
-
-                break;
-            }
-        }
-
-        // for (int j=0; j<3; j++)
-        // {
-        //    int face_ID = vertex_faces(v1, j);
-        //    int node_ID = face_nodes(i, 0);
-
-        //    //check if vertex has inner or outer
-        // }
-    }
-
-    for (int i = 0; i < FACE_NUM; i++)
-    {
-        int v1 = face_vertexes(i, 0);
-        int v2 = face_vertexes(i, 1);
-
-        double sph1[2], sph2[2], sph3[2], sphc[2];
-
-        sph1[0] = vertex_pos_sph(v1, 0);
-        sph1[1] = vertex_pos_sph(v1, 1);
-
-        sph2[0] = vertex_pos_sph(v2, 0);
-        sph2[1] = vertex_pos_sph(v2, 1);
-
-        sphc[0] = face_centre_pos_sph(i, 0);
-        sphc[1] = face_centre_pos_sph(i, 1);
-
-        double x3, y3, x1, x2, y1, y2;
-
-        double m;
-
-        double r = globals->radius.Value();
-
-        mapAtPoint(m, x1, y1, sphc[0], sph1[0], sphc[1], sph1[1], r);
-        mapAtPoint(m, x2, y2, sphc[0], sph2[0], sphc[1], sph2[1], r);
-
-        double a = 0.0, area = 0.0;
-
-        double a1, a2;
-        for (int k = 0; k < 2; k++)
-        {
-            int n1 = face_nodes(i, k);
-
-            sph3[0] = node_pos_sph(n1, 0);
-            sph3[1] = node_pos_sph(n1, 1);
-
-            triangularAreaSph(a, sph1[0], sph2[0], sph3[0], sph1[1], sph2[1], sph3[1], r);
-
-            mapAtPoint(m, x3, y3, sphc[0], sph3[0], sphc[1], sph3[1], r);
-            triangularArea(a, x1, y1, x2, x3, y2, y3);
-
-            area += fabs(a);
-
-            if (k == 0)
-                a1 = a;
-            if (k == 1)
-                a2 = a;
-
-            // if (n1==4 || n1==2585) std::cout<<i<<' '<<k<<' '<<a<<std::endl;
-        }
-        // if (fabs(a1 - a2) > 1e-10) std::cout<<i<<' '<<a1-a2<<std::endl;
-        // face_area(i) = 4*area;
-
-        // Ringler et al., (2010), Eq. A.6 --> Do not include the factor of 1/2!!!!
-        face_area(i) = face_node_dist(i) * face_len(i); /// 2.0;
-
-        // if ((node_friends(face_nodes(i,0),5) < 0) || (node_friends(face_nodes(i,1),5) < 0)) std::cout<<area/face_area(i)<<std::endl;
-    }
-
-    // This is only needed for KE cacluations in momentum advection?
-    // for (int i=0; i<NODE_NUM; i++)
-    // {
-    //     control_volume_surf_area_map(i) = 0.0;
-    //     int friend_num = 6;
-    //     if (node_friends(i, 5) < 0)
-    //         friend_num--;
-
-    //     for (int j = 0; j < friend_num; j++)
-    //     {
-    //         int f_ID = faces(i, j);
-
-    //         double Ae = face_area(f_ID);
-
-    //         control_volume_surf_area_map(i) += Ae*0.25;
-    //     }
-    // }
-
-    // --------------------------------------------------------------
-    // Calculate area associated with each vertex -------------------
-    for (int i = 0; i < VERTEX_NUM; i++)
-    {
-        double a = 0.0, area = 0.0;
-        double r = globals->radius.Value();
-
-        double sphv[2], sphn1[2], sphn2[2];
-
-        sphv[0] = vertex_pos_sph(i, 0);
-        sphv[1] = vertex_pos_sph(i, 1);
-
-        for (int j = 0; j < 3; j++)
-        {
-            // get two nodes associated with this vertex
-            int n1 = vertex_nodes(i, j);
-            int n2 = vertex_nodes(i, (j + 1) % 3);
-
-            sphn1[0] = node_pos_sph(n1, 0);
-            sphn1[1] = node_pos_sph(n1, 1);
-
-            sphn2[0] = node_pos_sph(n2, 0);
-            sphn2[1] = node_pos_sph(n2, 1);
-
-            triangularAreaSph(a, sphv[0], sphn1[0], sphn2[0], sphv[1], sphn1[1], sphn2[1], r);
-
-            area += fabs(a);
-
-            // std::cout << i << ' ' << j << ' ' << vertex_faces(i, j) << std::endl;
-        }
-
-        vertex_area(i) = area;
-        vertex_area_r(i) = 1.0 / area;
-    }
-
-    std::cout << "FACE NUM: " << face_count << ' ' << FACE_NUM << std::endl;
-    std::cout << "NODE NUM: " << NODE_NUM << std::endl;
-
-    return 1;
-}
 
 /*
 // int Mesh::DefineBoundaryCells(void)
@@ -1401,27 +677,6 @@ int Mesh::CalcMappingCoords(void)
                 // assign mapped values to arrays
                 mapAtPoint(*m, *x, *y, lat1, lat2, lon1, lon2, r);
 
-                // if (i==137 && (f==1427 || f==1453 || f ==1457))
-                // {
-                //   double dist = 0.0;
-                //   std::cout<<i<<' '<<f<<' '<<*x<<' '<<*y<<' '<<lat2*180/pi<<std::endl;
-                //   // distanceBetween(dist, *xc, *x1, *yc, *y1);
-                //   // std::cout<<i<<' '<<f<<' '<<dist<<std::endl;
-                //   // std::cout<<i<<' '<<nx<<' '<<ny<<std::endl;
-                //   // std::cout<<i<<' '<<m<<std::endl;
-                //   // std::cout<<i<<' '<<mesh->node_dists(i, (j+1)%friend_num)<<std::endl;
-                //   // for (int k=0; k<3; k++) std::cout<<' '<<f1<<' '<<(*element_areas)(i,(j)%friend_num,k);
-                //   // for (int k=0; k<3; k++) std::cout<<' '<<f2<<' '<<(*element_areas)(i,(j+1)%friend_num,k);
-                //   // for (int k=0; k<3; k++) std::cout<<' '<<f2<<' '<<(*element_areas)(i,(j+2)%friend_num,k);
-                // }
-                // if (i==1453 && (f==1457 || f==137 || f ==1427))
-                // {
-                //   double dist = 0.0;
-                //   // distanceBetween(dist, *xc, *x1, *yc, *y1);
-                //   // std::cout<<i<<' '<<f<<' '<<dist<<std::endl;
-                //   // std::cout<<i<<' '<<j<<' '<<f<<std::endl;
-                //   std::cout<<i<<' '<<f<<' '<<*x<<' '<<*y<<' '<<lat2*180/pi<<std::endl;
-                // }
                 break;
             }
         }
@@ -1500,92 +755,20 @@ int Mesh::CalcMappingCoords(void)
 // };
 */
 
-// Function to find the spherical distance between a node and each of
-// its neighbours.
-int Mesh::CalcNodeDists(void)
-{
-    int i, j, f, friend_num;
-    double *lat1, *lat2, *lon1, *lon2, *edge_len;
-    double r;
-
-    r = globals->radius.Value();
-
-    for (i = 0; i < NODE_NUM; i++)
-    {
-
-        f = node_friends(i, 5);
-
-        friend_num = 6; // Assume hexagon (6 centroids)
-        if (f == -1)
-        {
-            friend_num = 5; // Check if pentagon (5 centroids)
-            node_dists(i, 5) = -1.0;
-        }
-
-        lat1 = &node_pos_sph(i, 0); // set map coords for first
-        lon1 = &node_pos_sph(i, 1);
-        for (j = 0; j < friend_num; j++) // Loop through all centroids in the control volume
-        {
-            edge_len = &node_dists(i, j); // set pointer to edge length array
-
-            f = node_friends(i, j);
-
-            lat2 = &node_pos_sph(f, 0); // set map coords for second centroid
-            lon2 = &node_pos_sph(f, 1);
-
-            distanceBetweenSph(*edge_len, *lat1, *lat2, *lon1, *lon2, r); // calculate distance between the two centroids.
-            // Edge_len automatically assigned the length
-
-            // std::cout<<*edge_len<<std::endl;
-        }
-    }
-
-    return 1;
-};
 
 int Mesh::CalcMaxTimeStep(void)
 {
-    int i, j, f, friend_num;
-    double dist;
-    double g, h_max, dt;
-
-    g = globals->g.Value();
-    h_max = globals->h.Value();
-
-    dt = globals->timeStep.Value();
-
-    //   if (globals->surface_type == FREE ||
-    //       globals->surface_type == FREE_LOADING ||
-    //       globals->surface_type == LID_LOVE)
-    //   {
-    //       if (globals->surface_type == LID_LOVE) g *= -(globals->shell_factor_beta[globals->l_max.Value()]-1.0);
-
-    //       for (i=0; i<NODE_NUM; i++)
-    //       {
-    //           f = node_friends(i,5);
-    //           friend_num = 6;                                     // Assume hexagon (6 centroids)
-    //           if (f == -1) {
-    //               friend_num = 5;                                   // Check if pentagon (5 centroids)
-    //           }
-    //           for (j=0; j<friend_num; j++)                      // Loop through all centroids in the control volume
-    //           {
-    //               dist = node_dists(i,j)*0.25;                 // consider one quater node-node distance
-    //               dt = std::min(dt, dist/sqrt(g*h_max));
-    //           }
-    //       }
-
-    //     //   dt *= 0.85;         // take some caution
-    //   }
-
-    double target_dt = dt;
+    double dt, dt_target;
     int dt_num = 100;
+
+    dt_target = globals->timeStep.Value();
 
     dt = globals->period.Value();
 
-    std::cout << "TARGET DT: " << target_dt << std::endl;
-    while (dt > target_dt)
+    std::cout << "TARGET DT: " << dt_target << std::endl;
+    while (dt > dt_target)
     {
-        dt = globals->period.Value() / dt_num;
+        dt = globals->period.Value() / (double)dt_num;
 
         dt_num += 100;
 
@@ -1598,53 +781,6 @@ int Mesh::CalcMaxTimeStep(void)
 
     return 1;
 }
-
-// Function to find the area of each node's control volume. THe function loops
-// over each pair of centroids belonging to a node, while summing the area of
-// each triangle to find the total area of the hexagon or pentagon.
-int Mesh::CalcControlVolumeArea(void)
-{
-    int i, j, f, friend_num;
-    double *x1, *y1, *x2, *y2, *xc, *yc, *t_area, area;
-
-    for (i = 0; i < NODE_NUM; i++)
-    {
-
-        f = node_friends(i, 5);
-
-        friend_num = 6; // Assume hexagon (6 centroids)
-        if (f == -1)
-        {
-            friend_num = 5; // Check if pentagon (5 centroids)
-        }
-
-        xc = &node_pos_map(i, 0, 0); // set pointer to edge length array
-        yc = &node_pos_map(i, 0, 1);
-
-
-        area = 0.0;
-        double sub_area=0;
-        for (j = 0; j < friend_num; j++) // Loop through all centroids in the control volume
-        {
-            f = node_friends(i, j);
-
-            x1 = &centroid_pos_map(i, j, 0); // set map coords for first centroid
-            y1 = &centroid_pos_map(i, j, 1);
-
-            x2 = &centroid_pos_map(i, (j + 1) % friend_num, 0); // set map coords for second centroid
-            y2 = &centroid_pos_map(i, (j + 1) % friend_num, 1); // automatically loops around using %
-
-            triangularArea(sub_area, *xc, *yc, *x1, *x2, *y1, *y2); // calculate center coords between the two centroids.
-            // xc and yc automatically assigned the coords
-            area += sub_area;
-            sub_area = 0.0;
-        }
-
-        cv_area_sph(i) = area;
-    }
-
-    return 1;
-};
 
 // Function to evaluate trigonometric functions over latitude and longitude for
 // every node.
@@ -1675,6 +811,11 @@ int Mesh::CalcTrigFunctions(void)
 
         trigSqLon(i, 0) = pow(cos(lon), 2.0);
         trigSqLon(i, 1) = pow(sin(lon), 2.0);
+    }
+
+    for (int i = 0; i < VERTEX_NUM; i++)
+    {
+        vertex_sinlat(i) = sin(vertex_pos_sph(i, 0));
     }
 
     return 1;
@@ -1818,10 +959,7 @@ int Mesh::CalcRBFInterpMatrix(void)
 
     for (int i = 0; i < NODE_NUM; ++i)
     {
-        friend_num = 6;
-
-        if (node_friends(i, 5) < 0)
-            friend_num--;
+        friend_num = node_fnum(i);
 
         for (int x = 0; x < friend_num; x++)
         {
@@ -1859,10 +997,7 @@ int Mesh::CalcRBFInterpMatrix(void)
     // int face_ID;
     for (int i = 0; i < NODE_NUM; ++i)
     {
-        friend_num = 6;
-
-        if (node_friends(i, 5) < 0)
-            friend_num--;
+        friend_num = node_fnum(i);
 
         for (int j = 0; j < friend_num; j++)
         {
@@ -1892,8 +1027,6 @@ int Mesh::CalcRBFInterpMatrix(void)
 // Function to create the adjaceny matrix that maps the neighbouring faces to each node
 int Mesh::CalcRBFInterpMatrix2(void)
 {
-    //--------------- Construct sparse matrix in CSR format --------------------
-
     //--------------- Define objects to construct matrix -----------------------
 
     // There are 12 pentagons on the geodesic grid, each with 5 faces.
@@ -1912,47 +1045,15 @@ int Mesh::CalcRBFInterpMatrix2(void)
     coefficients.reserve(nNonZero);
 
     // assign the non-zero coefficients and their column indexes in CSR format
-    int friend_num, face_ID;
+    int friend_num;
     double coeff;
     // int count=0;
     int nh = 0;
     int np = 0;
-    double testval = 1e-11;
-    // for (int i=0; i<NODE_NUM; ++i)
-    // {
-    //     friend_num = 7;
-
-    //     if (node_friends(i,5) < 0) friend_num--;
-
-    //     for (int x=0; x<friend_num; x++)
-    //     {
-    //         int row = x + nh*7 + np*6;
-    //         for (int y=0; y<friend_num; y++)
-    //         {
-
-    //             int col = y + nh*7 + np*6;
-
-    //             coeff = interpVandermondeScalar[i].coeff(x,y);
-
-    //             // testval += fabs(coeff);
-
-    //             // if (i==NODE_NUM-1) std::cout<<x<<' '<<y<<' '<<coeff<<std::endl;
-
-    //             coefficients.push_back( Triplet(row, col, coeff) );
-    //         }
-    //         // count++;
-    //     }
-
-    //     if (friend_num == 6) np++;
-    //     else nh++;
-    // }
 
     for (int i = 0; i < NODE_NUM; ++i)
     {
-        friend_num = 7;
-
-        if (node_friends(i, 5) < 0)
-            friend_num--;
+        friend_num = node_fnum(i)+1;
 
         Eigen::MatrixXd mat = interpVandermondeScalar[i].inverse();
 
@@ -1966,13 +1067,8 @@ int Mesh::CalcRBFInterpMatrix2(void)
 
                 coeff = mat.coeff(x, y);
 
-                // testval += fabs(coeff);
-
-                // if (i==NODE_NUM-1) std::cout<<x<<' '<<y<<' '<<coeff<<std::endl;
-
                 coefficients.push_back(Triplet(row, col, coeff));
             }
-            // count++;
         }
 
         if (friend_num == 6)
@@ -1980,8 +1076,6 @@ int Mesh::CalcRBFInterpMatrix2(void)
         else
             nh++;
     }
-
-    // std::cout<<testval/((double)nNonZero)<<std::endl;
 
     // Fill the sparse operator with the list of triplets
     vandermondeInv.setFromTriplets(coefficients.begin(), coefficients.end());
@@ -1999,23 +1093,19 @@ int Mesh::CalcRBFInterpMatrix2(void)
     coefficients2.reserve(nNonZero);
 
     {
-        int friend_num, f_IDj, f_IDi;
-        double arc, phi, aij;
-        double eps = 0.5; // If you change this, make sure you also change it in CalcControlVolumeInterpMatrix!!!!
-        double x1, x2, y1, y2;
+        double arc;
+        double eps = 0.125; // If you change this, make sure you also change it in CalcControlVolumeInterpMatrix!!!!
+        double x1, y1;
         double xx, yy, xy, arc2, arc3, dphidr, d2phidr2;
-        double coeff;
         int row, col;
         double r_recip = 1.0 / globals->radius.Value();
         // RBFSUM = DenseMat(3*NODE_NUM, 12*6 + (NODE_NUM - 12)*7);
-        np = 0.0;
-        nh = 0.0;
+        np = 0;
+        nh = 0;
         for (int i = 0; i < NODE_NUM; i++)
         {
             // check if node is pentagon
-            friend_num = 6;
-            if (node_friends(i, 5) < 0)
-                friend_num--;
+            friend_num = node_fnum(i);
 
             coeff = -2.0 * eps * eps;
 
@@ -2032,8 +1122,6 @@ int Mesh::CalcRBFInterpMatrix2(void)
             // loop through all j faces
             for (int j = 0; j < friend_num; j++)
             {
-                f_IDj = node_friends(i, j);
-
                 x1 = node_pos_map(i, j + 1, 0) * r_recip;
                 y1 = node_pos_map(i, j + 1, 1) * r_recip;
                 arc = sqrt(x1 * x1 + y1 * y1);
@@ -2102,7 +1190,6 @@ int Mesh::CalcRBFInterpMatrix2(void)
         int outer_ID;
         double nx, ny;
         double cosa, sina;
-        double coeff;
         int row, col;
         for (int i = 0; i < FACE_NUM; i++)
         {
@@ -2236,9 +1323,8 @@ int Mesh::CalcRBFInterpMatrix2(void)
 // Function to create the adjaceny matrix that maps the neighbouring faces to each node
 int Mesh::CalcAdjacencyMatrix(void)
 {
-    //--------------- Construct sparse matrix in CSR format --------------------
-
-    //--------------- Define objects to construct matrix -----------------------
+    int count = 0, friend_num, face_ID, node_ID;
+    double coeff = 1.0; // matrix coeff is always 1
 
     // There are 12 pentagons on the geodesic grid, each with 5 faces.
     // The other cells are hexagons with 6
@@ -2254,25 +1340,21 @@ int Mesh::CalcAdjacencyMatrix(void)
     std::vector<Triplet> coefficients;
     coefficients.reserve(nNonZero);
 
-    // assign the non-zero coefficients and their column indexes in CSR format
+
+    count = 0;
+    for (unsigned i = 0; i < NODE_NUM; ++i)
     {
-        int count = 0, friend_num, face_ID;
-        double coeff = 1.0;
-        for (int i = 0; i < NODE_NUM; ++i)
+        friend_num = node_fnum(i);
+
+        for (unsigned j = 0; j < friend_num; j++)
         {
-            friend_num = 6;
-            if (node_friends(i, 5) < 0)
-                friend_num--;
+            face_ID = faces(i, j);
 
-            for (int j = 0; j < friend_num; j++)
-            {
-                face_ID = faces(i, j);
-
-                coefficients.push_back(Triplet(count, face_ID, coeff));
-                count++;
-            }
+            coefficients.push_back(Triplet(count, face_ID, coeff));
+            count++;
         }
     }
+
 
     // Fill the sparse operator with the list of triplets
     node2faceAdj.setFromTriplets(coefficients.begin(), coefficients.end());
@@ -2290,28 +1372,25 @@ int Mesh::CalcAdjacencyMatrix(void)
     coefficients2.reserve(nNonZero);
 
     // assign the non-zero coefficients and their column indexes in CSR format
+    
+    count = 0;
+    for (unsigned i = 0; i < NODE_NUM; ++i)
     {
-        int count = 0, friend_num, node_ID;
-        double coeff = 1.0;
-        for (int i = 0; i < NODE_NUM; ++i)
+        friend_num = node_fnum(i);
+
+        coefficients2.push_back(Triplet(count, i, coeff)); // Add itself
+
+        count++;
+        for (unsigned j = 0; j < friend_num; j++)
         {
-            friend_num = 6;
-            if (node_friends(i, 5) < 0)
-                friend_num--;
+            node_ID = node_friends(i, j);
 
-            coefficients2.push_back(Triplet(count, i, coeff)); // Add itself
-            // std::cout<<count<<' '<<i<<std::endl;
+            coefficients2.push_back(Triplet(count, node_ID, coeff));
+
             count++;
-            for (int j = 0; j < friend_num; j++)
-            {
-                node_ID = node_friends(i, j);
-
-                coefficients2.push_back(Triplet(count, node_ID, coeff));
-                // std::cout<<count<<' '
-                count++;
-            }
         }
     }
+    
 
     // Fill the sparse operator with the list of triplets
     node2nodeAdj.setFromTriplets(coefficients2.begin(), coefficients2.end());
@@ -2322,9 +1401,10 @@ int Mesh::CalcAdjacencyMatrix(void)
 
 int Mesh::CalcCoriolisOperatorCoeffs(void)
 {
-    int i, j, j2, j3, f, f_num;
-
-    //--------------- Construct sparse matrix in CSR format --------------------
+    int fnum[2];
+    int f_ID;
+    double coeff;
+    int n1, n2;
 
     //--------------- Define objects to construct matrix -----------------------
 
@@ -2334,78 +1414,35 @@ int Mesh::CalcCoriolisOperatorCoeffs(void)
     // neighbours and one central node (total of 7). Additionally, there is a
     // row for each variable (total 3). Therefore, the total number
     // of non-zero coefficients in our sparse matrix is given as:
-    int nNonZeroGrad = (12 * 5) * 9 + (FACE_NUM - 12 * 5) * 10;
+    int nNonZero = (12 * 5) * 9 + (FACE_NUM - 12 * 5) * 10;
 
     operatorCoriolis = SpMat(FACE_NUM, FACE_NUM);
 
     // Allocate memory for non-zero entries
-    operatorCoriolis.reserve(nNonZeroGrad);
+    operatorCoriolis.reserve(nNonZero);
 
     std::vector<Triplet> coefficients;
-    coefficients.reserve(nNonZeroGrad);
+    coefficients.reserve(nNonZero);
 
-    int *colIndx;  // column index for each non-zero element
-    int *rowIndxX; // row indices for CSR matrix format (x component)
-    // int     * rowIndxY;    // row indices for CSR matrix format (y component)
-    double *nzCoeffsX; // non-zero grad operator coeffis in x direction
-
-    int *rowStartX; // start row indices (x component)
-    int *rowEndX;   // start row indices (x component)
-
-    int error; // error message from MKL
-
-    // // Define c (0) based indexing
-    // sparse_index_base_t indexing = SPARSE_INDEX_BASE_ZERO;
-
-    // // Define all operations the original (non-transpose) matrix
-    // sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
-
-    //---------------- Initialise objects into memory --------------------------
-
-    rowStartX = new int[FACE_NUM];
-    rowEndX = new int[FACE_NUM];
-    rowIndxX = new int[FACE_NUM + 1];
-
-    nzCoeffsX = new double[nNonZeroGrad];
-    colIndx = new int[nNonZeroGrad];
-
-    // assign the non-zero coefficients and their column indexes in CSR format
-    int count = 0;
-
-    for (int i = 0; i < FACE_NUM; ++i)
+    for (unsigned i = 0; i < FACE_NUM; ++i)
     {
-        double v_tang = 0.0;
-        int friend_num = 10;
-
-        int n1, n2;
         n1 = face_nodes(i, 0);
         n2 = face_nodes(i, 1);
-        if (node_friends(n1, 5) < 0)
-            friend_num--;
-        if (node_friends(n2, 5) < 0)
-            friend_num--;
 
-        for (int j = 0; j < friend_num; j++)
-        {
-            int f_ID = face_interp_friends(i, j);
-            colIndx[count] = f_ID;
-            nzCoeffsX[count] = -2.0 * globals->angVel.Value() * sin(face_centre_pos_sph(i, 0)) * face_interp_weights(i, j) * face_len(f_ID) / face_node_dist(i);
+        fnum[0] = node_fnum(n1);
+        fnum[1] = node_fnum(n2);
 
-            count++;
-
-            double coeff = -2.0 * globals->angVel.Value() * sin(face_centre_pos_sph(i, 0)) * face_interp_weights(i, j) * face_len(f_ID) / face_node_dist(i);
-            // double coeff = -2.0 * globals->angVel.Value() * sin(face_intercept_pos_sph(f_ID, 0)) * face_interp_weights(i, j) * face_len(f_ID) / face_node_dist(i);
-            coefficients.push_back(Triplet(i, f_ID, coeff));
-
-            // v_tang += v_tm1(f_ID)*grid->face_interp_weights(i,j)*grid->face_len(f_ID);
+        // Loop through the faces adjacent to face i and use
+        // interpolation weights to find the tangential velocity component
+        for (unsigned k=0; k<2; k++) {
+            for (unsigned j = 0; j < fnum[k]-1; j++)
+            {
+                f_ID = face_friends(i, k, j);
+                coeff = -2.0 * globals->angVel.Value() * sin(face_centre_pos_sph(i, 0)) * face_interp_weights(i, k, j) * face_len(f_ID) * face_node_dist_r(i);
+            
+                coefficients.push_back(Triplet(i, f_ID, coeff));
+            }
         }
-
-        // if (i<FACE_NUM-1) rowIndxX[i+1] = count;
-        // v_tang /= grid->face_node_dist(i);
-
-        // dvdt(i) -= 2.0 * omega * sin(grid->face_intercept_pos_sph(i, 0)) * v_tang;
-        //
-        // dvdt(i) -= v_tm1(i)*globals->alpha.Value();
     }
 
     // Fill the sparse operator with the list of triplets
@@ -2417,10 +1454,6 @@ int Mesh::CalcCoriolisOperatorCoeffs(void)
 
 int Mesh::CalcLinearDragOperatorCoeffs(void)
 {
-    int i, j, j2, j3, f, f_num;
-
-    //--------------- Construct sparse matrix in CSR format --------------------
-
     //--------------- Define objects to construct matrix -----------------------
 
     // Here we assign the number of non-zero matrix elements for each operator.
@@ -2429,87 +1462,20 @@ int Mesh::CalcLinearDragOperatorCoeffs(void)
     // neighbours and one central node (total of 7). Additionally, there is a
     // row for each variable (total 3). Therefore, the total number
     // of non-zero coefficients in our sparse matrix is given as:
-    int nNonZeroGrad = FACE_NUM;
+    int nNonZero = FACE_NUM;
 
     // Define shape of operator
     operatorLinearDrag = SpMat(FACE_NUM, FACE_NUM);
 
     // Allocate memory for non-zero entries
-    operatorLinearDrag.reserve(FACE_NUM);
+    operatorLinearDrag.reserve(nNonZero);
 
-    int *colIndx;      // column index for each non-zero element
-    int *rowIndxX;     // row indices for CSR matrix format (x component)
-    int *rowIndxY;     // row indices for CSR matrix format (y component)
-    double *nzCoeffsX; // non-zero grad operator coeffis in x direction
-
-    int *rowStartX; // start row indices (x component)
-    int *rowEndX;   // start row indices (x component)
-
-    int error; // error message from MKL
-
-    // Define c (0) based indexing
-    // sparse_index_base_t indexing = SPARSE_INDEX_BASE_ZERO;
-
-    // // Define all operations the original (non-transpose) matrix
-    // sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
-
-    //---------------- Initialise objects into memory --------------------------
-
-    rowStartX = new int[FACE_NUM];
-    rowEndX = new int[FACE_NUM];
-    rowIndxX = new int[FACE_NUM + 1];
-
-    nzCoeffsX = new double[nNonZeroGrad];
-    colIndx = new int[nNonZeroGrad];
-
-    // assign the non-zero coefficients and their column indexes in CSR format
-    int count = 0;
-
-    Triplet T;
-    for (i = 0; i < FACE_NUM; i++)
+    for (unsigned i = 0; i < FACE_NUM; i++)
     {
-
-        //   nzCoeffsX[count] = -globals->alpha.Value();
-        //   colIndx[count] = i;
-
         operatorLinearDrag.insert(i, i) = -globals->alpha.Value();
-
-        //   count++;
-
-        // nzCoeffsX[count] = -globals->alpha.Value();
-        // colIndx[count] = i*3+1;
-        // count++;
     }
 
-    // assign the row indexes for the sparse matrix in CSR format
-    // rowIndxX[0] = 0;         // first element is always zero
-
-    // for (i=1; i<FACE_NUM; i++) {
-    //   rowIndxX[i] = i;
-    // }
-
-    // // last element is always the number of non-zero coefficients
-    // rowIndxX[FACE_NUM] = nNonZeroGrad;
-
-    // for (i=0; i<FACE_NUM; i++) {
-    //   rowStartX[i] = rowIndxX[i];
-    //   rowEndX[i] = rowIndxX[i+1]; }
-
-    // Create the operator for the x and y components
-    // operatorLinearDrag = new sparse_matrix_t;
-    // // sparse_matrix_t * operatorLinearDragTemp = new sparse_matrix_t;
-    // error = mkl_sparse_d_create_csr(operatorLinearDrag, indexing, FACE_NUM, FACE_NUM, rowStartX, rowEndX, colIndx, nzCoeffsX);
-
-    // matrix_descr descrp;
-    // descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
-    // error = mkl_sparse_copy (*operatorLinearDragTemp, descrp, operatorLinearDrag);
-    //
-    // delete[] rowStartX;
-    // delete[] rowEndX;
-    // delete[] rowIndxX;
-    // delete[] colIndx;
-    // delete[] nzCoeffsX;
-    // delete operatorLinearDragTemp;
+    operatorLinearDrag.makeCompressed();
 
     return 1;
 }
@@ -2522,30 +1488,38 @@ int Mesh::CalcGradOperatorCoeffs(void)
     // neighbours and one central node (total of 7). Additionally, there is a
     // row for each variable (total 3). Therefore, the total number
     // of non-zero coefficients in our sparse matrix is given as:
-    int nNonZeroGrad = 2 * FACE_NUM; //(NODE_NUM-12)*7 + 12*6;
+    int nNonZero = 2 * FACE_NUM; //(NODE_NUM-12)*7 + 12*6;
 
     operatorGradient = SpMat(FACE_NUM, NODE_NUM);
 
     // Allocate memory for non-zero entries
-    operatorGradient.reserve(nNonZeroGrad);
+    operatorGradient.reserve(nNonZero);
 
     std::vector<Triplet> coefficients;
-    coefficients.reserve(nNonZeroGrad);
+    coefficients.reserve(nNonZero);
 
     double coeff;
-    double dist;
+    double dist_r;
     int inner_node_ID, outer_node_ID;
     for (int i = 0; i < FACE_NUM; i++)
     {
         inner_node_ID = face_nodes(i, 0);
         outer_node_ID = face_nodes(i, 1);
 
-        dist = face_node_dist(i);
+        dist_r = face_node_dist_r(i);
 
-        coeff = (-face_centre_m(i, 0)) / dist;
+        // coeff = (-face_centre_m(i, 0)) / dist;
+        // coefficients.push_back(Triplet(i, inner_node_ID, coeff));
+
+        // coeff = (face_centre_m(i, 1)) / dist;
+        // coefficients.push_back(Triplet(i, outer_node_ID, coeff));
+
+        // Removed face_centre_m from grad calculation as now 
+        // face_node_dist is the actual arc length (in metres)
+        coeff = -dist_r;
         coefficients.push_back(Triplet(i, inner_node_ID, coeff));
 
-        coeff = (face_centre_m(i, 1)) / dist;
+        coeff = dist_r;
         coefficients.push_back(Triplet(i, outer_node_ID, coeff));
     }
 
@@ -2557,7 +1531,11 @@ int Mesh::CalcGradOperatorCoeffs(void)
 
 int Mesh::CalcCurlOperatorCoeffs(void)
 {
-    int i, j;
+    double area_r;
+    int face_id;
+    double node_dist;
+    int t_ev;
+    double coeff;
 
     //--------------- Define objects to construct matrix -----------------------
 
@@ -2576,27 +1554,24 @@ int Mesh::CalcCurlOperatorCoeffs(void)
     coefficients.reserve(nNonZeroCoeffs);
 
     // assign the non-zero coefficients
-    for (i = 0; i < VERTEX_NUM; i++)
+    for (unsigned i = 0; i < VERTEX_NUM; i++)
     {
-        // f_num = 6;
-        // if (node_friends(i, 5) == -1)
-        //     f_num = 5;
-        double area = vertex_area(i);
+        area_r = vertex_area_r(i);
 
-        for (j = 0; j < 3; j++)
+        for (unsigned j = 0; j < 3; j++)
         {
-            int face_id = vertex_faces(i, j);
+            face_id = vertex_faces(i, j);
 
             // get distance between nodes crossing face
             // face_id
-            double node_dist = face_node_dist(face_id);
+            node_dist = face_node_dist(face_id);
 
             // get indicator function (does a face velocity
             // contribute positively or negatively to the
             // curl at a vertex?)
-            double t_ev = vertex_face_dir(i, j);
+            t_ev = vertex_face_dir(i, j);
 
-            double coeff = node_dist * t_ev / area;
+            coeff = node_dist * (double)t_ev * area_r;
 
             coefficients.push_back(Triplet(i, face_id, coeff));
         }
@@ -2610,11 +1585,8 @@ int Mesh::CalcCurlOperatorCoeffs(void)
 
 int Mesh::CalcDivOperatorCoeffs(void)
 {
-    int i, j, j2, j3, f, f_num;
-
-    // why is this line here? Where would it be better placed?
-
-    //--------------- Construct sparse matrix in CSR format --------------------
+    int f_num, face_id, dir;
+    double area_r, edge_len, coeff;
 
     //--------------- Define objects to construct matrix -----------------------
 
@@ -2622,104 +1594,36 @@ int Mesh::CalcDivOperatorCoeffs(void)
     // There are 12 pentagons on the geodesic grid, each with 5 faces.
     // The other cells are hexagons with 6 faces. Therefore, the total
     // number of non-zero coefficients in our sparse matrix is given as:
-    int nNonZeroGrad = ((NODE_NUM - 12) * 6 + 12 * 5);
+    int nNonZero = ((NODE_NUM - 12) * 6 + 12 * 5);
 
     operatorDivergence = SpMat(NODE_NUM, FACE_NUM);
 
     // Allocate memory for non-zero entries
-    operatorDivergence.reserve(nNonZeroGrad);
+    operatorDivergence.reserve(nNonZero);
 
     std::vector<Triplet> coefficients;
-    coefficients.reserve(nNonZeroGrad);
+    coefficients.reserve(nNonZero);
 
-    int *colIndxX;     // column index for each non-zero element
-    int *rowIndxX;     // row indices for CSR matrix format (x component) component)
-    double *nzCoeffsX; // non-zero grad operator coeffis in x direction
-
-    int *rowStartX; // start row indices (x component)
-    int *rowEndX;   // start row indices (x component)
-
-    int error; // error message from MKL
-
-    // Define c (0) based indexing
-    // sparse_index_base_t indexing = SPARSE_INDEX_BASE_ZERO;
-
-    // // Define all operations the original (non-transpose) matrix
-    // sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
-
-    //---------------- Initialise objects into memory --------------------------
-
-    rowStartX = new int[NODE_NUM];
-    rowEndX = new int[NODE_NUM];
-    rowIndxX = new int[NODE_NUM + 1];
-
-    nzCoeffsX = new double[nNonZeroGrad];
-    colIndxX = new int[nNonZeroGrad];
-
-    // assign the non-zero coefficients and their column indexes in CSR format
-    int count = 0;
-
-    for (i = 0; i < NODE_NUM; i++)
+    for (unsigned i = 0; i < NODE_NUM; i++)
     {
-        f_num = 6;
-        if (node_friends(i, 5) == -1)
-            f_num = 5;
+        f_num = node_fnum(i);
 
-        for (j = 0; j < f_num; j++)
+        for (unsigned j = 0; j < f_num; j++)
         {
-            int face_id = faces(i, j);
+            face_id = faces(i, j);
 
             // get edge length of current edge
-            double edge_len = face_len(face_id);
-            int dir = node_face_dir(i, j);
-            double area = cv_area_sph(i);
+            edge_len = face_len(face_id);
+            dir = node_face_dir(i, j);
+            area_r = cv_area_sph_r(i);
 
-            nzCoeffsX[count] = -dir * edge_len / area;
-            colIndxX[count] = face_id;
-            count++;
-
-            double coeff = -dir * edge_len / area;
+            coeff = -dir * edge_len * area_r;
             coefficients.push_back(Triplet(i, face_id, coeff));
         }
-
-        if (i < NODE_NUM - 1)
-            rowIndxX[i + 1] = count;
     }
 
     operatorDivergence.setFromTriplets(coefficients.begin(), coefficients.end());
     operatorDivergence.makeCompressed();
-
-    // assign the row indexes for the sparse matrix in CSR format
-    rowIndxX[0] = 0; // first element is always zero
-    rowIndxX[NODE_NUM] = nNonZeroGrad;
-
-    // last element is always the number of non-zero coefficients
-    // rowIndxY[NODE_NUM] = nNonZeroGrad;
-
-    for (i = 0; i < NODE_NUM; i++)
-    {
-        rowStartX[i] = rowIndxX[i];
-        rowEndX[i] = rowIndxX[i + 1];
-    }
-
-    // Create the operator for the x and y components
-    // operatorDivergenceX = new sparse_matrix_t;
-    // error = mkl_sparse_d_create_csr(operatorDivergenceX, indexing, NODE_NUM, FACE_NUM, rowStartX, rowEndX, colIndxX, nzCoeffsX);
-
-    // matrix_descr descrp;
-    // descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
-
-    // error = mkl_sparse_set_mv_hint (*operatorDivergenceX, operation, descrp, 1000000000);
-    // error = mkl_sparse_set_memory_hint (*operatorDivergenceX, SPARSE_MEMORY_AGGRESSIVE);
-    // error = mkl_sparse_optimize (*operatorDivergenceX);
-
-    // delete operatorDivergenceX;
-    //
-    // delete[] rowStartX;
-    // delete[] rowEndX;
-    // delete[] rowIndxX;
-    // delete[] nzCoeffsX;
-    // delete[] colIndxX;
 
     return 1;
 }
@@ -2742,6 +1646,307 @@ int Mesh::CalcFreeSurfaceSolver(void)
     return 1;
 }
 
+int Mesh::ReadGridFile()
+{
+    double r = globals->radius.Value();
+    double rr = r*r;
+
+    int count;
+
+    hid_t file_id = H5Fopen("input_files/test.h5", H5F_ACC_RDONLY, H5P_DEFAULT);
+
+    //-----------------------------------------------------------------------------------------
+    //------------------------------ LOAD NODE INFO -------------------------------------------
+    //-----------------------------------------------------------------------------------------
+
+    // LATITUDE OF NODE
+    unsigned n_lat_size=0;
+    double * n_lat_h5 = ReadHDF5Dataset<double>(&file_id, "/NODES/LAT/", H5T_NATIVE_DOUBLE, n_lat_size);
+
+    // LONGITUDE OF NODE
+    unsigned n_lon_size=0;
+    double * n_lon_h5 = ReadHDF5Dataset<double>(&file_id, "/NODES/LON/", H5T_NATIVE_DOUBLE, n_lon_size);
+
+    // AREA OF NODE
+    unsigned n_area_size=0;
+    double * n_area_h5 = ReadHDF5Dataset<double>(&file_id, "/NODES/AREA/", H5T_NATIVE_DOUBLE, n_area_size);
+
+    // NUMBER OF NODES SURROUNDING NODE
+    unsigned n_n_num_size=0;
+    unsigned * n_n_num_h5 = ReadHDF5Dataset<unsigned>(&file_id, "/NODES/FRIENDS/NODES/FRIEND_NUM/", H5T_NATIVE_UINT, n_n_num_size);
+
+    // ID'S OF NODES SURROUNDING NODE
+    unsigned n_n_IDs_size=0;
+    unsigned * n_n_IDs_h5 = ReadHDF5Dataset<unsigned>(&file_id, "/NODES/FRIENDS/NODES/ID/", H5T_NATIVE_UINT, n_n_IDs_size);
+
+    // ARC DISTANCES BETWEEN NODE AND ITS SURROUNDING NODES
+    unsigned n_n_arc_size=0;
+    double * n_n_arc_h5 = ReadHDF5Dataset<double>(&file_id, "/NODES/FRIENDS/NODES/DISTANCE/", H5T_NATIVE_DOUBLE, n_n_arc_size);
+
+    // ID'S OF FACES SURROUNDING NODE
+    unsigned n_f_IDs_size=0;
+    unsigned * n_f_IDs_h5 = ReadHDF5Dataset<unsigned>(&file_id, "/NODES/FRIENDS/FACES/ID/", H5T_NATIVE_UINT, n_f_IDs_size);
+
+    // DIRECTION OF FACE RELATIVE TO CONTROL VOLUME
+    unsigned n_f_dir_size=0;
+    int * n_f_dir_h5 = ReadHDF5Dataset<int>(&file_id, "/NODES/FRIENDS/FACES/DIR/", H5T_NATIVE_INT, n_f_dir_size);
+
+    // ID'S OF VERTICES SURROUNDING NODE
+    unsigned n_v_IDs_size=0;
+    unsigned * n_v_IDs_h5 = ReadHDF5Dataset<unsigned>(&file_id, "/NODES/FRIENDS/VERTICES/ID/", H5T_NATIVE_UINT, n_v_IDs_size);
+
+    // AREAS SUBTENDED BY NODE AND VERTEX (USED IN CORIOLIS OPERATOR)
+    unsigned n_v_area_size=0;
+    double * n_v_area_h5 = ReadHDF5Dataset<double>(&file_id, "/NODES/FRIENDS/VERTICES/AREA/", H5T_NATIVE_DOUBLE, n_v_area_size);
+
+
+    // Write node properties from the format in the hdf5 file to the appropriate arrays
+    count = 0;
+    for (unsigned i=0; i<n_lat_size; i++) {
+        node_pos_sph(i, 0)  = n_lat_h5[i]*radConv;
+        node_pos_sph(i, 1)  = n_lon_h5[i]*radConv;   
+        node_fnum(i)        = n_n_num_h5[i];
+        cv_area_sph(i)      = n_area_h5[i]*rr;          // CONVERT TO METRES^2
+        cv_area_sph_r(i)    = 1.0/cv_area_sph(i);
+
+        for (unsigned j=0; j<n_n_num_h5[i]; j++) {
+            node_friends(i, j)      = n_n_IDs_h5[count];
+            node_dists(i, j)        = n_n_arc_h5[count]*r;      // CONVERT TO METRES
+            faces(i, j)             = n_f_IDs_h5[count];
+            vertexes(i, j)          = n_v_IDs_h5[count];
+            node_face_dir(i, j)     = n_f_dir_h5[count];
+            node_vertex_area(i, j)  = n_v_area_h5[count]*rr;    // CONVERT OT METRES^2
+
+            count++; 
+        }
+    }
+
+    delete[] n_n_IDs_h5;
+    delete[] n_n_arc_h5;
+    delete[] n_lat_h5;
+    delete[] n_lon_h5;
+    delete[] n_n_num_h5;
+    delete[] n_f_IDs_h5;
+    delete[] n_area_h5;
+    delete[] n_f_dir_h5;
+    delete[] n_v_area_h5;
+    delete[] n_v_IDs_h5;
+
+
+    //-----------------------------------------------------------------------------------------
+    //------------------------------ LOAD FACE INFO -------------------------------------------
+    //-----------------------------------------------------------------------------------------
+
+    // LATITUDE OF FACE CENTER
+    unsigned f_lat_size=0;
+    double * f_lat_h5 = ReadHDF5Dataset<double>(&file_id, "/FACES/LAT/", H5T_NATIVE_DOUBLE, f_lat_size);
+
+    // LONGITUDE OF FACE CENTER
+    unsigned f_lon_size=0;
+    double * f_lon_h5 = ReadHDF5Dataset<double>(&file_id, "/FACES/LON/", H5T_NATIVE_DOUBLE, f_lon_size);
+
+    // ARC LENGTH OF FACE
+    unsigned f_arc_size=0;
+    double * f_arc_h5 = ReadHDF5Dataset<double>(&file_id, "/FACES/LENGTH/", H5T_NATIVE_DOUBLE, f_arc_size);
+
+    // FACE NORMAL VEC: LONGITUDE COMPONENT
+    unsigned f_nlon_size=0;
+    double * f_nlon_h5 = ReadHDF5Dataset<double>(&file_id, "/FACES/NORMAL_VEC_LON/", H5T_NATIVE_DOUBLE, f_nlon_size);
+
+    // FACE NORMAL VEC: LATITUDE COMPONENT
+    unsigned f_nlat_size=0;
+    double * f_nlat_h5 = ReadHDF5Dataset<double>(&file_id, "/FACES/NORMAL_VEC_LAT/", H5T_NATIVE_DOUBLE, f_nlat_size);
+
+    // INTERSECT LON WITH NODE-NODE ARC AND THE FACE
+    unsigned f_lon_intersect_size=0;
+    double * f_lon_intersect_h5 = ReadHDF5Dataset<double>(&file_id, "/FACES/INTERSECT_LON/", H5T_NATIVE_DOUBLE, f_lon_intersect_size);
+
+    // INTERSECT LAT WITH NODE-NODE ARC AND THE FACE
+    unsigned f_lat_intersect_size=0;
+    double * f_lat_intersect_h5 = ReadHDF5Dataset<double>(&file_id, "/FACES/INTERSECT_LAT/", H5T_NATIVE_DOUBLE, f_lat_intersect_size);
+
+    // LENGTH OF NODE-NODE ARC
+    unsigned f_intersect_arc_size=0;
+    double * f_intersect_arc_h5 = ReadHDF5Dataset<double>(&file_id, "/FACES/INTERSECT_LENGTH/", H5T_NATIVE_DOUBLE, f_intersect_arc_size);
+
+    // IDS OF NODES EITHER SIDE OF FACE
+    unsigned f_n_IDs_size=0;
+    unsigned * f_n_IDs_h5 = ReadHDF5Dataset<unsigned>(&file_id, "/FACES/FRIENDS/NODES/ID/", H5T_NATIVE_UINT, f_n_IDs_size);
+
+    // IDS OF VERTICES EITHER END OF FACE
+    unsigned f_v_IDs_size=0;
+    unsigned * f_v_IDs_h5 = ReadHDF5Dataset<unsigned>(&file_id, "/FACES/FRIENDS/VERTICES/ID/", H5T_NATIVE_UINT, f_v_IDs_size);
+    
+    // NUMBER OF FACE FRIENDS UPWIND
+    unsigned f_f_num1_size=0;
+    unsigned * f_f_num1_h5 = ReadHDF5Dataset<unsigned>(&file_id, "/FACES/FRIENDS/FACES1/FRIEND_NUM/", H5T_NATIVE_UINT, f_f_num1_size);
+
+    // NUMBER OF FACE FRIENDS DOWNWIND
+    unsigned f_f_num2_size=0;
+    unsigned * f_f_num2_h5 = ReadHDF5Dataset<unsigned>(&file_id, "/FACES/FRIENDS/FACES2/FRIEND_NUM/", H5T_NATIVE_UINT, f_f_num2_size);
+
+    // IDS OF UPWIND FACES
+    unsigned f_f_ID1_size=0;
+    unsigned * f_f_ID1_h5 = ReadHDF5Dataset<unsigned>(&file_id, "/FACES/FRIENDS/FACES1/ID/", H5T_NATIVE_UINT, f_f_ID1_size);
+
+    // IDS OF DOWNWIND FACES
+    unsigned f_f_ID2_size=0;
+    unsigned * f_f_ID2_h5 = ReadHDF5Dataset<unsigned>(&file_id, "/FACES/FRIENDS/FACES2/ID/", H5T_NATIVE_UINT, f_f_ID2_size);
+
+    // AREA OF FACE
+    unsigned f_area_size=0;
+    double * f_area_h5 = ReadHDF5Dataset<double>(&file_id, "/FACES/AREA/", H5T_NATIVE_DOUBLE, f_area_size);
+
+    
+    // Write node properties from the format in the hdf5 file to the appropriate arrays
+    count = 0;
+    unsigned count2 = 0;
+    for (unsigned i=0; i<f_lat_size; i++) {
+        face_centre_pos_sph(i, 0)       = f_lat_h5[i]*radConv;
+        face_centre_pos_sph(i, 1)       = f_lon_h5[i]*radConv;   
+        face_len(i)                     = f_arc_h5[i]*r;
+
+        face_nodes(i, 0)                = f_n_IDs_h5[2*i];      // Upwind node    
+        face_nodes(i, 1)                = f_n_IDs_h5[2*i+1];    // Downwind node
+
+        face_vertexes(i, 0)             = f_v_IDs_h5[2*i];      // Should these be sorted into a "left" and "right" vertex?
+        face_vertexes(i, 1)             = f_v_IDs_h5[2*i+1]; 
+
+        face_normal_vec_map(i, 0)       = f_nlon_h5[i];
+        face_normal_vec_map(i, 1)       = f_nlat_h5[i];
+
+        face_intercept_pos_sph(i, 0)    = f_lat_intersect_h5[i]*radConv;
+        face_intercept_pos_sph(i, 1)    = f_lon_intersect_h5[i]*radConv;
+
+        face_node_dist(i)               = f_intersect_arc_h5[i]*r;
+        face_node_dist_r(i)             = 1.0/face_node_dist(i);
+
+        face_area(i)                    = f_area_h5[i]*rr;      // Convert to METRE^2
+
+        // Need two seperate counters as a face can 
+        // neighbour both a hexagon and a pentagon
+        for (unsigned j=0; j<f_f_num1_h5[i]; j++) {
+            face_friends(i, 0, j) = f_f_ID1_h5[count];
+            count++;
+        }
+        for (unsigned j=0; j<f_f_num2_h5[i]; j++) {
+            face_friends(i, 1, j) = f_f_ID2_h5[count2];
+            count2++; 
+        }
+
+    }
+
+    delete[] f_n_IDs_h5;
+    delete[] f_v_IDs_h5;
+    delete[] f_arc_h5;
+    delete[] f_lat_h5;
+    delete[] f_lon_h5;
+    delete[] f_nlon_h5;
+    delete[] f_nlat_h5;
+    delete[] f_lat_intersect_h5;
+    delete[] f_lon_intersect_h5;
+    delete[] f_f_ID1_h5;
+    delete[] f_f_ID2_h5;
+    delete[] f_f_num1_h5;
+    delete[] f_f_num2_h5;
+    delete[] f_intersect_arc_h5;
+    delete[] f_area_h5;
+
+    //-----------------------------------------------------------------------------------------
+    //------------------------------ LOAD VERTEX INFO -----------------------------------------
+    //-----------------------------------------------------------------------------------------
+
+    // VERTEX LAT
+    unsigned v_lat_size=0;
+    double * v_lat_h5 = ReadHDF5Dataset<double>(&file_id, "/VERTICES/LAT/", H5T_NATIVE_DOUBLE, v_lat_size);
+
+    // VERTEX LON
+    unsigned v_lon_size=0;
+    double * v_lon_h5 = ReadHDF5Dataset<double>(&file_id, "/VERTICES/LON/", H5T_NATIVE_DOUBLE, v_lon_size);
+
+    // VERTEX AREA
+    unsigned v_area_size=0;
+    double * v_area_h5 = ReadHDF5Dataset<double>(&file_id, "/VERTICES/AREA/", H5T_NATIVE_DOUBLE, v_area_size);
+
+    // IDS OF FACES ATTACHED TO VERTEX
+    unsigned v_f_IDs_size=0;
+    unsigned * v_f_IDs_h5 = ReadHDF5Dataset<unsigned>(&file_id, "/VERTICES/FRIENDS/FACES/ID/", H5T_NATIVE_UINT, v_f_IDs_size);
+
+    // DIRECTION OF FACES ATTACHED TO VERTEX
+    unsigned v_f_dir_size=0;
+    int * v_f_dir_h5 = ReadHDF5Dataset<int>(&file_id, "/VERTICES/FRIENDS/FACES/DIR/", H5T_NATIVE_INT, v_f_dir_size);
+
+    // IDS OF NODES ATTACHED TO VERTEX
+    unsigned v_n_IDs_size=0;
+    unsigned * v_n_IDs_h5 = ReadHDF5Dataset<unsigned>(&file_id, "/VERTICES/FRIENDS/NODES/ID/", H5T_NATIVE_UINT, v_n_IDs_size);
+
+    // SUBAREA THAT NODES SHARE WITH VERTEX
+    unsigned v_n_subarea_size=0;
+    double * v_n_subarea_h5 = ReadHDF5Dataset<double>(&file_id, "/VERTICES/FRIENDS/NODES/SUBAREA/", H5T_NATIVE_DOUBLE, v_n_subarea_size);
+
+    // Write vertex properties from the format in the hdf5 file to the appropriate arrays
+    count = 0;
+    for (unsigned i=0; i<v_area_size; i++) {
+        vertex_area(i)             = v_area_h5[i]*rr;               // CONVERT TO METRE^2
+        vertex_area_r(i)           = 1.0/vertex_area(i);
+        vertex_pos_sph(i, 0)       = v_lat_h5[i]*radConv;
+        vertex_pos_sph(i, 1)       = v_lon_h5[i]*radConv;   
+
+        for (unsigned j=0; j<3; j++) {
+            vertex_faces(i, j)      = v_f_IDs_h5[count];
+            vertex_nodes(i, j)      = v_n_IDs_h5[count];
+            vertex_face_dir(i, j)   = v_f_dir_h5[count];
+
+            // Area that vertex shares with each node, normalised by the area of the control volume
+            vertex_R(i, j)          = v_n_subarea_h5[count]* rr * cv_area_sph_r( vertex_nodes(i, j) ); 
+
+            count++; 
+        }
+    }
+
+    count =0;
+    for (unsigned i=0; i<NODE_NUM; i++) {
+        int fnum = node_fnum(i);
+    
+        for (unsigned j=0; j<fnum; j++) {
+            int v_ID = vertexes(i, j);
+            centroid_pos_sph(i, j, 0) = vertex_pos_sph( v_ID, 0);
+            centroid_pos_sph(i, j, 1) = vertex_pos_sph( v_ID, 1);
+                
+            count++; 
+        }    
+    }
+
+    delete[] v_area_h5;
+    delete[] v_lat_h5;
+    delete[] v_lon_h5;
+    delete[] v_f_IDs_h5;
+    delete[] v_n_IDs_h5;
+    delete[] v_f_dir_h5;
+
+    H5Fclose(file_id);
+   
+    return 1;
+};
+
+template<typename T>
+T * Mesh::ReadHDF5Dataset(hid_t * file_id, char const *dataset_name, hid_t H5TYPE, unsigned &data_size)
+{
+    hsize_t dims[1];    // Size 1 as we are assuming that every dataset is 1D
+
+    hid_t dset_id = H5Dopen(*file_id, dataset_name, H5P_DEFAULT);
+    hid_t dspace_id = H5Dget_space(dset_id);
+    H5Sget_simple_extent_dims(dspace_id, dims, NULL);
+    T * data = new T[ dims[0] ];
+    H5Dread(dset_id, H5TYPE, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
+    H5Dclose(dset_id);
+    H5Sclose(dspace_id);
+
+    data_size = dims[0];
+    return data;
+};
+
+// LEGACY FUNCTION
 // Function to read in text file containing mesh information
 // The four pieces of information read and stored are:
 //      1. Node ID numbers
@@ -2832,351 +2037,6 @@ int Mesh::ReadMeshFile(void)
         globals->Output->TerminateODIS();
     }
 
-    return 1;
-};
-
-
-template<typename T>
-T * Mesh::ReadHDF5Dataset(hid_t * file_id, char const *dataset_name, hid_t H5TYPE, unsigned &data_size)
-{
-    hsize_t dims[1];    // Size 1 as we are assuming that every dataset is 1D
-
-    hid_t dset_id = H5Dopen(*file_id, dataset_name, H5P_DEFAULT);
-    hid_t dspace_id = H5Dget_space(dset_id);
-    herr_t status = H5Sget_simple_extent_dims(dspace_id, dims, NULL);
-    T * data = new T[ dims[0] ];
-    status = H5Dread(dset_id, H5TYPE, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
-    H5Dclose(dset_id);
-    H5Sclose(dspace_id);
-
-    data_size = dims[0];
-    return data;
-};
-
-int Mesh::ReadGridFile()
-{
-    double r = globals->radius.Value();
-    double rr = r*r;
-    double r_r = 1.0/r;
-    double rr_r = 1.0/rr;
-
-    hid_t file_id = H5Fopen("input_files/test.h5", H5F_ACC_RDONLY, H5P_DEFAULT);
-
-    //-----------------------------------------------------------------------------------------
-    //------------------------------ LOAD NODE INFO -------------------------------------------
-    //-----------------------------------------------------------------------------------------
-
-    // LATITUDE OF NODE
-    unsigned n_lat_size=0;
-    double * n_lat_h5 = ReadHDF5Dataset<double>(&file_id, "/NODES/LAT/", H5T_NATIVE_DOUBLE, n_lat_size);
-
-    // LONGITUDE OF NODE
-    unsigned n_lon_size=0;
-    double * n_lon_h5 = ReadHDF5Dataset<double>(&file_id, "/NODES/LON/", H5T_NATIVE_DOUBLE, n_lon_size);
-
-    // AREA OF NODE
-    unsigned n_area_size=0;
-    double * n_area_h5 = ReadHDF5Dataset<double>(&file_id, "/NODES/AREA/", H5T_NATIVE_DOUBLE, n_area_size);
-
-    // NUMBER OF NODES SURROUNDING NODE
-    unsigned n_n_num_size=0;
-    unsigned * n_n_num_h5 = ReadHDF5Dataset<unsigned>(&file_id, "/NODES/FRIENDS/NODES/FRIEND_NUM/", H5T_NATIVE_UINT, n_n_num_size);
-
-    // ID'S OF NODES SURROUNDING NODE
-    unsigned n_n_IDs_size=0;
-    unsigned * n_n_IDs_h5 = ReadHDF5Dataset<unsigned>(&file_id, "/NODES/FRIENDS/NODES/ID/", H5T_NATIVE_UINT, n_n_IDs_size);
-
-    // ARC DISTANCES BETWEEN NODE AND ITS SURROUNDING NODES
-    unsigned n_n_arc_size=0;
-    double * n_n_arc_h5 = ReadHDF5Dataset<double>(&file_id, "/NODES/FRIENDS/NODES/DISTANCE/", H5T_NATIVE_DOUBLE, n_n_arc_size);
-
-    // ID'S OF FACES SURROUNDING NODE
-    unsigned n_f_IDs_size=0;
-    unsigned * n_f_IDs_h5 = ReadHDF5Dataset<unsigned>(&file_id, "/NODES/FRIENDS/FACES/ID/", H5T_NATIVE_UINT, n_f_IDs_size);
-
-    // DIRECTION OF FACE RELATIVE TO CONTROL VOLUME
-    unsigned n_f_dir_size=0;
-    int * n_f_dir_h5 = ReadHDF5Dataset<int>(&file_id, "/NODES/FRIENDS/FACES/DIR/", H5T_NATIVE_INT, n_f_dir_size);
-
-    // ID'S OF VERTICES SURROUNDING NODE
-    unsigned n_v_IDs_size=0;
-    unsigned * n_v_IDs_h5 = ReadHDF5Dataset<unsigned>(&file_id, "/NODES/FRIENDS/VERTICES/ID/", H5T_NATIVE_UINT, n_v_IDs_size);
-
-    // AREAS SUBTENDED BY NODE AND VERTEX (USED IN CORIOLIS OPERATOR)
-    unsigned n_v_area_size=0;
-    double * n_v_area_h5 = ReadHDF5Dataset<double>(&file_id, "/NODES/FRIENDS/VERTICES/AREA/", H5T_NATIVE_DOUBLE, n_v_area_size);
-
-
-    unsigned count=0;
-    for (unsigned i=0; i<NODE_NUM; i++)
-    {   
-        // std::cout<<i<<'\n';
-        // double a=0;
-        // for (unsigned j=0; j<n_n_num_h5[i]; j++)
-        // {   
-        //     a += n_v_area_h5[count]/n_area_h5[i];
-        //     std::cout<<n_v_area_h5[count]/n_area_h5[i]<<' ';
-        //     count++;
-        // }
-        // std::cout<<' '<<' '<<a<<std::endl;
-        // for (unsigned j=0; j<6; j++)
-        // {
-        //     std::cout<<node_R(i,j)<<' ';
-        // }
-        // std::cout<<std::endl;
-        
-        // std::cout<<i<<' '<<n_lat_h5[i]*radConv<<' '<<node_pos_sph(i,0)<<std::endl;
-        // std::cout<<i<<' '<<n_lon_h5[i]<<' '<<node_pos_sph(i,1)*1.0/radConv<<std::endl;
-        std::cout<<i<<' '<<n_area_h5[i]-cv_area_sph(i)/rr<<std::endl;
-        // std::cout<<std::endl;
-    }
-
-    // Write node properties from the format in the hdf5 file to the appropriate arrays
-    count = 0;
-    for (unsigned i=0; i<n_lat_size; i++) {
-        node_pos_sph(i, 0)  = n_lat_h5[i];
-        node_pos_sph(i, 1)  = n_lon_h5[i];   
-        node_fnum(i)        = n_n_num_h5[i];
-        cv_area_sph(i)      = n_area_h5[i]*rr;          // CONVERT TO METRES^2
-
-        for (unsigned j=0; j<n_n_num_h5[i]; j++) {
-            node_friends(i, j)      = n_n_IDs_h5[count];
-            node_dists(i, j)        = n_n_arc_h5[count]*r;      // CONVERT TO METRES
-            faces(i, j)             = n_f_IDs_h5[count];
-            vertexes(i, j)          = n_v_IDs_h5[count];
-            node_face_dir(i, j)     = n_f_dir_h5[count];
-            node_vertex_area(i, j)  = n_v_area_h5[count]*rr;    // CONVERT OT METRES^2
-
-            count++; 
-        }
-    }
-
-    delete[] n_n_IDs_h5;
-    delete[] n_n_arc_h5;
-    delete[] n_lat_h5;
-    delete[] n_lon_h5;
-    delete[] n_n_num_h5;
-    delete[] n_f_IDs_h5;
-    delete[] n_area_h5;
-    delete[] n_f_dir_h5;
-    delete[] n_v_area_h5;
-    delete[] n_v_IDs_h5;
-
-
-    //-----------------------------------------------------------------------------------------
-    //------------------------------ LOAD FACE INFO -------------------------------------------
-    //-----------------------------------------------------------------------------------------
-
-    // LATITUDE OF FACE CENTER
-    unsigned f_lat_size=0;
-    double * f_lat_h5 = ReadHDF5Dataset<double>(&file_id, "/FACES/LAT/", H5T_NATIVE_DOUBLE, f_lat_size);
-
-    // LONGITUDE OF FACE CENTER
-    unsigned f_lon_size=0;
-    double * f_lon_h5 = ReadHDF5Dataset<double>(&file_id, "/FACES/LON/", H5T_NATIVE_DOUBLE, f_lon_size);
-
-    // ARC LENGTH OF FACE
-    unsigned f_arc_size=0;
-    double * f_arc_h5 = ReadHDF5Dataset<double>(&file_id, "/FACES/LENGTH/", H5T_NATIVE_DOUBLE, f_arc_size);
-
-    // FACE NORMAL VEC: LONGITUDE COMPONENT
-    unsigned f_nlon_size=0;
-    double * f_nlon_h5 = ReadHDF5Dataset<double>(&file_id, "/FACES/NORMAL_VEC_LON/", H5T_NATIVE_DOUBLE, f_nlon_size);
-
-    // FACE NORMAL VEC: LATITUDE COMPONENT
-    unsigned f_nlat_size=0;
-    double * f_nlat_h5 = ReadHDF5Dataset<double>(&file_id, "/FACES/NORMAL_VEC_LAT/", H5T_NATIVE_DOUBLE, f_nlat_size);
-
-    // INTERSECT LON WITH NODE-NODE ARC AND THE FACE
-    unsigned f_lon_intersect_size=0;
-    double * f_lon_intersect_h5 = ReadHDF5Dataset<double>(&file_id, "/FACES/INTERSECT_LON/", H5T_NATIVE_DOUBLE, f_lon_intersect_size);
-
-    // INTERSECT LAT WITH NODE-NODE ARC AND THE FACE
-    unsigned f_lat_intersect_size=0;
-    double * f_lat_intersect_h5 = ReadHDF5Dataset<double>(&file_id, "/FACES/INTERSECT_LAT/", H5T_NATIVE_DOUBLE, f_lat_intersect_size);
-
-    // LENGTH OF NODE-NODE ARC
-    unsigned f_intersect_arc_size=0;
-    double * f_intersect_arc_h5 = ReadHDF5Dataset<double>(&file_id, "/FACES/INTERSECT_LENGTH/", H5T_NATIVE_DOUBLE, f_intersect_arc_size);
-
-
-    // IDS OF NODES EITHER SIDE OF FACE
-    unsigned f_n_IDs_size=0;
-    unsigned * f_n_IDs_h5 = ReadHDF5Dataset<unsigned>(&file_id, "/FACES/FRIENDS/NODES/ID/", H5T_NATIVE_UINT, f_n_IDs_size);
-
-    // IDS OF VERTICES EITHER END OF FACE
-    unsigned f_v_IDs_size=0;
-    unsigned * f_v_IDs_h5 = ReadHDF5Dataset<unsigned>(&file_id, "/FACES/FRIENDS/VERTICES/ID/", H5T_NATIVE_UINT, f_v_IDs_size);
-    
-    // NUMBER OF FACE FRIENDS UPWIND
-    unsigned f_f_num1_size=0;
-    unsigned * f_f_num1_h5 = ReadHDF5Dataset<unsigned>(&file_id, "/FACES/FRIENDS/FACES1/FRIEND_NUM/", H5T_NATIVE_UINT, f_f_num1_size);
-
-    // NUMBER OF FACE FRIENDS DOWNWIND
-    unsigned f_f_num2_size=0;
-    unsigned * f_f_num2_h5 = ReadHDF5Dataset<unsigned>(&file_id, "/FACES/FRIENDS/FACES2/FRIEND_NUM/", H5T_NATIVE_UINT, f_f_num2_size);
-
-    // IDS OF UPWIND FACES
-    unsigned f_f_ID1_size=0;
-    unsigned * f_f_ID1_h5 = ReadHDF5Dataset<unsigned>(&file_id, "/FACES/FRIENDS/FACES1/ID/", H5T_NATIVE_UINT, f_f_ID1_size);
-
-    // IDS OF DOWNWIND FACES
-    unsigned f_f_ID2_size=0;
-    unsigned * f_f_ID2_h5 = ReadHDF5Dataset<unsigned>(&file_id, "/FACES/FRIENDS/FACES2/ID/", H5T_NATIVE_UINT, f_f_ID2_size);
-
-    // AREA OF FACE
-
-
-    count=0;
-    for (unsigned i=0; i<FACE_NUM; i++)
-    {   
-        // std::cout<<i<<'\n';
-        // for (unsigned j=0; j<2; j++)
-        // {
-        //     std::cout<<f_n_IDs_h5[count++]<<' ';
-        // }
-        // std::cout<<std::endl;
-        // for (unsigned j=0; j<2; j++)
-        // {
-        //     std::cout<<face_nodes(i, j)<<' ';
-        // }
-        // std::cout<<std::endl;
-        
-        // std::cout<<i<<' '<<f_lat_intersect_h5[i]<<' '<<face_intercept_pos_sph(i,0)*1.0/radConv<<std::endl;
-        // std::cout<<i<<' '<<f_lon_intersect_h5[i]<<' '<<face_intercept_pos_sph(i,1)*1.0/radConv<<std::endl;
-
-        // std::cout<<i<<' '<<f_nlon_h5[i]<<' '<<face_normal_vec_map(i,0)<<std::endl;
-        // std::cout<<i<<' '<<f_nlat_h5[i]<<' '<<face_normal_vec_map(i,1)<<std::endl;
-        // std::cout<<i<<' '<<n_area_h5[i]<<' '<<control_volume_surf_area_map(i)/rr<<std::endl;
-        // std::cout<<std::endl;
-    }
-    
-    // Write node properties from the format in the hdf5 file to the appropriate arrays
-    count = 0;
-    for (unsigned i=0; i<f_lat_size; i++) {
-        face_centre_pos_sph(i, 0)       = f_lat_h5[i];
-        face_centre_pos_sph(i, 1)       = f_lon_h5[i];   
-        face_len(i)                     = f_arc_h5[i]*r;
-
-        face_nodes(i, 0)                = f_n_IDs_h5[2*i];      // Upwind node    
-        face_nodes(i, 1)                = f_n_IDs_h5[2*i+1];    // Downwind node
-
-        face_vertexes(i, 0)             = f_v_IDs_h5[2*i];      // Should these be sorted into a "left" and "right" vertex?
-        face_vertexes(i, 1)             = f_v_IDs_h5[2*i+1]; 
-
-        face_normal_vec_map(i, 0)       = f_nlon_h5[i];
-        face_normal_vec_map(i, 1)       = f_nlat_h5[i];
-
-        face_intercept_pos_sph(i, 0)    = f_lat_intersect_h5[i];
-        face_intercept_pos_sph(i, 1)    = f_lon_intersect_h5[i];
-
-        face_node_dist(i)               = f_intersect_arc_h5[i]*r;
-        face_node_dist_r(i)             = 1.0/face_node_dist(i);
-
-        for (unsigned j=0; j<f_f_num1_h5[i]; j++) {
-            face_friends(i, 0, j) = f_f_ID1_h5[count];
- 
-        }
-        for (unsigned j=0; j<f_f_num2_h5[i]; j++) {
-            face_friends(i, 1, j) = f_f_ID2_h5[count];
-
-            count++; 
-        }
-
-    }
-
-    delete[] f_n_IDs_h5;
-    delete[] f_v_IDs_h5;
-    delete[] f_arc_h5;
-    delete[] f_lat_h5;
-    delete[] f_lon_h5;
-    delete[] f_nlon_h5;
-    delete[] f_nlat_h5;
-    delete[] f_lat_intersect_h5;
-    delete[] f_lon_intersect_h5;
-    delete[] f_f_ID1_h5;
-    delete[] f_f_ID2_h5;
-    delete[] f_f_num1_h5;
-    delete[] f_f_num2_h5;
-    delete[] f_intersect_arc_h5;
-
-    //-----------------------------------------------------------------------------------------
-    //------------------------------ LOAD VERTEX INFO -----------------------------------------
-    //-----------------------------------------------------------------------------------------
-
-    // VERTEX LAT
-    unsigned v_lat_size=0;
-    double * v_lat_h5 = ReadHDF5Dataset<double>(&file_id, "/VERTICES/LAT/", H5T_NATIVE_DOUBLE, v_lat_size);
-
-    // VERTEX LON
-    unsigned v_lon_size=0;
-    double * v_lon_h5 = ReadHDF5Dataset<double>(&file_id, "/VERTICES/LON/", H5T_NATIVE_DOUBLE, v_lon_size);
-
-    // VERTEX AREA
-    unsigned v_area_size=0;
-    double * v_area_h5 = ReadHDF5Dataset<double>(&file_id, "/VERTICES/AREA/", H5T_NATIVE_DOUBLE, v_area_size);
-
-    // IDS OF FACES ATTACHED TO VERTEX
-    unsigned v_f_IDs_size=0;
-    unsigned * v_f_IDs_h5 = ReadHDF5Dataset<unsigned>(&file_id, "/VERTICES/FRIENDS/FACES/ID/", H5T_NATIVE_UINT, v_f_IDs_size);
-
-    // DIRECTION OF FACES ATTACHED TO VERTEX
-    unsigned v_f_dir_size=0;
-    int * v_f_dir_h5 = ReadHDF5Dataset<int>(&file_id, "/VERTICES/FRIENDS/FACES/DIR/", H5T_NATIVE_INT, v_f_dir_size);
-
-    // IDS OF NODES ATTACHED TO VERTEX
-    unsigned v_n_IDs_size=0;
-    unsigned * v_n_IDs_h5 = ReadHDF5Dataset<unsigned>(&file_id, "/VERTICES/FRIENDS/NODES/ID/", H5T_NATIVE_UINT, v_n_IDs_size);
-
-
-    count=0;
-    for (unsigned i=0; i<VERTEX_NUM; i++)
-    {   
-        // std::cout<<i<<'\n';
-        // for (unsigned j=0; j<3; j++)
-        // {
-        //     std::cout<<v_f_IDs_h5[count++]<<' ';
-        // }
-        // std::cout<<std::endl;
-        // for (unsigned j=0; j<3; j++)
-        // {
-        //     std::cout<<vertex_faces(i, j)<<' ';
-        // }
-        // std::cout<<std::endl;
-        
-        // // std::cout<<i<<' '<<v_lat_h5[i]<<' '<<vertex_pos_sph(i,0)*1.0/radConv<<std::endl;
-        // // std::cout<<i<<' '<<v_lon_h5[i]<<' '<<vertex_pos_sph(i,1)*1.0/radConv<<std::endl;
-
-        // // std::cout<<i<<' '<<f_nlon_h5[i]<<' '<<face_normal_vec_map(i,0)<<std::endl;
-        // // std::cout<<i<<' '<<f_nlat_h5[i]<<' '<<face_normal_vec_map(i,1)<<std::endl;
-        // // std::cout<<i<<' '<<v_area_h5[i]-vertex_area(i)/rr<<std::endl;
-        // std::cout<<std::endl;
-    }
-    
-    // Write vertex properties from the format in the hdf5 file to the appropriate arrays
-    count = 0;
-    for (unsigned i=0; i<v_area_size; i++) {
-        vertex_area(i)             = v_area_h5[i]*rr;               // CONVERT TO METRE^2
-        vertex_area_r(i)           = 1.0/vertex_area(i);
-        vertex_pos_sph(i, 0)       = v_lat_h5[i];
-        vertex_pos_sph(i, 1)       = v_lon_h5[i];   
-
-        for (unsigned j=0; j<3; j++) {
-            vertex_faces(i, j)      = v_f_IDs_h5[count];
-            vertex_nodes(i, j)      = v_n_IDs_h5[count];
-            vertex_face_dir(i, j)   = v_f_dir_h5[count];
-
-            count++; 
-        }
-    }
-
-    delete[] v_area_h5;
-    delete[] v_lat_h5;
-    delete[] v_lon_h5;
-    delete[] v_f_IDs_h5;
-    delete[] v_n_IDs_h5;
-    delete[] v_f_dir_h5;
-   
     return 1;
 };
 

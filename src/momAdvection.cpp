@@ -1,7 +1,6 @@
 #include "mesh.h"
 #include "globals.h"
 #include "array1d.h"
-#include "energy.h"
 #include "interpolation.h"
 #include "gridConstants.h"
 
@@ -30,7 +29,6 @@ void calculateMomentumAdvection(Globals * globals,
     // Perform sparse matrix * vector operation
     vorticity_eig = mesh->operatorCurl * vel_eig;
 
-
     // -------------------------------------------------------
     // Step 2: Calculate absolute vorticity field, given at
     // vertex points, and
@@ -53,8 +51,6 @@ void calculateMomentumAdvection(Globals * globals,
             double a = pi/4.0;
             f = -2 * rot_rate * (-cos(lon)*cos(lat)*sin(a) + sin(lat)*cos(a));
 #endif
-
-            // vorticity_v(i) -= f;
  
             thickness = 0.0;
             for (int j=0; j<3; j++)
@@ -75,7 +71,7 @@ void calculateMomentumAdvection(Globals * globals,
     // Step 4: Calculate vorticity from vertii to edges
     // -------------------------------------------------------
     // -------------------------------------------------------
-    // Step 5: Calculate thickness from node t- edges
+    // Step 5: Calculate thickness from node to edges
     // -------------------------------------------------------
 
 
@@ -102,58 +98,78 @@ void calculateMomentumAdvection(Globals * globals,
     // similiar to the coriolis operator
     // -------------------------------------------------------
     {   
-        int friend_num, n1, n2, f_ID;
+        int n1, n2, f_ID;
+        int fnum[2];
         double q_e, F_tang_q, q_e2, F_e, coeff;
         for (int i = 0; i < FACE_NUM; ++i)
         {
-            // This inner loop goes around the faces adjoining the 
-            // two control volumes of face i - we must find if either
-            // of these control volumes are pentagons here.
-            friend_num = 10;
-
+            // Loops similar to coriolis and interpolation operators
             n1 = mesh->face_nodes(i, 0);
             n2 = mesh->face_nodes(i, 1);
-            
-            if (mesh->node_friends(n1, 5) < 0)
-                friend_num--;
-            if (mesh->node_friends(n2, 5) < 0)
-                friend_num--;
+
+            fnum[0] = mesh->node_fnum(n1);
+            fnum[1] = mesh->node_fnum(n2);
 
             q_e = vorticity_e(i);
 
             // vorticity flux at face i
             F_tang_q = 0.0;
-            for (int j = 0; j < friend_num; j++)
-            {
-                // friend face ID
-                f_ID = mesh->face_interp_friends(i, j);
+            for (unsigned k=0; k<2; k++) {
+                for (unsigned j = 0; j < fnum[k]-1; j++)
+                {
+                    // friend face ID
+                    f_ID = mesh->face_friends(i, k, j);
 
-                // vorticity at edge of friend
-                q_e2 = vorticity_e(f_ID);
+                    // vorticity at edge of friend
+                    q_e2 = vorticity_e(f_ID);
 
-                // thickness flux at edge of friend
-                F_e = thickness_e(f_ID) * vel(f_ID);
+                    // thickness flux at edge of friend
+                    F_e = thickness_e(f_ID) * vel(f_ID);
 
-                // Eq. 49 from Ringler et al (2010)
-                //                      w_ee                             l_e                      1/d_e 
-                coeff = mesh->face_interp_weights(i, j) * mesh->face_len(f_ID) * mesh->face_node_dist_r(i);
-                
+                    // Eq. 49 from Ringler et al (2010)
+                    //                      w_ee                             l_e                      
+                    coeff = mesh->face_interp_weights(i, k, j) * mesh->face_len(f_ID);
+                    
 
-                F_tang_q += coeff * F_e * (q_e + q_e2)*0.5;
+                    F_tang_q += coeff * F_e * (q_e + q_e2);
 
+                }
             }
-
-            dvdt(i) -= -F_tang_q;
+            
+            //                                 1/d_e
+            dvdt(i) -= -F_tang_q * 0.5 * mesh->face_node_dist_r(i);
 
         }
     }
-    // globals->Output->TerminateODIS();
+
 
     // -------------------------------------------------------
     // Step 7: Calculate kinetic energy of each control 
     // volume
     // -------------------------------------------------------
 
+    
+
+    Array2D<double> vel_xyz(NODE_NUM, 3);
+    interpolateVelocityCartRBF(globals, mesh, vel_xyz, vel);
+
+    for (int i=0; i<NODE_NUM; i++) {
+        Ekin(i) = 0.5 * (vel_xyz(i,0)*vel_xyz(i,0) + vel_xyz(i,1)*vel_xyz(i,1)+ vel_xyz(i,2)*vel_xyz(i,2));
+    }
+
+    // -------------------------------------------------------
+    // Step 8: Remove the gradient of the kinetic energy 
+    // from the advection term to account for the non-rotational
+    // part of momentum advection. (as it appears on the RHS)
+    // -------------------------------------------------------
+
+    Eigen::Map<Eigen::VectorXd> dvdt_eig(&dvdt(0), FACE_NUM);
+    Eigen::Map<Eigen::VectorXd> Ek_eig(&Ekin(0), NODE_NUM);
+
+    // Perform sparse matrix * vector operation
+    dvdt_eig -= mesh->operatorGradient * Ek_eig;
+
+    // Old GRAD(KE) calculation
     // Array1D<double> Ekin(NODE_NUM);
     // Array1D<double> vt(face_num);
 
@@ -241,23 +257,4 @@ void calculateMomentumAdvection(Globals * globals,
     //     Ekin(i) = E;
 
     // }
-
-    Array2D<double> vel_xyz(NODE_NUM, 3);
-    interpolateVelocityCartRBF(globals, mesh, vel_xyz, vel);
-
-    for (int i=0; i<NODE_NUM; i++) {
-        Ekin(i) = 0.5 * (vel_xyz(i,0)*vel_xyz(i,0) + vel_xyz(i,1)*vel_xyz(i,1)+ vel_xyz(i,2)*vel_xyz(i,2));
-    }
-
-    // -------------------------------------------------------
-    // Step 8: Remove the gradient of the kinetic energy 
-    // from the advection term to account for the non-rotational
-    // part of momentum advection. (as it appears on the RHS)
-    // -------------------------------------------------------
-
-    Eigen::Map<Eigen::VectorXd> dvdt_eig(&dvdt(0), FACE_NUM);
-    Eigen::Map<Eigen::VectorXd> Ek_eig(&Ekin(0), NODE_NUM);
-
-    // Perform sparse matrix * vector operation
-    dvdt_eig -= mesh->operatorGradient * Ek_eig;
 };

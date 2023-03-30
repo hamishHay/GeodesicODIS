@@ -34,22 +34,18 @@ class Mesh {
 private:
     template<typename T>
     T * ReadHDF5Dataset(hid_t * file_id, char const *name, hid_t h5type, unsigned &data_size);
-    int ReadMeshFile(void);
+    int ReadMeshFile(void);     // Legacy
     int ReadGridFile(void);
     int ReadLatLonFile(void);
     int ReadWeightingFile(void);
     int ReadLeastSquaresFile(void);
     int CalcMappingCoords(void);
     int CalcVelocityTransformFactors(void);
-    int CalcControlVolumeEdgeLengths(void);
-    int CalcControlVolumeArea(void);
-    int CalcControlVolumeVertexR(void);
+    int CalcTangentialVelocityWeights(void);
     int CalcTrigFunctions(void);
-    int CalcNodeDists(void);
     int CalcMaxTimeStep(void);
     int CalcControlVolumeInterpMatrix(void);
-
-    int AssignFaces(void);
+    int CalcCartesianComponents(void);
 
     int DefineBoundaryCells(void);
 
@@ -65,7 +61,6 @@ private:
     int CalcRBFInterpMatrix2(void);
     int CalcFreeSurfaceSolver(void);
     int GeneratePressureSolver(void);
-    int GenerateMomentumOperator(void);
 
 public:
     //	Mesh(); //constructor
@@ -101,6 +96,7 @@ public:
     Array2D<double> node_dists              = Array2D<double>(NODE_NUM, 6);
 
     Array1D<double> cv_area_sph             = Array1D<double>(NODE_NUM);
+    Array1D<double> cv_area_sph_r           = Array1D<double>(NODE_NUM);
 
     Array1D<double> face_node_dist          = Array1D<double>(FACE_NUM);
     Array1D<double> face_node_dist_r        = Array1D<double>(FACE_NUM);
@@ -122,7 +118,10 @@ public:
     Array1D<double> vertex_area             = Array1D<double>(VERTEX_NUM);
     Array1D<double> vertex_area_r           = Array1D<double>(VERTEX_NUM);
 
-    Array3D<int> face_friends               = Array3D<int>(FACE_NUM, 2, 6); //second index if for downwind vs upwind node
+    // Index 5 here because as most number of faces is 6 in a cv,
+    // then each face can only neighbour at most 5 in each node.
+    Array3D<int> face_friends               = Array3D<int>(FACE_NUM, 2, 5);   //second index if for downwind vs upwind node
+    Array3D<double> face_interp_weights    = Array3D<double>(FACE_NUM, 2, 5);
 
     // ---------------------------- Arrays to be calculated -------------------------------------------
 
@@ -133,7 +132,6 @@ public:
     Array2D<double> trigSqLat           = Array2D<double>(NODE_NUM, 2);
     Array2D<double> trigSqLon           = Array2D<double>(NODE_NUM, 2);
 
-    
     Array2D<double> face_normal_vec_xyz = Array2D<double>(FACE_NUM, 3);
     
     Array2D<double> node_face_arc       = Array2D<double>(NODE_NUM, 6); // angular distance between node and face center
@@ -146,9 +144,6 @@ public:
     Array2D<double> vertex_R            = Array2D<double>(VERTEX_NUM, 3);
     Array2D<double> node_R              = Array2D<double>(NODE_NUM, 6);  // Is this used?
     Array1D<double> vertex_sinlat       = Array1D<double>(VERTEX_NUM);
-
-    Array2D<int> face_interp_friends    = Array2D<int>(FACE_NUM, 10);
-    Array2D<double> face_interp_weights = Array2D<double>(FACE_NUM, 10);
 
     // Same as node_pos_sph but in mapped coords
     Array3D<double> node_pos_map        = Array3D<double>(NODE_NUM, 7, 2);
@@ -167,21 +162,12 @@ public:
     // Column 0 holds the coordinates for the centroid formed from the parent
     // node, friend 0, and friend 1. Column 1 holds the coordinates for the centroid
     // formed from the parent node, friend 1, and friend 2, etc.
-    Array3D<double> centroid_pos_sph = Array3D<double>(NODE_NUM, 6, 2);
-    Array3D<double> centroid_pos_map = Array3D<double>(NODE_NUM, 6, 2);
+    Array3D<double> centroid_pos_sph = Array3D<double>(NODE_NUM, 6, 2);     // Legacy 
+    Array3D<double> centroid_pos_map = Array3D<double>(NODE_NUM, 6, 2);     // Legacy 
 
-    // Array to store the edge length of each side to the control volume surrounding
-    // the central node
-    //   Array2D<double> control_vol_edge_len;
-    
-    // Array3D<double> node_face_normal_vec_map;
 
     //   Array1D<int> cell_is_boundary;
 
-    // Arrays to store trig functions evaluated at each node
-
-
-    // ArrayD<int> * faces;
 
     //   Array3D<double> trigMLon;
     //   Array2D<double> sh_matrix;
