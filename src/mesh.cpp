@@ -1653,7 +1653,9 @@ int Mesh::ReadGridFile()
 
     int count;
 
-    hid_t file_id = H5Fopen("input_files/test.h5", H5F_ACC_RDONLY, H5P_DEFAULT);
+    std::string file_str = globals->path + SEP + "input_files" + SEP + "grid_l" + std::to_string(|GRID_LVL) + ".h5";
+
+    hid_t file_id = H5Fopen(file_str.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
 
     //-----------------------------------------------------------------------------------------
     //------------------------------ LOAD NODE INFO -------------------------------------------
