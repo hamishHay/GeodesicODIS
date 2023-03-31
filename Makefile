@@ -37,8 +37,8 @@ EXE = $(OUTPUT_DIR)/ODIS
 # FLINK =  -lgfortran -L/home/hamish/Research/SHTOOLS/lib -lSHTOOLS -Llib -lfftw3 -llapack -lgfortran
 
 # FRAMEWORK 
-CFLAGS = -c -Wall -Iinclude -Wno-sign-compare -I$(CONSTS_DIR) -Wunused-but-set-variable -msse4 -std=c++17 -I/usr/local/ -I/usr/local/include/hdf5/ -I/usr/include/hdf5/serial -march=native #-lhdf5 -lhdf5_cpp -Ofast -ffast-math 
-CLINK =  -L/usr/lib/x86_64-linux-gnu/hdf5/serial/ -I/usr/local/include/hdf5 -lhdf5 -lhdf5_cpp  -lblas #-mkl #-ipo 
+CFLAGS = -O3 -Wall -Iinclude -Wno-sign-compare -I$(CONSTS_DIR) -Wunused-but-set-variable -msse4 -std=c++17 -I/usr/local/ -I/usr/include/hdf5/serial -march=native #-lhdf5 -lhdf5_cpp -Ofast -ffast-math 
+CLINK =  -L/usr/lib/x86_64-linux-gnu/hdf5/serial/ -lhdf5 -lhdf5_cpp  -lblas #-mkl #-ipo 
 
 FFLAGS= -c -I/home/hamish/Research/SHTOOLS/modules -m64 -fPIC -Ofast -ffast-math -L/home/hamish/Research/SHTOOLS/lib  -L/usr/local/lib -lfftw3 -lm -llapack -lblas
 FLINK =  -lgfortran -L/home/hamish/Research/SHTOOLS/lib -lSHTOOLS -Llib -lfftw3 -llapack -lgfortran
@@ -62,11 +62,12 @@ $(EXE): $(COBJ)
 # $(CC) $(FLINK) $^ -o $@  $(FLINK) $(CLINK) 
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
-	$(CC) $(CFLAGS) $< $ -o $@
+	$(CC) $(CFLAGS) -c -MMD $< $ -o $@
 
 # $(OBJ_DIR)/%.o: $(SRC_DIR)/%.f95
 # 	$(F) $(FFLAGS) $< $ -o $@
 
+-include $(OBJ_DIR)/*.d
 
 clean:
-	rm -r $(FOBJ) $(COBJ) ODIS OUTPUT.txt ERROR.txt
+	rm -r $(FOBJ) $(COBJ) $(OBJ_DIR)/*.d ODIS OUTPUT.txt ERROR.txt
