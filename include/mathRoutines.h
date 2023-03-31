@@ -294,9 +294,58 @@ inline void normalVectorBetweenXYZ(double sph1[], double sph2[], double nxyz[])
     // // lat and lon unit vectors 
     // nlon = n[0]*lonx + n[1]*lony + n[2]*lonz;
     // nlat = n[0]*latx + n[1]*laty + n[2]*latz;
+}
 
+// Function to convert the tangential unit vector from spherical to 
+// cartesian coordinates
+inline void normalVectorSph2Cart(double &, double &, double &);
+inline void normalVectorSph2Cart(double sph_pos[], double sph_n[], double xyz_n[])
+{
+    double lat = sph_pos[0];        
+    double lon = sph_pos[1];
+    double lat_n = sph_n[0];    // Latitude component of unit vector
+    double lon_n = sph_n[1];    // Longitude component of unit vector
+
+    // Take cross product to find vector tangent to line between sph1 and sph2
+    xyz_n[0] = -sin(lat)*cos(lon)*lat_n - sin(lon)*lon_n;
+    xyz_n[1] = -sin(lat)*sin(lon)*lat_n + cos(lon)*lon_n;
+    xyz_n[2] = cos(lat)*lat_n;
+
+    double mag_r = 1.0/sqrt(xyz_n[0]*xyz_n[0] + xyz_n[1]*xyz_n[1] + xyz_n[2]*xyz_n[2]);
+
+    xyz_n[0] *= mag_r;
+    xyz_n[1] *= mag_r;
+    xyz_n[2] *= mag_r;
+
+    // midpointBetweenSph(sph1, sph2, sph_mid);
+
+    // double lat = sph_mid[0];
+    // double lon = sph_mid[1];
+
+    // double cxyz[3];
+
+    // // Get cartesian coords of face midpoint
+    // sph2cart(cxyz[0], cxyz[1], cxyz[2], 1.0, sph_mid[0], sph_mid[1]);
+
+    // double lonx, lony, lonz;
+    // double latx, laty, latz;
+    // double zfact = 1.0/sqrt(1 - pow(cxyz[2], 2.0));
+
+    // // longitude unit vector, in cartesian components
+    // lonx = zfact * -cxyz[1];
+    // lony = zfact * cxyz[0];
+    // lonz = 0.0;
     
+    // // latitude unit vector, in cartesian components
+    // latx = zfact * -cxyz[2]*cxyz[0];
+    // laty = zfact * -cxyz[2]*cxyz[1];
+    // latz = zfact * (1-cxyz[2]*cxyz[2]);
 
+    // double nlon, nlat;
+
+    // // lat and lon unit vectors 
+    // nlon = n[0]*lonx + n[1]*lony + n[2]*lonz;
+    // nlat = n[0]*latx + n[1]*laty + n[2]*latz;
 }
 
 inline void intersectPointSph(double &, double &, double &, double &, double &);
