@@ -155,7 +155,7 @@ int analyticalInitialConditions(Globals * globals, Mesh * mesh,
 
     std::array<double, 6> initArr;
 
-    for (i=0; i<FACE_NUM; i++) {
+    for (i=0; i<mesh->face_num; i++) {
         lat = mesh->face_centre_pos_sph(i, 0);
         lon = mesh->face_centre_pos_sph(i, 1);
 
@@ -165,38 +165,38 @@ int analyticalInitialConditions(Globals * globals, Mesh * mesh,
         initArr = analyticalLTE(globals, mesh, globals->tide_type, lat, lon, t);
 
         v(i) = initArr[0]*nx + initArr[1]*ny;
-        dvdt(i,0) = initArr[2]*nx + initArr[3]*ny;
+        if (i<mesh->face_num_ng) dvdt(i,0) = initArr[2]*nx + initArr[3]*ny;
 
         initArr = analyticalLTE(globals, mesh, globals->tide_type, lat, lon, t-dt);
-        dvdt(i,1) = initArr[2]*nx + initArr[3]*ny;
+        if (i<mesh->face_num_ng) dvdt(i,1) = initArr[2]*nx + initArr[3]*ny;
         
         initArr = analyticalLTE(globals, mesh, globals->tide_type, lat, lon, t-2*dt);
-        dvdt(i,2) = initArr[2]*nx + initArr[3]*ny;
+        if (i<mesh->face_num_ng) dvdt(i,2) = initArr[2]*nx + initArr[3]*ny;
 
         if (globals->solver_type == RK4) {
             initArr = analyticalLTE(globals, mesh, globals->tide_type, lat, lon, t-3*dt); 
-            dvdt(i,3) = initArr[2]*nx + initArr[3]*ny;
+            if (i<mesh->face_num_ng) dvdt(i,3) = initArr[2]*nx + initArr[3]*ny;
         }
 
     }
 
-    for (i=0; i<NODE_NUM; i++) {
+    for (i=0; i<mesh->node_num; i++) {
         lat = mesh->node_pos_sph(i, 0);
         lon = mesh->node_pos_sph(i, 1);
 
         initArr = analyticalLTE(globals, mesh, globals->tide_type, lat, lon, t);
         p(i) = initArr[4];
-        dpdt(i,0) = initArr[5];
+        if (i<mesh->node_num_ng) dpdt(i,0) = initArr[5];
 
         initArr = analyticalLTE(globals, mesh, globals->tide_type, lat, lon, t-dt);
-        dpdt(i,1) = initArr[5];
+        if (i<mesh->node_num_ng) dpdt(i,1) = initArr[5];
 
         initArr = analyticalLTE(globals, mesh, globals->tide_type, lat, lon, t-2*dt);
-        dpdt(i,2) = initArr[5];
+        if (i<mesh->node_num_ng) dpdt(i,2) = initArr[5];
 
         if (globals->solver_type == RK4) {
             initArr = analyticalLTE(globals, mesh, globals->tide_type, lat, lon, t-3*dt);
-            dpdt(i,3) = initArr[5];
+            if (i<mesh->node_num_ng) dpdt(i,3) = initArr[5];
         }
 
     }
@@ -285,17 +285,25 @@ int getInitialConditions(Globals * globals, Mesh * mesh,
     // Set all arrays to zero
     if (globals->initial_condition == INIT_NONE) {
 
-        for (int i=0; i<NODE_NUM; i++)
+        for (int i=0; i<mesh->node_num; i++)
         {
             p(i) = 0.0;
+        }
+
+        for (int i=0; i<mesh->node_num_ng; i++)
+        {
             dpdt(i,0) = 0.0;
             dpdt(i,1) = 0.0;
             dpdt(i,2) = 0.0;
         }
 
-        for (int i=0; i<FACE_NUM; i++)
+        for (int i=0; i<mesh->face_num; i++)
         {
             v(i) = 0.0;
+        }
+
+        for (int i=0; i<mesh->face_num_ng; i++)
+        {
             dvdt(i,0) = 0.0;
             dvdt(i,1) = 0.0;
             dvdt(i,2) = 0.0;
