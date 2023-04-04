@@ -41,7 +41,7 @@ private:
     int ReadLeastSquaresFile(void);
     int CalcMappingCoords(void);
     int CalcVelocityTransformFactors(void);
-    int CalcTangentialVelocityWeights(void);
+    // int CalcTangentialVelocityWeights(void); // Now read from file
     int CalcTrigFunctions(void);
     int CalcMaxTimeStep(void);
     int CalcControlVolumeInterpMatrix(void);
@@ -65,7 +65,7 @@ private:
 public:
     //	Mesh(); //constructor
     Mesh(Globals *);
-    Mesh(Globals *, int, int, int, int, int);
+    // Mesh(Globals *, int, int, int, int, int);
 
     std::ostringstream outstring;
 
@@ -73,87 +73,97 @@ public:
     int face_num;
     int vertex_num;
 
+    int node_num_ng;
+    int face_num_ng;
+    int vertex_num_ng;
+
     // ---------------------------- Arrays to be read from file -------------------------------------------
 
-    Array2D<int> faces                      = Array2D<int>(NODE_NUM, 6);
-    Array2D<int> face_nodes                 = Array2D<int>(FACE_NUM, 2);
-    Array2D<int> face_vertexes              = Array2D<int>(FACE_NUM, 2);
-    Array1D<double> face_area               = Array1D<double>(FACE_NUM);
-    Array2D<double> face_normal_vec_map     = Array2D<double>(FACE_NUM, 2);
+    Array2D<int> faces;//                      = Array2D<int>(NODE_NUM, 6);
+    Array2D<int> face_nodes;//                 = Array2D<int>(FACE_NUM, 2);
+    Array2D<int> face_vertexes;//              = Array2D<int>(FACE_NUM, 2);
+    Array1D<double> face_area;//               = Array1D<double>(FACE_NUM);
+    Array2D<double> face_normal_vec_map;//     = Array2D<double>(FACE_NUM, 2);
 
-    Array1D<unsigned> node_fnum            = Array1D<unsigned>(NODE_NUM);
+    Array2D<unsigned> face_fnum;
+    Array1D<unsigned> node_fnum;//            = Array1D<unsigned>(NODE_NUM);
 
     // Each row in node_friends contains the ID (index)
     // to all surrounding friends. E.g, the ID's of the neighbouring nodes to
     // node 4 would be accessed via node_friends[4][0], node_friends[4][1], etc.
-    Array2D<int> node_friends               = Array2D<int>(NODE_NUM, 6);
+    Array2D<int> node_friends;//               = Array2D<int>(NODE_NUM, 6);
 
     // Each row in node_pos_sph represents the lat,lon coords of node. Node ID 5
     // corresponds to node_pos_sph(5,x).
     //   Array2D<double> node_pos_sph;
-    Array2D<double> node_pos_sph            = Array2D<double>(NODE_NUM, 2);
+    Array2D<double> node_pos_sph;//            = Array2D<double>(NODE_NUM, 2);
 
-    Array2D<double> node_dists              = Array2D<double>(NODE_NUM, 6);
+    // Array2D<double> node_dists;//              = Array2D<double>(NODE_NUM, 6); // Not used!
 
-    Array1D<double> cv_area_sph             = Array1D<double>(NODE_NUM);
-    Array1D<double> cv_area_sph_r           = Array1D<double>(NODE_NUM);
+    Array1D<double> cv_area_sph;//             = Array1D<double>(NODE_NUM);
+    Array1D<double> cv_area_sph_r;//           = Array1D<double>(NODE_NUM);
 
-    Array1D<double> face_node_dist          = Array1D<double>(FACE_NUM);
-    Array1D<double> face_node_dist_r        = Array1D<double>(FACE_NUM);
+    Array1D<double> face_node_dist;//          = Array1D<double>(FACE_NUM);
+    Array1D<double> face_node_dist_r;//        = Array1D<double>(FACE_NUM);
 
-    Array2D<double> face_centre_pos_sph     = Array2D<double>(FACE_NUM, 2);
-    Array2D<double> face_intercept_pos_sph  = Array2D<double>(FACE_NUM, 2);
+    Array2D<double> face_centre_pos_sph;//     = Array2D<double>(FACE_NUM, 2);
+    Array2D<double> face_intercept_pos_sph;//  = Array2D<double>(FACE_NUM, 2);
   
-    Array1D<double> face_len                = Array1D<double>(FACE_NUM);
-    Array2D<int> node_face_dir              = Array2D<int>(NODE_NUM, 6);
+    Array1D<double> face_len;//                = Array1D<double>(FACE_NUM);
+    Array2D<int> node_face_dir;//              = Array2D<int>(NODE_NUM, 6);
 
-    Array2D<int> vertexes                   = Array2D<int>(NODE_NUM, 6);
-    Array2D<double> vertex_pos_sph          = Array2D<double>(VERTEX_NUM, 2);
+    Array2D<int> vertexes;//                   = Array2D<int>(NODE_NUM, 6);
+    Array2D<double> vertex_pos_sph;//          = Array2D<double>(VERTEX_NUM, 2);
 
-    Array2D<int> vertex_nodes               = Array2D<int>(VERTEX_NUM, 3);
+    Array2D<int> vertex_nodes;//               = Array2D<int>(VERTEX_NUM, 3);
 
-    Array2D<double> node_vertex_area        = Array2D<double>(NODE_NUM, 6);
-    Array2D<int> vertex_faces               = Array2D<int>(VERTEX_NUM, 3);
-    Array2D<int> vertex_face_dir            = Array2D<int>(VERTEX_NUM, 3);
-    Array1D<double> vertex_area             = Array1D<double>(VERTEX_NUM);
-    Array1D<double> vertex_area_r           = Array1D<double>(VERTEX_NUM);
+    Array2D<double> node_vertex_area;//        = Array2D<double>(NODE_NUM, 6);
+    Array2D<int> vertex_faces;//               = Array2D<int>(VERTEX_NUM, 3);
+    Array2D<int> vertex_face_dir;//            = Array2D<int>(VERTEX_NUM, 3);
+    Array1D<double> vertex_area;//             = Array1D<double>(VERTEX_NUM);
+    Array1D<double> vertex_area_r;//           = Array1D<double>(VERTEX_NUM);
+    Array2D<double> vertex_R;//            = Array2D<double>(VERTEX_NUM, 3);
+
+    Array3D<double> centroid_pos_sph;// = Array3D<double>(NODE_NUM, 6, 2);     // Legacy 
+    Array3D<double> centroid_pos_map;// = Array3D<double>(NODE_NUM, 6, 2);     // Legacy 
+
 
     // Index 5 here because as most number of faces is 6 in a cv,
     // then each face can only neighbour at most 5 in each node.
-    Array3D<int> face_friends               = Array3D<int>(FACE_NUM, 2, 5);   //second index if for downwind vs upwind node
-    Array3D<double> face_interp_weights    = Array3D<double>(FACE_NUM, 2, 5);
+    Array3D<int> face_friends;//               = Array3D<int>(FACE_NUM, 2, 5);   //second index if for downwind vs upwind node
+    Array3D<double> face_interp_weights;//    = Array3D<double>(FACE_NUM, 2, 5);
 
     // ---------------------------- Arrays to be calculated -------------------------------------------
 
-    Array2D<double> trigLat             = Array2D<double>(NODE_NUM, 2);
-    Array2D<double> trigLon             = Array2D<double>(NODE_NUM, 2);
-    Array2D<double> trig2Lat            = Array2D<double>(NODE_NUM, 2);
-    Array2D<double> trig2Lon            = Array2D<double>(NODE_NUM, 2);
-    Array2D<double> trigSqLat           = Array2D<double>(NODE_NUM, 2);
-    Array2D<double> trigSqLon           = Array2D<double>(NODE_NUM, 2);
+    Array2D<double> trigLat;//             = Array2D<double>(NODE_NUM, 2);
+    Array2D<double> trigLon;//             = Array2D<double>(NODE_NUM, 2);
+    Array2D<double> trig2Lat;//            = Array2D<double>(NODE_NUM, 2);
+    Array2D<double> trig2Lon;//            = Array2D<double>(NODE_NUM, 2);
+    Array2D<double> trigSqLat;//           = Array2D<double>(NODE_NUM, 2);
+    Array2D<double> trigSqLon;//           = Array2D<double>(NODE_NUM, 2);
 
-    Array2D<double> face_normal_vec_xyz = Array2D<double>(FACE_NUM, 3);
+    Array2D<double> face_normal_vec_xyz;// = Array2D<double>(FACE_NUM, 3);
     
-    Array2D<double> node_face_arc       = Array2D<double>(NODE_NUM, 6); // angular distance between node and face center
-    Array2D<double> node_face_RBF       = Array2D<double>(NODE_NUM, 6);
-    Array2D<double> face_centre_m       = Array2D<double>(FACE_NUM, 2);
-    Array3D<double> face_node_pos_map   = Array3D<double>(FACE_NUM, 2, 2);
-    Array3D<double> face_node_vel_trans = Array3D<double>(FACE_NUM, 2, 2);
+    Array2D<double> node_face_arc;///       = Array2D<double>(NODE_NUM, 6); // angular distance between node and face center
+    Array2D<double> node_face_RBF;//       = Array2D<double>(NODE_NUM, 6);
+    Array2D<double> face_centre_m;//       = Array2D<double>(FACE_NUM, 2);
+    Array3D<double> face_node_pos_map;//   = Array3D<double>(FACE_NUM, 2, 2);
+    Array3D<double> face_node_vel_trans;// = Array3D<double>(FACE_NUM, 2, 2);
     //   Array1D<int> face_is_boundary;
 
-    Array2D<double> vertex_R            = Array2D<double>(VERTEX_NUM, 3);
+    
     Array2D<double> node_R              = Array2D<double>(NODE_NUM, 6);  // Is this used?
-    Array1D<double> vertex_sinlat       = Array1D<double>(VERTEX_NUM);
+    Array1D<double> vertex_sinlat;//       = Array1D<double>(VERTEX_NUM);
 
     // Same as node_pos_sph but in mapped coords
-    Array3D<double> node_pos_map        = Array3D<double>(NODE_NUM, 7, 2);
+    Array3D<double> node_pos_map;//        = Array3D<double>(NODE_NUM, 7, 2);
 
 
     // Array to hold the cos(alpha) and sin(alpha) velocity conversion coefficients
     // from Lee and Macdonald (2009)
-    Array3D<double> node_vel_trans      = Array3D<double>(NODE_NUM, 7, 2);
+    Array3D<double> node_vel_trans;//      = Array3D<double>(NODE_NUM, 7, 2);
 
-    Array2D<double> node_node_RBF       = Array2D<double>(NODE_NUM, 7);
+    Array2D<double> node_node_RBF;//       = Array2D<double>(NODE_NUM, 7);
 
     // -------------------------------- Arrays that might not be needed anymore ------------------------------------------
 
@@ -162,8 +172,6 @@ public:
     // Column 0 holds the coordinates for the centroid formed from the parent
     // node, friend 0, and friend 1. Column 1 holds the coordinates for the centroid
     // formed from the parent node, friend 1, and friend 2, etc.
-    Array3D<double> centroid_pos_sph = Array3D<double>(NODE_NUM, 6, 2);     // Legacy 
-    Array3D<double> centroid_pos_map = Array3D<double>(NODE_NUM, 6, 2);     // Legacy 
 
 
     //   Array1D<int> cell_is_boundary;
