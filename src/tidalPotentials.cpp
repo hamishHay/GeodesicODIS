@@ -84,7 +84,7 @@ void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, int for
           factor = 0.75 * consts->loveReduct.Value() * pow(omega,2.0)*pow(radius,2.0)*ecc;
 
           #pragma omp parallel for
-          for (i=0; i<NODE_NUM; ++i) {
+          for (i=0; i<grid->node_num; ++i) {
               j = i*2;
 
               potential(i) = factor*((1. - 3.*sinSqLat[i*2])*cosM
@@ -106,7 +106,7 @@ void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, int for
           factor = -3./2. * consts->loveReduct.Value() * pow(omega,2.0)*pow(radius,2.0)*obl;
 
           #pragma omp parallel for
-          for (i=0; i<NODE_NUM; ++i) {
+          for (i=0; i<grid->node_num; ++i) {
               j = i*2;
 
               potential(i) = factor * cosM * sin2Lat[j] * cosLon[j];
@@ -119,8 +119,8 @@ void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, int for
       {
           factor = 0.5 * consts->loveReduct.Value() * pow(omega,2.0)*pow(radius,2.0)*obl;
 
-          #pragma omp parallel for
-          for (i=0; i<NODE_NUM; ++i) {
+        //   #pragma omp parallel for
+          for (i=0; i<grid->node_num; ++i) {
               j = i*2;
 
               potential(i) = 3*factor * sinLat[j]*cosLat[j]*(cosLon[j]*cosM - sinLon[j]*sinM);
