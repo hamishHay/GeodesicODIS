@@ -53,20 +53,48 @@ int main(int argc, char** argv)
 
   // Every process reads the same input file
   Globals * constants = new Globals(0);
-  
+//   
+  constants->OutputConsts();  
 
   // Create the numerical grid using the minimum node spacing from "constants"
   // Globals instance.
 
-  Mesh * grid = new Mesh(constants, constants->node_num, constants->face_num, constants->vertex_num, (int)constants->dLat.Value(), constants->l_max.Value());
+//   Mesh * grid = new Mesh(constants, constants->node_num, constants->face_num, constants->vertex_num, (int)constants->dLat.Value(), constants->l_max.Value());
+    Mesh * grid = new Mesh(constants);
 
-//   constants->OutputConsts();
+//   MPI_Barrier(MPI_COMM_WORLD);
 
-//   #if defined(TEST_OPERATORS)
-//     runOperatorTests(constants, grid);
-//   #else
-//     solveODIS(constants, grid);
-//   #endif 
+//   if (PROC_ID == 0) {
+//     // for (int i=12; i<NODE_NUM; i++)
+//     // {
+//     //     int fnum = 6;
+//     //     std::cout<<i<<std::endl;
+//     //     for (int j=0; j<fnum; j++)
+//     //     {
+//     //         int fID = grid->faces(i, j);
+//     //         std::cout<<' '<<fID<<' '<<grid->face_normal_vec_map(fID, 0)<<' '<<grid->face_normal_vec_map(fID, 1)<<' '<<grid->node_face_dir(i,j)<<std::endl;
+//     //     }
+//     //     std::cout<<std::endl;
+        
+//     // }
+
+//     // for (int i=12; i<FACE_NUM; i++)
+//     // {
+//     //     int fnum = 6;
+//     //     std::cout<<i<<' '<<grid->face_normal_vec_map(i,0)<<' '<<grid->face_normal_vec_map(i,1)<<std::endl;
+        
+//     //     // std::cout<<std::endl;
+        
+//     // }
+//     std::cout<<NODE_NUM<<' '<<FACE_NUM<<' '<<VERTEX_NUM<<std::endl;
+//   }
+
+  
+  #if defined(TEST_OPERATORS)
+    runOperatorTests(constants, grid);
+  #else
+    solveODIS(constants, grid);
+  #endif 
 
   MPI_Finalize();
 
