@@ -1,9 +1,14 @@
 #ifndef ARRAY3D_H
 #define ARRAY3D_H
 
+#include "gridConstants.h"
+#include <stdexcept>
+
+
 template<typename T>
 class Array3D {
 public:
+  Array3D();
   Array3D(unsigned rows, unsigned cols, unsigned depth);
 
   // template<typename T>
@@ -19,6 +24,11 @@ private:
   unsigned rows_, cols_, depth_;
   T* data_;
 };
+
+template<typename T>
+inline
+Array3D<T>::Array3D() {}
+
 
 
 template<typename T>
@@ -45,9 +55,11 @@ template<typename T>
 inline
 T& Array3D<T>::operator() (unsigned row, unsigned col, unsigned depth)
 {
-  // if (row >= rows_ || col >= cols_)
-  //   throw BadIndex("Array3D subscript out of bounds");
-  // return data_[cols_*row + col];
+#ifdef DEBUG
+  if (row >= rows_ || col >= cols_ || depth >= depth_)
+    throw std::out_of_range("Array3D subscript out of bounds");
+#endif
+
   return data_[(cols_*row + col) * depth_ + depth];
   // (x * SIZE2 + y) * SIZE3 + z
 }
@@ -56,10 +68,28 @@ template<typename T>
 inline
 T Array3D<T>::operator() (unsigned row, unsigned col, unsigned depth) const
 {
-  // if (row >= rows_ || col >= cols_)
-  //   throw BadIndex("const Matrix subscript out of bounds");
+#ifdef DEBUG
+  if (row >= rows_ || col >= cols_ || depth >= depth_)
+    throw std::out_of_range("Array3D subscript out of bounds");
+#endif
+
   return data_[(cols_*row + col) * depth_ + depth];
 }
+
+template<typename T>
+inline
+Array3D<T> & Array3D<T>::Array3D::operator=(const Array3D<T> &other_array)
+{
+  rows_ = other_array.rows_;
+  cols_ = other_array.cols_;
+  depth_ = other_array.depth_;
+  
+  data_ = new T[rows_*cols_*depth_]();
+
+  return *this;
+}
+
+
 
 
 #endif

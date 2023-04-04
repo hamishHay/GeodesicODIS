@@ -45,31 +45,17 @@
 // template<typename T>
 // inline
 // T& Array1D<T>::operator() (unsigned row)
-// {
-//   // if (row >= rows_ || col >= cols_)
-//   //   throw BadIndex("Array1D subscript out of bounds");
-//   return data_[row];
-// }
-
-// template<typename T>
-// inline
-// T Array1D<T>::operator() (unsigned row) const
-// {
-//   // if (row >= rows_ || col >= cols_)
-//   //   throw BadIndex("const Matrix subscript out of bounds");
-//   return data_[row];
-// }
-
-
-// #endif
-
-
 #ifndef ARRAY1D_H
 #define ARRAY1D_H
+
+#include "gridConstants.h"
+#include <stdexcept>
+
 
 template<typename T>
 class Array1D {
 public:
+  Array1D();
   Array1D(unsigned rows);
 
   // template<typename T>
@@ -88,6 +74,10 @@ private:
   unsigned rows_;
   
 };
+
+template<typename T>
+inline
+Array1D<T>::Array1D() {}
 
 
 template<typename T>
@@ -112,6 +102,11 @@ template<typename T>
 inline
 T& Array1D<T>::operator() (unsigned row)
 {
+#ifdef DEBUG
+  if (row >= rows_)
+    throw std::out_of_range("Array1D subscript out of bounds");
+#endif
+
   // if (row >= rows_ || col >= cols_)
   //   throw BadIndex("Array1D subscript out of bounds");
   return data_[row];
@@ -121,10 +116,26 @@ template<typename T>
 inline
 T Array1D<T>::operator() (unsigned row) const
 {
-  // if (row >= rows_ || col >= cols_)
-  //   throw BadIndex("const Matrix subscript out of bounds");
+#ifdef DEBUG
+  if (row >= rows_)
+    throw std::out_of_range("Array1D subscript out of bounds");
+#endif
+
   return data_[row];
 }
+
+template<typename T>
+inline
+Array1D<T> & Array1D<T>::Array1D::operator=(const Array1D<T> &other_array)
+{
+  rows_ = other_array.rows_;
+  // if (row >= rows_ || col >= cols_)
+  //   throw BadIndex("const Matrix subscript out of bounds");
+  data_ = new T[rows_]();
+//   return &this;
+  return *this;
+}
+
 
 
 #endif
