@@ -2,8 +2,9 @@
 #define GRIDCONSTANTS_H
 
 #include <math.h>
+#include <mpi.h>
 
-
+#define DEBUG
 // #define TESTS  // Uncomment to prevent all testing
 
 #if defined(TESTS)
@@ -14,7 +15,13 @@
     // #define TEST_OPERATORS
 #endif
 
-constexpr int GRID_LVL = 5;
+constexpr int GRID_LVL = 4;
+
+// Arrays to store number of nodes and faces in each subdomain
+constexpr int NODE_NUMS[2]       = {5, 10};
+constexpr int NODE_GHOST_NUMS[2] = {5, 10};
+constexpr int FACE_NUMS[2]       = {5, 10};
+constexpr int FACE_GHOST_NUMS[2] = {5, 10};
 
 constexpr int get_node_num(int glvl)
 {
@@ -28,6 +35,8 @@ constexpr int get_node_num(int glvl)
   }
 
   return 10 * x * x + 2;
+
+  
   
 }
 
