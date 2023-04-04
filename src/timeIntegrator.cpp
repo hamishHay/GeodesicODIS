@@ -67,28 +67,28 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     int i, j, k, iter, out_count;
     double ** pp;
 
-    Array1D<double> v_t0    (FACE_NUM);     // velocity array
-    Eigen::Map<Eigen::VectorXd> v_t0_eig(&v_t0(0), FACE_NUM);
+    Array1D<double> v_t0    (grid->face_num);     // velocity array
+    Eigen::Map<Eigen::VectorXd> v_t0_eig(&v_t0(0), grid->face_num_ng); // Misses out the ghost nodes
 
     Array1D<double> v_guess    (FACE_NUM);     // velocity array
     Eigen::Map<Eigen::VectorXd> v_guess_eig(&v_guess(0), FACE_NUM);
 
-    Array1D<double> drag_term    (FACE_NUM);     // velocity array
-    Eigen::Map<Eigen::VectorXd> drag_term_eig(&drag_term(0), FACE_NUM);
-    Array1D<double> dv_dt_t0(FACE_NUM);     // velocity rate of change array
+    Array1D<double> drag_term    (grid->face_num_ng);     // velocity array
+    Eigen::Map<Eigen::VectorXd> drag_term_eig(&drag_term(0), grid->face_num_ng);
+    Array1D<double> dv_dt_t0(grid->face_num_ng);     // velocity rate of change array
 
-    Array2D<double> v_xyz   (NODE_NUM, 3);  // Cartesian velocity components 
+    Array2D<double> v_xyz   (grid->node_num_ng, 3);  // Cartesian velocity components 
 
-    Array2D<double> v_avg(FACE_NUM, 2);     // velocity components array
+    Array2D<double> v_avg(grid->face_num_ng, 2);     // velocity components array
 
-    Array1D<double> p_t0    (NODE_NUM);     // pressure array
-    Eigen::Map<Eigen::VectorXd> p_t0_eig(&p_t0(0), NODE_NUM);
+    Array1D<double> p_t0    (grid->node_num);     // pressure array
+    Eigen::Map<Eigen::VectorXd> p_t0_eig(&p_t0(0), grid->node_num);
     Array1D<double> p_guess    (NODE_NUM);     // pressure array
     Eigen::Map<Eigen::VectorXd> p_guess_eig(&p_guess(0), NODE_NUM);
-    Array1D<double> dp_dt_t0(NODE_NUM);     // pressure rate of change array
+    Array1D<double> dp_dt_t0(grid->node_num_ng);     // pressure rate of change array
 
-    Array2D<double> dv_dt(FACE_NUM, 3);     // [face][dvdt level]
-    Array2D<double> dp_dt(NODE_NUM, 3);     // [cv][dpdt level]
+    Array2D<double> dv_dt(grid->face_num_ng, 3);     // [face][dvdt level]
+    Array2D<double> dp_dt(grid->node_num_ng, 3);     // [cv][dpdt level]
 
     Array1D<double> cv_mass     (NODE_NUM); // control volume mass array
     Array1D<double> energy_diss (FACE_NUM); // energy dissipation array
@@ -98,8 +98,8 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     Array1D<double> ekin(NODE_NUM);
     Array1D<double> h_total(NODE_NUM);
 
-    Array1D<double> forcing_potential(NODE_NUM);
-    Eigen::Map<Eigen::VectorXd> forcing_potential_eig(&forcing_potential(0), NODE_NUM);
+    Array1D<double> forcing_potential(grid->node_num);
+    Eigen::Map<Eigen::VectorXd> forcing_potential_eig(&forcing_potential(0), grid->node_num);
     // Array1D<double> 
 
 #ifdef TESTS
@@ -155,15 +155,15 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     Eigen::Map<Eigen::VectorXd> velocity(&dummy_vel(0), FACE_NUM);
 
 
-    for (int i=0; i<FACE_NUM; ++i)
-        {
-            int node_in = grid->face_nodes(i, 0);
-            int node_out = grid->face_nodes(i, 1);
+    // for (int i=0; i<FACE_NUM; ++i)
+    //     {
+    //         int node_in = grid->face_nodes(i, 0);
+    //         int node_out = grid->face_nodes(i, 1);
 
-            dummy_vel(i) = v_t0(i) * ((p_t0(node_in) + p_t0(node_out))*0.5);    // * avg_thickness - 0.5*fabs(v_t0(i))*diff_thickness;///thickness*v_t0(i);
-        }   
+    //         dummy_vel(i) = v_t0(i) * ((p_t0(node_in) + p_t0(node_out))*0.5);    // * avg_thickness - 0.5*fabs(v_t0(i))*diff_thickness;///thickness*v_t0(i);
+    //     }   
 
-    div = grid->operatorDivergence*velocity;
+    // div = grid->operatorDivergence*velocity;
 
     getInitialConditions(globals, grid, v_t0, dv_dt, p_t0, dp_dt);
 
@@ -174,7 +174,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
     
 
-    updateEnergy(globals, e_diss, energy_diss, v_avg, grid->face_area);
+    // updateEnergy(globals, e_diss, energy_diss, v_avg, grid->face_area);
     total_diss[0] = e_diss;
 
     
@@ -200,7 +200,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     double gr = 1.0/globals->g.Value();
     double g = globals->g.Value();
 
-    for (int i=0; i < NODE_NUM; i++) h_total(i) = h + p_t0(i);
+    // for (int i=0; i < NODE_NUM; i++) h_total(i) = h + p_t0(i);
 
     while (iter < globals->totalIter.Value()*globals->endTime.Value())
     {
@@ -209,15 +209,20 @@ int ab3Explicit(Globals * globals, Mesh * grid)
             globals->surface_type == LID_LOVE ||
             globals->surface_type == LID_MEMBR)
         {
+            std::cout<<"HERE"<<std::endl;
             // SOLVE THE MOMENTUM EQUATION
             updateMomentum(globals, grid, dv_dt_t0, v_t0, p_t0, h_total, ekin, GAMMA, IMPLICIT);
 
-            for (i=0; i<FACE_NUM; ++i) dv_dt(i, 0) = dv_dt_t0(i);
+            std::cout<<"updated momentum!"<<std::endl;
+
+            for (i=0; i<grid->face_num_ng; ++i) dv_dt(i, 0) = dv_dt_t0(i);
 
             // Apply drag and forcing
             forcing(globals, grid, forcing_potential, globals->tide_type, current_time+dt, globals->e.Value(), globals->theta.Value());
             drag_term_eig = grid->operatorLinearDrag * v_t0_eig + grid->operatorGradient * forcing_potential_eig; 
+            
 
+            std::cout<<"updated drag!"<<std::endl;
             // // Implicit approach - does not work with advection yet!!
             // if (IMPLICIT) {
             //      v_guess_eig = v_t0_eig;// - dt*g*(1.0 - GAMMA)*grid->operatorGradient*p_t0_eig;
@@ -236,10 +241,14 @@ int ab3Explicit(Globals * globals, Mesh * grid)
             // else {
 
 
-            integrateAB3scalar(globals, grid, v_t0, dv_dt, iter, FACE_NUM);
+            integrateAB3scalar(globals, grid, v_t0, dv_dt, iter, grid->face_num_ng);
+
+            std::cout<<"updated v!"<<std::endl;
 
             // Now remove drag, as it is outside of the AB3 loop
             v_t0_eig += dt*drag_term_eig;
+
+            std::cout<<"added drag!"<<std::endl;
 
 #if defined(TEST_SW1) || defined(TEST_GAUSS_HILLS) 
             // Overwrite velocity field                 dummy    dummy     dummy 
@@ -248,9 +257,11 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
             updateEta(globals, grid, dp_dt_t0, v_t0, p_t0, h_total);
 
-            for (i=0; i<NODE_NUM; ++i) dp_dt(i, 0) = dp_dt_t0(i);
+            std::cout<<"updated continuity!"<<std::endl;
 
-            integrateAB3scalar(globals, grid, p_t0, dp_dt, iter, NODE_NUM);
+            for (i=0; i<grid->node_num_ng; ++i) dp_dt(i, 0) = dp_dt_t0(i);
+
+            integrateAB3scalar(globals, grid, p_t0, dp_dt, iter, grid->node_num_ng);
 
             // }
 
@@ -259,7 +270,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
             // UPDATE ENERGY DISSIPATION
             interpolateVelocity(globals, grid, v_avg, v_t0);
-            updateEnergy(globals, e_diss, energy_diss, v_avg, grid->face_area);
+            // updateEnergy(globals, e_diss, energy_diss, v_avg, grid->face_area);
             total_diss[0] = e_diss;
 
             // UPDATE COLUMN THICKNESS
@@ -277,7 +288,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
         current_time = dt*iter;
 
         // Check for output
-        if (iter%out_freq == 0)
+        if (true)//(iter%out_freq == 0)
         {
             // for (int i=0; i<FACE_NUM; ++i)
             // {
@@ -300,7 +311,9 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
             Output->DumpData(globals, out_count, pp);
             out_count++;
-            // Output->TerminateODIS();
+
+            Output->TerminateODIS();
+            
         }
 
 
@@ -313,7 +326,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     }
 
     // Save initial conditions!
-    writeInitialConditions(globals, grid, v_t0, dv_dt, p_t0, dp_dt);
+    // writeInitialConditions(globals, grid, v_t0, dv_dt, p_t0, dp_dt);
 
     Output->Write(OUT_MESSAGE, &outstring);
 
