@@ -25,7 +25,9 @@
 #include <algorithm>
 #include <cstring>
 #include <math.h>
+#include <H5Cpp.h>
 #include <mpi.h>
+#include <filesystem>
 
 // #include <mkl.h>
 // #include <omp.h>
@@ -229,6 +231,8 @@ Globals::Globals(int action) {
   // face_num = ((node_num-12)*6 + 12*5)/2;
   // vertex_num = ((node_num-12)*6 + 12*5)/3;
 
+  // TODO - these three variables are now processor specific. We need to know these 
+  // some other way. Read from a file? Define in a header?
   node_num = NODE_NUM;
   face_num = FACE_NUM;
   vertex_num = VERTEX_NUM;
@@ -480,6 +484,81 @@ int Globals::ReadGlobals(void)
     Output->Write(ERR_MESSAGE, &outstring);
     Output->TerminateODIS();
   }
+
+  // GET GRID INFO
+
+    int PROC_ID;
+    MPI_Comm_rank(MPI_COMM_WORLD, &PROC_ID);
+    
+    char gridFile[1024];
+    std::string grid_num = std::to_string(PROC_ID);
+    size_t num_zero = 3;
+    auto new_str = std::string(num_zero - std::min(num_zero, grid_num.length()), '0') + grid_num;
+    std::string file_name = "input_files/grid_l"+std::to_string(this->geodesic_l.Value())+"."+new_str+".h5";
+    std::string file_path = std::filesystem::current_path().string() + SEP + file_name;
+    std::strcpy(gridFile, file_path.c_str());
+    
+    std::cout<<"READING GRID FILE "<<file_path<<std::endl;
+
+    // unsigned face_num, face_num_ng;
+    // unsigned node_num, node_num_ng;
+    // unsigned vertex_num, vertex_num_ng;
+
+    hid_t file_id = H5Fopen(file_path.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+
+    hid_t group_id = H5Gopen(file_id, "FACES", H5P_DEFAULT);
+    hid_t attr_id1 = H5Aopen(group_id, "FACE_NUM", H5P_DEFAULT);
+    hid_t attr_id2 = H5Aopen(group_id, "FACE_NUM_NO_GHOSTS", H5P_DEFAULT);
+
+    H5Aread(attr_id1, H5T_NATIVE_UINT, &face_num);
+    H5Aread(attr_id2, H5T_NATIVE_UINT, &face_num_ng);
+
+    H5Aclose(attr_id1);
+    H5Aclose(attr_id2);
+    H5Gclose(group_id);
+
+    group_id = H5Gopen(file_id, "NODES", H5P_DEFAULT);
+    attr_id1 = H5Aopen(group_id, "NODE_NUM", H5P_DEFAULT);
+    attr_id2 = H5Aopen(group_id, "NODE_NUM_NO_GHOSTS", H5P_DEFAULT);
+
+    H5Aread(attr_id1, H5T_NATIVE_UINT, &node_num);
+    H5Aread(attr_id2, H5T_NATIVE_UINT, &node_num_ng);
+
+    H5Aclose(attr_id1);
+    H5Aclose(attr_id2);
+    H5Gclose(group_id);
+
+    group_id = H5Gopen(file_id, "VERTICES", H5P_DEFAULT);
+    attr_id1 = H5Aopen(group_id, "VERTEX_NUM", H5P_DEFAULT);
+    attr_id2 = H5Aopen(group_id, "VERTEX_NUM_NO_GHOSTS", H5P_DEFAULT);
+
+    H5Aread(attr_id1, H5T_NATIVE_UINT, &vertex_num);
+    H5Aread(attr_id2, H5T_NATIVE_UINT, &vertex_num_ng);
+
+    H5Aclose(attr_id1);
+    H5Aclose(attr_id2);
+    H5Gclose(group_id);
+
+
+
+    // hid_t aid2  = H5Screate(H5S_SCALAR);
+    // hid_t attr_id = H5Acreate2(file_id, "/FACES/FACE_NUM", H5T_NATIVE_UINT, aid2, H5P_DEFAULT, H5P_DEFAULT);
+
+    // H5Aopen
+
+    // herr_t H5Aread(hid_t attr_id, hid_t mem_type_id, void *buf)
+
+
+    H5Fclose(file_id);
+
+
+    outstring<<"PROCESSOR "<<PROC_ID<<" HAS "<<face_num<<" FACES."<<std::endl;
+    outstring<<"PROCESSOR "<<PROC_ID<<" HAS "<<node_num<<" NODES."<<std::endl;
+    outstring<<"PROCESSOR "<<PROC_ID<<" HAS "<<vertex_num<<" VERTICES."<<std::endl;
+
+    std::cout<<outstring.str();
+
+    // Output->Write(OUT_MESSAGE, &outstring);
 
   return 0;
 };

@@ -113,9 +113,13 @@ public:
   // character array for identical string from 'path'
   char cpath[PATH];
 
-  int node_num;
-  int face_num;
-  int vertex_num;
+  unsigned node_num;
+  unsigned face_num;
+  unsigned vertex_num;
+
+  unsigned node_num_ng;
+  unsigned face_num_ng;
+  unsigned vertex_num_ng;
 
   GlobalVar<double> angVel;             // Angular velocity
   GlobalVar<double> radius;             // Body radius
