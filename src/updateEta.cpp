@@ -16,7 +16,7 @@ int updateEta(Globals * globals,
     int advection = globals->advection.Value();
 
     
-    Eigen::Map<Eigen::VectorXd> detadtEigen(&deta_dt(0), NODE_NUM);
+    Eigen::Map<Eigen::VectorXd> detadtEigen(&deta_dt(0), grid->node_num_ng);
 
     
     if (globals->advection.Value()) 
@@ -33,7 +33,7 @@ int updateEta(Globals * globals,
     }
     else 
     {
-        Eigen::Map<Eigen::VectorXd> hvEigen(&v_t0(0), FACE_NUM);
+        Eigen::Map<Eigen::VectorXd> hvEigen(&v_t0(0), grid->face_num);
 
         // Get divergence of velocity field to find dEta/dt
         detadtEigen = h * grid->operatorDivergence * hvEigen;   
