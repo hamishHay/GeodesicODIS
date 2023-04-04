@@ -158,8 +158,8 @@ void OutFiles::CreateHDF5Framework(Globals * globals)
   int output_num, orbit_num;
 
   tags = &globals->out_tags;
-  node_num = globals->node_num;
-  face_num = globals->face_num;
+  node_num = globals->node_num_ng;
+  face_num = globals->face_num_ng;
   l_max = globals->l_max.Value();
 
   output_num = globals->outputTime.Value();
@@ -402,7 +402,7 @@ void OutFiles::DumpData(Globals * globals, int time_level, double ** data)
     start_1D[0] = time_level - 1;
     count_1D[0] = 1;
 
-
+    std::cout<<"TAKE A DUMP AT "<<dataPath<<std::endl;
     for (j=0; j<tags->size(); j++)
     {
         p = data[j];
@@ -473,75 +473,75 @@ void OutFiles::DumpData(Globals * globals, int time_level, double ** data)
 
         }
 
-        else if ((*tags)[j] == "pressure output")
-        {
-            for (i=0; i<node_num; i++) {
-                press_1D[i] = (float)(*p);
-                p++;
-            }
+        // else if ((*tags)[j] == "pressure output")
+        // {
+        //     for (i=0; i<node_num; i++) {
+        //         press_1D[i] = (float)(*p);
+        //         p++;
+        //     }
 
-            count_cv[1] = node_num;
+        //     count_cv[1] = node_num;
 
-            H5Sselect_hyperslab(data_space_press, H5S_SELECT_SET, start_cv, NULL, count_cv, NULL);
-            H5Dwrite(data_set_press, H5T_NATIVE_FLOAT, mem_space_press, data_space_press, H5P_DEFAULT, press_1D);
-        }
+        //     H5Sselect_hyperslab(data_space_press, H5S_SELECT_SET, start_cv, NULL, count_cv, NULL);
+        //     H5Dwrite(data_set_press, H5T_NATIVE_FLOAT, mem_space_press, data_space_press, H5P_DEFAULT, press_1D);
+        // }
 
-        else if ((*tags)[j] == "kinetic output")
-        {
-            for (i=0; i<node_num; i++) {
-                kinetic_1D[i] = (float)(*p);
-                p++;
-            }
+        // else if ((*tags)[j] == "kinetic output")
+        // {
+        //     for (i=0; i<node_num; i++) {
+        //         kinetic_1D[i] = (float)(*p);
+        //         p++;
+        //     }
 
-            count_cv[1] = node_num;
+        //     count_cv[1] = node_num;
 
-            H5Sselect_hyperslab(data_space_kinetic, H5S_SELECT_SET, start_cv, NULL, count_cv, NULL);
-            H5Dwrite(data_set_kinetic, H5T_NATIVE_FLOAT, mem_space_kinetic, data_space_kinetic, H5P_DEFAULT, kinetic_1D);
-        }
+        //     H5Sselect_hyperslab(data_space_kinetic, H5S_SELECT_SET, start_cv, NULL, count_cv, NULL);
+        //     H5Dwrite(data_set_kinetic, H5T_NATIVE_FLOAT, mem_space_kinetic, data_space_kinetic, H5P_DEFAULT, kinetic_1D);
+        // }
 
-        else if ((*tags)[j] == "dissipation output")
-        {
-            for (i=0; i<face_num; i++) {
-                diss_1D[i] = (float)(*p);
-                p++;
-            }
+        // else if ((*tags)[j] == "dissipation output")
+        // {
+        //     for (i=0; i<face_num; i++) {
+        //         diss_1D[i] = (float)(*p);
+        //         p++;
+        //     }
 
-            count_face[1] = face_num;
+        //     count_face[1] = face_num;
 
-            H5Sselect_hyperslab(data_space_diss, H5S_SELECT_SET, start_face, NULL, count_face, NULL);
-            H5Dwrite(data_set_diss, H5T_NATIVE_FLOAT, mem_space_diss, data_space_diss, H5P_DEFAULT, diss_1D);
-        }
+        //     H5Sselect_hyperslab(data_space_diss, H5S_SELECT_SET, start_face, NULL, count_face, NULL);
+        //     H5Dwrite(data_set_diss, H5T_NATIVE_FLOAT, mem_space_diss, data_space_diss, H5P_DEFAULT, diss_1D);
+        // }
 
-        else if ((*tags)[j] == "dissipation avg output")
-        {
-            diss_avg_1D[0] = (float)(*p);
+        // else if ((*tags)[j] == "dissipation avg output")
+        // {
+        //     diss_avg_1D[0] = (float)(*p);
 
-            H5Sselect_hyperslab(data_space_1D_avg, H5S_SELECT_SET, start_1D, NULL, count_1D, NULL);
-            H5Dwrite(data_set_1D_avg, H5T_NATIVE_FLOAT, mem_space_1D_avg, data_space_1D_avg, H5P_DEFAULT, diss_avg_1D);
-        }
+        //     H5Sselect_hyperslab(data_space_1D_avg, H5S_SELECT_SET, start_1D, NULL, count_1D, NULL);
+        //     H5Dwrite(data_set_1D_avg, H5T_NATIVE_FLOAT, mem_space_1D_avg, data_space_1D_avg, H5P_DEFAULT, diss_avg_1D);
+        // }
 
-        else if ((*tags)[j] == "kinetic avg output")
-        {
-            kinetic_avg_1D[0] = (float)(*p);
+        // else if ((*tags)[j] == "kinetic avg output")
+        // {
+        //     kinetic_avg_1D[0] = (float)(*p);
 
-            H5Sselect_hyperslab(data_space_1D_kinetic_avg, H5S_SELECT_SET, start_1D, NULL, count_1D, NULL);
-            H5Dwrite(data_set_1D_kinetic_avg, H5T_NATIVE_FLOAT, mem_space_1D_kinetic_avg, data_space_1D_kinetic_avg, H5P_DEFAULT, kinetic_avg_1D);
-        }
+        //     H5Sselect_hyperslab(data_space_1D_kinetic_avg, H5S_SELECT_SET, start_1D, NULL, count_1D, NULL);
+        //     H5Dwrite(data_set_1D_kinetic_avg, H5T_NATIVE_FLOAT, mem_space_1D_kinetic_avg, data_space_1D_kinetic_avg, H5P_DEFAULT, kinetic_avg_1D);
+        // }
 
-        else if ((*tags)[j] == "dummy1 output")
-        {
-            for (i=0; i<node_num; i++) {
-                dummy1_1D[i] = (float)(*p);
-                p++;
-            }
+        // else if ((*tags)[j] == "dummy1 output")
+        // {
+        //     for (i=0; i<node_num; i++) {
+        //         dummy1_1D[i] = (float)(*p);
+        //         p++;
+        //     }
 
-            count_cv[1] = node_num;
+        //     count_cv[1] = node_num;
 
-            H5Sselect_hyperslab(data_space_dummy1, H5S_SELECT_SET, start_cv, NULL, count_cv, NULL);
-            H5Dwrite(data_set_dummy1, H5T_NATIVE_FLOAT, mem_space_dummy1, data_space_dummy1, H5P_DEFAULT, dummy1_1D);
+        //     H5Sselect_hyperslab(data_space_dummy1, H5S_SELECT_SET, start_cv, NULL, count_cv, NULL);
+        //     H5Dwrite(data_set_dummy1, H5T_NATIVE_FLOAT, mem_space_dummy1, data_space_dummy1, H5P_DEFAULT, dummy1_1D);
 
 
-        }
+        // }
     }
 
 
