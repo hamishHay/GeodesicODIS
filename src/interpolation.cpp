@@ -29,7 +29,9 @@ int interpolateVelocity(Globals *globals,
     int f_ID;                   // ID of face being used for iterpolation
     double nx, ny, tx, ty;      // Normal and tangential unit vectors
 
-    for (int i = 0; i < FACE_NUM; ++i)
+
+
+    for (int i = 0; i < mesh->face_num_ng; ++i)
     {
         v_tang = 0.0;
         v_norm = 0.0;
@@ -37,19 +39,20 @@ int interpolateVelocity(Globals *globals,
         n1 = mesh->face_nodes(i, 0);
         n2 = mesh->face_nodes(i, 1);
 
-        fnum[0] = mesh->node_fnum(n1);
-        fnum[1] = mesh->node_fnum(n2);
+        fnum[0] = mesh->face_fnum(i, 0);
+        fnum[1] = mesh->face_fnum(i, 1);
 
         // Loop through the faces adjacent to face i and use
         // interpolation weights to find the tangential velocity component
+
         for (unsigned k=0; k<2; k++) {
-            for (int j = 0; j < fnum[k]-1; j++)
+            for (int j = 0; j < fnum[k]; j++)
             {
                 f_ID = mesh->face_friends(i, k, j);
                 v_tang += normal_vel(f_ID) * mesh->face_interp_weights(i, k, j) * mesh->face_len(f_ID);
             }
         }
-        
+
         v_tang *= mesh->face_node_dist_r(i);
         v_norm = normal_vel(i);
 
@@ -72,11 +75,11 @@ int interpolateVelocityCartRBF(Globals *globals,
                                Array1D<double> &normal_vel)
 {
     // Map Eigen object to the input velocity field, defined normal to faces
-    Eigen::Map<Eigen::VectorXd> eig_normal_vel(&normal_vel(0), FACE_NUM);
+    Eigen::Map<Eigen::VectorXd> eig_normal_vel(&normal_vel(0), mesh->face_num);
 
     // Map Eigen object to the output velocity field components (3), defined at
     // node centres
-    Eigen::Map<Eigen::VectorXd> eig_soln(&interp_vel_xyz(0, 0), 3 * NODE_NUM);
+    Eigen::Map<Eigen::VectorXd> eig_soln(&interp_vel_xyz(0, 0), 3 * mesh->node_num_ng);
 
     // Perform Radial Basis Function interpolation of normal velocities
     // to cartesian components.
