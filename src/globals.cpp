@@ -233,9 +233,9 @@ Globals::Globals(int action) {
 
   // TODO - these three variables are now processor specific. We need to know these 
   // some other way. Read from a file? Define in a header?
-  node_num = NODE_NUM;
-  face_num = FACE_NUM;
-  vertex_num = VERTEX_NUM;
+//   node_num = NODE_NUM;
+//   face_num = FACE_NUM;
+//   vertex_num = VERTEX_NUM;
 
 //   if (PROC_ID == 0) {
   Output->CreateHDF5Framework(this);
