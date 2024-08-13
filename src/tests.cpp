@@ -340,21 +340,6 @@ void runAdvectionTest(Mesh * mesh, double error_norms[])
 
     for (int i=0; i<NODE_NUM; i++) thickness(i) = 10000.0;
 
-    // for (int i=0; i<VERTEX_NUM; i++) {
-    //     uv_vertex(i, 0) = 10.0;
-    //     uv_vertex(i, 1) = 0.0;
-    // }
-
-    // for (int i=0; i<FACE_NUM; i++) {
-    //     uv_faces(i, 0) = 1.0;
-    //     uv_faces(i, 1) = 0.0;
-    // }
-
-    // for (int i=0; i<NODE_NUM; i++) {
-    //     uv_nodes(i, 0) = 0;
-    //     uv_nodes(i, 1) = 1.0;
-    // }
-
     for (int i=0; i<FACE_NUM; i++) {
         double u_face = adv_analytical_xy(i, 0);
         double v_face = adv_analytical_xy(i, 1);
@@ -413,32 +398,14 @@ void runAdvectionTest(Mesh * mesh, double error_norms[])
     Eigen::Map<Eigen::VectorXd> u_data(&un_faces(0), FACE_NUM);
     Eigen::Map<Eigen::VectorXd> advection_data(&advection_numerical(0), FACE_NUM);
 
-    // Perform sparse matrix * vector operation
-    // advection_data = mesh->operatoradvection * u_data;
-
     Array1D<double> advection_term(FACE_NUM);
+    calculateMomentumAdvection(mesh->globals, mesh, advection_numerical, un_faces, thickness, Ekin);
 
-    calculateMomentumAdvection(mesh->globals, mesh, un_faces, thickness, advection_numerical, Ekin);
+    // advection_data = mesh->operatorCoriolis * u_data;
 
-    // advection_data -= mesh->operatorCoriolis * u_data;
-
-    for (int i=0; i<FACE_NUM; i++) {
-        // if (isnan(advection_numerical(i))) std::cout<<"NAN AT "<<i<<std::endl;
-        // if (fabs(advection_analytic(i)) < 1e-10) advection_numerical(i) = advection_analytic(i);
-        // std::cout<<advection_data(i)<<'\t'<<advection_numerical(i)<<std::endl;
+    for (int i=0; i<FACE_NUM; i++) 
         std::cout<<advection_numerical(i)<<"\t\t"<<advection_analytic(i)<<"\t\t"<<abs(advection_numerical(i)-advection_analytic(i))/abs(advection_analytic(i))*100<<std::endl;
-        // if ((mesh->node_friends(mesh->face_nodes(i,0),5) < 0) || (mesh->node_friends(mesh->face_nodes(i,1),5) < 0)) std::cout<<mesh->node_friends(mesh->face_nodes(i,0),0)<<' '<<advection_numerical(i)<<"\t\t"<<advection_analytic(i)<<"\t\t"<<abs(advection_numerical(i)-advection_analytic(i))/abs(advection_analytic(i))*100<<std::endl;
-        // std::cout<<mesh->node_friends(mesh->face_nodes(i,0),0)<<' '<<advection_numerical(i)<<"\t\t"<<advection_analytic(i)<<"\t\t"<<abs(advection_numerical(i)-advection_analytic(i))/abs(advection_analytic(i))*100<<std::endl;
-        uv_faces(i,0) = 0;
-        // uv_faces(i,1) = 1*cos(mesh->face_centre_pos_sph(i, 1));
-    }
-
     
-
-    // for (int i=0; i<VERTEX_NUM; i++) {
-    //     // if (i<10) std::cout<<i<<' '<<0.5*(pow(uv_vertex(i,0),2.0) + pow(uv_vertex(i,1),2.0)<<' '<<mesh->vertex_pos_sph(i,0)<<' '<<mesh->vertex_pos_sph(i,1)<<std::endl;
-    //     // if (i<12) std::cout<<i<<' '<<uv_vertex(i,0)<<' '<<uv_vertex(i,1)<<' '<<mesh->vertex_pos_sph(i,0)<<' '<<mesh->vertex_pos_sph(i,1)<<std::endl;
-    // }
 
     getErrorNorms(&advection_numerical(0), &advection_analytic(0), FACE_NUM, error_norms);
 }
