@@ -4,13 +4,13 @@
 #include <math.h>
 
 
-#define TESTS  // Uncomment to prevent all testing
+// #define TESTS  // Uncomment to prevent all testing
 
 #if defined(TESTS)
     // #define TEST_SW1            // Advection of a cosine bell curve
     // #define TEST_SW2               // Steady-state solution to nonlinear eqs
-    // #define TEST_GAUSS_HILLS
-    #define TEST_SW5
+    #define TEST_GAUSS_HILLS
+    // #define TEST_SW5
     // #define TEST_OPERATORS
 #endif
 

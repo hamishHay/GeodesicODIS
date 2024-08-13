@@ -49,6 +49,9 @@ void deg2General(Mesh * grid, Array2D<double> &, double simulationTime, double r
 
 void deg2PlanetObl(Mesh * grid, Array2D<double> &, double simulationTime, double radius, double obl);
 
+void deg2GiantImpact(Mesh * grid, Array2D<double> &, double simulationTime, double radius);
+
+
 //
 // // Degree 2 component of the eccentricity-libration tide (see Tyler 2011, Matsuyama 2014)
 // void deg2EccLib(Field * DUlat, Field * DUlon, double simulationTime, double radius, double omega, double ecc);

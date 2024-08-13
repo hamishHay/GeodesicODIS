@@ -103,7 +103,6 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     // Array1D<double> 
 
 #ifdef TESTS
-
     Array1D<double> test_v(FACE_NUM);
     Array2D<double> test_dvdt(FACE_NUM, 3);
     Array1D<double> test_p(NODE_NUM);
@@ -271,8 +270,6 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
         }
 
-        
-
         iter ++;
         current_time = dt*iter;
 
@@ -289,11 +286,8 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
             interpolateVelocityCartRBF(globals, grid, v_xyz, v_t0);
 
-            // std::cout<<v_xyz(15, 0)<<std::endl;
-
-            // div = grid->operatorDivergence*velocity;
-
-            outstring << std::fixed <<"DUMPING DATA AT "<<current_time/orbit_period;
+            // outstring << std::fixed <<"DUMPING DATA AT "<<current_time/orbit_period;
+            outstring << std::fixed <<"DUMPING DATA AT "<<current_time/(60.0*60.0);
             outstring << " AVG DISS: "<<std::scientific<<*total_diss*4*pi*r*r/1e9<<" GW"<<out_count;
 
             Output->Write(OUT_MESSAGE, &outstring);
@@ -310,6 +304,8 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
             break;
         }
+
+        // if (iter == 300) Output->TerminateODIS();
     }
 
     // Save initial conditions!

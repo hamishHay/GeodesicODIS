@@ -259,7 +259,7 @@ int Mesh::CalcControlVolumeInterpMatrix(void)
         double sphfi[2], sphfj[2];
         double sph_n[3];
         double arc, phi, aij;
-        double eps = 0.5;  // If you change this, make sure you also change it in CalcRBFInterpMatrix2!!!!
+        double eps = 1.1;  // If you change this, make sure you also change it in CalcRBFInterpMatrix2!!!!
         double x1, x2, y1, y2;
         for (int i=0; i<NODE_NUM; i++) 
         {
@@ -349,6 +349,8 @@ int Mesh::CalcControlVolumeInterpMatrix(void)
 
             // interpVandermondeScalar.push_back(matrix.completeOrthogonalDecomposition().pseudoInverse());
             interpVandermondeScalar.push_back(matrix);
+
+            // std::cout<<i<<' '<<node_pos_sph(i, 0)*180./pi<<' '<<node_pos_sph(i, 1)*180./pi<<'\n'<<matrix<<std::endl;
         // std::cout<<matrix<<std::endl<<std::endl;
 
         }
@@ -908,6 +910,8 @@ int Mesh::AssignFaces(void)
             }
         }
     }
+
+
 
     for (int i=0; i<VERTEX_NUM; i++) {
         vertex_faces(i,0) = -1;
@@ -2333,12 +2337,15 @@ int Mesh::CalcRBFInterpMatrix(void)
         
         if (node_friends(i,5) < 0) friend_num--;         
 
+        // std::cout<<"NODE "<<i<<std::endl;
         for (int j=0; j<friend_num; j++) 
         {
             face_ID = faces(i, j);
 
             coeff = node_face_RBF(i, j) * face_normal_vec_xyz(face_ID, 0);   // x component row
             coefficients2.push_back( Triplet(3*i, count, coeff ) );
+
+            // std::cout<<"  "<<face_ID<<' '<<coeff<<std::endl;
 
             coeff = node_face_RBF(i, j) * face_normal_vec_xyz(face_ID, 1);   // y component row
             coefficients2.push_back( Triplet(3*i+1, count, coeff ) );
@@ -2347,6 +2354,7 @@ int Mesh::CalcRBFInterpMatrix(void)
             coefficients2.push_back( Triplet(3*i+2, count, coeff ) );
             count++;
         }
+        // std::cout<<std::endl;
     }
 
     RBF.setFromTriplets(coefficients2.begin(), coefficients2.end());
@@ -2474,7 +2482,7 @@ int Mesh::CalcRBFInterpMatrix2(void)
     {
         int friend_num, f_IDj, f_IDi;
         double arc, phi, aij;
-        double eps = 0.5; // If you change this, make sure you also change it in CalcControlVolumeInterpMatrix!!!!
+        double eps = 1.1; // If you change this, make sure you also change it in CalcControlVolumeInterpMatrix!!!!
         double x1, x2, y1, y2;
         double xx, yy, xy, arc2, arc3, dphidr, d2phidr2;
         double coeff;

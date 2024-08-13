@@ -163,11 +163,16 @@ class FieldPlot2:
         self.axes.append(ax_current)
 
         # cnt = ax_current.tricontourf(triang1, data[i][:len(x1)], levels=clevels, cmap = plt.cm.plasma)
-        cnt = ax_current.tricontourf(triang, data_eta[-1])#, levels=np.arange(0, 3000, 120))
-        ax_current.tricontour(triang, data_eta[-1], colors='k', linewidths=0.5)#, levels=np.arange(0, 3000, 120))#, levels=np.arange(-0.1, 1.11, 0.1))
+        # cnt = ax_current.tricontourf(triang1, data_u[-1], 11)
+        cnt = ax_current.tricontourf(triang1, data_v[-1], 11)
+        cnt2 = ax_current.tricontour(triang, data_eta[-1]/1e3, colors='k', linewidths=0.5)#, levels=np.arange(0, 3000, 120))
+        # ax_current.tricontour(triang, data_eta[-1], colors='k', linewidths=0.5)#, levels=np.arange(0, 3000, 120))#, levels=np.arange(-0.1, 1.11, 0.1))
+        ax_current.clabel(cnt2, cnt2.levels, inline=True, fontsize=6)
 
-        cb = self.im_grid.cbar_axes[0].colorbar(cnt, norm=norm)
+        cb = self.im_grid.cbar_axes[0].colorbar(cnt, norm=norm, label="Velocity [m/s]")
         # cb.set_label_text(self.data_label["velocity"])
+
+    
 
         # self.set_spatial_plot_defaults(slices,ax_ind)
 
@@ -468,7 +473,7 @@ if __name__=='__main__':
 
     # plt.show()
     iter = int(sys.argv[1])
-    Plotter.plot_vector(slices=[0, iter])#slices=slices,
+    Plotter.plot_vector(slices=[iter])#slices=slices,
                         # b_slice=-100,
                         # ax_ind=plot_ax,
                         # crange=None,

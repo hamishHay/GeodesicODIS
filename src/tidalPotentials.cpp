@@ -280,6 +280,52 @@ void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, int for
         }
         break;
 
+        case GIANT_IMPACT:
+        {
+            double M_impactor = 6.4171E23;
+            double omegaT = omega*time;
+            double cosphi, sinphi;
+            double rx, ry, rmag;
+            double t = time/86400.0;
+            double cosGam;
+
+            ry = -175.46066810020662 + 85.57403894881489*t 
+                 + 2.2484187019354556*t*t + 12.772309500124448*t*t*t 
+                 + -9.531238460508728*pow(t, 4.0) + 3.2435023133793446*pow(t, 5.0) 
+                 + 0.34286020058364597*pow(t, 6.0);
+
+            rx = 293.0155917562273 + -86.6477042529414*pow(t,1.0) 
+                 + -176.04381073506374*pow(t,2.0) + 454.04984937522096*pow(t,3.0) 
+                 + -595.6523903184591*pow(t,4.0) + 361.34985198950807*pow(t,5.0) 
+                 + -84.02091099494874*pow(t,6.0);   
+
+            std::cout<<t*86400/(60*60)<<' '<<rx<<' '<<ry<<std::endl;
+
+            rx *= 1e6;
+            ry *= 1e6;
+
+            rmag = sqrt(rx*rx + ry*ry);
+
+
+            cosphi = (rx*cosM + ry*sinM)/rmag;
+            sinphi = (-rx*sinM + ry*cosM)/rmag;
+
+
+            double fac = 6.67e-11*M_impactor/rmag * pow(radius/rmag, 2.0); 
+            for (i=0; i<NODE_NUM; i++) {
+                j = i*2;
+
+                cosGam = cosLat[j]*(cosLon[j]*cosphi + sinLon[j]*sinphi);
+
+                potential(i) = fac * (3*cosGam*cosGam - 1.0)*0.5
+                                + fac * (radius/rmag) * (5*pow(cosGam,3.0) - 3*cosGam)*0.5;
+
+            }
+
+            
+        }
+        break;
+
         case NONE:
             break;
     }

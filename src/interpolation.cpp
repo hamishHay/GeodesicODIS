@@ -40,10 +40,15 @@ int interpolateVelocity(Globals * globals,
         if (mesh->node_friends(n1,5) < 0) friend_num--;
         if (mesh->node_friends(n2,5) < 0) friend_num--;
 
+        // std::cout<<i<<' '<<mesh->face_centre_pos_sph(i,0)<<' '<<mesh->face_centre_pos_sph(i,1)<<'\n';
         for (int j=0; j<friend_num; j++) {
             int f_ID = mesh->face_interp_friends(i, j);
+
+            // std::cout<<' '<<f_ID<<' '<<mesh->face_centre_pos_sph(f_ID,0)<<' '<<mesh->face_centre_pos_sph(f_ID,1)<<' '<<mesh->face_interp_weights(i,j)<<'\n';
+            // std::cout<<' '<<f_ID<<' '<<' '<<normal_vel(f_ID)*mesh->face_interp_weights(i,j)*mesh->face_len(f_ID)<<'\n';
             v_tang += normal_vel(f_ID)*mesh->face_interp_weights(i,j)*mesh->face_len(f_ID);
         }
+        // std::cout<<std::endl<<std::endl;
         v_tang /= mesh->face_node_dist(i);
         v_norm = normal_vel(i);
 
@@ -329,6 +334,21 @@ int interpolateLSQFlux(Globals *globals,
     // Wrap eigen vector around the scalar vector
     Eigen::Map<Eigen::VectorXd> eig_node_scalar(&node_scalar(0), NODE_NUM);
 
+    std::ostringstream sstream;
+    
+    // startt = MPI_Wtime();
+    // Array2D<double> rbf_deriv2(NODE_NUM, 3);
+
+    // Eigen::Map<Eigen::VectorXd> eigen_rbf_deriv2(&rbf_deriv2(0,0), NODE_NUM*3);
+    // eigen_rbf_deriv2 = mesh->operatorSecondDeriv * eig_node_scalar;   
+    // endt = MPI_Wtime();
+    // for (unsigned i=0; i<NODE_NUM; i++) {
+    //     sstream<<mesh->node_pos_sph(i, 0)*180./pi<<' '<<mesh->node_pos_sph(i, 1)*180./pi<<' ';
+    //     sstream<<rbf_deriv2(i, 0)<<' '<<rbf_deriv2(i, 1)<<' '<<rbf_deriv2(i, 2)<<std::endl;
+    // }
+
+    // globals->Output->Write(OUT_MESSAGE, &sstream);
+
     // Set beta to 1.0 for third order accurate flux calculation
     beta = 1.0;
 
@@ -359,6 +379,55 @@ int interpolateLSQFlux(Globals *globals,
 
 
     }
+
+    // Array1D<double> c(6*12 + 7*(NODE_NUM-12));
+    // for (int i=0; i<6*12 + 7*(NODE_NUM-12); i++) c(i) = 0.0;
+
+    // for (int i=0; i<NODE_NUM; i++) node_scalar(i) = cos(mesh->node_pos_sph(i,0))*cos(mesh->node_pos_sph(i,0))*cos(2*mesh->node_pos_sph(i,1));
+    
+    // Eigen::Map<Eigen::VectorXd> cVec(&c(0), 6*12 + 7*(NODE_NUM-12));
+    
+    // Array2D<double> d2sdx2(NODE_NUM, 3);
+    // Array2D<double> d2sdx2_test(NODE_NUM, 3);
+    // Eigen::Map<Eigen::VectorXd> d2dx2(&d2sdx2(0,0), 3*NODE_NUM);
+    // Eigen::Map<Eigen::VectorXd> d2dx2_test(&d2sdx2_test(0,0), 3*NODE_NUM);
+// test
+    // d2dx2_test = mesh->operatorSecondDeriv*eig_node_scalar;
+
+    // int count=0;
+    // for (int i=0; i<NODE_NUM; ++i) {
+        
+    //     int f_num = 6;
+    //     if ( mesh->node_friends(i, 5) == -1 ) f_num--;
+
+    //     Array1D<double> c2(f_num+1);
+    //     Eigen::Map<Eigen::VectorXd> cVec2(&c2(0), f_num+1);
+
+    //     // // Build solution vector
+    //     Array1D<double> s(f_num+1);
+
+        
+    //     s(0) = node_scalar(i);
+    //     for (int j=0; j<f_num; ++j) { 
+    //         int f_ID = mesh->node_friends(i, j);
+
+    //         s(j+1) = node_scalar(f_ID);   
+    //     }
+
+    //     Eigen::Map<Eigen::VectorXd> b(&s(0), f_num+1);
+        
+    //     Eigen::VectorXd Vec2 = r_recip_sq * mesh->interpSolvers[i].solve(b);
+        
+    //     d2sdx2(i, 0) = Vec2(3);
+    //     d2sdx2(i, 1) = Vec2(4);
+    //     d2sdx2(i, 2) = Vec2(5);
+
+    //     std::cout<<"1: "<<d2sdx2_test(i,0)<<' '<<d2sdx2(i, 0)<<std::endl;
+    //     std::cout<<"2: "<<d2sdx2_test(i,1)<<' '<<d2sdx2(i, 1)<<std::endl;
+    //     std::cout<<"3: "<<d2sdx2_test(i,2)<<' '<<d2sdx2(i, 2)<<std::endl;
+
+    // }
+
     return 1;
 
 }

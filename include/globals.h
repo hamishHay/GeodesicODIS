@@ -73,6 +73,7 @@ enum Potential {OBLIQ,      // Obliquity tide (Tyler 2011)
                 PLANET,     // Planet-planet tidal forcing
                 PLANET_OBL,
                 GENERAL,   // Generalised forcing
+                GIANT_IMPACT,
                 NONE};
 
 enum Init {INIT_NONE,            // No initial conditions

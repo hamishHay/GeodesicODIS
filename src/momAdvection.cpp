@@ -183,72 +183,69 @@ void calculateMomentumAdvection(Globals * globals,
     //     // advection(i) = 0.0;
     // }
 
-    // for (int i=0; i<NODE_NUM; i++) {
-    //     int friend_num = 6;
-    //     if (mesh->node_friends(i, 5) < 0)
-    //         friend_num--;
-        
-    //     double E = 0.0;
-    //     double Ai = 0.0;
-    //     double Ae;
-    //     for (int j = 0; j < friend_num; j++)
-    //     {
-    //         int f_ID = mesh->faces(i, j);
-
-    //         double ue = vel(f_ID);
-    //         // double v, u, ut,vt, nx, ny;
-    //         // double cosa, sina;
-    //         Ae = mesh->face_area(f_ID);
-    //         // nx = mesh->control_vol_edge_normal_map(i, j, 0);
-    //         // ny = mesh->control_vol_edge_normal_map(i, j, 1);
-    //         // cosa = 1.0;//mesh->node_face_vel_trans(i,j,0);
-    //         // sina = 0.0;//mesh->node_face_vel_trans(i,j,1);
-
-    //         // ut = ue*nx; 
-    //         // vt = ue*ny;
-
-    //         // u = cosa*ut + sina*vt;
-    //         // v = -sina*ut + cosa*vt; 
-
-    //         // std::cout<
-
-    //         // ny = mesh->face_node_*ue;
-    //         // Ae = mesh->node_friend_element_areas_map(i,j,0)+mesh->node_friend_element_areas_map(i,j,1)+mesh->node_friend_element_areas_map(i,j,2);
-
-            
-            
-    //         // if (i<15) 
-    //         // {
-    //         //     std::cout<<i<<' '<<j<<' '<<ue<<' '<<Ae<<std::endl;
-    //         // }
-
-    //         // if (i==5) std::cout<<i<<' '<<mesh->node_friends(i,j)<<' '<<ue<<std::endl;
-
-    //         E += Ae * ue*ue*0.25;
-    //         // // E += Ae * (pow(u,2.0) + pow(v,2.0))*0.25;
-    //         // // E += ()
-    //         // Ai += Ae4;
-    //     }
-
-    //     E /= mesh->control_volume_surf_area_map(i);
-
-    // //     // E = 0.5*vel()
-
-    // //     // if (i < 12 || (i > 10267 && i < 10272)) std::cout<<i<<' '<<E<<std::endl;
-        
-
-        
-
-    //     Ekin(i) = E;
-
-    // }
-
-    Array2D<double> vel_xyz(NODE_NUM, 3);
-    interpolateVelocityCartRBF(globals, mesh, vel_xyz, vel);
-
     for (int i=0; i<NODE_NUM; i++) {
-        Ekin(i) = 0.5 * (vel_xyz(i,0)*vel_xyz(i,0) + vel_xyz(i,1)*vel_xyz(i,1)+ vel_xyz(i,2)*vel_xyz(i,2));
+        int friend_num = 6;
+        if (mesh->node_friends(i, 5) < 0)
+            friend_num--;
+        
+        double E = 0.0;
+        double Ai = 0.0;
+        double Ae;
+        for (int j = 0; j < friend_num; j++)
+        {
+            int f_ID = mesh->faces(i, j);
+
+            double ue = vel(f_ID);
+            // double v, u, ut,vt, nx, ny;
+            // double cosa, sina;
+            Ae = mesh->face_area(f_ID);
+            // nx = mesh->control_vol_edge_normal_map(i, j, 0);
+            // ny = mesh->control_vol_edge_normal_map(i, j, 1);
+            // cosa = 1.0;//mesh->node_face_vel_trans(i,j,0);
+            // sina = 0.0;//mesh->node_face_vel_trans(i,j,1);
+
+            // ut = ue*nx; 
+            // vt = ue*ny;
+
+            // u = cosa*ut + sina*vt;
+            // v = -sina*ut + cosa*vt; 
+
+            // std::cout<
+
+            // ny = mesh->face_node_*ue;
+            // Ae = mesh->node_friend_element_areas_map(i,j,0)+mesh->node_friend_element_areas_map(i,j,1)+mesh->node_friend_element_areas_map(i,j,2);
+
+            
+            
+            // if (i<15) 
+            // {
+            //     std::cout<<i<<' '<<j<<' '<<ue<<' '<<Ae<<std::endl;
+            // }
+
+            // if (i==5) std::cout<<i<<' '<<mesh->node_friends(i,j)<<' '<<ue<<std::endl;
+
+            E += Ae * ue*ue*0.25;
+            // // E += Ae * (pow(u,2.0) + pow(v,2.0))*0.25;
+            // // E += ()
+            // Ai += Ae4;
+        }
+
+        E /= mesh->control_volume_surf_area_map(i);
+
+
+        
+
+        Ekin(i) = E;
+
     }
+
+    
+    // Array2D<double> vel_xyz(NODE_NUM, 3);
+    // interpolateVelocityCartRBF(globals, mesh, vel_xyz, vel);
+
+    // for (int i=0; i<NODE_NUM; i++) {
+    //     Ekin(i) = 0.5 * (vel_xyz(i,0)*vel_xyz(i,0) + vel_xyz(i,1)*vel_xyz(i,1)+ vel_xyz(i,2)*vel_xyz(i,2));
+    // }
 
     // -------------------------------------------------------
     // Step 8: Remove the gradient of the kinetic energy 
