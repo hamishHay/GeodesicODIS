@@ -143,7 +143,8 @@ public:
 //   GlobalVar<bool> init;                 // boolean for using initial conditions
   GlobalVar<std::string> init;                  // initial conditions: 0=none, 1=load from file, 2=analytical
   GlobalVar<double> converge;           // convergence criteria for ODIS.
-  GlobalVar<bool> advection;     // switch for advection 
+  GlobalVar<bool> advection;            // switch for advection 
+  GlobalVar<double> rbf_eps;            // ϵ parameter for radial basis functions
 
   GlobalVar<int> freq;                  // Planet-planet freq
   GlobalVar<double> a20;                // Fourier coeffs for general forcing

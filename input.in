@@ -34,3 +34,4 @@ time step; 	 	 	          30; 	 	 	 timeStep;
 core number;                  1;        number of cores for parallel;
 grav coeff file;    /home/hamish/Research/GeodesicODISBeta/GeodesicODIS/beta.txt;    filename;
 forcing coeff file; /home/hamish/Research/Io/ocean_dissipation_ivo/upsilon_europa.txt;  filename;
+rbf epsilon;                  0.5;            radial basis epsilon;
