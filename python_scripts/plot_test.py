@@ -14,8 +14,15 @@ import sys
 import math
 from pyshtools.expand import SHExpandLSQ
 import pyshtools
-import cartopy.crs as ccrs
-from cartopy.vector_transform import vector_scalar_to_grid
+#import cartopy.crs as ccrs
+#from cartopy.vector_transform import vector_scalar_to_grid
+
+
+def get_time_average(data, times):
+    integral = np.trapz(data, times, axis=0)
+    total_time = times[-1] - times[0]
+
+    return integral/total_time
 
 # plt.rcParams['mathtext.fontset'] = 'custom'
 # plt.rcParams['mathtext.rm'] = 'Avante Garde'
@@ -45,15 +52,16 @@ for i in range(nn, nn+1):
 
     data_u = in_file["east velocity"][n]
     data_v = in_file["north velocity"][n]
-    vel_lon = in_file["face longitude"][:] - 180.0
+    vel_lon = in_file["face longitude"][:]- 180.0
     vel_lat = in_file["face latitude"][:]
     #
-    # print(vel_lon)
+
+    print(data_u, data_v)
 
     # data_u = np.mean(in_file["east velocity"][-10*1000:-1], axis=0)
     # data_v = np.mean(in_file["north velocity"][-10*1000:-1], axis=0)
 
-    # data_diss = in_file["east velocity"][:]**2 + in_file["north velocity"][:]**2
+    data_diss = in_file["east velocity"][:]**2 + in_file["north velocity"][:]**2
     # data_diss = 1.2e3 * 1000 * np.mean(data_diss, axis=0)
     data_eta = in_file["displacement"][n]
     # print(np.max(in_file["displacement"][-3*1000:]))
@@ -62,15 +70,27 @@ for i in range(nn, nn+1):
     levels=np.linspace(10, 380,21)#np.amax(data_eta), 21)
     # d = np.ma.array(d, mask=d < .2)
     # data_eta = np.ma.array(data_eta, mask=data_eta < 10)
-
+    print(data_eta)
     P = 2*np.pi/(2.05e-5)
     # print(in_file["kinetic avg output"][n]/P)
     # data_eta = data_diss
     #data_eta = data_diss
+    time = in_file["kinetic avg output"][:]
+    # data_u = np.mean(in_file["east velocity"][-1001:-1], axis=0)
+    # data_v = np.mean(in_file["north velocity"][-1001:-1], axis=0)
+    # data_eta = np.mean(in_file["displacement"][-1001:-1], axis=0)
+    
 
-    # data_u = np.mean(in_file["east velocity"][-101:-2], axis=0)
-    data_diss = np.mean(in_file["dissipated energy"][-101:-2], axis=0)
+    start = -1002
+    end = -3
 
+    print(time[start]/P, time[end]/P)
+    #data_u = get_time_average(in_file["east velocity"][start:end], time[start:end])
+    #data_v = get_time_average(in_file["north velocity"][start:end], time[start:end])
+    #data_eta = get_time_average(in_file["displacement"][start:end], time[start:end])
+    #data_diss = get_time_average(data_diss[start:end], time[start:end])
+
+    print(np.sqrt(data_u**2 + data_v**2).max())
 
     try:
         grid = np.loadtxt("input_files/grid_l" + str(N) + ".txt",skiprows=1,usecols=(1,2))
@@ -90,20 +110,7 @@ for i in range(nn, nn+1):
     # reg = (x>180) & (x<270) & (y<80) & (y>-80)
     #
     mag = np.amax(abs(np.sqrt(data_u**2.0 + data_v**2.0)))
-    # reg = mag > 1e-7
-    # # print(reg)
-    # x = x[reg]
-    # y = y[reg]
-    # # for i in range(len(reg)):
-    # #     print(x[i], y[i])
-    #
-    # # print(x, y)
-    # data_eta = data_eta[reg]
-    # data_u = data_u[reg]
-    # data_v = data_v[reg]
-    # region = region[region]
-
-    # data_diss = in_file["dissipated energy"][n]
+   
 
     # print(np.max(abs(data_u)), np.max(abs(data_v)), np.amax(data_eta))
     # print(np.max(abs(data_u)), np.max(abs(data_v)), np.amin(data_eta))
@@ -150,30 +157,44 @@ for i in range(nn, nn+1):
 
     # ax.plot(np.sum(cilm[0]**2.0, axis=-1), 'o')
 
-    fig, (ax1,ax2,ax3) = plt.subplots(ncols=3, figsize=(15,4),subplot_kw={'projection': ccrs.PlateCarree()})
+    fig, (ax1,ax2,ax3) = plt.subplots(ncols=3, figsize=(15,4))#,subplot_kw={'projection': ccrs.PlateCarree()})
     # c1 = ax1.tripcolor(triang,data_u)
     # c2 = ax2.tripcolor(triang,data_v)
     # c3 = ax3.tripcolor(triang,data_eta)
     # ax3.triplot(triang)
     # ax3.patch.set_color('.25')
-    # c1 = ax1.tricontourf(triang,data_u,11)
-    # c2 = ax2.tricontourf(triang,data_v,11)
-    c1 = ax1.tricontourf(tri_vel,data_u,11,transform=ccrs.PlateCarree())
+    c1 = ax1.tricontourf(tri_vel,data_u,11)
+    c2 = ax2.tricontourf(tri_vel,data_v,11)
+    #c2 = ax2.tricontourf(tri_vel,data_diss,11)
+    # # c1 = ax1.tricontourf(tri_vel,data_u,11,transform=ccrs.PlateCarree())
     # c2 = ax2.tricontourf(tri_vel,data_diss,11,transform=ccrs.PlateCarree())
-    c3 = ax3.tricontourf(triang,data_eta,11,transform=ccrs.PlateCarree())
-    ax3.quiver(tri_vel.x, tri_vel.y, data_u/mag, data_v/mag, scale=40.0,transform=ccrs.PlateCarree(),regrid_shape=25, pivot='mid')
+    c3 = ax3.tricontourf(triang,data_eta, 11)#,transform=ccrs.PlateCarree())
+    # c3 = ax3.tricontourf(tri_vel,np.sqrt(data_u**2 + data_v**2),11)#,transform=ccrs.PlateCarree())
+    #ax3.quiver(tri_vel.x, tri_vel.y, data_u/mag, data_v/mag, scale=40.0,transform=ccrs.PlateCarree(),regrid_shape=15, pivot='mid', color='w')
     # c3 = ax3.scatter(x, y, c=data_eta)
 
+
+    print(np.amin(data_eta))
+    # c1 = ax1.tricontourf(tri_vel,data_u,11)
+    # c2 = ax2.tricontourf(tri_vel,data_v,11)
+    # # c1 = ax1.tricontourf(tri_vel,data_u,11,transform=ccrs.PlateCarree())
+    # # c2 = ax2.tricontourf(tri_vel,data_diss,11,transform=ccrs.PlateCarree())
+
+    # c3 = ax3.tricontourf(tri_vel,np.sqrt(data_u**2.0 + data_v**2.0),11)#,transform=ccrs.PlateCarree())
+    # ax3.quiver(tri_vel.x, tri_vel.y, data_u/mag, data_v/mag, scale=40.0,transform=ccrs.PlateCarree(),regrid_shape=25, pivot='mid', color='w')
+
+
     plt.colorbar(c1, ax = ax1, orientation="horizontal")
-    # plt.colorbar(c2, ax = ax2, orientation="horizontal")
+    plt.colorbar(c2, ax = ax2, orientation="horizontal")
     plt.colorbar(c3, ax = ax3, orientation="horizontal")
 
     # ax2.set_xlim([160, 200])
     # ax2.set_ylim([-30, 30])
     # ax3.set_xlim([90, 270])
     # ax3.set_ylim([-90, 90])
+    plt.show()
 
-    fig.savefig("/home/hamish/Dropbox/Tests/plottings.pdf")
+    fig.savefig("plottings.pdf")
     # fig.savefig("/home/hamish/Dropbox/Tests/plottings_{:03d}.png".format(n), bbox_inches='tight', dpi=300)
 
     # import cartopy

@@ -9,29 +9,14 @@
 //     0.1      |        13/09/2016        |        H. Hay        |
 // ---- Initial version of ODIS, described in Hay and Matsuyama (2017)
 
-#ifdef _WIN32
-#include <direct.h>
-#include <Windows.h>
-#define getcwd _getcwd
-#define SEP "\\"
-
-#elif _WIN64
-#include <direct.h>
-#define getcwd _getcwd
-#define SEP "\\"
-
-#elif __linux__
 #include <unistd.h>
 #define SEP "/"
-
-#else
-#error "OS not supported!"
-#endif
 
 #include "globals.h"
 #include "outFiles.h"
 #include "array1d.h"
 #include "boundaryConditions.h"
+#include "gridConstants.h"
 #include <string>
 #include <fstream>
 #include <sstream>
@@ -41,8 +26,8 @@
 #include <cstring>
 #include <math.h>
 
-#include <mkl.h>
-#include <omp.h>
+// #include <mkl.h>
+// #include <omp.h>
 
 // Points constructor to second, optional constructor. --> Not actually necessary?
 Globals::Globals() :Globals(1) {};
@@ -127,6 +112,9 @@ Globals::Globals(int action) {
     period.SetStringID("orbital period");
     allGlobals.push_back(&period);
 
+    advection.SetStringID("advection");
+    allGlobals.push_back(&advection);
+
     endTime.SetStringID("simulation end time");
     allGlobals.push_back(&endTime);
 
@@ -169,6 +157,9 @@ Globals::Globals(int action) {
     field_displacement_output.SetStringID("displacement output");
     allGlobals.push_back(&field_displacement_output);
 
+    field_velocity_cart_output.SetStringID("velocity cartesian output");
+    allGlobals.push_back(&field_velocity_cart_output);
+
     field_velocity_output.SetStringID("velocity output");
     allGlobals.push_back(&field_velocity_output);
 
@@ -193,6 +184,9 @@ Globals::Globals(int action) {
     outputTime.SetStringID("output time");
     allGlobals.push_back(&outputTime);
 
+    totalIter.SetStringID("total iterations");
+    allGlobals.push_back(&totalIter);
+
     core_num.SetStringID("core number");
     allGlobals.push_back(&core_num);
 
@@ -205,6 +199,8 @@ Globals::Globals(int action) {
     fourier_coeff_file.SetStringID("fourier coeff file");
     allGlobals.push_back(&forcing_coeff_file);
 
+    rbf_eps.SetStringID("rbf epsilon");
+    allGlobals.push_back(&rbf_eps);
 
     ReadGlobals(); //Read globals from input.in file
   }
@@ -212,13 +208,24 @@ Globals::Globals(int action) {
 
   period.SetValue(2.*pi/angVel.Value());
 
+  int int_time = (int)round(period.Value() / 2) * 2;
+
+  period.SetValue((double)int_time);
+  angVel.SetValue(2*pi/(double)int_time);
+  std::cout << int_time << ' ' << 2*pi/(double)int_time<< std::endl;
+
   // Convert end time from units of orbital period to seconds.
-  endTime.SetValue(endTime.Value()*period.Value());
+  // endTime.SetValue(endTime.Value()*period.Value());
+  endTime.SetValue(endTime.Value());
 
   // geodesic node num expression (Lee and Macdonald, 2008)
-  node_num = 10 * pow(pow(2, geodesic_l.Value() - 1), 2) + 2;
-  face_num = ((node_num-12)*6 + 12*5)/2;
-  vertex_num = ((node_num-12)*6 + 12*5)/3;
+  // node_num = 10 * pow(pow(2, geodesic_l.Value() - 1), 2) + 2;
+  // face_num = ((node_num-12)*6 + 12*5)/2;
+  // vertex_num = ((node_num-12)*6 + 12*5)/3;
+
+  node_num = NODE_NUM;
+  face_num = FACE_NUM;
+  vertex_num = VERTEX_NUM;
 
   Output->CreateHDF5Framework(this);
 
@@ -249,12 +256,14 @@ Globals::Globals(int action) {
     else if (potential.Value() == "OBLIQ_WEST") tide_type = OBLIQ_WEST;
     else if (potential.Value() == "OBLIQ_EAST") tide_type = OBLIQ_EAST;
     else if (potential.Value() == "FULL")       tide_type = FULL;
+    else if (potential.Value() == "FULL2")      tide_type = FULL2;
     else if (potential.Value() == "TOTAL")      tide_type = TOTAL;
     else if (potential.Value() == "ECC_W3")     tide_type = ECC_W3;
     else if (potential.Value() == "OBLIQ_W3")   tide_type = OBLIQ_W3;
     else if (potential.Value() == "PLANET")     tide_type = PLANET;
     else if (potential.Value() == "PLANET_OBL") tide_type = PLANET_OBL;
     else if (potential.Value() == "GENERAL")    tide_type = GENERAL;
+    else if (potential.Value() == "NONE")       tide_type = NONE;
     else {
         outstring << "ERROR: NO POTENTIAL FORCING FOUND!" << std::endl;
         Output->Write(ERR_MESSAGE, &outstring);
@@ -269,6 +278,15 @@ Globals::Globals(int action) {
     else if (surface.Value() == "LID_INF")      surface_type = LID_INF;
     else {
         outstring << "ERROR: NO OCEAN SURFACE BOUNDARY CONDITION FOUND!" << std::endl;
+        Output->Write(ERR_MESSAGE, &outstring);
+        Output->TerminateODIS();
+    }
+
+    if (init.Value() == "NONE")  initial_condition = INIT_NONE;
+    else if (init.Value() == "LOAD") initial_condition = INIT_LOAD;
+    else if (init.Value() == "ANALYTICAL") initial_condition = INIT_ANALYTICAL;
+    else {
+        outstring << "ERROR: INITIAL CONDITION MUST BE 0 (none), 1 (load from file), or 2 (analytical)!" << std::endl;
         Output->Write(ERR_MESSAGE, &outstring);
         Output->TerminateODIS();
     }
@@ -289,11 +307,19 @@ Globals::Globals(int action) {
 
     applySurfaceBCs(this);
 
-    mkl_set_num_threads(core_num.Value());
-    omp_set_num_threads(core_num.Value());
+    // mkl_set_num_threads(core_num.Value());
+    // omp_set_num_threads(core_num.Value());
 
-    // Print out all constants to output.txt
-    OutputConsts();
+#if defined(TEST_SW2) || defined(TEST_SW5)
+    surface_type = FREE;
+    surface.SetValue("FREE");
+
+    tide_type = NONE;
+    potential.SetValue("NONE");
+
+    alpha.SetValue(0.0);
+#endif
+
 };
 
 int Globals::ReadGlobals(void)
@@ -403,6 +429,7 @@ int Globals::ReadGlobals(void)
 
     // Add all output tags to the string array out_tags
     if (field_velocity_output.Value())      out_tags.push_back(field_velocity_output.StringID());
+    if (field_velocity_cart_output.Value()) out_tags.push_back(field_velocity_cart_output.StringID());
     if (field_displacement_output.Value())  out_tags.push_back(field_displacement_output.StringID());
     if (field_pressure_output.Value())      out_tags.push_back(field_pressure_output.StringID());
     if (field_diss_output.Value())          out_tags.push_back(field_diss_output.StringID());
@@ -455,6 +482,10 @@ void Globals::SetDefault(void)
   // it would be safer to simply require a fully populated input.in file?
 
   core_num.SetValue(1);
+
+  advection.SetValue(false);
+
+  totalIter.SetValue(1000);
 
   //Satellite Radius
   radius.SetValue(2574.73e3);
@@ -521,7 +552,7 @@ void Globals::SetDefault(void)
   friction.SetValue("QUADRATIC");
 
   //Initial conditions
-  init.SetValue(false);
+  init.SetValue("NONE");
 
   //Output dissipated energy?
   diss_avg.SetValue(true);
@@ -535,6 +566,8 @@ void Globals::SetDefault(void)
   //Output time in fraction of orbital period. Default is set to output
   //every period.
   outputTime.SetValue(1);
+
+  rbf_eps.SetValue(0.25);
 };
 
 void Globals::OutputConsts(void)

@@ -1,7 +1,8 @@
 import numpy as np
 import h5py
 import os
-from scipy.integrate import simps
+import sys
+# from scipy.integrate import simps
 
 import matplotlib as mpl
 if "SSH_CONNECTION" in os.environ:
@@ -108,7 +109,18 @@ class FieldPlot2:
         data_name = 'north velocity'
         data_v = self.load_data(data_name=data_name, slices=slices, base_slice=b_slice)
 
+        data_name = 'displacement'
+        data_eta = self.load_data(data_name=data_name, slices=slices, base_slice=b_slice)
+
+        data_name = 'face longitude'
+        data_lon = self.load_data(data_name=data_name, slices=None, base_slice=b_slice)
+
+        data_name = 'face latitude'
+        data_lat = self.load_data(data_name=data_name, slices=None, base_slice=b_slice)
+
         data = np.sqrt(data_u**2 + data_v**2)
+
+        print(len(data_lat))
 
         if crange == None:
             cmin = np.amin(data)
@@ -129,45 +141,61 @@ class FieldPlot2:
             x = self.grid[:,1]
             y = self.grid[:,0]
 
+        x1 = data_lon 
+        y1 = data_lat
+
         triang = tri.Triangulation(x, y)
+        triang1 = tri.Triangulation(x1, y1)
 
-        if len(ax_ind) != len(slices):
-            raise ValueError("Not enough axes to plot time slices!")
+        # if len(ax_ind) != len(slices):
+        #     raise ValueError("Not enough axes to plot time slices!")
 
-        for i in range(len(slices)):
-            ax_current = self.im_grid[i]
-            self.axes.append(ax_current)
+        # for i in range(len(slices)):
+        #     ax_current = self.im_grid[i]
+        #     self.axes.append(ax_current)
 
-            cnt = ax_current.tricontourf(triang, data[i][:len(x)], levels=clevels, cmap = plt.cm.plasma)
-            ax_current.quiver(x,y,data_u[:len(x)],data_v[:len(x)],scale=0.01)
+        #     # cnt = ax_current.tricontourf(triang1, data[i][:len(x1)], levels=clevels, cmap = plt.cm.plasma)
+        #     cnt = ax_current.tricontourf(triang, data_eta[i], levels=np.arange(-0.1, 1.11, 0.1))
+        #     print(data_eta[i])
+        #     # ax_current.quiver(x1,y1,data_u[:len(x1)],data_v[:len(x1)])#,scale=0.01)
+
+        ax_current = self.im_grid[0]
+        self.axes.append(ax_current)
+
+        # cnt = ax_current.tricontourf(triang1, data[i][:len(x1)], levels=clevels, cmap = plt.cm.plasma)
+        cnt = ax_current.tricontourf(triang, data_eta[-1])#, levels=np.arange(0, 3000, 120))
+        ax_current.tricontour(triang, data_eta[-1], colors='k', linewidths=0.5)#, levels=np.arange(0, 3000, 120))#, levels=np.arange(-0.1, 1.11, 0.1))
 
         cb = self.im_grid.cbar_axes[0].colorbar(cnt, norm=norm)
-        cb.set_label_text(self.data_label["velocity"])
+        # cb.set_label_text(self.data_label["velocity"])
 
-        self.set_spatial_plot_defaults(slices,ax_ind)
+        # self.set_spatial_plot_defaults(slices,ax_ind)
 
     def plot_avg_vs_time(self,data=None,data_name="dissipation avg output",lims=[0,-1], title=''):
 
         if data == None:
             data = self.load_data(data_name=data_name, slices=None)
             time = self.load_data(data_name="kinetic avg output", slices=None)/self.period
+            vel_u = self.load_data(data_name='east velocity', slices=None)
+            vel_v = self.load_data(data_name='north velocity', slices=None)
+            eta = self.load_data(data_name='displacement', slices=None)
         # data *= 4*np.pi * (self.radius-)
-        P = 2*np.pi/2.05e-5
+        P = 2*np.pi/self.omega
         # print(time[-1002], time[-2])
-        time *= P
-        data *= 4. * np.pi * (self.radius)**2.0 /1e9
+        # time *= P
+        data *= 4. * np.pi * (self.radius - (self.h_shell - self.h_ocean))**2.0 /1e9
         # data *= 4. * np.pi * (self.radius)**2.0/1e9
         # data *= (252.1e3 - self.h_shell + self.h_ocean)**2.0
         # data *= (1./(252.1e3))**2.0
         # data *= ((252.1e3-self.h_ocean)/(252.1e3))**3.
         #data *= 4. * np.pi * (self.radius)**2.0/1e9 / (2. * self.drag_coeff)
         # print(data)
-        print(np.mean(data[-102:-2]))
+        # print(np.mean(data[-102:-2]))
         # print(simps(data[-102:-2], time[-102:-2])/P)
         # print(time[-102]/P, time[-2]/P)
         # print(time[998:1001])
 
-
+        # Ek = np.sqrt(vel_u**2.0 + vel_v**2.0)
 
         ax_current = self.fig.add_subplot(111)
 
@@ -183,7 +211,22 @@ class FieldPlot2:
         # time = time[-70000*dt:-69800*dt]
         # data = data[-70000*dt:-69800*dt]
         # t2 = np.linspace(0,dt*2,len(data))
-        ax_current.semilogy(data, lw=2.0)
+        # ax_current.semilogy(data, lw=2.0)
+
+        # print(Ek[-201:-1, 137]/np.amax(Ek[-201:, 137]))
+
+
+        # print(np.amax(Ek[-102:-1, 137]), np.amin(Ek[-102:-1, 137]))
+
+        # print(np.mean(Ek[-102:-1, 137]))
+
+        # print(time[-1001], time[-1])
+        # ax_current.plot(time[-1002:-1], Ek[-1002:-1, 0])
+
+        # ax_current.plot(time[-1002:-1], data[-1002:-1])
+        ax_current.semilogy(time[:-1], data[:-1])
+        # ax_current
+
 
         # ax_current.set_xticks(np.arange(0, t2[-1]+1, 0.5))
         # ax_current.set_xticks(np.arange(0, t2[-1], 0.25), minor=True)
@@ -199,6 +242,8 @@ class FieldPlot2:
 
         ax_current.set_xlabel('Time [Orbit \#]')
         ax_current.set_ylabel('Dissipated Power [\si{\giga\watt}]')
+
+        # ax_current.set_xlim([9900, 10000])
 
         # if title=='':
         #     ax_current.set_title(self.data_title[self.potential])
@@ -254,7 +299,7 @@ class FieldPlot2:
         in_file = h5py.File(root + "DATA/data.h5", 'r')
 
         if slices==None:
-            data = np.array(in_file[data_name])
+            data = in_file[data_name][:]
             return data
 
         if not avg:
@@ -272,7 +317,7 @@ class FieldPlot2:
         return data
 
     def save_fig(self,name="FieldPlot2_plot.pdf"):
-        self.fig.savefig(name, dpi=400, bbox_inches='tight', transparent=True)
+        self.fig.savefig(name, dpi=400, bbox_inches='tight', transparent=False)
 
     def set_defaults(self, poster=False):
         # plt.rcParams['mathtext.fontset'] = 'custom'
@@ -406,7 +451,7 @@ if __name__=='__main__':
 
     ncols = 1
     nrows = 1
-    # Plotter = FieldPlot2(ncols,nrows)
+    Plotter = FieldPlot2(ncols,nrows)
 
     plot_ax = [[0,0]]#,
             #    [1,0],[1,1],[1,2],[1,3]]
@@ -422,18 +467,19 @@ if __name__=='__main__':
     #                     lvl_num=11)
 
     # plt.show()
-    # Plotter.plot_vector(slices=slices,
-    #                     b_slice=-100,
-    #                     ax_ind=plot_ax,
-    #                     crange=None,
-    #                     lvl_num=11,
-    #                     sample=-1)
+    iter = int(sys.argv[1])
+    Plotter.plot_vector(slices=[0, iter])#slices=slices,
+                        # b_slice=-100,
+                        # ax_ind=plot_ax,
+                        # crange=None,
+                        # lvl_num=11,
+                        # sample=-1)
 
     # slices = np.arange(0,300,1,dtype=np.int)
 
-    ncols = 1
-    nrows = 1
-    Plotter = FieldPlot2(ncols,nrows)
+    # ncols = 1
+    # nrows = 1
+    # Plotter = FieldPlot2(ncols,nrows)
 
     # data_d1_u = Plotter.load_data(base_slice=70000,slices=slices,data_name="east velocity",root='/home/hamish/Research/InfShell/Ganymede/tests/ecc_lib_east/')
     # data_d2_u = Plotter.load_data(base_slice=70000,slices=slices,data_name="east velocity",root='/home/hamish/Research/InfShell/Ganymede/tests/ecc_lib_west/')
@@ -456,14 +502,13 @@ if __name__=='__main__':
     # plt.show()
     # print(data)
     # data = np.mean(data, axis=1)
-    Plotter.plot_avg_vs_time()
-    # Plotter.plot_avg_vs_time(data=data, title="Normalized velocity magnitude\nEccentricity west+east")
+    # Plotter.plot_avg_vs 
 
-    # Plotter.set_defaults()
-    fig, axes = Plotter.get_fig()
-    # axes[0][0].set_title()
+    Plotter.save_fig(name='velocity_soln.png')
 
-
-    plt.show()
-
-    Plotter.save_fig(name='/home/hamish/Dropbox/Tests/diss_eng.pdf')
+    fig,ax = plt.subplots()
+    data = Plotter.load_data(data_name="dissipation avg output", slices=None)
+    print(data)
+    print(len(data))
+    ax.plot(data[data>0])
+    fig.savefig("dissipation.png",dpi=400,bbox_inches='tight')

@@ -8,11 +8,22 @@
 #include "mathRoutines.h"
 #include "sphericalHarmonics.h"
 
-#include <mkl.h>
-#include <mkl_spblas.h>
-// #include <Eigen/Sparse>
-//
-// typedef Eigen::SparseMatrix<double, Eigen::RowMajor> SpMat;
+//#include <mkl.h>
+//#include <mkl_spblas.h>
+#include <Eigen/Sparse>
+#include <Eigen/Dense>
+#include <Eigen/SparseCholesky>
+
+typedef Eigen::SparseMatrix<double, Eigen::RowMajor> SpMat;
+typedef Eigen::Map< SpMat > SpMatMap;
+typedef Eigen::Triplet<double> Triplet;
+// typedef Eigen::Vector<doub
+
+typedef Eigen::Matrix<double,1,Eigen::Dynamic> DenVector;
+typedef Eigen::Map<DenVector> MapVector;
+
+typedef Eigen::Matrix<double, Eigen::Dynamic, 6, Eigen::RowMajor> Vandermonde;
+typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> DenseMat;
 
 class Globals;
 
@@ -22,6 +33,7 @@ private:
   int ReadMeshFile(void);
   int ReadLatLonFile(void);
   int ReadWeightingFile(void);
+  int ReadLeastSquaresFile(void);
   int CalcMappingCoords(void);
   int CalcVelocityTransformFactors(void);
   int CalcControlVolumeEdgeLengths(void);
@@ -35,6 +47,7 @@ private:
   int CalcTrigFunctions(void);
   int CalcNodeDists(void);
   int CalcMaxTimeStep(void);
+  int CalcControlVolumeInterpMatrix(void);
 
   int AssignFaces(void);
 
@@ -46,10 +59,13 @@ private:
   int CalcLaplaceOperatorCoeffs(void);
   int CalcCoriolisOperatorCoeffs(void);
   int CalcLinearDragOperatorCoeffs(void);
+  int CalcCurlOperatorCoeffs(void);
+  int CalcAdjacencyMatrix(void);
+  int CalcRBFInterpMatrix(void);
+  int CalcRBFInterpMatrix2(void);
+  int CalcFreeSurfaceSolver(void);
   int GeneratePressureSolver(void);
   int GenerateMomentumOperator(void);
-
-
 
 public:
 //	Mesh(); //constructor
@@ -96,6 +112,8 @@ public:
   // from Lee and Macdonald (2009)
   Array3D<double> node_vel_trans;
 
+  Array2D<double> node_node_RBF;
+
   // Array to store the edge length of each side to the control volume surrounding
   // the central node
   Array2D<double> control_vol_edge_len;
@@ -103,6 +121,9 @@ public:
   // Array to store the midpoint of each side to the control volume surrounding
   // the central node
   Array3D<double> control_vol_edge_centre_pos_map;
+  Array3D<double> control_vol_edge_centre_pos_sph;
+  // Array3D<double> node_face_normal_vec_map;
+
 
   // Array to store the midpoint mapping factor of each side to the control
   // volume surrounding the central node
@@ -111,10 +132,6 @@ public:
   // Array to store the midpoint normal vectors to each side of the control
   // volume surroinding the central node
   Array3D<double> control_vol_edge_normal_map;
-
-  // Array to store the gradient, divergence, and Laplacian operator coefficients
-  Array3D<double> grad_coeffs;
-  Array3D<double> div_coeffs;
 
   // Array to store the area of the control volume for each node
   Array1D<double> control_volume_surf_area_map;
@@ -141,15 +158,18 @@ public:
   // Array2D<int> face_friends;
   Array2D<int> face_dir;
   Array2D<double> face_normal_vec_map;
-  Array1D<int> face_normal_vec_dir;
+  Array2D<double> face_normal_vec_xyz;
   Array1D<double> face_node_dist;
+  Array1D<double> face_node_dist_r;
+  Array2D<double> node_face_arc; // angular distance between node and face center
+  Array2D<double> node_face_RBF;
   Array2D<double> face_centre_pos_sph;
   Array2D<double> face_intercept_pos_sph;
   Array2D<double> face_centre_m;
   Array3D<double> face_node_pos_map;
   Array1D<double> face_len;
   Array2D<int> node_face_dir;
-  Array3D<double> node_face_vel_trans;
+  Array3D<double> face_node_vel_trans;
   Array1D<int> face_is_boundary;
 
   Array2D<int> vertexes;
@@ -157,6 +177,11 @@ public:
   Array2D<double> vertex_R;
   Array2D<int> vertex_nodes;
   Array2D<double> node_R;
+  Array2D<int> vertex_faces;
+  Array2D<int> vertex_face_dir;
+  Array1D<double> vertex_area;
+  Array1D<double> vertex_area_r;
+  Array1D<double> vertex_sinlat;
 
   Array2D<int> face_interp_friends;
   Array2D<double> face_interp_weights;
@@ -176,21 +201,50 @@ public:
 
   // Handle to the Intel MKL direct sparse matrix solver to solve an elliptical
   // equation in pressure correction
-  _MKL_DSS_HANDLE_t pressureSolverHandle;
+  // _MKL_DSS_HANDLE_t pressureSolverHandle;
 
-  sparse_matrix_t * interpMatrix;
+  // sparse_matrix_t * interpMatrix;
 
-  sparse_matrix_t * operatorMomentum;
-  sparse_matrix_t * operatorLaplacian;
-  sparse_matrix_t * operatorLaplacian2;
-  sparse_matrix_t * operatorGradientX;
-  sparse_matrix_t * operatorGradientY;
-  sparse_matrix_t * operatorGradient;
-  sparse_matrix_t * operatorDivergence;
-  sparse_matrix_t * operatorDivergenceX;
-  sparse_matrix_t * operatorDivergenceY;
-  sparse_matrix_t * operatorCoriolis;
-  sparse_matrix_t * operatorLinearDrag;
+  SpMat operatorLinearDrag;
+  SpMat operatorCoriolis;
+  SpMat operatorDivergence;
+  SpMat operatorGradient;
+  SpMat operatorCurl;
+  SpMat node2faceAdj;
+  SpMat node2nodeAdj;
+  SpMat operatorRBFinterp;
+  // SpMat rbfDeriv2;
+  SpMat operatorSecondDeriv;
+  SpMat operatorDirectionalSecondDeriv;
+
+  SpMat interpMatrix;
+  SpMat vandermondeInv;
+
+  // Eigen::ColPivHouseholderQR<Eigen::MatrixXd> * interpSolvers;
+  Eigen::FullPivLU<Eigen::MatrixXd> * interpSolvers;
+  // Vandermonde * interpVandermonde;
+  std::vector<Eigen::MatrixXd> interpVandermonde;
+  std::vector<Eigen::MatrixXd> interpVandermondeScalar;
+  Eigen::MatrixXd * interpSolversInv;
+  // Eigen::ColPivHouseholderQR<Eigen::MatrixXd> * interpSolvers2;
+  Eigen::LLT<Eigen::MatrixXd> * interpSolvers2;
+  Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> cg;
+  // Eigen::LeastSquaresConjugateGradient<Eigen::SparseMatrix<double>> cg;
+
+
+  // Eigen::Matrix5d * interpSolvers;
+
+  // sparse_matrix_t * operatorMomentum;
+  // sparse_matrix_t * operatorLaplacian;
+  // sparse_matrix_t * operatorLaplacian2;
+  // sparse_matrix_t * operatorGradientX;
+  // sparse_matrix_t * operatorGradientY;
+  // sparse_matrix_t * operatorGradient;
+  // sparse_matrix_t * operatorDivergence;
+  // sparse_matrix_t * operatorDivergenceX;
+  // sparse_matrix_t * operatorDivergenceY;
+  // sparse_matrix_t * operatorCoriolis;
+  // sparse_matrix_t * operatorLinearDrag;
 
   Globals * globals;
 

@@ -10,6 +10,11 @@
 const double pi = 3.1415926535897932384626433832795028841971693993751058;
 const double radConv = pi / 180.0; // global constant for converting deg --> rad
 
+template <typename T> inline int sgn(T val);
+template <typename T> int sgn(T val) {
+    return (T(0) < val) - (val < T(0));
+}
+
 inline void sph2cart(double &, double &, double &, double, double, double);
 inline void sph2cart(double &x, double &y, double &z, double r, double colat, double lon)
 {
@@ -25,6 +30,27 @@ inline void mapFactorAtPoint(double &, double, double, double, double);
 inline void mapFactorAtPoint(double &m, double lat1, double lat2, double lon1, double lon2)
 {
   m = 2.0 / (1.0 + sin(lat1)*sin(lat2) + cos(lat1)*cos(lat2)*cos(lon2 - lon1));
+}
+
+inline std::array<double, 3> sphUnitVec2Cart(std::array<double, 2> sph, std::array<double, 2> n_sph);
+inline std::array<double, 3> sphUnitVec2Cart(std::array<double, 2> sph, std::array<double, 2> n_sph)
+{
+  std::array<double, 3> unit_vec;
+  double lat = sph[0];
+  double colat = pi*0.5 - lat;
+  double lon = sph[1];
+
+  // Get cartesian coord position of sph (assumes unit sphere)
+  double x = sin(colat)*cos(lon);
+  double y = sin(colat)*sin(lon);
+  double z = cos(colat);
+
+  double zfact = 1.0/sqrt(1-pow(z,2.0));
+  unit_vec[0] = zfact * (-y);        // x-component  
+  unit_vec[1] = zfact * (x);        // y-component 
+  unit_vec[2] = 0.0;//zfact * (1 - pow(z,2.0)); // z-component
+
+  return unit_vec;
 }
 
 // Mapping function from Lee and Macdonald (2009) to get to GSTC.
@@ -104,6 +130,30 @@ inline void distanceBetweenSph(double &, double &, double &, double &, double &,
 inline void distanceBetweenSph(double &len, double &lat1, double &lat2, double &lon1, double &lon2, double &r)
 {
   len = r * acos(sin(lat1) * sin(lat2) + cos(lat1) * cos(lat2) * cos(lon2-lon1));
+}
+
+
+// Function to return angular distance between two sets of spherical coordinates
+// Better than the above for small angles!
+inline double distanceBetweenSph2(double sph1[], double sph2[]);
+inline double distanceBetweenSph2(double sph1[], double sph2[])
+{
+  double V1[3], V2[3]; 
+
+  // Fills V1 and V2 with cartesian coordinates of p1 and p2
+  sph2cart(V1[0], V1[1], V1[2], 1.0, pi*0.5 - sph1[0], sph1[1]);
+  sph2cart(V2[0], V2[1], V2[2], 1.0, pi*0.5 - sph2[0], sph2[1]);
+
+  double V1crossV2Mag;
+  V1crossV2Mag = pow(V1[1]*V2[2] - V1[2]*V2[1], 2.0);
+  V1crossV2Mag += pow( -(V1[0]*V2[2] - V1[2]*V2[0]), 2.0);
+  V1crossV2Mag += pow(V1[0]*V2[1] - V1[1]*V2[0], 2.0);
+  V1crossV2Mag = sqrt(V1crossV2Mag);
+
+  double V1dotV2;
+  V1dotV2 = V1[0]*V2[0] + V1[1]*V2[1] + V1[2]*V2[2];
+
+  return atan2(V1crossV2Mag, V1dotV2);
 }
 
 inline void midpointBetween(double &, double &, double &, double &, double &, double &);
@@ -191,38 +241,61 @@ inline void normalVectorBetweenMap(double n[], double sph1[], double sph2[])
   n[1] = xx;
 }
 
-// Function to find the outward unit vector between two points with coordinates
-// p1 = (x1,y1) and p2 = (x2,y2)
-inline void normalVectorBetweenSph(double &, double &, double &);
-inline void normalVectorBetweenSph(double sph1[], double sph2[], double sph3[])
+// Function to find the normal unit vector in cartesian space between two points
+// with spherical coordinates sph1 and sph2
+inline void normalVectorBetweenXYZ(double &, double &, double &);
+inline void normalVectorBetweenXYZ(double sph1[], double sph2[], double nxyz[])
 {
-    double c1[3], c2[3], n[3], sph_mid[3];
+    double c1[3], c2[3];
 
 
 
     // Get cartesian coords of each spherical coordiate
-    sph2cart(c1[0], c1[1], c1[2], 1.0, sph1[0], sph1[1]);
-    sph2cart(c2[0], c2[1], c2[2], 1.0, sph2[0], sph2[1]);
+    sph2cart(c1[0], c1[1], c1[2], 1.0, pi*0.5 - sph1[0], sph1[1]);
+    sph2cart(c2[0], c2[1], c2[2], 1.0, pi*0.5 - sph2[0], sph2[1]);
 
     // Take cross product to find vector tangent to line between sph1 and sph2
-    n[0] = c1[1]*c2[2] - c1[2]*c2[1];
-    n[1] = -(c1[0]*c2[2] - c1[2]*c2[0]);
-    n[2] = c1[0]*c2[1] - c1[1]*c2[0];
+    nxyz[0] = c1[1]*c2[2] - c1[2]*c2[1];
+    nxyz[1] = -(c1[0]*c2[2] - c1[2]*c2[0]);
+    nxyz[2] = c1[0]*c2[1] - c1[1]*c2[0];
 
-    double mag = sqrt(n[0]*n[0] + n[1]*n[1] + n[2]*n[2]);
+    double mag = sqrt(nxyz[0]*nxyz[0] + nxyz[1]*nxyz[1] + nxyz[2]*nxyz[2]);
 
-    n[0] /= mag;
-    n[1] /= mag;
-    n[2] /= mag;
+    nxyz[0] /= mag;
+    nxyz[1] /= mag;
+    nxyz[2] /= mag;
 
-    midpointBetweenSph(sph1, sph2, sph_mid);
+    // midpointBetweenSph(sph1, sph2, sph_mid);
 
-    double lat = sph_mid[0];
-    double lon = sph_mid[1];
+    // double lat = sph_mid[0];
+    // double lon = sph_mid[1];
 
-    sph3[0] = sin(lat)*cos(lon)*n[0] + sin(lat)*sin(lon)*n[1] - cos(lat)*n[2];
-    sph3[1] = -sin(lon)*n[0] + cos(lon)*n[1];
-    sph3[2] = cos(lat)*cos(lon)*n[0] + cos(lat)*sin(lon)*n[1] + sin(lat)*n[2];
+    // double cxyz[3];
+
+    // // Get cartesian coords of face midpoint
+    // sph2cart(cxyz[0], cxyz[1], cxyz[2], 1.0, sph_mid[0], sph_mid[1]);
+
+    // double lonx, lony, lonz;
+    // double latx, laty, latz;
+    // double zfact = 1.0/sqrt(1 - pow(cxyz[2], 2.0));
+
+    // // longitude unit vector, in cartesian components
+    // lonx = zfact * -cxyz[1];
+    // lony = zfact * cxyz[0];
+    // lonz = 0.0;
+    
+    // // latitude unit vector, in cartesian components
+    // latx = zfact * -cxyz[2]*cxyz[0];
+    // laty = zfact * -cxyz[2]*cxyz[1];
+    // latz = zfact * (1-cxyz[2]*cxyz[2]);
+
+    // double nlon, nlat;
+
+    // // lat and lon unit vectors 
+    // nlon = n[0]*lonx + n[1]*lony + n[2]*lonz;
+    // nlat = n[0]*latx + n[1]*laty + n[2]*latz;
+
+    
 
 }
 
@@ -353,6 +426,31 @@ inline void triangularAreaSph(double &area, double &lat1, double &lat2, double &
   C = fabs(acos((cos(c) - cos(b)*cos(a))/(sin(b)*sin(a))));
 
   area = pow(r,2.0) * fabs((A + B + C) - pi);
+}
+
+inline double RBF(double dist, double eps);
+inline double RBF(double dist, double eps)
+{
+
+  double phi = exp(-pow(eps*dist, 2.0));
+  if (dist<1e-8) phi = 1;
+  
+  return phi;
+}
+
+inline double gaussian(double lat, double lon, double lat0, double lon0, double r, double amp);
+inline double gaussian(double lat, double lon, double lat0, double lon0, double r, double amp)
+{
+    double x, y, z, h;
+
+    x = (cos(lat)*cos(lon) - cos(lat0)*cos(lon0));
+    y = (cos(lat)*sin(lon) - cos(lat0)*sin(lon0));
+    z = (sin(lat) - sin(lat0));
+
+    h = amp*exp(-5 * (x*x + y*y + z*z));
+
+    return h;
+
 }
 
 //

@@ -31,7 +31,7 @@ fname = "div_test.txt"
 infile = np.loadtxt("div_test.txt")
 print(infile)
 
-grid = np.loadtxt("input_files/grid_l7.txt",skiprows=1,usecols=(1,2))
+grid = np.loadtxt("input_files/grid_l5.txt",skiprows=1,usecols=(1,2))
 x = np.degrees(grid[2:,1])
 y = np.degrees(grid[2:,0])
 triang = tri.Triangulation(x, y)

@@ -7,6 +7,10 @@
 #include "array2d.h"
 #include "array1d.h"
 
+int getInitialConditions(Globals *, Mesh * mesh,
+                          Array1D<double> &, Array2D<double> &,
+                          Array1D<double> &, Array2D<double> &, double time=0.0);
+
 int loadInitialConditions(Globals *, Mesh * mesh,
                           Array1D<double> &, Array2D<double> &,
                           Array1D<double> &, Array2D<double> &);
@@ -14,5 +18,9 @@ int loadInitialConditions(Globals *, Mesh * mesh,
 int writeInitialConditions(Globals *, Mesh *,
                            Array1D<double> &, Array2D<double> &,
                            Array1D<double> &, Array2D<double> &);
+
+int analyticalInitialConditions(Globals *, Mesh *,
+                                Array1D<double> &, Array2D<double> &,
+                                Array1D<double> &, Array2D<double> &);
 
 #endif

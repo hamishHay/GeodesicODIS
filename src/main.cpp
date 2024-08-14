@@ -38,6 +38,7 @@
 #include "array2d.h"
 #include "solver.h"
 #include "tests.h"
+#include "gridConstants.h"
 
 
 #include <iostream>
@@ -55,9 +56,13 @@ int main(void)
 
   Mesh * grid = new Mesh(constants, constants->node_num, constants->face_num, constants->vertex_num, (int)constants->dLat.Value(), constants->l_max.Value());
 
-  // runOperatorTests(constants, grid);
+  constants->OutputConsts();
 
-  solveODIS(constants, grid);
+  #if defined(TEST_OPERATORS)
+    runOperatorTests(constants, grid);
+  #else
+    solveODIS(constants, grid);
+  #endif 
 
   return 0;
 }

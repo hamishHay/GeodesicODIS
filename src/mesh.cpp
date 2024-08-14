@@ -5,10 +5,11 @@
 #include "array2d.h"
 #include "array3d.h"
 #include "mathRoutines.h"
+#include "gridConstants.h"
 // #include "sphericalHarmonics.h"
 
-#include <mkl.h>
-#include <mkl_spblas.h>
+// #include <mkl.h>
+// #include <mkl_spblas.h>
 
 #include <string>
 #include <fstream>
@@ -20,6 +21,8 @@
 
 #include "H5Cpp.h"
 
+#include <Eigen/Sparse>
+
 #ifndef H5_NO_NAMESPACE
 using namespace H5;
 #endif
@@ -27,92 +30,94 @@ using namespace H5;
 //Mesh::Mesh():Mesh(2., 2.) {}; //default constructor
 
 Mesh::Mesh(Globals * Globals, int N, int face_N, int vertex_N, int N_ll, int l_max)
-   :node_pos_sph(N,2),
-    node_pos_map(N,7,2),        // len 7 to include central node coords (even though it's zero)
-    node_friends(N,6),
-    node_dists(N,6),
-    centroid_pos_sph(N,6,2),
-    centroid_pos_map(N,6,2),
-    node_m(N,7),                // len 7 to include central (parent) node
-    centroid_m(N,6),            // len 6 as there is are only 5 or 6 centroids
-    node_vel_trans(N,7,2),      // In the last dimension, element 1 is cos_a, element 2 is sin_a
-    control_vol_edge_len(N,6),
-    control_vol_edge_centre_pos_map(N,6,2),
-    control_vol_edge_centre_m(N,6),
-    control_vol_edge_normal_map(N,6,2),
-    control_volume_surf_area_map(N),
-    control_volume_mass(N),
-    node_friend_element_areas_map(N,6,3),
-    centroid_node_dists_map(N,6),
-    grad_coeffs(N, 7, 2),
-    div_coeffs(N, 7, 2),
+   :node_pos_sph(NODE_NUM,2),
+    node_pos_map(NODE_NUM,7,2),        // len 7 to include central node coords (even though it's zero)
+    node_friends(NODE_NUM,6),
+    node_dists(NODE_NUM,6),
+    node_face_arc(NODE_NUM,6),
+    node_face_RBF(NODE_NUM,6),
+    node_node_RBF(NODE_NUM,7),
+    centroid_pos_sph(NODE_NUM,6,2),
+    centroid_pos_map(NODE_NUM,6,2),
+    node_m(NODE_NUM,7),                // len 7 to include central (parent) node
+    centroid_m(NODE_NUM,6),            // len 6 as there is are only 5 or 6 centroids
+    node_vel_trans(NODE_NUM,7,2),      // In the last dimension, element 1 is cos_a, element 2 is sin_a
+    control_vol_edge_len(NODE_NUM,6),
+    control_vol_edge_centre_pos_map(NODE_NUM,6,2),
+    control_vol_edge_centre_pos_sph(NODE_NUM,6,2),
+    control_vol_edge_centre_m(NODE_NUM,6),
+    control_vol_edge_normal_map(NODE_NUM,6,2),
+    // control_vol_edge_intercept_normal(NODE_NUM,6,2)
+    control_volume_surf_area_map(NODE_NUM),
+    control_volume_mass(NODE_NUM),
+    node_friend_element_areas_map(NODE_NUM,6,3),
+    centroid_node_dists_map(NODE_NUM,6),
 
-    trigLat(N,2),
-    trigLon(N,2),
-    trig2Lat(N,2),
-    trig2Lon(N,2),
-    trigSqLat(N,2),
-    trigSqLon(N,2),
+    trigLat(NODE_NUM,2),
+    trigLon(NODE_NUM,2),
+    trig2Lat(NODE_NUM,2),
+    trig2Lon(NODE_NUM,2),
+    trigSqLat(NODE_NUM,2),
+    trigSqLon(NODE_NUM,2),
 
-    Pbar_20(N),
-    Pbar_22(N),
+    Pbar_20(NODE_NUM),
+    Pbar_22(NODE_NUM),
 
-    // Pbar_lm(N),
+    // Pbar_lm(NODE_NUM),
 
-    faces(N, 6),
-    face_dir(face_N, 2),
-    face_normal_vec_map(face_N, 2),
-    face_normal_vec_dir(face_N),
-    face_nodes(face_N, 2), //---> ID of nodes that belong to each face
-    face_vertexes(face_N, 2), //---> ID of vertexes that belong to each face
-    // face_friends(face_N, 2),
-    face_interp_friends(face_N, 10),
-    face_interp_weights(face_N, 10),
-    face_node_pos_map(face_N, 2, 2),
-    face_node_dist(face_N),
-    face_centre_m(face_N, 2),
-    face_centre_pos_sph(face_N, 2),
-    face_intercept_pos_sph(face_N, 2),
-    face_area(face_N),
-    face_len(face_N),
-    node_face_dir(N, 6),
-    node_face_vel_trans(N, 6, 2),
-    face_is_boundary(face_N),
+    faces(NODE_NUM, 6),
+    face_dir(FACE_NUM, 2),
+    face_normal_vec_map(FACE_NUM, 2),
+    face_normal_vec_xyz(FACE_NUM, 3), // cartesian components of face normal vector.
+    face_nodes(FACE_NUM, 2), //---> ID of nodes that belong to each face
+    face_node_vel_trans(FACE_NUM, 2, 2),
+    face_vertexes(FACE_NUM, 2), //---> ID of vertexes that belong to each face
+    // face_friends(FACE_NUM, 2),
+    face_interp_friends(FACE_NUM, 10),
+    face_interp_weights(FACE_NUM, 10),
+    face_node_pos_map(FACE_NUM, 2, 2), 
+    face_node_dist(FACE_NUM),
+    face_node_dist_r(FACE_NUM),
+    face_centre_m(FACE_NUM, 2),
+    face_centre_pos_sph(FACE_NUM, 2),
+    face_intercept_pos_sph(FACE_NUM, 2),
+    face_area(FACE_NUM),
+    face_len(FACE_NUM),
+    node_face_dir(NODE_NUM, 6),
+    face_is_boundary(FACE_NUM),
 
-    vertexes(N, 6),
-    vertex_pos_sph(vertex_N, 2),
-    vertex_R(vertex_N, 3),
-    vertex_nodes(vertex_N, 3),
-    node_R(N, 6),
+    vertexes(NODE_NUM, 6),
+    vertex_pos_sph(VERTEX_NUM, 2),
+    vertex_R(VERTEX_NUM, 3),
+    vertex_nodes(VERTEX_NUM, 3),
+    vertex_faces(VERTEX_NUM, 3),
+    vertex_face_dir(VERTEX_NUM, 3),
+    vertex_area(VERTEX_NUM),
+    vertex_area_r(VERTEX_NUM),
+    node_R(NODE_NUM, 6),
+    vertex_sinlat(VERTEX_NUM),
 
 
-    sh_matrix(N, (l_max+1)*(l_max+2) - 6), //-6 is to ignore degrees 0 and 1
-    sh_matrix_fort(N*((l_max+1)*(l_max+2) - 6)),
+    sh_matrix(NODE_NUM, (l_max+1)*(l_max+2) - 6), //-6 is to ignore degrees 0 and 1
+    sh_matrix_fort(NODE_NUM*((l_max+1)*(l_max+2) - 6)),
 
-    cell_is_boundary(N),
+    cell_is_boundary(NODE_NUM),
 
 
-    trigMLon(N, l_max+1, 2)
+    trigMLon(NODE_NUM, l_max+1, 2)
 {
 
     globals = Globals;                   // define reference to all constants
 
-    node_num = globals->node_num;
-    face_num = globals->face_num;
-    vertex_num = globals->vertex_num;
-
     // Read in grid file
     ReadMeshFile();
-
-
 
     // Calculate mapping coordinates
     CalcMappingCoords();
 
     CalcNodeDists();
 
-    // Calculate velocity transform factors
-    CalcVelocityTransformFactors();
+    
 
     // Find control volume edge lengths in mapping coords
     CalcControlVolumeEdgeLengths();
@@ -123,6 +128,9 @@ Mesh::Mesh(Globals * Globals, int N, int face_N, int vertex_N, int N_ll, int l_m
 
     // Find control volume edge outward normal unit vectors
     CalcControlVolumeEdgeNormals();
+
+    // Calculate velocity transform factors
+    CalcVelocityTransformFactors();
 
     // Find control volume area for each node
     CalcControlVolumeArea();
@@ -139,34 +147,290 @@ Mesh::Mesh(Globals * Globals, int N, int face_N, int vertex_N, int N_ll, int l_m
 
     CalcMaxTimeStep();
 
-    CalcLegendreFuncs();
+    // // CalcLegendreFuncs();
 
     CalcControlVolumeVertexR();
 
     AssignFaces();
 
-    DefineBoundaryCells();
+    CalcVelocityTransformFactors();
+
+    // DefineBoundaryCells();
+
+   
 
     CalcGradOperatorCoeffs();
 
     CalcDivOperatorCoeffs();
 
-    // CalcLaplaceOperatorCoeffs();
+    // // CalcLaplaceOperatorCoeffs();
+
+    CalcCurlOperatorCoeffs();
 
     CalcCoriolisOperatorCoeffs();
 
     CalcLinearDragOperatorCoeffs();
 
-    // GeneratePressureSolver();
-
-    GenerateMomentumOperator();
-
-    if (globals->surface_type != FREE) {
-        ReadWeightingFile();
-    }
     
 
+    // // // GeneratePressureSolver();
+
+    // // GenerateMomentumOperator();
+
+    // if (globals->surface_type != FREE) {
+    //     ReadWeightingFile();
+    // }
+
+    CalcAdjacencyMatrix();
+
+    CalcControlVolumeInterpMatrix();
+    
+    CalcRBFInterpMatrix();
+    CalcRBFInterpMatrix2();
+
+    CalcFreeSurfaceSolver();
+
+
     globals->Output->DumpGridData(this);
+
+      
+};
+
+int Mesh::CalcControlVolumeInterpMatrix(void)
+{
+    double r = globals->radius.Value();
+
+    // interpSolvers = new Eigen::ColPivHouseholderQR<Eigen::MatrixXd>[NODE_NUM];
+    interpSolvers = new Eigen::FullPivLU<Eigen::MatrixXd>[NODE_NUM];
+    // interpVandermonde = new Eigen::MatrixXd[NODE_NUM];
+
+    // Eigen::VectorX< > interpVectors = 
+    // interpSolvers 
+    // vandermondeInv = SpMat((NODE_NUM-12)*7 + 12*6, 2);
+    interpSolvers2 = new Eigen::LLT<Eigen::MatrixXd>[NODE_NUM];
+
+    // test = Eigen::MatrixXd<Eigen::ColPivHouseholderQR<Eigen::MatrixXd>
+
+    for (int i=0; i<NODE_NUM; i++) {
+        
+        int f_num = 6;
+        if ( node_friends(i, 5) == -1 ) f_num--;
+
+        Vandermonde V(f_num+1, 6);
+        
+        
+
+        int j = 0;
+        for (j=0; j<f_num+1; j++) {
+            double x, y; 
+           
+            x = node_pos_map(i, j, 0)/r;
+            y = node_pos_map(i, j, 1)/r;
+
+            V(j, 0) = 1.0;
+            V(j, 1) = x;
+            V(j, 2) = y;
+            V(j, 3) = pow(x, 2.0);
+            V(j, 4) = x*y;
+            V(j, 5) = pow(y, 2.0); 
+            
+        }
+
+        interpSolvers[i].compute(V);
+
+        // Eigen::HouseholderQR<Eigen::MatrixXd> qr(V.transpose());
+        // Eigen::MatrixXd pinv;
+        // pinv.setIdentity(V.cols(), V.rows());
+        // pinv = qr.householderQ() * pinv;
+        // pinv = qr.matrixQR().topLeftCorner(V.rows(),V.rows()).triangularView<Eigen::Upper>().transpose().solve<Eigen::OnTheRight>(pinv);
+
+
+        // Eigen::MatrixXd B = (V.transpose() * V).completeOrthogonalDecomposition().pseudoInverse() * V.transpose(); 
+        // // interpVandermonde[i] = V;
+        // // interpVandermonde.push_back((V.transpose() * V).completeOrthogonalDecomposition().pseudoInverse() * V.transpose() );
+        // interpVandermonde.push_back(pinv);
+        // if (i< 200) std::cout<<i<<' '<<sizeof(V)<<std::endl;
+        
+    }
+
+    {
+        int friend_num, f_IDj, f_IDi;
+        double sphn[2];
+        double sphfi[2], sphfj[2];
+        double sph_n[3];
+        double arc, phi, aij;
+        double eps = globals->rbf_eps.Value();  
+        double x1, x2, y1, y2;
+        for (int i=0; i<NODE_NUM; i++) 
+        {
+            // check if node is pentagon 
+            friend_num = 6;
+            if (node_friends(i, 5) < 0) friend_num--;
+
+            DenseMat matrix(friend_num+1, friend_num+1);
+
+            sphn[0] = node_pos_sph(i,0);        // Node lat
+            sphn[1] = node_pos_sph(i,1);        // Node Lon 
+
+            arc = distanceBetweenSph2(sphn, sphn);
+    
+            matrix(0, 0) = 1.0;
+
+            // loop through all faces again
+            for (int j1=0; j1<friend_num; j1++)
+            {
+                // Get face ID
+                f_IDi = node_friends(i, j1);
+
+                
+
+                sphfi[0] = node_pos_sph(f_IDi,0);     // Face 2 lat
+                sphfi[1] = node_pos_sph(f_IDi,1);     // Face 2 lon
+
+                // Get radial basis function between face centre j1 and j1
+                // using constant shapre parameter eps=2
+                arc = distanceBetweenSph2(sphn, sphfi);
+
+                x1 = node_pos_map(i,j1+1,0)/r;
+                y1 = node_pos_map(i,j1+1,1)/r;
+                arc = sqrt(x1*x1 + y1*y1);
+
+                matrix(0, j1+1) = RBF(arc, eps);
+            }
+
+            
+
+            // loop through all j faces
+            for (int j1=0; j1<friend_num; j1++)
+            {
+                f_IDj = node_friends(i, j1);
+
+                sphfj[0] = node_pos_sph(f_IDj,0);     // Face 1 lat
+                sphfj[1] = node_pos_sph(f_IDj,1);     // Face 1 lon
+
+                arc = distanceBetweenSph2(sphfj, sphn);
+
+                x1 = node_pos_map(i,j1+1,0)/r;
+                y1 = node_pos_map(i,j1+1,1)/r;
+                arc = sqrt(x1*x1 + y1*y1);
+                
+                matrix(j1+1, 0) = RBF(arc, eps);
+
+                node_node_RBF(i, j1+1) = RBF(arc, eps);
+
+                // loop through all faces again
+                for (int j2=0; j2<friend_num; j2++)
+                {
+                    // Get face ID
+                    f_IDi = node_friends(i, j2);
+
+                    sphfi[0] = node_pos_sph(f_IDi,0);     // Face 2 lat
+                    sphfi[1] = node_pos_sph(f_IDi,1);     // Face 2 lon
+
+                    // Get radial basis function between face centre j1 and j2
+                    // using constant shapre parameter eps=2
+                    arc = distanceBetweenSph2(sphfj, sphfi);    
+
+                    x2 = node_pos_map(i,j2+1,0)/r;
+                    y2 = node_pos_map(i,j2+1,1)/r;
+                    arc = sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));           
+
+                    matrix(j1+1, j2+1) = RBF(arc, eps);
+                }
+
+                // arc = distanceBetweenSph2(sphn, sphfj);
+                // node_node_RBF(i, j1+1) = RBF(arc, eps);
+            }
+            node_node_RBF(i, 0) = 1.0;
+            
+
+            // // Compute the Cholesky decomposition of the interpolation matrix
+            // // interpSolvers[i].compute(matrix);
+
+            // interpVandermondeScalar.push_back(matrix.completeOrthogonalDecomposition().pseudoInverse());
+            interpVandermondeScalar.push_back(matrix);
+        // std::cout<<matrix<<std::endl<<std::endl;
+
+        }
+
+
+    }
+
+
+    // Get solvers for RBF matrix 
+    r = globals->radius.Value();
+    {
+        int friend_num, f_IDj, f_IDi;
+        double sphn[2];
+        double sphfi[2], sphfj[2];
+        double njx, njy, njz;
+        double nix, niy, niz;
+        double sph_n[3];
+        double arc, phi, aij;
+        for (int i=0; i<NODE_NUM; i++) 
+        {
+            // check if node is pentagon 
+            friend_num = 6;
+            if (node_friends(i, 5) < 0) friend_num--;
+
+            DenseMat matrix(friend_num, friend_num);
+
+            sphn[0] = node_pos_sph(i,0);        // Node lat
+            sphn[1] = node_pos_sph(i,1);        // Node Lon 
+
+            // loop through all j faces
+            for (int j1=0; j1<friend_num; j1++)
+            {
+                f_IDj = faces(i, j1);
+
+                sphfj[0] = face_centre_pos_sph(f_IDj,0);     // Face 1 lat
+                sphfj[1] = face_centre_pos_sph(f_IDj,1);     // Face 1 lon
+
+                njx = face_normal_vec_xyz(f_IDj, 0);
+                njy = face_normal_vec_xyz(f_IDj, 1);
+                njz = face_normal_vec_xyz(f_IDj, 2);
+
+                // loop through all faces again
+                
+                for (int j2=0; j2<friend_num; j2++)
+                {
+                    // Get face ID
+                    f_IDi = faces(i, j2);
+
+                    sphfi[0] = face_centre_pos_sph(f_IDi,0);     // Face 2 lat
+                    sphfi[1] = face_centre_pos_sph(f_IDi,1);     // Face 2 lon
+
+                    //normal vector to face j2
+                    nix = face_normal_vec_xyz(f_IDi, 0);
+                    niy = face_normal_vec_xyz(f_IDi, 1);
+                    niz = face_normal_vec_xyz(f_IDi, 2);
+
+                    // Get radial basis function between face centre j1 and j2
+                    // using constant shapre parameter eps=2
+                    arc = distanceBetweenSph2(sphfj, sphfi);
+                    phi = RBF(arc, 1.0);
+                    
+                    // coefficient is radial-basis-function (phi) x nf1 \cdot nf2
+                    aij = phi*(njx*nix + njy*niy + njz*niz);
+
+                    matrix(j1, j2) = aij;
+                }
+
+                arc = distanceBetweenSph2(sphn, sphfj);
+                node_face_RBF(i, j1) = RBF(arc, 1.0);
+            }
+
+            // Compute the Cholesky decomposition of the interpolation matrix
+            interpSolvers2[i].compute(matrix);
+
+            interpVandermonde.push_back(matrix.inverse());
+
+
+        }
+    }
+
+    return 1;
+
 };
 
 int Mesh::CalcControlVolumeVertexR(void)
@@ -174,9 +438,9 @@ int Mesh::CalcControlVolumeVertexR(void)
     int vert_count = 0;
     int friend_num = 6;
 
-    int node_count[node_num];
+    int node_count[NODE_NUM];
 
-    for (int i=0; i<node_num; i++)
+    for (int i=0; i<NODE_NUM; i++)
     {
         node_count[i] = 0;
         for (int j=0; j<friend_num; j++) {
@@ -184,7 +448,7 @@ int Mesh::CalcControlVolumeVertexR(void)
         }
     }
 
-    for (int i=0; i<node_num; i++) {
+    for (int i=0; i<NODE_NUM; i++) {
         friend_num = 6;
         if (node_friends(i,5) < 0) friend_num--;
 
@@ -232,7 +496,13 @@ int Mesh::CalcControlVolumeVertexR(void)
         }
     }
 
-    std::cout<<"VERTEX NUM: "<<vert_count<<' '<<vertex_num<<std::endl;
+    for (int i=0; i<VERTEX_NUM; i++) {
+        vertex_sinlat(i) = sin(vertex_pos_sph(i,0));
+    }
+
+    std::cout<<"VERTEX NUM: "<<vert_count<<' '<<VERTEX_NUM<<std::endl;
+
+    return 1;
 };
 
 int Mesh::AssignFaces(void)
@@ -249,7 +519,7 @@ int Mesh::AssignFaces(void)
     int face_count;
 
     // Mark all faces as unassigned (<0)
-    for (int i=0; i<node_num; i++) {
+    for (int i=0; i<NODE_NUM; i++) {
         for (int j=0; j<friend_num; j++) {
             faces(i, j) = -1;
         }
@@ -260,7 +530,7 @@ int Mesh::AssignFaces(void)
     //  The direction of the face normal (in or out)
     //  Distance between the nodes either side of the face (face_node_dist)
     face_count = 0;
-    for (int i=0; i<node_num; i++) {
+    for (int i=0; i<NODE_NUM; i++) {
         friend_num = 6;
         if (node_friends(i,5) < 0) friend_num--;
 
@@ -298,6 +568,32 @@ int Mesh::AssignFaces(void)
                 face_centre_pos_sph(face_count, 0) = sphc[0];
                 face_centre_pos_sph(face_count, 1) = sphc[1];
 
+
+                
+
+                // if (i==0) std::cout<<i<<' '<<f<<' '<<sph1[0]<<' '<<sph1[1]<<std::endl;
+
+                // if (i==0) {
+                //     std::cout<<i<<' '<<f<<' '<<sph1[0]<<' '<<sph1[1]<<std::endl;
+                //     std::cout<<i<<' '<<f<<' '<<sph2[0]<<' '<<sph2[1]<<std::endl;
+                // }
+
+                // OR DO WE DEFINE THE CENTRE AT THE MID-POINT BETWEEN THE TWO NODES????
+
+                // NO - this leads to a max error norm that increases with finer resolution
+                // sph3[0] = node_pos_sph(i,0);
+                // sph3[1] = node_pos_sph(i,1);
+                // sph4[0] = node_pos_sph(f,0);
+                // sph4[1] = node_pos_sph(f,1);
+
+                // midpointBetweenSph(sph3, sph4, sphc);
+
+                // if (sphc[1] < 0.0) sphc[1] += 2*pi;
+                // // std::cout<<i<<' '<<sphc[0]<<' '<<sphc[1]<<std::endl;
+                // face_centre_pos_sph(face_count, 0) = sphc[0];
+                // face_centre_pos_sph(face_count, 1) = sphc[1];
+
+
                 double lat1, lon1, lat2, lon2;
                 double m = 0.0;
                 double x1 = 0.0;
@@ -318,13 +614,47 @@ int Mesh::AssignFaces(void)
 
                 face_node_dist(face_count) = sqrt( pow(x2-x1, 2.0) + pow(y2-y1, 2.0));
 
+                double sphn1[2], sphn2[2];
+                sphn1[0] = node_pos_sph(i,0);
+                sphn1[1] = node_pos_sph(i,1);
+                sphn2[0] = node_pos_sph(f,0);
+                sphn2[1] = node_pos_sph(f,1);
+
+                face_node_dist(face_count) = distanceBetweenSph2(sphn1, sphn2)*r;
+                face_node_dist_r(face_count) = 1.0/face_node_dist(face_count);
+
+                
+
+                double node_node_dist = 0.0;
+                distanceBetweenSph(node_node_dist, node_pos_sph(i,0), node_pos_sph(f,0), node_pos_sph(i,1), node_pos_sph(f,1), r);
+
+                // std::cout<<node_node_dist<<' '<<face_node_dist(face_count)<<std::endl;
+                // face_node_dist(face_count) = fabs(node_node_dist);
+
                 double normal_vec[2];
                 normalVectorBetweenMap(normal_vec, sph1, sph2);
                 face_normal_vec_map(face_count, 0) = normal_vec[0];
                 face_normal_vec_map(face_count, 1) = normal_vec[1];
 
+                // Now find the normal vector in cartesian coords!
+                double normal_vec_xyz[3];
+                normalVectorBetweenXYZ(sph1, sph2, normal_vec_xyz);
+                face_normal_vec_xyz(face_count, 0) = normal_vec_xyz[0];
+                face_normal_vec_xyz(face_count, 1) = normal_vec_xyz[1];
+                face_normal_vec_xyz(face_count, 2) = normal_vec_xyz[2];
+
+
+
                 if (normal_vec[0] > 0 && control_vol_edge_normal_map(i, (j+friend_num-1)%friend_num, 0) > 0) face_dir(face_count, 0) = 1;
                 else face_dir(face_count, 0) = -1;
+
+                // double d1 = 0, d2 = 0;
+                // double yyy = face_centre_pos_sph(face_count,0)+normal_vec[1]/r;
+                // double xxx = face_centre_pos_sph(face_count,1)+normal_vec[0]/r;
+                // distanceBetweenSph(d1, node_pos_sph(i,0), face_centre_pos_sph(face_count,0), node_pos_sph(i,1), face_centre_pos_sph(face_count, 1), r);
+                // distanceBetweenSph(d2, node_pos_sph(i,0), yyy, node_pos_sph(i,1), xxx, r);
+
+                // std::cout<<d2-d1<<' '<<face_dir(face_count,0)<<std::endl;
 
                 // Calculate intersection point between the face length vector
                 // and the vector between the shared nodes
@@ -337,6 +667,10 @@ int Mesh::AssignFaces(void)
 
                 face_intercept_pos_sph(face_count, 0) = sphc[0];
                 face_intercept_pos_sph(face_count, 1) = sphc[1];
+
+                // SHOULD WE SET THE FACE CENTRE POSITION TO HERE INSTEAD???
+                // face_centre_pos_sph(face_count, 0) = sphc[0];
+                // face_centre_pos_sph(face_count, 1) = sphc[1];
 
                 // Find friend on opposite side of the face
                 // and update the values accordingly
@@ -357,10 +691,30 @@ int Mesh::AssignFaces(void)
         }
     }
 
+    for (int i=0; i<NODE_NUM; i++) 
+    {
+        double sphn[2], sphf[2];
+        sphn[0] = node_pos_sph(i, 0);
+        sphn[1] = node_pos_sph(i, 1);
+
+        friend_num = 6;
+        if (node_friends(i, 5) < 0) friend_num--;
+        
+        for (int j=0; j<friend_num; j++) {
+            int fID = faces(i, j);
+
+            sphf[0] = face_centre_pos_sph(fID, 0);
+            sphf[1] = face_centre_pos_sph(fID, 1);
+
+            node_face_arc(i, j) = distanceBetweenSph2(sphn, sphf);
+        }
+        
+    }
+
     // Now each face must be looped over in order to calculate interpolation weights
     // This means finding the vertices and faces that are joined to the parent face, 
     // in a anticlockwise order
-    for (int i=0; i<face_num; i++)
+    for (int i=0; i<FACE_NUM; i++)
     {
         int j_add = 0;
         for (int k=0; k<2; k++)
@@ -437,7 +791,7 @@ int Mesh::AssignFaces(void)
                 // get intersect position
                 int v_ID = face_vertex_list[j].ID;
                 int v_ID2 = face_vertex_list[(j+1)%friend_num].ID;
-                int f_ID = friends_list[j].ID;
+
                 double sph_int[2], sph1[2], sph2[2];
 
                 sph1[0] = node_pos_sph(node_ID, 0);
@@ -501,6 +855,18 @@ int Mesh::AssignFaces(void)
 
                 area_t += area;
 
+                bool added = false;
+                int count = 0;
+                while (!added) {
+                    if (vertex_nodes(v_ID, count) == node_ID) {
+                        vertex_R(v_ID, count) = R_weights[j];
+                        added = true;
+                    }
+                    count++;
+                }
+
+                // if vertex_nodes(v_ID, 0 or 1 or 2) == node_ID, vertex_R(v_ID, 0 or 1 or 2) = R_weights[j]
+
             }
 
 
@@ -533,6 +899,8 @@ int Mesh::AssignFaces(void)
                     if (face_nodes(i, 0) == node_ID) t_ev = 1;
                     else t_ev = -1;
 
+                    // std::cout<<i<<' '<<t_ev<<std::endl;
+
                     face_interp_weights(i, j_add) *= t_ev;
 
                     j_add++;
@@ -541,12 +909,142 @@ int Mesh::AssignFaces(void)
         }
     }
 
-    for (int i=0; i<face_num; i++)
+    for (int i=0; i<VERTEX_NUM; i++) {
+        vertex_faces(i,0) = -1;
+        vertex_faces(i,1) = -1;
+        vertex_faces(i,2) = -1;
+
+    }
+
+    
+
+    for (int i=0; i<FACE_NUM; i++)
+    {
+
+        double r = globals->radius.Value();
+
+        int v1 = face_vertexes(i,0);
+        int v2 = face_vertexes(i,1);
+
+        for (int j=0; j<3; j++)
+        {
+            if (vertex_faces(v1, j) < 0)
+            {
+                vertex_faces(v1, j) = i;
+                
+                // vertex_face_dir(v1, j) = ?
+
+                double sphf[2], sphv[2];
+                sphf[0] = face_centre_pos_sph(i, 0);
+                sphf[1] = face_centre_pos_sph(i, 1);
+                sphv[0] = vertex_pos_sph(v1, 0);
+                sphv[1] = vertex_pos_sph(v1, 1);
+
+                double lat1, lon1, lat2, lon2;
+                double m = 0.0;
+                double xv = 0.0;
+                double yv = 0.0;
+                double fnx = 0.0;
+                double fny = 0.0;
+
+                lat1 = sphf[0];           lon1 = sphf[1];
+                lat2 = sphv[0];           lon2 = sphv[1];
+
+                mapAtPoint(m, xv, yv, lat1, lat2, lon1, lon2, r);
+
+                fnx = face_normal_vec_map(i, 0);
+                fny = face_normal_vec_map(i, 1);
+
+                // take cross product between face normal 
+                // and vertex vector. The sign indicates if 
+                // the face normal points in the clockwise or
+                // anticlockwise direction!
+
+                double cross = xv * fny - yv * fnx;
+
+                if (cross > 0) vertex_face_dir(v1, j) = 1; // clockwise
+                else vertex_face_dir(v1, j) = -1;          // anti-clockwise
+
+                // double mag_v = 0.0;
+                // double zero = 0.0;
+                // distanceBetween(mag_v, zero, xv, zero, yv);
+                // double mag_v2 = 0.0;
+                // double xv2 = xv-fny;
+                // double yv2 = yv+fnx;
+                // distanceBetween(mag_v2, zero, xv2,zero, yv2);
+
+                // std::cout<<v1<<' '<<mag_v/mag_v2<<' '<<vertex_face_dir(v1, j)<<std::endl;
+
+
+                break;
+            }
+        }
+
+        for (int j = 0; j < 3; j++)
+        {
+            if (vertex_faces(v2, j) < 0)
+            {
+                vertex_faces(v2, j) = i;
+
+                // vertex_face_dir(v2, j) = ?
+
+                double sphf[2], sphv[2];
+                sphf[0] = face_centre_pos_sph(i, 0);
+                sphf[1] = face_centre_pos_sph(i, 1);
+                sphv[0] = vertex_pos_sph(v2, 0);
+                sphv[1] = vertex_pos_sph(v2, 1);
+
+                double lat1, lon1, lat2, lon2;
+                double m = 0.0;
+                double xv = 0.0;
+                double yv = 0.0;
+                double fnx = 0.0;
+                double fny = 0.0;
+
+                lat1 = sphf[0];
+                lon1 = sphf[1];
+                lat2 = sphv[0];
+                lon2 = sphv[1];
+
+                mapAtPoint(m, xv, yv, lat1, lat2, lon1, lon2, r);
+
+                fnx = face_normal_vec_map(i, 0);
+                fny = face_normal_vec_map(i, 1);
+
+                // take cross product between face normal
+                // and vertex vector. The sign indicates if
+                // the face normal points in the clockwise or
+                // anticlockwise direction!
+
+                double cross = xv * fny - yv * fnx;
+
+                if (cross > 0)
+                    vertex_face_dir(v2, j) = 1; // clockwise
+                else
+                    vertex_face_dir(v2, j) = -1; // anti-clockwise
+
+                break;
+            }
+        }
+
+        // for (int j=0; j<3; j++)
+        // {
+        //    int face_ID = vertex_faces(v1, j);
+        //    int node_ID = face_nodes(i, 0);
+
+        //    //check if vertex has inner or outer 
+        // }
+        
+    }
+
+    
+
+    for (int i=0; i<FACE_NUM; i++)
     {
         int v1 = face_vertexes(i,0);
         int v2 = face_vertexes(i,1);
 
-        double sph1[2], sph2[2], sph3[2];
+        double sph1[2], sph2[2], sph3[2], sphc[2];
 
         sph1[0] = vertex_pos_sph(v1, 0);
         sph1[1] = vertex_pos_sph(v1, 1);
@@ -554,9 +1052,21 @@ int Mesh::AssignFaces(void)
         sph2[0] = vertex_pos_sph(v2, 0);
         sph2[1] = vertex_pos_sph(v2, 1);
 
-        double a=0.0, area=0.0;
+        sphc[0] = face_centre_pos_sph(i,0);
+        sphc[1] = face_centre_pos_sph(i,1);
+
+        double x3, y3, x1, x2, y1, y2;
+
+        double m;
+        
         double r = globals->radius.Value();
 
+        mapAtPoint(m, x1, y1, sphc[0], sph1[0], sphc[1], sph1[1], r);
+        mapAtPoint(m, x2, y2, sphc[0], sph2[0], sphc[1], sph2[1], r);
+
+        double a=0.0, area=0.0;
+        
+        double a1, a2;
         for (int k=0; k<2; k++)
         {
             int n1 = face_nodes(i, k);
@@ -566,16 +1076,81 @@ int Mesh::AssignFaces(void)
 
             triangularAreaSph(a, sph1[0], sph2[0], sph3[0], sph1[1], sph2[1], sph3[1], r);
 
-            area += a;
+            mapAtPoint(m, x3, y3, sphc[0], sph3[0], sphc[1], sph3[1], r);
+            triangularArea(a, x1, y1, x2, x3, y2, y3);
+
+            area += fabs(a);
+
+            if (k==0) a1 = a;
+            if (k==1) a2 = a;
+
+            // if (n1==4 || n1==2585) std::cout<<i<<' '<<k<<' '<<a<<std::endl;
         }
+        // if (fabs(a1 - a2) > 1e-10) std::cout<<i<<' '<<a1-a2<<std::endl;
+        // face_area(i) = 4*area;
 
-        face_area(i) = area;
+        // Ringler et al., (2010), Eq. A.6 --> Do not include the factor of 1/2!!!!
+        face_area(i) = face_node_dist(i)*face_len(i);///2.0;
 
-        face_area(i) = face_node_dist(i)*face_len(i)/2.0;
+        // if ((node_friends(face_nodes(i,0),5) < 0) || (node_friends(face_nodes(i,1),5) < 0)) std::cout<<area/face_area(i)<<std::endl;
     }
 
-    std::cout<<"FACE NUM: "<<face_count<<' '<<face_num<<std::endl;
-    std::cout<<"NODE NUM: "<<node_num<<std::endl;
+    // This is only needed for KE cacluations in momentum advection?
+    // for (int i=0; i<NODE_NUM; i++)
+    // {
+    //     control_volume_surf_area_map(i) = 0.0;
+    //     int friend_num = 6;
+    //     if (node_friends(i, 5) < 0)
+    //         friend_num--;
+        
+    //     for (int j = 0; j < friend_num; j++)
+    //     {
+    //         int f_ID = faces(i, j);
+
+    //         double Ae = face_area(f_ID);
+
+    //         control_volume_surf_area_map(i) += Ae*0.25;
+    //     }     
+    // }
+
+    // --------------------------------------------------------------
+    // Calculate area associated with each vertex -------------------
+    for (int i=0; i<VERTEX_NUM; i++) 
+    {
+        double a = 0.0, area = 0.0;
+        double r = globals->radius.Value();
+
+        double sphv[2], sphn1[2], sphn2[2];
+
+        sphv[0] = vertex_pos_sph(i, 0);
+        sphv[1] = vertex_pos_sph(i, 1);
+
+        for (int j=0; j<3; j++) { 
+            // get two nodes associated with this vertex
+            int n1 = vertex_nodes(i, j);
+            int n2 = vertex_nodes(i, (j+1)%3);
+
+            sphn1[0] = node_pos_sph(n1, 0);
+            sphn1[1] = node_pos_sph(n1, 1);
+
+            sphn2[0] = node_pos_sph(n2, 0);
+            sphn2[1] = node_pos_sph(n2, 1);
+
+            triangularAreaSph(a, sphv[0], sphn1[0], sphn2[0], sphv[1], sphn1[1], sphn2[1], r);
+
+            area += fabs(a);
+
+            // std::cout << i << ' ' << j << ' ' << vertex_faces(i, j) << std::endl;
+        }
+
+        vertex_area(i) = area;
+        vertex_area_r(i) = 1.0/area;
+    }
+
+    std::cout<<"FACE NUM: "<<face_count<<' '<<FACE_NUM<<std::endl;
+    std::cout<<"NODE NUM: "<<NODE_NUM<<std::endl;
+
+    return 1;
 }
 
 int Mesh::DefineBoundaryCells(void)
@@ -589,7 +1164,7 @@ int Mesh::DefineBoundaryCells(void)
 
     // r = globals->radius.Value();
 
-    for (i=0; i<node_num; i++)
+    for (i=0; i<NODE_NUM; i++)
     {
         f = node_friends(i,5);
 
@@ -650,7 +1225,7 @@ int Mesh::CalcVelocityTransformFactors(void)
     double * cos_a, * sin_a;
     double lat1, lat2, lon1, lon2;
 
-    for (i=0; i<node_num; i++)
+    for (i=0; i<NODE_NUM; i++)
     {
         lat1 = node_pos_sph(i,0);
         lon1 = node_pos_sph(i,1);
@@ -687,6 +1262,118 @@ int Mesh::CalcVelocityTransformFactors(void)
         }
     }
 
+    for (i = 0; i < FACE_NUM; i++)
+    {
+        lat2 = face_intercept_pos_sph(i, 0);
+        lon2 = face_intercept_pos_sph(i, 1);
+
+        int n1 = face_nodes(i, 0);
+        int n2 = face_nodes(i, 1);
+
+        // lat1 = node_pos_sph(n1, 0);
+        // lon1 = node_pos_sph(n1, 1);
+
+        // double cos_a, sin_a;
+
+        // // find which friend number face i is associated with for node n1
+        // int face_friend_ID;
+        // int friend_num = 6;
+        // if ( node_friends(n1, 5) == -1 ) friend_num--;
+        // for (j = 0; j<friend_num; j++) {
+        //     if (node_friends(n1, j) == n2) {
+        //         face_friend_ID = (j+friend_num-1)%friend_num;
+        //         break;
+        //     }
+        // }
+
+        // // Get the face normal direction in mapped coords with node n1 at 
+        // // the coordinate centre
+        // double face_nx = control_vol_edge_normal_map(n1, face_friend_ID, 0);
+        // double face_ny = control_vol_edge_normal_map(n1, face_friend_ID, 1);
+
+        // // Make sure normal vector points in the positive direction
+        // face_nx *= face_dir(i, 0);
+        // face_ny *= face_dir(i, 0);
+
+        // // Find angle between the mapping coordinate unit vectors and the
+        // // face normal vector
+
+        // // unit vector in x-direction = (1.0, 0.0)^T
+        // double node_x_nx = 1.0;
+        // double node_x_ny = 0.0;
+
+        // double dot = face_nx*node_x_nx + face_ny*node_x_ny;      // dot product between [face_nx, face_ny] and [node_x_nx, node_x_ny]
+        // double det = face_nx*node_x_ny - face_ny*node_x_nx ;     // determinant
+        // double angle = atan2(det, dot);
+
+        // cos_a = cos(angle);//face_nx*node_x_nx + face_ny*node_x_ny;
+        // sin_a = sin(angle);//face_ny*node_x_nx - face_nx*node_x_ny;
+
+        // face_node_vel_trans(i, 0, 0) = cos_a;
+        // face_node_vel_trans(i, 0, 1) = sin_a;
+
+
+
+        // friend_num = 6;
+        // if ( node_friends(n2, 5) == -1 ) friend_num--;
+        // for (j = 0; j<friend_num; j++) {
+        //     if (node_friends(n2, j) == n1) {
+        //         face_friend_ID = (j+friend_num-1)%friend_num;
+        //         break;
+        //     }
+        // }
+
+        // // Get the face normal direction in mapped coords with node n1 at 
+        // // the coordinate centre
+        // face_nx = control_vol_edge_normal_map(n2, face_friend_ID, 0);
+        // face_ny = control_vol_edge_normal_map(n2, face_friend_ID, 1);
+
+        // // Make sure normal vector points in the positive direction
+        // face_nx *= face_dir(i, 1);
+        // face_ny *= face_dir(i, 1);
+
+        // // Find angle between the mapping coordinate unit vectors and the
+        // // face normal vector
+
+        // dot = face_nx*node_x_nx + face_ny*node_x_ny;      // dot product between [face_nx, face_ny] and [node_x_nx, node_x_ny]
+        // det = face_nx*node_x_ny - face_ny*node_x_nx;      // determinant
+        // angle = atan2(det, dot);
+
+        // cos_a = cos(angle);//face_nx*node_x_nx + face_ny*node_x_ny;
+        // sin_a = sin(angle);
+
+        // // cos_a = face_nx*node_x_nx + face_ny*node_x_ny;
+        // // sin_a = face_ny*node_x_nx - face_nx*node_x_ny;
+
+        // face_node_vel_trans(i, 1, 0) = cos_a;
+        // face_node_vel_trans(i, 1, 1) = sin_a;
+
+        // // std::cout<<cos_a<<' '<<sin_a<<' '<<face_ny<<std::endl;
+
+        lat1 = face_intercept_pos_sph(i, 0);
+        lon1 = face_intercept_pos_sph(i, 1);
+
+        lat2 = node_pos_sph(n1, 0);
+        lon2 = node_pos_sph(n1, 1);
+
+        // Set pointers to address of variables we want to change
+        cos_a = &face_node_vel_trans(i, 0, 0);
+        sin_a = &face_node_vel_trans(i, 0, 1);
+
+        // Pass pointers by reference
+        velTransform(*cos_a, *sin_a, lat1, lat2, lon1, lon2);
+
+        lat2 = node_pos_sph(n2, 0);
+        lon2 = node_pos_sph(n2, 1);
+
+        // Set pointers to address of variables we want to change
+        cos_a = &face_node_vel_trans(i, 1, 0);
+        sin_a = &face_node_vel_trans(i, 1, 1);
+
+        // Pass pointers by reference
+        velTransform(*cos_a, *sin_a, lat1, lat2, lon1, lon2);
+
+    }
     return 1;
 };
 
@@ -702,7 +1389,7 @@ int Mesh::CalcMappingCoords(void)
 
     r = globals->radius.Value();
 
-    for (i=0; i<node_num; i++)
+    for (i=0; i<NODE_NUM; i++)
     {
         lat1 = node_pos_sph(i,0);
         lon1 = node_pos_sph(i,1);
@@ -763,7 +1450,7 @@ int Mesh::CalcMappingCoords(void)
         }
     }
 
-    for (i=0; i<node_num; i++)
+    for (i=0; i<NODE_NUM; i++)
     {
         lat1 = node_pos_sph(i,0);
         lon1 = node_pos_sph(i,1);
@@ -803,7 +1490,7 @@ int Mesh::CalcControlVolumeEdgeLengths(void)
     int i, j, f, friend_num;
     double * x1, * y1, * x2, * y2, * edge_len;
 
-    for (i=0; i<node_num; i++)
+    for (i=0; i<NODE_NUM; i++)
     {
 
         f = node_friends(i,5);
@@ -842,7 +1529,7 @@ int Mesh::CalcNodeDists(void)
 
     r = globals->radius.Value();
 
-    for (i=0; i<node_num; i++)
+    for (i=0; i<NODE_NUM; i++)
     {
 
         f = node_friends(i,5);
@@ -888,32 +1575,47 @@ int Mesh::CalcMaxTimeStep(void)
 
   dt = globals->timeStep.Value();
 
-  if (globals->surface_type == FREE ||
-      globals->surface_type == FREE_LOADING ||
-      globals->surface_type == LID_LOVE)
+//   if (globals->surface_type == FREE ||
+//       globals->surface_type == FREE_LOADING ||
+//       globals->surface_type == LID_LOVE)
+//   {
+//       if (globals->surface_type == LID_LOVE) g *= -(globals->shell_factor_beta[globals->l_max.Value()]-1.0);
+
+//       for (i=0; i<NODE_NUM; i++)
+//       {
+//           f = node_friends(i,5);
+//           friend_num = 6;                                     // Assume hexagon (6 centroids)
+//           if (f == -1) {
+//               friend_num = 5;                                   // Check if pentagon (5 centroids)
+//           }
+//           for (j=0; j<friend_num; j++)                      // Loop through all centroids in the control volume
+//           {
+//               dist = node_dists(i,j)*0.25;                 // consider one quater node-node distance
+//               dt = std::min(dt, dist/sqrt(g*h_max));
+//           }
+//       }
+
+//     //   dt *= 0.85;         // take some caution
+//   }
+
+  double target_dt = dt;
+  int dt_num = 100;
+
+  dt = globals->period.Value();
+
+  std::cout<<"TARGET DT: "<<target_dt<<std::endl;
+  while (dt > target_dt) 
   {
-      // if (globals->surface_type == LID_LOVE) g *= -(globals->shell_factor_beta[globals->l_max.Value()]-1.0);
-      // std::cout<<g<<std::endl;
-      for (i=0; i<node_num; i++)
-      {
-          f = node_friends(i,5);
-          friend_num = 6;                                     // Assume hexagon (6 centroids)
-          if (f == -1) {
-              friend_num = 5;                                   // Check if pentagon (5 centroids)
-          }
-          for (j=0; j<friend_num; j++)                      // Loop through all centroids in the control volume
-          {
-              dist = node_dists(i,j) * 0.5;                 // consider half node-node distance
-              dt = std::min(dt, dist/sqrt(g*h_max));
-          }
-      }
+      dt = globals->period.Value() / dt_num;
 
-      dt *= 0.85;         // take some caution
+      dt_num += 100;
+
+      std::cout<<dt<<' '<<dt_num<<std::endl;
   }
-
-  // std::cout<<"DT: "<<dt<<std::endl;
+  dt_num -= 100;
 
   globals->timeStep.SetValue(dt);
+  globals->totalIter.SetValue(dt_num);
 
 
 
@@ -928,7 +1630,7 @@ int Mesh::CalcCentNodeDists(void)
     int i, j, f, friend_num;
     double * x1, * y1, * x2, * y2, * edge_len;
 
-    for (i=0; i<node_num; i++)
+    for (i=0; i<NODE_NUM; i++)
     {
 
         f = node_friends(i,5);
@@ -967,9 +1669,11 @@ int Mesh::CalcControlVolumeEdgeCentres(void)
     int i, j, f, friend_num;
     double * x1, * y1, * x2, * y2, * xc, * yc, * m;
     double lat1, lat2, lat3, lon1, lon2, lon3;
+    double *latc, *lonc;
     double r = globals->radius.Value();
+    double sph1[2], sph2[2], sphc[2];
 
-    for (i=0; i<node_num; i++)
+    for (i=0; i<NODE_NUM; i++)
     {
 
         f = node_friends(i,5);
@@ -1001,6 +1705,17 @@ int Mesh::CalcControlVolumeEdgeCentres(void)
 
             // lat1 = centroid_pos_sph(i, j, 0);                 // get first centroid coords
             // lon1 = centroid_pos_sph(i, j, 1);
+
+            sph1[0] = centroid_pos_sph(i, j, 0);
+            sph1[1] = centroid_pos_sph(i, j, 1);
+
+            sph2[0] = centroid_pos_sph(i, (j+1)%friend_num, 0);
+            sph2[1] = centroid_pos_sph(i, (j+1)%friend_num, 1);
+
+            midpointBetweenSph(sph1, sph2, sphc);
+
+            control_vol_edge_centre_pos_sph(i, j, 0) = sphc[0];
+            control_vol_edge_centre_pos_sph(i, j, 1) = sphc[1];
 
             lat1 = node_pos_sph(i, 0);                 // get first centroid coords
             lon1 = node_pos_sph(i, 1);
@@ -1036,7 +1751,7 @@ int Mesh::CalcControlVolumeEdgeNormals(void)
     int i, j, f, friend_num;
     double * x1, * y1, * x2, * y2, * xn, * yn;
 
-    for (i=0; i<node_num; i++)
+    for (i=0; i<NODE_NUM; i++)
     {
 
         f = node_friends(i,5);
@@ -1115,7 +1830,7 @@ int Mesh::CalcControlVolumeArea(void)
     int i, j, f, friend_num;
     double * x1, * y1, * x2, * y2, * xc, * yc, *t_area, area;
 
-    for (i=0; i<node_num; i++)
+    for (i=0; i<NODE_NUM; i++)
     {
 
         f = node_friends(i,5);
@@ -1169,7 +1884,7 @@ int Mesh::CalcControlVolumeMass(void)
   // double mass_sum = 0.0;
   //
   // avg_area = 0.0;
-  // for (i=0; i<node_num; i++)
+  // for (i=0; i<NODE_NUM; i++)
   // {
   //
   //     f = node_friends(i,5);
@@ -1210,7 +1925,7 @@ int Mesh::CalcControlVolumeMass(void)
   //     *vol *= 1000.0;
   // }
   //
-  // for (i=0; i<node_num; i++)
+  // for (i=0; i<NODE_NUM; i++)
   // {
   //   vol = &control_volume_mass(i);
   //   mass_sum += *vol;
@@ -1223,7 +1938,7 @@ int Mesh::CalcControlVolumeMass(void)
   double mass_sum = 0.0;
 
   avg_area = 0.0;
-  for (i=0; i<node_num; i++)
+  for (i=0; i<NODE_NUM; i++)
   {
 
       f = node_friends(i,5);
@@ -1254,8 +1969,8 @@ int Mesh::CalcControlVolumeMass(void)
       }
       avg_area += *t_area;
   }
-  avg_area /= node_num;
-  for (i=0; i<node_num; i++)
+  avg_area /= NODE_NUM;
+  for (i=0; i<NODE_NUM; i++)
   {
      t_area = &control_volume_mass(i);
     *t_area *= avg_area/(*t_area) * 1000.0 * globals->h.Value();
@@ -1274,7 +1989,7 @@ int Mesh::CalcElementAreas(void)
     int i, j, k, as, ae, f, f1, f2, friend_num;
     double * x1, * y1, * x2, * y2, * xc, * yc, *t_area;
 
-    for (i=0; i<node_num; i++)
+    for (i=0; i<NODE_NUM; i++)
     {
 
         f = node_friends(i,5);
@@ -1409,7 +2124,7 @@ int Mesh::CalcTrigFunctions(void)
     int i;
     double lat, lon;
 
-    for (i=0; i<node_num; i++)
+    for (i=0; i<NODE_NUM; i++)
     {
         lat = node_pos_sph(i, 0);
         lon = node_pos_sph(i, 1);
@@ -1436,112 +2151,659 @@ int Mesh::CalcTrigFunctions(void)
     return 1;
 };
 
-int Mesh::CalcLegendreFuncs(void)
+/*int Mesh::CalcLegendreFuncs(void)
 {
-    int i, l, m, l_max;
-    double cosCoLat;
+    // int i, l, m, l_max;
+    // double cosCoLat;
 
-    Array2D<double> * temp_legendre;    // temp array for legendre polynomials
-    Array2D<double> * temp_dlegendre;   // temp array for legendre polynomial derivs
+    // Array2D<double> * temp_legendre;    // temp array for legendre polynomials
+    // Array2D<double> * temp_dlegendre;   // temp array for legendre polynomial derivs
 
-    //-----------------------------
+    // //-----------------------------
 
-    l_max = globals->l_max.Value();
+    // l_max = globals->l_max.Value();
 
-    temp_legendre = new Array2D<double>(2 * (l_max+1), 2 * (l_max+1));
-    temp_dlegendre = new Array2D<double>(2 * (l_max+1), 2 * (l_max+1));
+    // temp_legendre = new Array2D<double>(2 * (l_max+1), 2 * (l_max+1));
+    // temp_dlegendre = new Array2D<double>(2 * (l_max+1), 2 * (l_max+1));
 
-    Array3D<double> Pbar_lm(node_num, l_max+1, l_max+1);
-    Array3D<double> Pbar_cosMLon(node_num, l_max+1, l_max+1);
-    Array3D<double> Pbar_sinMLon(node_num, l_max+1, l_max+1);
+    // Array3D<double> Pbar_lm(NODE_NUM, l_max+1, l_max+1);
+    // Array3D<double> Pbar_cosMLon(NODE_NUM, l_max+1, l_max+1);
+    // Array3D<double> Pbar_sinMLon(NODE_NUM, l_max+1, l_max+1);
 
-    for (i=0; i<node_num; ++i)
+    // for (i=0; i<NODE_NUM; ++i)
+    // {
+    //     cosCoLat = cos(pi*0.5 - node_pos_sph(i,0));     // cos(colatitude) of node i
+
+    //     getLegendreFuncs(cosCoLat, *temp_legendre, l_max);
+    //     getLegendreFuncsDeriv(cosCoLat, *temp_dlegendre, l_max);
+
+
+
+    //     for (l = 0; l < l_max+1; l++)
+    //     {
+    //         for (m = 0; m <= l; m++)
+    //         {
+
+    //             // assign legendre pol at node i for degree l and order m
+    //             Pbar_lm(i, l, m) = (*temp_legendre)(l, m);
+
+    //             // assign legendre pol derivative at node i for degree l and order m
+    //             // Pbar_lm_deriv(i, l, m) = (*temp_dlegendre)(l, m)*sin(pi*0.5 - node_pos_sph(i, 0));
+
+    //             if ((l==2) && (m==0)) Pbar_20(i) = (*temp_legendre)(l, m);
+    //             if ((l==2) && (m==2)) Pbar_22(i) = (*temp_legendre)(l, m);
+
+    //         }
+    //     }
+
+    //     // calculate cos(m*longitude) and sin(m*longitude) for node i
+    //     for (m=0; m < l_max+1; m++)
+    //     {
+    //         trigMLon(i, m, 0) = cos( (double)m * node_pos_sph( i, 1 ) );
+    //         trigMLon(i, m, 1) = sin( (double)m * node_pos_sph( i, 1 ) );
+    //     }
+
+    //     // int count = 0;
+    //     for (l = 0; l < l_max+1; l++)
+    //     {
+    //         for (m = 0; m <= l; m++)
+    //         {
+    //             Pbar_cosMLon(i, l, m) = Pbar_lm(i, l, m)*trigMLon(i, m, 0);
+    //             Pbar_sinMLon(i, l, m) = Pbar_lm(i, l, m)*trigMLon(i, m, 1);
+
+    //             // Pbar_deriv_cosMLon(i, l, m) = Pbar_lm_deriv(i, l, m)*trigMLon(i, m, 0);
+    //             // Pbar_deriv_sinMLon(i, l, m) = Pbar_lm_deriv(i, l, m)*trigMLon(i, m, 1);
+
+    //         }
+    //     }
+
+    //     int count = 0;
+    //     for (l = 2; l < l_max+1; l++)
+    //     {
+    //         for (m = 0; m <= l; m++)
+    //         {
+    //             sh_matrix(i, count) = Pbar_cosMLon(i, l, m);
+    //             if (globals->surface_type == FREE_LOADING) sh_matrix(i, count) *= globals->loading_factor[l];
+    //             else if (globals->surface_type == LID_MEMBR ||
+    //                      globals->surface_type == LID_LOVE) sh_matrix(i, count) *= globals->shell_factor_beta[l];
+
+
+    //             count++;
+
+    //             sh_matrix(i, count) = Pbar_sinMLon(i, l, m);
+    //             if (globals->surface_type == FREE_LOADING) sh_matrix(i, count) *= globals->loading_factor[l];
+    //             else if (globals->surface_type == LID_MEMBR ||
+    //                      globals->surface_type == LID_LOVE) sh_matrix(i, count) *= globals->shell_factor_beta[l];
+
+    //             count++;
+    //         }
+    //     }
+    // }
+
+    // int count = 0;
+    // for (m = 0; m < (l_max+1)*(l_max+2) - 6; m++)
+    // {
+    //     for (i=0; i<NODE_NUM; i++)
+    //     {
+    //         sh_matrix_fort(count) = sh_matrix(i, m);
+    //         // std::cout<<sh_matrix_fort(count)<<std::endl;
+    //         count++;
+    //     }
+    // }
+
+    // // free up memory!
+    // delete temp_legendre;
+    // delete temp_dlegendre;
+
+    // return 1;
+}
+*/
+
+// Function to create the adjaceny matrix that maps the neighbouring faces to each node
+int Mesh::CalcRBFInterpMatrix(void)
+{
+    //--------------- Construct sparse matrix in CSR format --------------------
+
+    //--------------- Define objects to construct matrix -----------------------
+
+    // There are 12 pentagons on the geodesic grid, each with 5 faces. 
+    // The other cells are hexagons with 6
+    // faces. Therefore, the total number
+    // of non-zero coefficients in our sparse matrix is given as:
+    int nNonZero = 5*5*12 + (NODE_NUM-12)*6*6;
+
+    SpMat Vinv = SpMat(12*5 + (NODE_NUM - 12)*6, 12*5 + (NODE_NUM - 12)*6);
+
+    // Allocate memory for non-zero entries
+    Vinv.reserve(nNonZero);
+
+    std::vector<Triplet> coefficients;
+    coefficients.reserve(nNonZero);
+
+    // assign the non-zero coefficients and their column indexes in CSR format
+    int friend_num, face_ID;
+    double coeff;
+    int count=0;
+    int nh=0;
+    int np=0;
+    
+    for (int i=0; i<NODE_NUM; ++i)
     {
-        cosCoLat = cos(pi*0.5 - node_pos_sph(i,0));     // cos(colatitude) of node i
+        friend_num = 6;
+        
+        if (node_friends(i,5) < 0) friend_num--;         
 
-        getLegendreFuncs(cosCoLat, *temp_legendre, l_max);
-        getLegendreFuncsDeriv(cosCoLat, *temp_dlegendre, l_max);
-
-
-
-        for (l = 0; l < l_max+1; l++)
+        for (int x=0; x<friend_num; x++) 
         {
-            for (m = 0; m <= l; m++)
+            int row = x + nh*6 + np*5;
+            for (int y=0; y<friend_num; y++)
             {
+                
+                int col = y + nh*6 + np*5;
 
-                // assign legendre pol at node i for degree l and order m
-                Pbar_lm(i, l, m) = (*temp_legendre)(l, m);
+                coeff = interpVandermonde[i].coeff(x,y);
 
-                // assign legendre pol derivative at node i for degree l and order m
-                // Pbar_lm_deriv(i, l, m) = (*temp_dlegendre)(l, m)*sin(pi*0.5 - node_pos_sph(i, 0));
-
-                if ((l==2) && (m==0)) Pbar_20(i) = (*temp_legendre)(l, m);
-                if ((l==2) && (m==2)) Pbar_22(i) = (*temp_legendre)(l, m);
-
+                coefficients.push_back( Triplet(row, col, interpVandermonde[i].coeff(x,y)) );           
             }
+            count++;
         }
 
-        // calculate cos(m*longitude) and sin(m*longitude) for node i
-        for (m=0; m < l_max+1; m++)
-        {
-            trigMLon(i, m, 0) = cos( (double)m * node_pos_sph( i, 1 ) );
-            trigMLon(i, m, 1) = sin( (double)m * node_pos_sph( i, 1 ) );
-        }
-
-        // int count = 0;
-        for (l = 0; l < l_max+1; l++)
-        {
-            for (m = 0; m <= l; m++)
-            {
-                Pbar_cosMLon(i, l, m) = Pbar_lm(i, l, m)*trigMLon(i, m, 0);
-                Pbar_sinMLon(i, l, m) = Pbar_lm(i, l, m)*trigMLon(i, m, 1);
-
-                // Pbar_deriv_cosMLon(i, l, m) = Pbar_lm_deriv(i, l, m)*trigMLon(i, m, 0);
-                // Pbar_deriv_sinMLon(i, l, m) = Pbar_lm_deriv(i, l, m)*trigMLon(i, m, 1);
-
-            }
-        }
-
-        int count = 0;
-        for (l = 2; l < l_max+1; l++)
-        {
-            for (m = 0; m <= l; m++)
-            {
-                sh_matrix(i, count) = Pbar_cosMLon(i, l, m);
-                if (globals->surface_type == FREE_LOADING) sh_matrix(i, count) *= globals->loading_factor[l];
-                else if (globals->surface_type == LID_MEMBR ||
-                         globals->surface_type == LID_LOVE) sh_matrix(i, count) *= globals->shell_factor_beta[l];
-
-
-                count++;
-
-                sh_matrix(i, count) = Pbar_sinMLon(i, l, m);
-                if (globals->surface_type == FREE_LOADING) sh_matrix(i, count) *= globals->loading_factor[l];
-                else if (globals->surface_type == LID_MEMBR ||
-                         globals->surface_type == LID_LOVE) sh_matrix(i, count) *= globals->shell_factor_beta[l];
-
-                count++;
-            }
-        }
+        if (friend_num == 5) np++;
+        else nh++;
     }
 
-    int count = 0;
-    for (m = 0; m < (l_max+1)*(l_max+2) - 6; m++)
+    
+
+    // Fill the sparse operator with the list of triplets
+    Vinv.setFromTriplets(coefficients.begin(), coefficients.end());
+    Vinv.makeCompressed();
+
+    nNonZero = 3*(12*5 + (NODE_NUM - 12)*6);
+    SpMat RBF = SpMat(3*NODE_NUM, 12*5 + (NODE_NUM - 12)*6);
+    RBF.reserve(nNonZero);
+
+    std::vector<Triplet> coefficients2;
+    coefficients2.reserve(nNonZero);
+
+    count = 0;
+    // int face_ID;
+    for (int i=0; i<NODE_NUM; ++i)
     {
-        for (i=0; i<node_num; i++)
+        friend_num = 6;
+        
+        if (node_friends(i,5) < 0) friend_num--;         
+
+        for (int j=0; j<friend_num; j++) 
         {
-            sh_matrix_fort(count) = sh_matrix(i, m);
-            // std::cout<<sh_matrix_fort(count)<<std::endl;
+            face_ID = faces(i, j);
+
+            coeff = node_face_RBF(i, j) * face_normal_vec_xyz(face_ID, 0);   // x component row
+            coefficients2.push_back( Triplet(3*i, count, coeff ) );
+
+            coeff = node_face_RBF(i, j) * face_normal_vec_xyz(face_ID, 1);   // y component row
+            coefficients2.push_back( Triplet(3*i+1, count, coeff ) );
+
+            coeff = node_face_RBF(i, j) * face_normal_vec_xyz(face_ID, 2);   // z component row
+            coefficients2.push_back( Triplet(3*i+2, count, coeff ) );
             count++;
         }
     }
 
-    // free up memory!
-    delete temp_legendre;
-    delete temp_dlegendre;
+    RBF.setFromTriplets(coefficients2.begin(), coefficients2.end());
+    RBF.makeCompressed();
+
+
+    
+    operatorRBFinterp = RBF * (Vinv * node2faceAdj);
+    operatorRBFinterp.makeCompressed();
+    
+    return 1;
+}
+
+// Function to create the adjaceny matrix that maps the neighbouring faces to each node
+int Mesh::CalcRBFInterpMatrix2(void)
+{
+    //--------------- Construct sparse matrix in CSR format --------------------
+
+    //--------------- Define objects to construct matrix -----------------------
+
+    // There are 12 pentagons on the geodesic grid, each with 5 faces. 
+    // The other cells are hexagons with 6
+    // faces. Therefore, the total number
+    // of non-zero coefficients in our sparse matrix is given as:
+    int nNonZero = 6*6*12 + (NODE_NUM-12)*7*7;
+
+    vandermondeInv = SpMat(12*6 + (NODE_NUM - 12)*7, 12*6 + (NODE_NUM - 12)*7);
+    // vandermondeInv = SpMat(12*6 + (NODE_NUM - 12)*7, NODE_NUM);
+
+    // Allocate memory for non-zero entries
+    vandermondeInv.reserve(nNonZero);
+
+    std::vector<Triplet> coefficients;
+    coefficients.reserve(nNonZero);
+
+    // assign the non-zero coefficients and their column indexes in CSR format
+    int friend_num, face_ID;
+    double coeff;
+    // int count=0;
+    int nh=0;
+    int np=0;
+    double testval = 1e-11;
+    // for (int i=0; i<NODE_NUM; ++i)
+    // {
+    //     friend_num = 7;
+        
+    //     if (node_friends(i,5) < 0) friend_num--;         
+
+    //     for (int x=0; x<friend_num; x++) 
+    //     {
+    //         int row = x + nh*7 + np*6;
+    //         for (int y=0; y<friend_num; y++)
+    //         {
+                
+    //             int col = y + nh*7 + np*6;
+
+    //             coeff = interpVandermondeScalar[i].coeff(x,y);
+
+    //             // testval += fabs(coeff);
+
+    //             // if (i==NODE_NUM-1) std::cout<<x<<' '<<y<<' '<<coeff<<std::endl;
+
+    //             coefficients.push_back( Triplet(row, col, coeff) );           
+    //         }
+    //         // count++;
+    //     }
+
+    //     if (friend_num == 6) np++;
+    //     else nh++;
+    // }
+
+    for (int i=0; i<NODE_NUM; ++i)
+    {
+        friend_num = 7;
+        
+        if (node_friends(i,5) < 0) friend_num--;    
+
+        Eigen::MatrixXd mat = interpVandermondeScalar[i].inverse();     
+
+        for (int x=0; x<friend_num; x++) 
+        {
+            int row = x + nh*7 + np*6;
+            for (int y=0; y<friend_num; y++)
+            {
+                
+                int col = y + nh*7 + np*6;
+
+                coeff = mat.coeff(x,y);
+
+                // testval += fabs(coeff);
+
+                // if (i==NODE_NUM-1) std::cout<<x<<' '<<y<<' '<<coeff<<std::endl;
+
+                coefficients.push_back( Triplet(row, col, coeff) );           
+            }
+            // count++;
+        }
+
+        if (friend_num == 6) np++;
+        else nh++;
+    }
+
+    // std::cout<<testval/((double)nNonZero)<<std::endl;
+    
+
+    // Fill the sparse operator with the list of triplets
+    vandermondeInv.setFromTriplets(coefficients.begin(), coefficients.end());
+    vandermondeInv.makeCompressed();
+
+    
+
+
+    nNonZero = (6*12 + (NODE_NUM-12)*7)*3;
+
+    SpMat rbfDeriv2(3*NODE_NUM, 12*6 + (NODE_NUM - 12)*7);
+    // vandermondeInv = SpMat(12*6 + (NODE_NUM - 12)*7, NODE_NUM);
+
+    // Allocate memory for non-zero entries
+    rbfDeriv2.reserve(nNonZero);
+
+    std::vector<Triplet> coefficients2;
+    coefficients2.reserve(nNonZero);
+   
+
+    {
+        int friend_num, f_IDj, f_IDi;
+        double arc, phi, aij;
+        double eps = globals->rbf_eps.Value(); 
+        double x1, x2, y1, y2;
+        double xx, yy, xy, arc2, arc3, dphidr, d2phidr2;
+        double coeff;
+        int row, col;
+        double r_recip = 1.0/globals->radius.Value();
+        // RBFSUM = DenseMat(3*NODE_NUM, 12*6 + (NODE_NUM - 12)*7);
+        np = 0.0;
+        nh = 0.0;
+        for (int i=0; i<NODE_NUM; i++) 
+        {
+            // check if node is pentagon 
+            friend_num = 6;
+            if (node_friends(i, 5) < 0) friend_num--;
+
+            coeff = -2.0*eps*eps;
+
+            row = 3*i;
+            col = (6*np + 7*nh);
+            coefficients2.push_back( Triplet(row, col, coeff));
+
+            row = 3*i+1;
+            // coefficients2.push_back( Triplet(row, col, 0.0));
+
+            row = 3*i+2;
+            coefficients2.push_back( Triplet(row, col, coeff));
+
+            // loop through all j faces
+            for (int j=0; j<friend_num; j++)
+            {
+                f_IDj = node_friends(i, j);
+
+                x1 = node_pos_map(i,j+1,0)*r_recip;
+                y1 = node_pos_map(i,j+1,1)*r_recip;
+                arc = sqrt(x1*x1 + y1*y1);
+
+                xx = x1*x1;
+                yy = y1*y1;
+                xy = x1*y1;
+                arc2 = 1.0/(arc*arc);
+                arc3 = 1.0/(arc*arc*arc);
+
+                double rbf = node_node_RBF(i, j+1);
+                d2phidr2 = 2*eps*eps*rbf * (2*arc*arc*eps*eps - 1);
+                dphidr = -2*arc*eps*eps*rbf;
+
+                row = 3*i;
+                col = (6*np + 7*nh) + j + 1;
+                coeff = (yy*arc3 * dphidr + xx*arc2 * d2phidr2);
+                coefficients2.push_back( Triplet(row, col, coeff) );
+
+                row = 3*i+1;
+                coeff = (-xy*arc3 * dphidr + xy*arc2 * d2phidr2);
+                coefficients2.push_back( Triplet(row, col, coeff) );
+
+                
+                row = 3*i+2;
+                coeff = (xx*arc3 * dphidr + yy*arc2 * d2phidr2);
+                coefficients2.push_back( Triplet(row, col, coeff) );
+
+                
+            }
+
+            if (friend_num == 6) nh++;
+            else np++;
+
+
+        }
+
+        rbfDeriv2.setFromTriplets(coefficients2.begin(), coefficients2.end());
+        rbfDeriv2.makeCompressed();
+
+        // std::cout<<rbfDeriv2.nonZeros()<<std::endl;
+        operatorSecondDeriv = r_recip*r_recip* rbfDeriv2 * vandermondeInv * node2nodeAdj;
+    }
+
+    nNonZero = 2*9*FACE_NUM;
+
+    
+
+    SpMat R(3*2*FACE_NUM, 3*NODE_NUM);
+
+    // Allocate memory for non-zero entries
+    R.reserve(nNonZero);
+
+    std::vector<Triplet> coefficients3;
+    coefficients3.reserve(nNonZero);
+
+
+    nNonZero = 2*3*FACE_NUM;
+
+    // SpMat operatorDirectionalSecondDeriv(2*FACE_NUM, 3*NODE_NUM);
+
+    SpMat N(2*FACE_NUM, 2*3*FACE_NUM);
+
+    // Allocate memory for non-zero entries
+    N.reserve(nNonZero);
+
+    std::vector<Triplet> coefficients4;
+    coefficients4.reserve(nNonZero);
+
+    {
+        int inner_ID;
+        int outer_ID;
+        double nx, ny;
+        double cosa,sina;
+        double coeff;
+        int row, col;
+        for (int i=0; i<FACE_NUM; i++) 
+        {
+            inner_ID = face_nodes(i, 0);
+            
+            cosa = face_node_vel_trans(i, 0, 0);
+            sina = face_node_vel_trans(i, 0, 1);    
+
+            // fxx = 2*(c3*cosa*cosa - c4*cosa*sina + c5*sina*sina);
+            // fyy = 2*(c3*sina*sina + c4*cosa*sina + c5*cosa*cosa);
+            // fxy = 2*(c3 - c5)*cosa*sina + c4*(cosa*cosa - sina*sina);
+
+            row = 6*i;
+            col = 3*inner_ID;
+            coeff = cosa*cosa;
+            coefficients3.push_back( Triplet(row, col, coeff) );
+
+            col = 3*inner_ID+1;
+            coeff = -2*cosa*sina;
+            coefficients3.push_back( Triplet(row, col, coeff) );
+
+            col = 3*inner_ID+2;
+            coeff = sina*sina;
+            coefficients3.push_back( Triplet(row, col, coeff) );
+
+
+            row = 6*i+1;
+            col = 3*inner_ID;
+            coeff = cosa*sina;
+            coefficients3.push_back( Triplet(row, col, coeff) );
+
+            col = 3*inner_ID+1;
+            coeff = cosa*cosa - sina*sina;
+            coefficients3.push_back( Triplet(row, col, coeff) );
+
+            col = 3*inner_ID+2;
+            coeff = -sina*cosa;
+            coefficients3.push_back( Triplet(row, col, coeff) );
+
+
+            row = 6*i+2;
+            col = 3*inner_ID;
+            coeff = sina*sina;
+            coefficients3.push_back( Triplet(row, col, coeff) );
+
+            col = 3*inner_ID+1;
+            coeff = 2*cosa*sina;
+            coefficients3.push_back( Triplet(row, col, coeff) );
+
+            col = 3*inner_ID+2;
+            coeff = cosa*cosa;
+            coefficients3.push_back( Triplet(row, col, coeff) );
+
+            
+            outer_ID = face_nodes(i, 1);
+
+            cosa = face_node_vel_trans(i, 1, 0);
+            sina = face_node_vel_trans(i, 1, 1);
+
+            row = 6*i+3;
+            col = 3*outer_ID;
+            coeff = cosa*cosa;
+            coefficients3.push_back( Triplet(row, col, coeff) );
+
+            col = 3*outer_ID+1;
+            coeff = -2*cosa*sina;
+            coefficients3.push_back( Triplet(row, col, coeff) );
+
+            col = 3*outer_ID+2;
+            coeff = sina*sina;
+            coefficients3.push_back( Triplet(row, col, coeff) );
+
+
+            row = 6*i+4;
+            col = 3*outer_ID;
+            coeff = cosa*sina;
+            coefficients3.push_back( Triplet(row, col, coeff) );
+
+            col = 3*outer_ID+1;
+            coeff = cosa*cosa - sina*sina;
+            coefficients3.push_back( Triplet(row, col, coeff) );
+
+            col = 3*outer_ID+2;
+            coeff = -sina*cosa;
+            coefficients3.push_back( Triplet(row, col, coeff) );
+
+
+            row = 6*i+5;
+            col = 3*outer_ID;
+            coeff = sina*sina;
+            coefficients3.push_back( Triplet(row, col, coeff) );
+
+            col = 3*outer_ID+1;
+            coeff = 2*cosa*sina;
+            coefficients3.push_back( Triplet(row, col, coeff) );
+
+            col = 3*outer_ID+2;
+            coeff = cosa*cosa;
+            coefficients3.push_back( Triplet(row, col, coeff) );
+
+
+            nx = face_normal_vec_map(i, 0);
+            ny = face_normal_vec_map(i, 1);
+
+            row = 2*i;
+            coefficients4.push_back( Triplet(row, 6*i,     nx*nx) );
+            coefficients4.push_back( Triplet(row, 6*i+1, 2*nx*ny) );
+            coefficients4.push_back( Triplet(row, 6*i+2,   ny*ny) );
+
+            row = 2*i+1;
+            coefficients4.push_back( Triplet(row, 6*i+3,   nx*nx) );
+            coefficients4.push_back( Triplet(row, 6*i+4, 2*nx*ny) );
+            coefficients4.push_back( Triplet(row, 6*i+5,   ny*ny) );
+
+        }
+    }
+
+    R.setFromTriplets( coefficients3.begin(), coefficients3.end() );
+    N.setFromTriplets( coefficients4.begin(), coefficients4.end() );
+
+    R.makeCompressed();
+    N.makeCompressed();
+
+    // operatorDirectionalSecondDeriv = SpMat(2*FACE_NUM, 3*NODE_NUM);
+    
+    // operatorDirectionalSecondDeriv = N*R;
+    // operatorDirectionalSecondDeriv.makeCompressed(); 
+        
+    operatorDirectionalSecondDeriv = SpMat(2*FACE_NUM, NODE_NUM);
+    
+    operatorDirectionalSecondDeriv = N*R*operatorSecondDeriv;
+    operatorDirectionalSecondDeriv.makeCompressed(); 
+    operatorDirectionalSecondDeriv.prune(0.0);
+        
+    return 1;
+}
+
+// Function to create the adjaceny matrix that maps the neighbouring faces to each node
+int Mesh::CalcAdjacencyMatrix(void)
+{
+    //--------------- Construct sparse matrix in CSR format --------------------
+
+    //--------------- Define objects to construct matrix -----------------------
+
+    // There are 12 pentagons on the geodesic grid, each with 5 faces. 
+    // The other cells are hexagons with 6
+    // faces. Therefore, the total number
+    // of non-zero coefficients in our sparse matrix is given as:
+    int nNonZero = 12*5 + (NODE_NUM - 12)*6;
+
+    node2faceAdj = SpMat(nNonZero, FACE_NUM);
+
+    // Allocate memory for non-zero entries
+    node2faceAdj.reserve(nNonZero);
+
+    std::vector<Triplet> coefficients;
+    coefficients.reserve(nNonZero);
+
+    // assign the non-zero coefficients and their column indexes in CSR format
+    {
+        int count=0, friend_num, face_ID;
+        double coeff = 1.0;
+        for (int i=0; i<NODE_NUM; ++i)
+        {
+            friend_num = 6;
+            if (node_friends(i,5) < 0) friend_num--;
+
+            for (int j=0; j<friend_num; j++) 
+            {
+                face_ID = faces(i, j);
+
+                coefficients.push_back( Triplet(count, face_ID, coeff) );
+                count++;
+            }
+        }
+    }
+
+    // Fill the sparse operator with the list of triplets
+    node2faceAdj.setFromTriplets(coefficients.begin(), coefficients.end());
+    node2faceAdj.makeCompressed();
+
+
+    // 6 and 7 here to include the central node itself
+    nNonZero = 12*6 + (NODE_NUM - 12)*7;
+
+    node2nodeAdj = SpMat(nNonZero, NODE_NUM);
+
+    // Allocate memory for non-zero entries
+    node2nodeAdj.reserve(nNonZero);
+
+    std::vector<Triplet> coefficients2;
+    coefficients2.reserve(nNonZero);
+
+    // assign the non-zero coefficients and their column indexes in CSR format
+    {
+        int count=0, friend_num, node_ID;
+        double coeff = 1.0;
+        for (int i=0; i<NODE_NUM; ++i)
+        {
+            friend_num = 6;
+            if (node_friends(i,5) < 0) friend_num--;
+
+            coefficients2.push_back( Triplet(count, i, coeff) ); // Add itself
+            // std::cout<<count<<' '<<i<<std::endl;
+            count++;
+            for (int j=0; j<friend_num; j++) 
+            {
+                node_ID = node_friends(i, j);
+
+                coefficients2.push_back( Triplet(count, node_ID, coeff) );
+                // std::cout<<count<<' '
+                count++;
+            }
+        }
+    }
+
+    // Fill the sparse operator with the list of triplets
+    node2nodeAdj.setFromTriplets(coefficients2.begin(), coefficients2.end());
+    node2nodeAdj.makeCompressed();
 
     return 1;
 }
+
 
 int Mesh::CalcCoriolisOperatorCoeffs(void)
 {
@@ -1557,7 +2819,16 @@ int Mesh::CalcCoriolisOperatorCoeffs(void)
     // neighbours and one central node (total of 7). Additionally, there is a
     // row for each variable (total 3). Therefore, the total number
     // of non-zero coefficients in our sparse matrix is given as:
-    int nNonZeroGrad = (12*5)*9 + (face_num - 12*5)*10;
+    int nNonZeroGrad = (12*5)*9 + (FACE_NUM - 12*5)*10;
+
+    operatorCoriolis = SpMat(FACE_NUM, FACE_NUM);
+
+    // Allocate memory for non-zero entries
+    operatorCoriolis.reserve(nNonZeroGrad);
+
+    std::vector<Triplet> coefficients;
+    coefficients.reserve(nNonZeroGrad);
+
 
     int     * colIndx;    // column index for each non-zero element
     int     * rowIndxX;    // row indices for CSR matrix format (x component)
@@ -1570,17 +2841,17 @@ int Mesh::CalcCoriolisOperatorCoeffs(void)
 
     int         error;    // error message from MKL
 
-    // Define c (0) based indexing
-    sparse_index_base_t indexing = SPARSE_INDEX_BASE_ZERO;
+    // // Define c (0) based indexing
+    // sparse_index_base_t indexing = SPARSE_INDEX_BASE_ZERO;
 
-    // Define all operations the original (non-transpose) matrix
-    sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
+    // // Define all operations the original (non-transpose) matrix
+    // sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
 
     //---------------- Initialise objects into memory --------------------------
 
-    rowStartX = new int[face_num];
-    rowEndX   = new int[face_num];
-    rowIndxX  = new int[face_num + 1];
+    rowStartX = new int[FACE_NUM];
+    rowEndX   = new int[FACE_NUM];
+    rowIndxX  = new int[FACE_NUM + 1];
 
 
     nzCoeffsX = new double[nNonZeroGrad];
@@ -1589,7 +2860,7 @@ int Mesh::CalcCoriolisOperatorCoeffs(void)
     // assign the non-zero coefficients and their column indexes in CSR format
     int count=0;
 
-    for (int i=0; i<face_num; ++i)
+    for (int i=0; i<FACE_NUM; ++i)
     {
         double v_tang = 0.0;
         int friend_num = 10;
@@ -1601,17 +2872,20 @@ int Mesh::CalcCoriolisOperatorCoeffs(void)
         if (node_friends(n2,5) < 0) friend_num--;
 
         for (int j=0; j<friend_num; j++) {
-            int f_ID = face_interp_friends(i, j);
+            int f_ID = face_interp_friends(i, j); 
             colIndx[count] = f_ID;
-            nzCoeffsX[count] = -2.0 * globals->angVel.Value() * sin(face_intercept_pos_sph(i, 0))*face_interp_weights(i,j)*face_len(f_ID)/face_node_dist(i);
+            nzCoeffsX[count] = -2.0 * globals->angVel.Value() * sin(face_centre_pos_sph(i, 0))*face_interp_weights(i,j)*face_len(f_ID)/face_node_dist(i);
 
             count++;
 
+            double coeff = -2.0 * globals->angVel.Value() * sin(face_centre_pos_sph(i, 0))*face_interp_weights(i,j)*face_len(f_ID)/face_node_dist(i);
+            // double coeff = -2.0 * globals->angVel.Value() * sin(face_intercept_pos_sph(f_ID, 0)) * face_interp_weights(i, j) * face_len(f_ID) / face_node_dist(i);
+            coefficients.push_back( Triplet(i, f_ID, coeff) );
 
             // v_tang += v_tm1(f_ID)*grid->face_interp_weights(i,j)*grid->face_len(f_ID);
         }
 
-        if (i<face_num-1) rowIndxX[i+1] = count;
+        // if (i<FACE_NUM-1) rowIndxX[i+1] = count;
         // v_tang /= grid->face_node_dist(i);
 
         // dvdt(i) -= 2.0 * omega * sin(grid->face_intercept_pos_sph(i, 0)) * v_tang;
@@ -1619,35 +2893,9 @@ int Mesh::CalcCoriolisOperatorCoeffs(void)
         // dvdt(i) -= v_tm1(i)*globals->alpha.Value();
     }
 
-    // assign the row indexes for the sparse matrix in CSR format
-    rowIndxX[0] = 0;         // first element is always zero
-
-    // last element is always the number of non-zero coefficients
-    rowIndxX[face_num] = nNonZeroGrad;
-    // for (i=1; i<face_num; i++) {
-    //   rowIndxX[i] = i;
-    // }
-
-
-    for (i=0; i<face_num; i++) {
-      rowStartX[i] = rowIndxX[i];
-      rowEndX[i] = rowIndxX[i+1]; }
-
-    // Create the operator for the x and y components
-    operatorCoriolis = new sparse_matrix_t;
-    // sparse_matrix_t * operatorCoriolisTemp = new sparse_matrix_t;
-    error = mkl_sparse_d_create_csr(operatorCoriolis, indexing, face_num, face_num, rowStartX, rowEndX, colIndx, nzCoeffsX);
-
-    // matrix_descr descrp;
-    // descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
-    // error = mkl_sparse_copy (*operatorCoriolisTemp, descrp, operatorCoriolis);
-
-    // delete[] rowStartX;
-    // delete[] rowEndX;
-    // delete[] rowIndxX;
-    // delete[] colIndx;
-    // delete[] nzCoeffsX;
-    // delete operatorCoriolisTemp;
+    // Fill the sparse operator with the list of triplets
+    operatorCoriolis.setFromTriplets(coefficients.begin(), coefficients.end());
+    operatorCoriolis.makeCompressed();
 
     return 1;
 }
@@ -1666,7 +2914,13 @@ int Mesh::CalcLinearDragOperatorCoeffs(void)
     // neighbours and one central node (total of 7). Additionally, there is a
     // row for each variable (total 3). Therefore, the total number
     // of non-zero coefficients in our sparse matrix is given as:
-    int nNonZeroGrad = face_num;
+    int nNonZeroGrad = FACE_NUM;
+
+    // Define shape of operator
+    operatorLinearDrag = SpMat(FACE_NUM, FACE_NUM);
+
+    // Allocate memory for non-zero entries
+    operatorLinearDrag.reserve(FACE_NUM);
 
     int     * colIndx;    // column index for each non-zero element
     int     * rowIndxX;    // row indices for CSR matrix format (x component)
@@ -1680,16 +2934,16 @@ int Mesh::CalcLinearDragOperatorCoeffs(void)
     int         error;    // error message from MKL
 
     // Define c (0) based indexing
-    sparse_index_base_t indexing = SPARSE_INDEX_BASE_ZERO;
+    // sparse_index_base_t indexing = SPARSE_INDEX_BASE_ZERO;
 
-    // Define all operations the original (non-transpose) matrix
-    sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
+    // // Define all operations the original (non-transpose) matrix
+    // sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
 
     //---------------- Initialise objects into memory --------------------------
 
-    rowStartX = new int[face_num];
-    rowEndX   = new int[face_num];
-    rowIndxX  = new int[face_num + 1];
+    rowStartX = new int[FACE_NUM];
+    rowEndX   = new int[FACE_NUM];
+    rowIndxX  = new int[FACE_NUM + 1];
 
 
     nzCoeffsX = new double[nNonZeroGrad];
@@ -1698,12 +2952,17 @@ int Mesh::CalcLinearDragOperatorCoeffs(void)
     // assign the non-zero coefficients and their column indexes in CSR format
     int count=0;
 
-    for (i=0; i<face_num; i++)
+
+    Triplet T;
+    for (i=0; i<FACE_NUM; i++)
     {
 
-          nzCoeffsX[count] = -globals->alpha.Value();
-          colIndx[count] = i;
-          count++;
+        //   nzCoeffsX[count] = -globals->alpha.Value();
+        //   colIndx[count] = i;
+
+          operatorLinearDrag.insert(i,i) = -globals->alpha.Value();
+
+        //   count++;
 
           // nzCoeffsX[count] = -globals->alpha.Value();
           // colIndx[count] = i*3+1;
@@ -1711,23 +2970,23 @@ int Mesh::CalcLinearDragOperatorCoeffs(void)
     }
 
     // assign the row indexes for the sparse matrix in CSR format
-    rowIndxX[0] = 0;         // first element is always zero
+    // rowIndxX[0] = 0;         // first element is always zero
 
-    for (i=1; i<face_num; i++) {
-      rowIndxX[i] = i;
-    }
+    // for (i=1; i<FACE_NUM; i++) {
+    //   rowIndxX[i] = i;
+    // }
 
-    // last element is always the number of non-zero coefficients
-    rowIndxX[face_num] = nNonZeroGrad;
+    // // last element is always the number of non-zero coefficients
+    // rowIndxX[FACE_NUM] = nNonZeroGrad;
 
-    for (i=0; i<face_num; i++) {
-      rowStartX[i] = rowIndxX[i];
-      rowEndX[i] = rowIndxX[i+1]; }
+    // for (i=0; i<FACE_NUM; i++) {
+    //   rowStartX[i] = rowIndxX[i];
+    //   rowEndX[i] = rowIndxX[i+1]; }
 
     // Create the operator for the x and y components
-    operatorLinearDrag = new sparse_matrix_t;
-    // sparse_matrix_t * operatorLinearDragTemp = new sparse_matrix_t;
-    error = mkl_sparse_d_create_csr(operatorLinearDrag, indexing, face_num, face_num, rowStartX, rowEndX, colIndx, nzCoeffsX);
+    // operatorLinearDrag = new sparse_matrix_t;
+    // // sparse_matrix_t * operatorLinearDragTemp = new sparse_matrix_t;
+    // error = mkl_sparse_d_create_csr(operatorLinearDrag, indexing, FACE_NUM, FACE_NUM, rowStartX, rowEndX, colIndx, nzCoeffsX);
 
     // matrix_descr descrp;
     // descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
@@ -1757,7 +3016,15 @@ int Mesh::CalcGradOperatorCoeffs(void)
     // neighbours and one central node (total of 7). Additionally, there is a
     // row for each variable (total 3). Therefore, the total number
     // of non-zero coefficients in our sparse matrix is given as:
-    int nNonZeroGrad = 2*face_num;//(node_num-12)*7 + 12*6;
+    int nNonZeroGrad = 2*FACE_NUM;//(NODE_NUM-12)*7 + 12*6;
+
+    operatorGradient = SpMat(FACE_NUM, NODE_NUM);
+
+    // Allocate memory for non-zero entries
+    operatorGradient.reserve(nNonZeroGrad);
+
+    std::vector<Triplet> coefficients;
+    coefficients.reserve(nNonZeroGrad);
 
     int     * colIndx;    // column index for each non-zero element
     int     * rowIndxX;    // row indices for CSR matrix format (x component) component)
@@ -1770,16 +3037,16 @@ int Mesh::CalcGradOperatorCoeffs(void)
     int         error;    // error message from MKL
 
     // Define c (0) based indexing
-    sparse_index_base_t indexing = SPARSE_INDEX_BASE_ZERO;
+    // sparse_index_base_t indexing = SPARSE_INDEX_BASE_ZERO;
 
-    // Define all operations the original (non-transpose) matrix
-    sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
+    // // Define all operations the original (non-transpose) matrix
+    // sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
 
     //---------------- Initialise objects into memory --------------------------
 
-    rowStartX = new int[face_num];
-    rowEndX   = new int[face_num];
-    rowIndxX  = new int[face_num + 1];
+    rowStartX = new int[FACE_NUM];
+    rowEndX   = new int[FACE_NUM];
+    rowIndxX  = new int[FACE_NUM + 1];
 
 
     nzCoeffsX = new double[nNonZeroGrad];
@@ -1788,7 +3055,8 @@ int Mesh::CalcGradOperatorCoeffs(void)
     // assign the non-zero coefficients and their column indexes in CSR format
     int count=0;
 
-    for (i=0; i<face_num; i++)
+    double coeff;
+    for (i=0; i<FACE_NUM; i++)
     {
         int inner_node_ID, outer_node_ID;
         inner_node_ID = face_nodes(i, 0);
@@ -1804,33 +3072,41 @@ int Mesh::CalcGradOperatorCoeffs(void)
         colIndx[count] = outer_node_ID;
         nzCoeffsX[count] = -globals->g.Value()*(face_centre_m(i,1))/dist;
         count++;
+
+        coeff = (-face_centre_m(i, 0)) / dist;
+        coefficients.push_back(Triplet(i, inner_node_ID, coeff));
+
+        coeff = (face_centre_m(i, 1)) / dist;
+        coefficients.push_back(Triplet(i, outer_node_ID, coeff));
     }
 
+    operatorGradient.setFromTriplets(coefficients.begin(), coefficients.end());
+    operatorGradient.makeCompressed();
 
     rowIndxX[0] = 0;         // first element is always zero
-    for (i=1; i<face_num; i++) {
+    for (i=1; i<FACE_NUM; i++) {
       rowIndxX[i] = 2*i;
     }
 
     // last element is always the number of non-zero coefficients
-    rowIndxX[face_num] = nNonZeroGrad;
+    rowIndxX[FACE_NUM] = nNonZeroGrad;
 
-    for (i=0; i<face_num; i++) {
+    for (i=0; i<FACE_NUM; i++) {
       rowStartX[i] = rowIndxX[i];
       rowEndX[i] = rowIndxX[i+1]; }
 
     // Create the operator for the x and y components
-    operatorGradient = new sparse_matrix_t;
-    error = mkl_sparse_d_create_csr(operatorGradient, indexing, face_num, node_num, rowStartX, rowEndX, colIndx, nzCoeffsX);
+    // operatorGradient = new sparse_matrix_t;
+    // error = mkl_sparse_d_create_csr(operatorGradient, indexing, FACE_NUM, NODE_NUM, rowStartX, rowEndX, colIndx, nzCoeffsX);
 
-    matrix_descr descrp;
-    descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
+    // matrix_descr descrp;
+    // descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
 
 
-    // error = mkl_sparse_set_dotmv_hint (*operatorMomentum, operation, descrp, 1000000000);
-    error = mkl_sparse_set_mv_hint (*operatorGradient, operation, descrp, 100000000);
-    error = mkl_sparse_set_memory_hint (*operatorGradient, SPARSE_MEMORY_AGGRESSIVE);
-    error = mkl_sparse_optimize (*operatorGradient);
+    // // error = mkl_sparse_set_dotmv_hint (*operatorMomentum, operation, descrp, 1000000000);
+    // error = mkl_sparse_set_mv_hint (*operatorGradient, operation, descrp, 100000000);
+    // error = mkl_sparse_set_memory_hint (*operatorGradient, SPARSE_MEMORY_AGGRESSIVE);
+    // error = mkl_sparse_optimize (*operatorGradient);
 
     // delete operatorGradientX;
 
@@ -1839,6 +3115,61 @@ int Mesh::CalcGradOperatorCoeffs(void)
     // delete[] rowIndxX;
     // // delete[] nzCoeffsX;
     // delete[] colIndx;
+
+    return 1;
+}
+
+int Mesh::CalcCurlOperatorCoeffs(void)
+{
+    int i, j;
+
+    //--------------- Define objects to construct matrix -----------------------
+
+    // Here we assign the number of non-zero matrix elements for each operator.
+    // The curl operator is computed at each vertex using the velocity normal to
+    // each adjoining face. Each vertex has three faces, so the total number of 
+    // non-zero coefficients is:
+    int nNonZeroCoeffs = VERTEX_NUM * 3;
+
+    operatorCurl = SpMat(VERTEX_NUM, FACE_NUM);
+
+    // Allocate memory for non-zero entries
+    operatorCurl.reserve( nNonZeroCoeffs );
+
+    std::vector<Triplet> coefficients;
+    coefficients.reserve( nNonZeroCoeffs );
+
+    // assign the non-zero coefficients
+    for (i = 0; i < VERTEX_NUM; i++)
+    {
+        // f_num = 6;
+        // if (node_friends(i, 5) == -1)
+        //     f_num = 5;
+        double area = vertex_area(i);
+
+        
+
+        for (j = 0; j < 3; j++)
+        {
+            int face_id = vertex_faces(i, j);
+
+            // get distance between nodes crossing face
+            // face_id
+            double node_dist = face_node_dist(face_id);
+
+            // get indicator function (does a face velocity
+            // contribute positively or negatively to the 
+            // curl at a vertex?)
+            double t_ev = vertex_face_dir(i, j);
+
+            double coeff = node_dist * t_ev / area;
+
+            coefficients.push_back( Triplet(i, face_id, coeff) );
+        }
+    }
+
+    operatorCurl.setFromTriplets(coefficients.begin(), coefficients.end());
+    operatorCurl.makeCompressed();
 
     return 1;
 }
@@ -1857,7 +3188,15 @@ int Mesh::CalcDivOperatorCoeffs(void)
     // There are 12 pentagons on the geodesic grid, each with 5 faces.
     // The other cells are hexagons with 6 faces. Therefore, the total
     // number of non-zero coefficients in our sparse matrix is given as:
-    int nNonZeroGrad = ((node_num-12)*6 + 12*5);
+    int nNonZeroGrad = ((NODE_NUM-12)*6 + 12*5);
+
+    operatorDivergence = SpMat(NODE_NUM, FACE_NUM);
+
+    // Allocate memory for non-zero entries
+    operatorDivergence.reserve(nNonZeroGrad);
+
+    std::vector<Triplet> coefficients;
+    coefficients.reserve(nNonZeroGrad);
 
     int     * colIndxX;    // column index for each non-zero element
     int     * rowIndxX;    // row indices for CSR matrix format (x component) component)
@@ -1869,16 +3208,16 @@ int Mesh::CalcDivOperatorCoeffs(void)
     int         error;    // error message from MKL
 
     // Define c (0) based indexing
-    sparse_index_base_t indexing = SPARSE_INDEX_BASE_ZERO;
+    // sparse_index_base_t indexing = SPARSE_INDEX_BASE_ZERO;
 
-    // Define all operations the original (non-transpose) matrix
-    sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
+    // // Define all operations the original (non-transpose) matrix
+    // sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
 
     //---------------- Initialise objects into memory --------------------------
 
-    rowStartX = new int[node_num];
-    rowEndX   = new int[node_num];
-    rowIndxX  = new int[node_num + 1];
+    rowStartX = new int[NODE_NUM];
+    rowEndX   = new int[NODE_NUM];
+    rowIndxX  = new int[NODE_NUM + 1];
 
     nzCoeffsX = new double[nNonZeroGrad];
     colIndxX   = new int[nNonZeroGrad];
@@ -1886,7 +3225,7 @@ int Mesh::CalcDivOperatorCoeffs(void)
     // assign the non-zero coefficients and their column indexes in CSR format
     int count=0;
 
-    for (i=0; i<node_num; i++)
+    for (i=0; i<NODE_NUM; i++)
     {
         f_num = 6;
         if (node_friends(i, 5) == -1) f_num = 5;
@@ -1904,32 +3243,37 @@ int Mesh::CalcDivOperatorCoeffs(void)
             colIndxX[count] = face_id;
             count++;
 
+            double coeff = -dir * edge_len / area;
+            coefficients.push_back(Triplet(i, face_id, coeff));
         }
 
-        if (i<node_num-1) rowIndxX[i+1] = count;
+        if (i<NODE_NUM-1) rowIndxX[i+1] = count;
     }
+
+    operatorDivergence.setFromTriplets(coefficients.begin(), coefficients.end());
+    operatorDivergence.makeCompressed();
 
     // assign the row indexes for the sparse matrix in CSR format
     rowIndxX[0] = 0;         // first element is always zero
-    rowIndxX[node_num] = nNonZeroGrad;
+    rowIndxX[NODE_NUM] = nNonZeroGrad;
 
     // last element is always the number of non-zero coefficients
-    // rowIndxY[node_num] = nNonZeroGrad;
+    // rowIndxY[NODE_NUM] = nNonZeroGrad;
 
-    for (i=0; i<node_num; i++) {
+    for (i=0; i<NODE_NUM; i++) {
       rowStartX[i] = rowIndxX[i];
       rowEndX[i] = rowIndxX[i+1]; }
 
     // Create the operator for the x and y components
-    operatorDivergenceX = new sparse_matrix_t;
-    error = mkl_sparse_d_create_csr(operatorDivergenceX, indexing, node_num, face_num, rowStartX, rowEndX, colIndxX, nzCoeffsX);
+    // operatorDivergenceX = new sparse_matrix_t;
+    // error = mkl_sparse_d_create_csr(operatorDivergenceX, indexing, NODE_NUM, FACE_NUM, rowStartX, rowEndX, colIndxX, nzCoeffsX);
 
-    matrix_descr descrp;
-    descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
+    // matrix_descr descrp;
+    // descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
 
-    error = mkl_sparse_set_mv_hint (*operatorDivergenceX, operation, descrp, 1000000000);
-    error = mkl_sparse_set_memory_hint (*operatorDivergenceX, SPARSE_MEMORY_AGGRESSIVE);
-    error = mkl_sparse_optimize (*operatorDivergenceX);
+    // error = mkl_sparse_set_mv_hint (*operatorDivergenceX, operation, descrp, 1000000000);
+    // error = mkl_sparse_set_memory_hint (*operatorDivergenceX, SPARSE_MEMORY_AGGRESSIVE);
+    // error = mkl_sparse_optimize (*operatorDivergenceX);
 
     // delete operatorDivergenceX;
     //
@@ -1942,705 +3286,725 @@ int Mesh::CalcDivOperatorCoeffs(void)
     return 1;
 }
 
+
+int Mesh::CalcFreeSurfaceSolver(void)
+{
+    double g, h, dt;
+    g = globals->g.Value();
+    h = globals->h.Value();
+    dt = globals->timeStep.Value();
+
+    // DenseMat I = DenseMat::Identity(NODE_NUM);
+    auto I = DenseMat::Identity(NODE_NUM,NODE_NUM);
+
+    SpMat Laplacian = -0.5*0.5*g*h*dt*dt*(-operatorDivergence * operatorGradient);
+
+    Laplacian += I.sparseView();
+
+    cg.compute(Laplacian);
+    return 1;
+}
+
+
+// // Function to generate a sparse matrix A for the Laplacian operator, convert it
+// // to CSR format, and create a solver object that is capable of solving the
+// // linear system A*p = d to find the pressure field, p, give a rhs vector d.
+// int Mesh::CalcLaplaceOperatorCoeffs(void)
+// {
+//     int i, j, j2, j3, f, f_num;
+//     // Now create the gradient operators using the coefficients above
+
+//     struct node {
+//       int ID;
+//       int F_NUM;
+//     };
+
+
+//     //--------------- Construct sparse matrix in CSR format --------------------
+
+//     //--------------- Define objects to construct matrix -----------------------
+
+//     double * nzCoeffs_grad_x;   // non-zero grad operator coeffis in x direction
+//     double * nzCoeffs_grad_y;   // non-zero grad operator coeffis in y direction
+//     double * nzCoeffs_div_x;    // non-zero div operator coeffis in x direction
+//     double * nzCoeffs_div_y;    // non-zero div operator coeffis in y direction
+
+//     // Here we assign the number of non-zero matrix elements for each operator.
+//     // There are 12 pentagons on the geodesic grid, each with 5 neighbours and
+//     // one central node (total of 6). The other cells are hexagons with 6
+//     // neighbours and one central node (total of 7). Therefore, the total number
+//     // of non-zero coefficients in our sparse matrix is given as:
+//     int nNonZero = (NODE_NUM-12)*7 + 12*6;
+
+//     int     * colIndx;    // column index for each non-zero element
+//     int     * rowIndx;    // row indices for CSR matrix format
+//     double * nzCoeffs;    // array for each non-zero coefficient
+
+//     int         error;    // error message from MKL
+
+//     int * rowStart, * rowEnd; // row indexes for CSR sparse matrix format
+
+
+//     //---------------- Initialise objects into memory --------------------------
+
+//     rowStart = new int[NODE_NUM];
+//     rowEnd   = new int[NODE_NUM];
+
+//     colIndx  = new int[nNonZero];
+//     nzCoeffs = new double[nNonZero];
+//     rowIndx  = new int[NODE_NUM + 1];
+
+//     nzCoeffs_grad_x = new double[nNonZero];
+//     nzCoeffs_grad_y = new double[nNonZero];
+//     nzCoeffs_div_x  = new double[nNonZero];
+//     nzCoeffs_div_y  = new double[nNonZero];
+
+//     // assign the non-zero coefficients and their column indexes in CSR format
+//     int count=0;
+//     for (i=0; i<NODE_NUM; i++)
+//     {
+//         f_num = 6;               // Assume hexagon (6 neighbours)
+//         f = node_friends(i,5);
+//         if (f == -1) f_num = 5;  // Check if pentagon (5 neighbours)
+
+
+//         std::vector<node> cols(f_num+1);
+//         cols[0].ID = i;
+//         cols[0].F_NUM = 0;
+
+//         // Add each friend to the node list
+//         for (j=0; j<f_num; j++) {
+//             cols[j+1].ID = node_friends(i, j);
+//             cols[j+1].F_NUM = j+1; }
+
+//         // Order the node list so that lowest node ID's come first
+//         // This ensures each friend corresponds to its correct column
+//         std::sort(cols.begin(), cols.end(),
+//           [](auto const &a, auto const &b) { return a.ID < b.ID; });
+
+//         // Using the ordered list to construct row i coefficients in the operator
+//         double cos_a, sin_a;
+//         for (j=0; j<f_num+1; j++) {
+//           cos_a = node_vel_trans(i, cols[j].F_NUM, 0);
+//           sin_a = node_vel_trans(i, cols[j].F_NUM, 1);
+
+//           nzCoeffs_grad_x[count] = grad_coeffs(i, cols[j].F_NUM, 0);
+//           nzCoeffs_grad_y[count] = grad_coeffs(i, cols[j].F_NUM, 1);
+
+//           // Because the gradient operator returns a vector, we have to transform
+//           // the vector into mapped coordinates. We do this here by premultiplying
+//           // the components of the divergence operator by the transpose of the
+//           // the transform matrix defined in node_vel_trans.
+//           nzCoeffs_div_x[count]  =  1e6*(cos_a*div_coeffs(i, cols[j].F_NUM, 0) - sin_a*div_coeffs(i,  cols[j].F_NUM, 1));
+//           nzCoeffs_div_y[count]  =  1e6*(sin_a*div_coeffs(i, cols[j].F_NUM, 0) + cos_a*div_coeffs(i,  cols[j].F_NUM, 1));
+
+//           // Assign the column index. These operators act on each
+//           // velocity component, which occupies every 3rd index, starting at
+//           // column index 2
+//           colIndx[count] = cols[j].ID;
+//           // colIndxY[count] = cols[j].ID*3+1;
+//           count++; }
+
+
+
+//     }
+
+
+
+//     // assign the row indexes for the sparse matrix in CSR format
+
+//     rowIndx[0] = 0;         // first element is always zero
+
+//     for (i=0; i<NODE_NUM; i++) {
+//       if (node_friends(i,5) == -1) {
+//         rowIndx[i+1] = rowIndx[i]+6;
+//       }
+//       else {
+//         rowIndx[i+1] = rowIndx[i]+7;
+//       }
+//     }
+
+//     // last element is always the number of non-zero coefficients
+//     rowIndx[NODE_NUM] = nNonZero;
+
+//     for (i=0; i<NODE_NUM; i++) {
+//       rowStart[i] = rowIndx[i];
+//       rowEnd[i] = rowIndx[i+1]; }
+
+
+//     //----------------- Set up sparse matrix for div and grad ------------------
+
+
+//     // define handles to the sparse matrices for each component of the grad and
+//     // div operators. The Laplacian matrix will be constructed from these.
+//     sparse_matrix_t * DIV_X, * DIV_Y, * GRAD_X, * GRAD_Y;
+//     sparse_matrix_t * LAP_X, * LAP_Y;
+
+//     DIV_X   = new sparse_matrix_t;
+//     DIV_Y   = new sparse_matrix_t;
+//     GRAD_X  = new sparse_matrix_t;
+//     GRAD_Y  = new sparse_matrix_t;
+//     LAP_X   = new sparse_matrix_t;
+//     LAP_Y   = new sparse_matrix_t;
+
+
+
+//     // Define c (0) based indexing
+//     sparse_index_base_t indexing = SPARSE_INDEX_BASE_ZERO;
+
+//     // Define all operations the original (non-transpose) matrix
+//     sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
+
+//     // Assign non-zero values to matrices for the components of div and grad operators
+//     error = mkl_sparse_d_create_csr(DIV_X,  indexing, NODE_NUM, NODE_NUM, rowStart, rowEnd, colIndx, nzCoeffs_div_x);
+//     error = mkl_sparse_d_create_csr(DIV_Y,  indexing, NODE_NUM, NODE_NUM, rowStart, rowEnd, colIndx, nzCoeffs_div_y);
+
+//     error = mkl_sparse_d_create_csr(GRAD_X, indexing, NODE_NUM, NODE_NUM, rowStart, rowEnd, colIndx, nzCoeffs_grad_x);
+//     error = mkl_sparse_d_create_csr(GRAD_Y, indexing, NODE_NUM, NODE_NUM, rowStart, rowEnd, colIndx, nzCoeffs_grad_y);
+
+//     // Compute the multiplication of each component of the div dot grad
+//     error = mkl_sparse_spmm(operation, *DIV_X, *GRAD_X, LAP_X); // div_x * grad_x
+//     error = mkl_sparse_spmm(operation, *DIV_Y, *GRAD_Y, LAP_Y); // div_y * grad_y
+
+//     // Sum each component to give the total Grad^2 operator (Laplacian)
+//     // This is equivalent to (div_x * grad_x) + (div_y + grad_y)
+//     sparse_matrix_t * LAP = new sparse_matrix_t;
+//     error = mkl_sparse_d_add(operation, *LAP_X, 1.0, *LAP_Y, LAP);
+
+
+
+//     delete DIV_X;
+//     delete DIV_Y;
+//     delete GRAD_X;
+//     delete GRAD_Y;
+//     delete LAP_X;
+//     delete LAP_Y;
+
+//     delete[] rowStart;
+//     delete[] rowEnd;
+//     delete[] colIndx;
+//     delete[] nzCoeffs_div_x;
+//     delete[] nzCoeffs_div_y;
+//     delete[] nzCoeffs_grad_x;
+//     delete[] nzCoeffs_grad_y;
+
+
+//     int    * rowStartLap;
+//     int      * rowEndLap;
+//     int     * colIndxLap;
+//     double * nzCoeffsLap;
+
+//     int nc, nr; //nrows, ncols
+//     int nNonZeroLap;
+
+//     rowStartLap = NULL;
+//     rowEndLap   = NULL;
+//     colIndxLap  = NULL;
+//     nzCoeffsLap = NULL;
+
+//     // Now extract the the row and column index arrays, and nonzero coefficients
+//     // from the Laplacian operator. These will be used to set up the solver for
+//     // the problem L*p = d below, where L is the Laplacian operator and is to be
+//     // inverted to find the solution p.
+//     error = mkl_sparse_d_export_csr (*LAP, &indexing, &nc, &nr, &rowStartLap, &rowEndLap, &colIndxLap, &nzCoeffsLap);
+
+//     nNonZeroLap = rowEndLap[nr - 1];
+
+//     int * colIndxU = new int[nNonZeroLap];
+//     int * colIndxV = new int[nNonZeroLap];
+//     int * rowStartU = new int[2*NODE_NUM];
+//     int * rowStartV = new int[2*NODE_NUM];
+//     int * rowEndU = new int[2*NODE_NUM];
+//     int * rowEndV = new int[2*NODE_NUM];
+
+//     double * nzCoeffsLap2 = new double[nNonZeroLap];
+
+//     for (i=0; i<nNonZeroLap; i++)
+//     {
+//       colIndxU[i] = 3*colIndxLap[i];
+//       colIndxV[i] = 3*colIndxLap[i]+1;
+
+//       nzCoeffsLap2[i] = nzCoeffsLap[i];
+//     }
+
+//     rowStartU[0] = 0.0;
+//     rowStartV[0] = 0.0;
+//     for (i=1; i<NODE_NUM; i++)
+//     {
+//       rowStartU[2*i-1] = rowStartLap[i];
+//       rowStartU[2*i] = rowStartLap[i];}
+
+//     for (i=0; i<NODE_NUM; i++)
+//     {
+//       rowStartV[2*i] = rowStartLap[i];
+//       rowStartV[2*i+1] = rowStartLap[i];
+
+//     }
+//     rowStartU[2*NODE_NUM-1] = nNonZeroLap;
+//     for (i=0; i<2*NODE_NUM-1; i++)
+//     {
+//       rowEndU[i] = rowStartU[i+1];
+//       rowEndV[i] = rowStartV[i+1];
+//     }
+
+
+//     rowEndU[2*NODE_NUM-1] = nNonZeroLap;
+//     rowEndV[2*NODE_NUM-1] = nNonZeroLap;
+
+//     // assign the row indexes for the sparse matrix in CSR format
+//     // for (i=0; i<2*NODE_NUM; i++)
+//     // {
+//     //   std::cout<<i<<' '<<rowStartV[i]<<' '<<rowEndV[i]<<' '<<nNonZeroLap<<std::endl;
+//     // }
+
+
+//     sparse_matrix_t * LAP2_X = new sparse_matrix_t;
+//     sparse_matrix_t * LAP2_Y = new sparse_matrix_t;
+//     error = mkl_sparse_d_create_csr(LAP2_X,  indexing, 2*NODE_NUM, 3*NODE_NUM, rowStartU, rowEndU, colIndxU, nzCoeffsLap2);
+//     error = mkl_sparse_d_create_csr(LAP2_Y,  indexing, 2*NODE_NUM, 3*NODE_NUM, rowStartV, rowEndV, colIndxV, nzCoeffsLap2);
+
+//     // Assing memory to the handle for the Laplacian operator matrix
+//     operatorLaplacian = new sparse_matrix_t;  // defined in mesh.h
+//     error = mkl_sparse_d_add(operation, *LAP2_X, 1.0, *LAP2_Y, operatorLaplacian);
+
+
+//     delete[] rowStartU;
+//     delete[] rowEndU;
+//     delete[] rowStartV;
+//     delete[] rowEndV;
+//     delete[] colIndxU;
+//     delete[] colIndxV;
+//     // delete[] nzCoeffsLap;
+//     delete[] nzCoeffsLap2;
+
+//     delete LAP2_X;
+//     delete LAP2_Y;
+
+//     return 1;
+// }
+
+
+
+// int Mesh::GenerateMomentumOperator(void)
+// {
+//     int error;
+//     // Define c (0) based indexing
+//     sparse_index_base_t indexing = SPARSE_INDEX_BASE_ZERO;
+
+//     // Define all operations the original (non-transpose) matrix
+//     sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
+
+//     operatorMomentum = new sparse_matrix_t;
+//     // int error = mkl_sparse_d_add(operation, *operatorLaplacian, 1.0, *operatorGradient, operatorMomentum);
+//     // int error = mkl_sparse_d_add(operation, *operatorCoriolis, 1.0, *operatorGradient, operatorMomentum);
+//     // error = mkl_sparse_d_add(operation, *operatorMomentum, 1.0, *operatorCoriolis, operatorMomentum);
+
+//     if (globals->fric_type == LINEAR) mkl_sparse_d_add(operation, *operatorCoriolis, 1.0, *operatorLinearDrag, operatorMomentum);
+//     else mkl_sparse_d_add(operation, *operatorLinearDrag, 0.0, *operatorCoriolis, operatorMomentum);
+
+//     mkl_sparse_order (*operatorMomentum);
+
+
+//     matrix_descr descrp;
+//     descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
+
+//     int iter_num = 9999999;
+//     // error = mkl_sparse_set_dotmv_hint (*operatorMomentum, operation, descrp, 1000000000);
+//     error = mkl_sparse_set_mv_hint (*operatorMomentum, operation, descrp, iter_num);
+//     // error = mkl_sparse_set_mm_hint (*operatorMomentum, operation, descrp, SPARSE_LAYOUT_COLUMN_MAJOR, 1, iter_num);
+//     error = mkl_sparse_set_memory_hint (*operatorMomentum, SPARSE_MEMORY_AGGRESSIVE);
+//     error = mkl_sparse_optimize (*operatorMomentum);
+//     error = mkl_sparse_optimize (*operatorMomentum);
+
+
+
+//     // op_mom = new SpMat(2*NODE_NUM,3*NODE_NUM);
+//     //
+//     // int    * rowStartLap;
+//     // int      * rowEndLap;
+//     // int     * colIndxLap;
+//     // double * nzCoeffsLap;
+//     //
+//     // int nc, nr; //nrows, ncols
+//     // int nNonZeroLap;
+//     //
+//     // rowStartLap = NULL;
+//     // rowEndLap   = NULL;
+//     // colIndxLap  = NULL;
+//     // nzCoeffsLap = NULL;
+//     //
+//     // // Now extract the the row and column index arrays, and nonzero coefficients
+//     // // from the Laplacian operator. These will be used to set up the solver for
+//     // // the problem L*p = d below, where L is the Laplacian operator and is to be
+//     // // inverted to find the solution p.
+//     // error = mkl_sparse_d_export_csr (*operatorMomentum, &indexing, &nc, &nr, &rowStartLap, &rowEndLap, &colIndxLap, &nzCoeffsLap);
+//     //
+//     // nNonZeroLap = rowEndLap[nr - 1];
+//     //
+//     // // for (i=0; i<2*NODE_NUM; i++)
+//     // // {
+//     // //   rowIndx[i] = rowStartLap[i];
+//     // // }
+//     // // rowIndx[NODE_NUM] = nNonZeroLap;
+//     //
+//     // int count = 0;
+//     // int num_row;
+//     // for (int i=0; i<2*NODE_NUM; ++i)
+//     // {
+//     //   num_row = rowEndLap[i]-rowStartLap[i];
+//     //
+//     //   for (int j=0; j<num_row; ++j)
+//     //   {
+//     //
+//     //     (*op_mom).insert(i, colIndxLap[rowEndLap[i]+j]) = nzCoeffsLap[count++];
+//     //
+//     //   }
+//     // }
+//     //
+//     // (*op_mom).makeCompressed();
+
+//     // Free space!
+//     // delete operatorLaplacian;
+//     // delete operatorGradient;
+//     delete operatorCoriolis;
+//     delete operatorLinearDrag;
+
+//     return 1;
+// }
 // Function to generate a sparse matrix A for the Laplacian operator, convert it
 // to CSR format, and create a solver object that is capable of solving the
 // linear system A*p = d to find the pressure field, p, give a rhs vector d.
-int Mesh::CalcLaplaceOperatorCoeffs(void)
-{
-    int i, j, j2, j3, f, f_num;
-    // Now create the gradient operators using the coefficients above
+// int Mesh::GeneratePressureSolver(void)
+// {
+//     int i, j, j2, j3, f, f_num;
+//     double areaCV, *coeff;
+//     double D;
 
-    struct node {
-      int ID;
-      int F_NUM;
-    };
 
+//     double * hVar = new double[NODE_NUM];
+//     double a_ratio = 0.0;
+//     for (i=0; i<NODE_NUM; i++) hVar[i] = 1.0;//globals->h.Value()*(1. + a_ratio*trigLat(i,0)*pow(trigMLon(i,4,0),4.0));
 
-    //--------------- Construct sparse matrix in CSR format --------------------
 
-    //--------------- Define objects to construct matrix -----------------------
+//     // }
 
-    double * nzCoeffs_grad_x;   // non-zero grad operator coeffis in x direction
-    double * nzCoeffs_grad_y;   // non-zero grad operator coeffis in y direction
-    double * nzCoeffs_div_x;    // non-zero div operator coeffis in x direction
-    double * nzCoeffs_div_y;    // non-zero div operator coeffis in y direction
+//     Array2D<double> * pressure_matrix;
+//     pressure_matrix = new Array2D<double>(NODE_NUM, 7);
 
-    // Here we assign the number of non-zero matrix elements for each operator.
-    // There are 12 pentagons on the geodesic grid, each with 5 neighbours and
-    // one central node (total of 6). The other cells are hexagons with 6
-    // neighbours and one central node (total of 7). Therefore, the total number
-    // of non-zero coefficients in our sparse matrix is given as:
-    int nNonZero = (node_num-12)*7 + 12*6;
+//     // why is this line here? Where would it be better placed?
 
-    int     * colIndx;    // column index for each non-zero element
-    int     * rowIndx;    // row indices for CSR matrix format
-    double * nzCoeffs;    // array for each non-zero coefficient
+//     //-------------- Calculate the laplacian matrix coefficients ---------------
 
-    int         error;    // error message from MKL
+//     for (i=0; i<NODE_NUM; i++)
+//     {
 
-    int * rowStart, * rowEnd; // row indexes for CSR sparse matrix format
+//         f_num = 6;                  // Assume hexagon (6 centroids)
+//         f = node_friends(i,5);
+//         if (f == -1) f_num = 5;     // Check if pentagon (5 centroids)
 
+//         // Control volume area
+//         areaCV = control_volume_surf_area_map(i);
 
-    //---------------- Initialise objects into memory --------------------------
+//         // Calculate the central node coefficient first
+//         coeff = &(*pressure_matrix)(i, 0);
+//         *coeff = 0.0;
+//         for (j=0; j<f_num; j++)
+//         {
+//             j2 = (j-1)%f_num;
+//             if (j2 < 0) j2 += f_num;
+//             f = node_friends(i, j);
 
-    rowStart = new int[node_num];
-    rowEnd   = new int[node_num];
+//             //          this part is the spatially
+//             //          varying scalar, TODO change
+//             //          to ocean thickness!!!!!
+//             //        -----------------------------
+//             D =  0.5*(hVar[i] + hVar[f]) * control_vol_edge_len(i, j2) /  ( control_vol_edge_centre_m(i, j2) * node_dists(i, j) );
+//             // 0.5*(trigLon(i, 1) + trigLon(f, 1)) *
+//             *coeff += D;
+//         }
+//         *coeff *= -1./areaCV; // Need the negative sign here!
 
-    colIndx  = new int[nNonZero];
-    nzCoeffs = new double[nNonZero];
-    rowIndx  = new int[node_num + 1];
+//         // Now calculate coeffs for neighbouring nodes (matrix diagonals)
+//         for (j=0; j<f_num; j++)
+//         {
+//             coeff = &(*pressure_matrix)(i, j+1);
 
-    nzCoeffs_grad_x = new double[nNonZero];
-    nzCoeffs_grad_y = new double[nNonZero];
-    nzCoeffs_div_x  = new double[nNonZero];
-    nzCoeffs_div_y  = new double[nNonZero];
+//             j2 = (j-1)%f_num;
+//             if (j2 < 0) j2 += f_num;
+//             f = node_friends(i,j);
 
-    // assign the non-zero coefficients and their column indexes in CSR format
-    int count=0;
-    for (i=0; i<node_num; i++)
-    {
-        f_num = 6;               // Assume hexagon (6 neighbours)
-        f = node_friends(i,5);
-        if (f == -1) f_num = 5;  // Check if pentagon (5 neighbours)
 
+//             D = 0.5*(hVar[i] + hVar[f]) * control_vol_edge_len(i, j2) /  ( control_vol_edge_centre_m(i, j2) * node_dists(i, j) );
+//             // 0.5*(trigLon(i, 1) + trigLon(f, 1)) *
 
-        std::vector<node> cols(f_num+1);
-        cols[0].ID = i;
-        cols[0].F_NUM = 0;
+//             *coeff = D;
+//             *coeff *= 1./areaCV; // No negative sign here!
+//         }
+//     }
 
-        // Add each friend to the node list
-        for (j=0; j<f_num; j++) {
-            cols[j+1].ID = node_friends(i, j);
-            cols[j+1].F_NUM = j+1; }
 
-        // Order the node list so that lowest node ID's come first
-        // This ensures each friend corresponds to its correct column
-        std::sort(cols.begin(), cols.end(),
-          [](auto const &a, auto const &b) { return a.ID < b.ID; });
+//     //--------------- Construct sparse matrix in CSR format --------------------
 
-        // Using the ordered list to construct row i coefficients in the operator
-        double cos_a, sin_a;
-        for (j=0; j<f_num+1; j++) {
-          cos_a = node_vel_trans(i, cols[j].F_NUM, 0);
-          sin_a = node_vel_trans(i, cols[j].F_NUM, 1);
+//     //--------------- Define objects to construct matrix -----------------------
 
-          nzCoeffs_grad_x[count] = grad_coeffs(i, cols[j].F_NUM, 0);
-          nzCoeffs_grad_y[count] = grad_coeffs(i, cols[j].F_NUM, 1);
+//     double * nzCoeffs_grad_x;   // non-zero grad operator coeffis in x direction
+//     double * nzCoeffs_grad_y;   // non-zero grad operator coeffis in y direction
+//     double * nzCoeffs_div_x;    // non-zero div operator coeffis in x direction
+//     double * nzCoeffs_div_y;    // non-zero div operator coeffis in y direction
 
-          // Because the gradient operator returns a vector, we have to transform
-          // the vector into mapped coordinates. We do this here by premultiplying
-          // the components of the divergence operator by the transpose of the
-          // the transform matrix defined in node_vel_trans.
-          nzCoeffs_div_x[count]  =  1e6*(cos_a*div_coeffs(i, cols[j].F_NUM, 0) - sin_a*div_coeffs(i,  cols[j].F_NUM, 1));
-          nzCoeffs_div_y[count]  =  1e6*(sin_a*div_coeffs(i, cols[j].F_NUM, 0) + cos_a*div_coeffs(i,  cols[j].F_NUM, 1));
+//     // Here we assign the number of non-zero matrix elements for each operator.
+//     // There are 12 pentagons on the geodesic grid, each with 5 neighbours and
+//     // one central node (total of 6). The other cells are hexagons with 6
+//     // neighbours and one central node (total of 7). Therefore, the total number
+//     // of non-zero coefficients in our sparse matrix is given as:
+//     int nNonZero = (NODE_NUM-12)*7 + 12*6;
 
-          // Assign the column index. These operators act on each
-          // velocity component, which occupies every 3rd index, starting at
-          // column index 2
-          colIndx[count] = cols[j].ID;
-          // colIndxY[count] = cols[j].ID*3+1;
-          count++; }
+//     int     * colIndx;    // column index for each non-zero element
+//     int     * rowIndx;    // row indices for CSR matrix format
+//     double * nzCoeffs;    // array for each non-zero coefficient
 
+//     int         error;    // error message from MKL
 
+//     int * rowStart, * rowEnd; // row indexes for CSR sparse matrix format
 
-    }
 
+//     //---------------- Initialise objects into memory --------------------------
 
+//     rowStart = new int[NODE_NUM];
+//     rowEnd   = new int[NODE_NUM];
 
-    // assign the row indexes for the sparse matrix in CSR format
+//     colIndx  = new int[nNonZero];
+//     nzCoeffs = new double[nNonZero];
+//     rowIndx  = new int[NODE_NUM + 1];
 
-    rowIndx[0] = 0;         // first element is always zero
+//     nzCoeffs_grad_x = new double[nNonZero];
+//     nzCoeffs_grad_y = new double[nNonZero];
+//     nzCoeffs_div_x  = new double[nNonZero];
+//     nzCoeffs_div_y  = new double[nNonZero];
 
-    for (i=0; i<node_num; i++) {
-      if (node_friends(i,5) == -1) {
-        rowIndx[i+1] = rowIndx[i]+6;
-      }
-      else {
-        rowIndx[i+1] = rowIndx[i]+7;
-      }
-    }
+//     // assign the non-zero coefficients and their column indexes in CSR format
+//     int count=0;
+//     for (i=0; i<NODE_NUM; i++)
+//     {
+//         f_num = 6;               // Assume hexagon (6 neighbours)
+//         f = node_friends(i,5);
+//         if (f == -1) f_num = 5;  // Check if pentagon (5 neighbours)
 
-    // last element is always the number of non-zero coefficients
-    rowIndx[node_num] = nNonZero;
+//         nzCoeffs[count] = (*pressure_matrix)(i, 0);  // assign diagonal element
 
-    for (i=0; i<node_num; i++) {
-      rowStart[i] = rowIndx[i];
-      rowEnd[i] = rowIndx[i+1]; }
+//         nzCoeffs_grad_x[count] = grad_coeffs(i, 0, 0);
+//         nzCoeffs_grad_y[count] = grad_coeffs(i, 0, 1);
 
+//         nzCoeffs_div_x[count]  = div_coeffs(i, 0, 0);
+//         nzCoeffs_div_y[count]  = div_coeffs(i, 0, 1);
+//         // nzCoeffs_div_x[count]  = hVar[i] * div_coeffs(i, 0, 0);
+//         // nzCoeffs_div_y[count]  = hVar[i] * div_coeffs(i, 0, 1);
 
-    //----------------- Set up sparse matrix for div and grad ------------------
+//         colIndx[count] = i;
 
+//         count++;
+//         double cos_a, sin_a;
+//         for (j=0; j<f_num; j++)                       // assign off-diagonals
+//         {
+//             nzCoeffs[count] = (*pressure_matrix)(i, j+1);
+//             colIndx[count]  = node_friends(i, j);
 
-    // define handles to the sparse matrices for each component of the grad and
-    // div operators. The Laplacian matrix will be constructed from these.
-    sparse_matrix_t * DIV_X, * DIV_Y, * GRAD_X, * GRAD_Y;
-    sparse_matrix_t * LAP_X, * LAP_Y;
+//             cos_a = node_vel_trans(i, j+1, 0);
+//             sin_a = node_vel_trans(i, j+1, 1);
 
-    DIV_X   = new sparse_matrix_t;
-    DIV_Y   = new sparse_matrix_t;
-    GRAD_X  = new sparse_matrix_t;
-    GRAD_Y  = new sparse_matrix_t;
-    LAP_X   = new sparse_matrix_t;
-    LAP_Y   = new sparse_matrix_t;
+//             nzCoeffs_grad_x[count] = grad_coeffs(i, j+1, 0);
+//             nzCoeffs_grad_y[count] = grad_coeffs(i, j+1, 1);
 
+//             f = node_friends(i,j);
 
+//             // Because the gradient operator returns a vector, we have to transform
+//             // the vector into mapped coordinates. We do this here by premultiplying
+//             // the components of the divergence operator by the transpose of the
+//             // the transform matrix defined in node_vel_trans.
+//             nzCoeffs_div_x[count]  =  cos_a*div_coeffs(i, j+1, 0) - sin_a*div_coeffs(i,  j+1, 1);
+//             nzCoeffs_div_y[count]  =  sin_a*div_coeffs(i, j+1, 0) + cos_a*div_coeffs(i,  j+1, 1);
 
-    // Define c (0) based indexing
-    sparse_index_base_t indexing = SPARSE_INDEX_BASE_ZERO;
+//             // nzCoeffs_div_x[count]  =  hVar[f] * (cos_a*div_coeffs(i, j+1, 0) - sin_a*div_coeffs(i,  j+1, 1));
+//             // nzCoeffs_div_y[count]  =  hVar[f] * (sin_a*div_coeffs(i, j+1, 0) + cos_a*div_coeffs(i,  j+1, 1));
 
-    // Define all operations the original (non-transpose) matrix
-    sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
+//             count++;
+//         }
 
-    // Assign non-zero values to matrices for the components of div and grad operators
-    error = mkl_sparse_d_create_csr(DIV_X,  indexing, node_num, node_num, rowStart, rowEnd, colIndx, nzCoeffs_div_x);
-    error = mkl_sparse_d_create_csr(DIV_Y,  indexing, node_num, node_num, rowStart, rowEnd, colIndx, nzCoeffs_div_y);
 
-    error = mkl_sparse_d_create_csr(GRAD_X, indexing, node_num, node_num, rowStart, rowEnd, colIndx, nzCoeffs_grad_x);
-    error = mkl_sparse_d_create_csr(GRAD_Y, indexing, node_num, node_num, rowStart, rowEnd, colIndx, nzCoeffs_grad_y);
+//     }
 
-    // Compute the multiplication of each component of the div dot grad
-    error = mkl_sparse_spmm(operation, *DIV_X, *GRAD_X, LAP_X); // div_x * grad_x
-    error = mkl_sparse_spmm(operation, *DIV_Y, *GRAD_Y, LAP_Y); // div_y * grad_y
+//     // assign the row indexes for the sparse matrix in CSR format
 
-    // Sum each component to give the total Grad^2 operator (Laplacian)
-    // This is equivalent to (div_x * grad_x) + (div_y + grad_y)
-    sparse_matrix_t * LAP = new sparse_matrix_t;
-    error = mkl_sparse_d_add(operation, *LAP_X, 1.0, *LAP_Y, LAP);
+//     rowIndx[0] = 0;         // first element is always zero
 
+//     // number of non-zero elements for pentagons
+//     for (i=0; i<12; i++) rowIndx[i+1] = 6*(i+1);
 
+//     // number of non-zero elements for hexagons
+//     for (i=12; i<NODE_NUM; i++) rowIndx[i+1] = (12*6) + 7*(i-11);
 
-    delete DIV_X;
-    delete DIV_Y;
-    delete GRAD_X;
-    delete GRAD_Y;
-    delete LAP_X;
-    delete LAP_Y;
+//     // last element is always the number of non-zero coefficients
+//     rowIndx[NODE_NUM] = nNonZero;
 
-    delete[] rowStart;
-    delete[] rowEnd;
-    delete[] colIndx;
-    delete[] nzCoeffs_div_x;
-    delete[] nzCoeffs_div_y;
-    delete[] nzCoeffs_grad_x;
-    delete[] nzCoeffs_grad_y;
+//     for (i=0; i<NODE_NUM; i++)
+//     {
+//       rowStart[i] = rowIndx[i];
+//       rowEnd[i] = rowIndx[i+1];
+//     }
 
+//     //----------------- Set up sparse matrix for div and grad ------------------
 
-    int    * rowStartLap;
-    int      * rowEndLap;
-    int     * colIndxLap;
-    double * nzCoeffsLap;
 
-    int nc, nr; //nrows, ncols
-    int nNonZeroLap;
+//     // define handles to the sparse matrices for each component of the grad and
+//     // div operators. The Laplacian matrix will be constructed from these.
+//     sparse_matrix_t * DIV_X, * DIV_Y, * GRAD_X, * GRAD_Y;
+//     sparse_matrix_t * LAP_X, * LAP_Y;
 
-    rowStartLap = NULL;
-    rowEndLap   = NULL;
-    colIndxLap  = NULL;
-    nzCoeffsLap = NULL;
+//     DIV_X   = new sparse_matrix_t;
+//     DIV_Y   = new sparse_matrix_t;
+//     GRAD_X  = new sparse_matrix_t;
+//     GRAD_Y  = new sparse_matrix_t;
+//     LAP_X   = new sparse_matrix_t;
+//     LAP_Y   = new sparse_matrix_t;
 
-    // Now extract the the row and column index arrays, and nonzero coefficients
-    // from the Laplacian operator. These will be used to set up the solver for
-    // the problem L*p = d below, where L is the Laplacian operator and is to be
-    // inverted to find the solution p.
-    error = mkl_sparse_d_export_csr (*LAP, &indexing, &nc, &nr, &rowStartLap, &rowEndLap, &colIndxLap, &nzCoeffsLap);
+//     // Assing memory to the handle for the Laplacian operator matrix
+//     operatorLaplacian = new sparse_matrix_t;  // defined in mesh.h
 
-    nNonZeroLap = rowEndLap[nr - 1];
+//     // Define c (0) based indexing
+//     sparse_index_base_t indexing = SPARSE_INDEX_BASE_ZERO;
 
-    int * colIndxU = new int[nNonZeroLap];
-    int * colIndxV = new int[nNonZeroLap];
-    int * rowStartU = new int[2*node_num];
-    int * rowStartV = new int[2*node_num];
-    int * rowEndU = new int[2*node_num];
-    int * rowEndV = new int[2*node_num];
+//     // Define all operations the original (non-transpose) matrix
+//     sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
 
-    double * nzCoeffsLap2 = new double[nNonZeroLap];
+//     // Assign non-zero values to matrices for the components of div and grad operators
+//     error = mkl_sparse_d_create_csr(DIV_X,  indexing, NODE_NUM, NODE_NUM, rowStart, rowEnd, colIndx, nzCoeffs_div_x);
+//     error = mkl_sparse_d_create_csr(DIV_Y,  indexing, NODE_NUM, NODE_NUM, rowStart, rowEnd, colIndx, nzCoeffs_div_y);
 
-    for (i=0; i<nNonZeroLap; i++)
-    {
-      colIndxU[i] = 3*colIndxLap[i];
-      colIndxV[i] = 3*colIndxLap[i]+1;
+//     error = mkl_sparse_d_create_csr(GRAD_X, indexing, NODE_NUM, NODE_NUM, rowStart, rowEnd, colIndx, nzCoeffs_grad_x);
+//     error = mkl_sparse_d_create_csr(GRAD_Y, indexing, NODE_NUM, NODE_NUM, rowStart, rowEnd, colIndx, nzCoeffs_grad_y);
 
-      nzCoeffsLap2[i] = nzCoeffsLap[i];
-    }
+//     // Compute the multiplication of each component of the div dot grad
+//     error = mkl_sparse_spmm(operation, *DIV_X, *GRAD_X, LAP_X); // div_x * grad_x
+//     error = mkl_sparse_spmm(operation, *DIV_Y, *GRAD_Y, LAP_Y); // div_y * grad_y
 
-    rowStartU[0] = 0.0;
-    rowStartV[0] = 0.0;
-    for (i=1; i<node_num; i++)
-    {
-      rowStartU[2*i-1] = rowStartLap[i];
-      rowStartU[2*i] = rowStartLap[i];}
+//     // Sum each component to give the total Grad^2 operator (Laplacian)
+//     // This is equivalent to (div_x * grad_x) + (div_y + grad_y)
+//     error = mkl_sparse_d_add(operation, *LAP_X, 1.0, *LAP_Y, operatorLaplacian);
 
-    for (i=0; i<node_num; i++)
-    {
-      rowStartV[2*i] = rowStartLap[i];
-      rowStartV[2*i+1] = rowStartLap[i];
+//     // matrix_descr descrp;
+//     // descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
+//     // error = mkl_sparse_set_mv_hint (*operatorLaplacian, operation, descrp, 100000000);
+//     // error = mkl_sparse_set_memory_hint (*operatorLaplacian, SPARSE_MEMORY_AGGRESSIVE);
+//     // error = mkl_sparse_optimize (*operatorLaplacian);
 
-    }
-    rowStartU[2*node_num-1] = nNonZeroLap;
-    for (i=0; i<2*node_num-1; i++)
-    {
-      rowEndU[i] = rowStartU[i+1];
-      rowEndV[i] = rowStartV[i+1];
-    }
-
-
-    rowEndU[2*node_num-1] = nNonZeroLap;
-    rowEndV[2*node_num-1] = nNonZeroLap;
-
-    // assign the row indexes for the sparse matrix in CSR format
-    // for (i=0; i<2*node_num; i++)
-    // {
-    //   std::cout<<i<<' '<<rowStartV[i]<<' '<<rowEndV[i]<<' '<<nNonZeroLap<<std::endl;
-    // }
-
-
-    sparse_matrix_t * LAP2_X = new sparse_matrix_t;
-    sparse_matrix_t * LAP2_Y = new sparse_matrix_t;
-    error = mkl_sparse_d_create_csr(LAP2_X,  indexing, 2*node_num, 3*node_num, rowStartU, rowEndU, colIndxU, nzCoeffsLap2);
-    error = mkl_sparse_d_create_csr(LAP2_Y,  indexing, 2*node_num, 3*node_num, rowStartV, rowEndV, colIndxV, nzCoeffsLap2);
-
-    // Assing memory to the handle for the Laplacian operator matrix
-    operatorLaplacian = new sparse_matrix_t;  // defined in mesh.h
-    error = mkl_sparse_d_add(operation, *LAP2_X, 1.0, *LAP2_Y, operatorLaplacian);
-
-
-    delete[] rowStartU;
-    delete[] rowEndU;
-    delete[] rowStartV;
-    delete[] rowEndV;
-    delete[] colIndxU;
-    delete[] colIndxV;
-    // delete[] nzCoeffsLap;
-    delete[] nzCoeffsLap2;
-
-    delete LAP2_X;
-    delete LAP2_Y;
-
-    return 1;
-}
-
-
-
-int Mesh::GenerateMomentumOperator(void)
-{
-    int error;
-    // Define c (0) based indexing
-    sparse_index_base_t indexing = SPARSE_INDEX_BASE_ZERO;
-
-    // Define all operations the original (non-transpose) matrix
-    sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
-
-    operatorMomentum = new sparse_matrix_t;
-    // int error = mkl_sparse_d_add(operation, *operatorLaplacian, 1.0, *operatorGradient, operatorMomentum);
-    // int error = mkl_sparse_d_add(operation, *operatorCoriolis, 1.0, *operatorGradient, operatorMomentum);
-    // error = mkl_sparse_d_add(operation, *operatorMomentum, 1.0, *operatorCoriolis, operatorMomentum);
-
-    if (globals->fric_type == LINEAR) mkl_sparse_d_add(operation, *operatorCoriolis, 1.0, *operatorLinearDrag, operatorMomentum);
-    else mkl_sparse_d_add(operation, *operatorLinearDrag, 0.0, *operatorCoriolis, operatorMomentum);
-
-    mkl_sparse_order (*operatorMomentum);
-
-
-    matrix_descr descrp;
-    descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
-
-    int iter_num = 9999999;
-    // error = mkl_sparse_set_dotmv_hint (*operatorMomentum, operation, descrp, 1000000000);
-    error = mkl_sparse_set_mv_hint (*operatorMomentum, operation, descrp, iter_num);
-    // error = mkl_sparse_set_mm_hint (*operatorMomentum, operation, descrp, SPARSE_LAYOUT_COLUMN_MAJOR, 1, iter_num);
-    error = mkl_sparse_set_memory_hint (*operatorMomentum, SPARSE_MEMORY_AGGRESSIVE);
-    error = mkl_sparse_optimize (*operatorMomentum);
-    error = mkl_sparse_optimize (*operatorMomentum);
-
-
-
-    // op_mom = new SpMat(2*node_num,3*node_num);
-    //
-    // int    * rowStartLap;
-    // int      * rowEndLap;
-    // int     * colIndxLap;
-    // double * nzCoeffsLap;
-    //
-    // int nc, nr; //nrows, ncols
-    // int nNonZeroLap;
-    //
-    // rowStartLap = NULL;
-    // rowEndLap   = NULL;
-    // colIndxLap  = NULL;
-    // nzCoeffsLap = NULL;
-    //
-    // // Now extract the the row and column index arrays, and nonzero coefficients
-    // // from the Laplacian operator. These will be used to set up the solver for
-    // // the problem L*p = d below, where L is the Laplacian operator and is to be
-    // // inverted to find the solution p.
-    // error = mkl_sparse_d_export_csr (*operatorMomentum, &indexing, &nc, &nr, &rowStartLap, &rowEndLap, &colIndxLap, &nzCoeffsLap);
-    //
-    // nNonZeroLap = rowEndLap[nr - 1];
-    //
-    // // for (i=0; i<2*node_num; i++)
-    // // {
-    // //   rowIndx[i] = rowStartLap[i];
-    // // }
-    // // rowIndx[node_num] = nNonZeroLap;
-    //
-    // int count = 0;
-    // int num_row;
-    // for (int i=0; i<2*node_num; ++i)
-    // {
-    //   num_row = rowEndLap[i]-rowStartLap[i];
-    //
-    //   for (int j=0; j<num_row; ++j)
-    //   {
-    //
-    //     (*op_mom).insert(i, colIndxLap[rowEndLap[i]+j]) = nzCoeffsLap[count++];
-    //
-    //   }
-    // }
-    //
-    // (*op_mom).makeCompressed();
-
-    // Free space!
-    // delete operatorLaplacian;
-    // delete operatorGradient;
-    delete operatorCoriolis;
-    delete operatorLinearDrag;
-
-    return 1;
-}
-// Function to generate a sparse matrix A for the Laplacian operator, convert it
-// to CSR format, and create a solver object that is capable of solving the
-// linear system A*p = d to find the pressure field, p, give a rhs vector d.
-int Mesh::GeneratePressureSolver(void)
-{
-    int i, j, j2, j3, f, f_num;
-    double areaCV, *coeff;
-    double D;
-
-
-    double * hVar = new double[node_num];
-    double a_ratio = 0.0;
-    for (i=0; i<node_num; i++) hVar[i] = 1.0;//globals->h.Value()*(1. + a_ratio*trigLat(i,0)*pow(trigMLon(i,4,0),4.0));
-
-
-    // }
-
-    Array2D<double> * pressure_matrix;
-    pressure_matrix = new Array2D<double>(node_num, 7);
-
-    // why is this line here? Where would it be better placed?
-
-    //-------------- Calculate the laplacian matrix coefficients ---------------
-
-    for (i=0; i<node_num; i++)
-    {
-
-        f_num = 6;                  // Assume hexagon (6 centroids)
-        f = node_friends(i,5);
-        if (f == -1) f_num = 5;     // Check if pentagon (5 centroids)
-
-        // Control volume area
-        areaCV = control_volume_surf_area_map(i);
-
-        // Calculate the central node coefficient first
-        coeff = &(*pressure_matrix)(i, 0);
-        *coeff = 0.0;
-        for (j=0; j<f_num; j++)
-        {
-            j2 = (j-1)%f_num;
-            if (j2 < 0) j2 += f_num;
-            f = node_friends(i, j);
-
-            //          this part is the spatially
-            //          varying scalar, TODO change
-            //          to ocean thickness!!!!!
-            //        -----------------------------
-            D =  0.5*(hVar[i] + hVar[f]) * control_vol_edge_len(i, j2) /  ( control_vol_edge_centre_m(i, j2) * node_dists(i, j) );
-            // 0.5*(trigLon(i, 1) + trigLon(f, 1)) *
-            *coeff += D;
-        }
-        *coeff *= -1./areaCV; // Need the negative sign here!
-
-        // Now calculate coeffs for neighbouring nodes (matrix diagonals)
-        for (j=0; j<f_num; j++)
-        {
-            coeff = &(*pressure_matrix)(i, j+1);
-
-            j2 = (j-1)%f_num;
-            if (j2 < 0) j2 += f_num;
-            f = node_friends(i,j);
-
+//     // error = mkl_sparse_d_create_csr(operatorLaplacian, indexing, NODE_NUM, NODE_NUM, rowStart, rowEnd, colIndx, nzCoeffs);
 
-            D = 0.5*(hVar[i] + hVar[f]) * control_vol_edge_len(i, j2) /  ( control_vol_edge_centre_m(i, j2) * node_dists(i, j) );
-            // 0.5*(trigLon(i, 1) + trigLon(f, 1)) *
+//     // error = mkl_sparse_d_create_csr(operatorLaplacian,  indexing, NODE_NUM, NODE_NUM, rowStart, rowEnd, colIndx, nzCoeffs_div_x);
+//     // error = mkl_sparse_d_create_csr(operatorLaplacian2,  indexing, NODE_NUM, NODE_NUM, rowStart, rowEnd, colIndx, nzCoeffs_div_y);
 
-            *coeff = D;
-            *coeff *= 1./areaCV; // No negative sign here!
-        }
-    }
 
+//     // Remove uneeded matrices from memory
+//     delete DIV_X;
+//     delete DIV_Y;
+//     delete LAP_Y;
+//     delete LAP_X;
+//     delete GRAD_X;
+//     delete GRAD_Y;
 
-    //--------------- Construct sparse matrix in CSR format --------------------
 
-    //--------------- Define objects to construct matrix -----------------------
+//     // Create objects for the row and column indices, and non-zero coefficients
+//     // for the Laplace operator. Note that, although the Laplace operator was
+//     // just create and assigned above, we do not yet know its structure or the
+//     // number and values of the coefficients in its matrix.
 
-    double * nzCoeffs_grad_x;   // non-zero grad operator coeffis in x direction
-    double * nzCoeffs_grad_y;   // non-zero grad operator coeffis in y direction
-    double * nzCoeffs_div_x;    // non-zero div operator coeffis in x direction
-    double * nzCoeffs_div_y;    // non-zero div operator coeffis in y direction
+//     int    * rowStartLap;
+//     int      * rowEndLap;
+//     int     * colIndxLap;
+//     double * nzCoeffsLap;
 
-    // Here we assign the number of non-zero matrix elements for each operator.
-    // There are 12 pentagons on the geodesic grid, each with 5 neighbours and
-    // one central node (total of 6). The other cells are hexagons with 6
-    // neighbours and one central node (total of 7). Therefore, the total number
-    // of non-zero coefficients in our sparse matrix is given as:
-    int nNonZero = (node_num-12)*7 + 12*6;
+//     int nc, nr; //nrows, ncols
+//     int nNonZeroLap;
 
-    int     * colIndx;    // column index for each non-zero element
-    int     * rowIndx;    // row indices for CSR matrix format
-    double * nzCoeffs;    // array for each non-zero coefficient
+//     rowStartLap = NULL;
+//     rowEndLap   = NULL;
+//     colIndxLap  = NULL;
+//     nzCoeffsLap = NULL;
 
-    int         error;    // error message from MKL
+//     // Now extract the the row and column index arrays, and nonzero coefficients
+//     // from the Laplacian operator. These will be used to set up the solver for
+//     // the problem L*p = d below, where L is the Laplacian operator and is to be
+//     // inverted to find the solution p.
+//     error = mkl_sparse_d_export_csr (*operatorLaplacian, &indexing, &nc, &nr, &rowStartLap, &rowEndLap, &colIndxLap, &nzCoeffsLap);
 
-    int * rowStart, * rowEnd; // row indexes for CSR sparse matrix format
+//     nNonZeroLap = rowEndLap[nr - 1];
 
+//     for (i=0; i<NODE_NUM; i++)
+//     {
+//       rowIndx[i] = rowStartLap[i];
+//     }
+//     rowIndx[NODE_NUM] = nNonZeroLap;
 
-    //---------------- Initialise objects into memory --------------------------
 
-    rowStart = new int[node_num];
-    rowEnd   = new int[node_num];
 
-    colIndx  = new int[nNonZero];
-    nzCoeffs = new double[nNonZero];
-    rowIndx  = new int[node_num + 1];
+//     // std::cout<<rowStartLap[NODE_NUM]<<std::endl;
 
-    nzCoeffs_grad_x = new double[nNonZero];
-    nzCoeffs_grad_y = new double[nNonZero];
-    nzCoeffs_div_x  = new double[nNonZero];
-    nzCoeffs_div_y  = new double[nNonZero];
+//     //----------------- Set up the intel MKL solver for L*p = d ----------------
 
-    // assign the non-zero coefficients and their column indexes in CSR format
-    int count=0;
-    for (i=0; i<node_num; i++)
-    {
-        f_num = 6;               // Assume hexagon (6 neighbours)
-        f = node_friends(i,5);
-        if (f == -1) f_num = 5;  // Check if pentagon (5 neighbours)
+//     // create the solver object and assign it to a handle
+//     MKL_INT opt = MKL_DSS_ZERO_BASED_INDEXING;
+//     error = dss_create(pressureSolverHandle, opt);
 
-        nzCoeffs[count] = (*pressure_matrix)(i, 0);  // assign diagonal element
+//     if (error != MKL_DSS_SUCCESS)
+//     {
+//         outstring << "ERROR: MKL couldn't create the solver object and exited with error code "<<error<< std::endl;
+//         globals->Output->Write(ERR_MESSAGE, &outstring);
+//         globals->Output->TerminateODIS();
+//     }
 
-        nzCoeffs_grad_x[count] = grad_coeffs(i, 0, 0);
-        nzCoeffs_grad_y[count] = grad_coeffs(i, 0, 1);
+//     // define the structure of the sparse matrix of size N*N with nNonZero elements
+//     opt =  MKL_DSS_SYMMETRIC_STRUCTURE;//MKL_DSS_SYMMETRIC_STRUCTURE;
+//     // error = dss_define_structure(pressureSolverHandle, opt, rowIndx, NODE_NUM, NODE_NUM, colIndx, nNonZero);
+//     error = dss_define_structure(pressureSolverHandle, opt, rowIndx, NODE_NUM, NODE_NUM, colIndxLap, nNonZeroLap);
 
-        nzCoeffs_div_x[count]  = div_coeffs(i, 0, 0);
-        nzCoeffs_div_y[count]  = div_coeffs(i, 0, 1);
-        // nzCoeffs_div_x[count]  = hVar[i] * div_coeffs(i, 0, 0);
-        // nzCoeffs_div_y[count]  = hVar[i] * div_coeffs(i, 0, 1);
+//     if (error != MKL_DSS_SUCCESS)
+//     {
+//         outstring << "ERROR: MKL couldn't create the laplacian matrix structure and exited with error code "<<error<< std::endl;
+//         globals->Output->Write(ERR_MESSAGE, &outstring);
+//         globals->Output->TerminateODIS();
+//     }
 
-        colIndx[count] = i;
+//     // reorder the matrix to optimize the permutation order
+//     opt = MKL_DSS_AUTO_ORDER;
+//     error = dss_reorder(pressureSolverHandle, opt, 0);
 
-        count++;
-        double cos_a, sin_a;
-        for (j=0; j<f_num; j++)                       // assign off-diagonals
-        {
-            nzCoeffs[count] = (*pressure_matrix)(i, j+1);
-            colIndx[count]  = node_friends(i, j);
+//     if (error != MKL_DSS_SUCCESS)
+//     {
+//         outstring << "ERROR: MKL couldn't reorder the laplacian matrix and exited with error code "<<error<< std::endl;
+//         globals->Output->Write(ERR_MESSAGE, &outstring);
+//         globals->Output->TerminateODIS();
+//     }
 
-            cos_a = node_vel_trans(i, j+1, 0);
-            sin_a = node_vel_trans(i, j+1, 1);
+//     // LU factorize the matrix using the nzCoeffs for direct solution
+//     opt = MKL_DSS_POSITIVE_DEFINITE;
+//     // error = dss_factor_real(pressureSolverHandle, opt, nzCoeffs);
+//     error = dss_factor_real(pressureSolverHandle, opt, nzCoeffsLap);
 
-            nzCoeffs_grad_x[count] = grad_coeffs(i, j+1, 0);
-            nzCoeffs_grad_y[count] = grad_coeffs(i, j+1, 1);
+//     if (error != MKL_DSS_SUCCESS)
+//     {
+//         outstring << "ERROR: MKL couldn't factorize the laplacian matrix and exited with error code "<<error<< std::endl;
+//         globals->Output->Write(ERR_MESSAGE, &outstring);
+//         globals->Output->TerminateODIS();
+//     }
 
-            f = node_friends(i,j);
+//     delete pressure_matrix;
 
-            // Because the gradient operator returns a vector, we have to transform
-            // the vector into mapped coordinates. We do this here by premultiplying
-            // the components of the divergence operator by the transpose of the
-            // the transform matrix defined in node_vel_trans.
-            nzCoeffs_div_x[count]  =  cos_a*div_coeffs(i, j+1, 0) - sin_a*div_coeffs(i,  j+1, 1);
-            nzCoeffs_div_y[count]  =  sin_a*div_coeffs(i, j+1, 0) + cos_a*div_coeffs(i,  j+1, 1);
+//     delete nzCoeffs_grad_x;
+//     delete nzCoeffs_grad_y;
+//     delete nzCoeffs_div_x;
+//     delete nzCoeffs_div_y;
 
-            // nzCoeffs_div_x[count]  =  hVar[f] * (cos_a*div_coeffs(i, j+1, 0) - sin_a*div_coeffs(i,  j+1, 1));
-            // nzCoeffs_div_y[count]  =  hVar[f] * (sin_a*div_coeffs(i, j+1, 0) + cos_a*div_coeffs(i,  j+1, 1));
-
-            count++;
-        }
-
-
-    }
-
-    // assign the row indexes for the sparse matrix in CSR format
-
-    rowIndx[0] = 0;         // first element is always zero
-
-    // number of non-zero elements for pentagons
-    for (i=0; i<12; i++) rowIndx[i+1] = 6*(i+1);
-
-    // number of non-zero elements for hexagons
-    for (i=12; i<node_num; i++) rowIndx[i+1] = (12*6) + 7*(i-11);
-
-    // last element is always the number of non-zero coefficients
-    rowIndx[node_num] = nNonZero;
-
-    for (i=0; i<node_num; i++)
-    {
-      rowStart[i] = rowIndx[i];
-      rowEnd[i] = rowIndx[i+1];
-    }
-
-    //----------------- Set up sparse matrix for div and grad ------------------
-
-
-    // define handles to the sparse matrices for each component of the grad and
-    // div operators. The Laplacian matrix will be constructed from these.
-    sparse_matrix_t * DIV_X, * DIV_Y, * GRAD_X, * GRAD_Y;
-    sparse_matrix_t * LAP_X, * LAP_Y;
-
-    DIV_X   = new sparse_matrix_t;
-    DIV_Y   = new sparse_matrix_t;
-    GRAD_X  = new sparse_matrix_t;
-    GRAD_Y  = new sparse_matrix_t;
-    LAP_X   = new sparse_matrix_t;
-    LAP_Y   = new sparse_matrix_t;
-
-    // Assing memory to the handle for the Laplacian operator matrix
-    operatorLaplacian = new sparse_matrix_t;  // defined in mesh.h
-
-    // Define c (0) based indexing
-    sparse_index_base_t indexing = SPARSE_INDEX_BASE_ZERO;
-
-    // Define all operations the original (non-transpose) matrix
-    sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
-
-    // Assign non-zero values to matrices for the components of div and grad operators
-    error = mkl_sparse_d_create_csr(DIV_X,  indexing, node_num, node_num, rowStart, rowEnd, colIndx, nzCoeffs_div_x);
-    error = mkl_sparse_d_create_csr(DIV_Y,  indexing, node_num, node_num, rowStart, rowEnd, colIndx, nzCoeffs_div_y);
-
-    error = mkl_sparse_d_create_csr(GRAD_X, indexing, node_num, node_num, rowStart, rowEnd, colIndx, nzCoeffs_grad_x);
-    error = mkl_sparse_d_create_csr(GRAD_Y, indexing, node_num, node_num, rowStart, rowEnd, colIndx, nzCoeffs_grad_y);
-
-    // Compute the multiplication of each component of the div dot grad
-    error = mkl_sparse_spmm(operation, *DIV_X, *GRAD_X, LAP_X); // div_x * grad_x
-    error = mkl_sparse_spmm(operation, *DIV_Y, *GRAD_Y, LAP_Y); // div_y * grad_y
-
-    // Sum each component to give the total Grad^2 operator (Laplacian)
-    // This is equivalent to (div_x * grad_x) + (div_y + grad_y)
-    error = mkl_sparse_d_add(operation, *LAP_X, 1.0, *LAP_Y, operatorLaplacian);
-
-    // matrix_descr descrp;
-    // descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
-    // error = mkl_sparse_set_mv_hint (*operatorLaplacian, operation, descrp, 100000000);
-    // error = mkl_sparse_set_memory_hint (*operatorLaplacian, SPARSE_MEMORY_AGGRESSIVE);
-    // error = mkl_sparse_optimize (*operatorLaplacian);
-
-    // error = mkl_sparse_d_create_csr(operatorLaplacian, indexing, node_num, node_num, rowStart, rowEnd, colIndx, nzCoeffs);
-
-    // error = mkl_sparse_d_create_csr(operatorLaplacian,  indexing, node_num, node_num, rowStart, rowEnd, colIndx, nzCoeffs_div_x);
-    // error = mkl_sparse_d_create_csr(operatorLaplacian2,  indexing, node_num, node_num, rowStart, rowEnd, colIndx, nzCoeffs_div_y);
-
-
-    // Remove uneeded matrices from memory
-    delete DIV_X;
-    delete DIV_Y;
-    delete LAP_Y;
-    delete LAP_X;
-    delete GRAD_X;
-    delete GRAD_Y;
-
-
-    // Create objects for the row and column indices, and non-zero coefficients
-    // for the Laplace operator. Note that, although the Laplace operator was
-    // just create and assigned above, we do not yet know its structure or the
-    // number and values of the coefficients in its matrix.
-
-    int    * rowStartLap;
-    int      * rowEndLap;
-    int     * colIndxLap;
-    double * nzCoeffsLap;
-
-    int nc, nr; //nrows, ncols
-    int nNonZeroLap;
-
-    rowStartLap = NULL;
-    rowEndLap   = NULL;
-    colIndxLap  = NULL;
-    nzCoeffsLap = NULL;
-
-    // Now extract the the row and column index arrays, and nonzero coefficients
-    // from the Laplacian operator. These will be used to set up the solver for
-    // the problem L*p = d below, where L is the Laplacian operator and is to be
-    // inverted to find the solution p.
-    error = mkl_sparse_d_export_csr (*operatorLaplacian, &indexing, &nc, &nr, &rowStartLap, &rowEndLap, &colIndxLap, &nzCoeffsLap);
-
-    nNonZeroLap = rowEndLap[nr - 1];
-
-    for (i=0; i<node_num; i++)
-    {
-      rowIndx[i] = rowStartLap[i];
-    }
-    rowIndx[node_num] = nNonZeroLap;
-
-
-
-    // std::cout<<rowStartLap[node_num]<<std::endl;
-
-    //----------------- Set up the intel MKL solver for L*p = d ----------------
-
-    // create the solver object and assign it to a handle
-    MKL_INT opt = MKL_DSS_ZERO_BASED_INDEXING;
-    error = dss_create(pressureSolverHandle, opt);
-
-    if (error != MKL_DSS_SUCCESS)
-    {
-        outstring << "ERROR: MKL couldn't create the solver object and exited with error code "<<error<< std::endl;
-        globals->Output->Write(ERR_MESSAGE, &outstring);
-        globals->Output->TerminateODIS();
-    }
-
-    // define the structure of the sparse matrix of size N*N with nNonZero elements
-    opt =  MKL_DSS_SYMMETRIC_STRUCTURE;//MKL_DSS_SYMMETRIC_STRUCTURE;
-    // error = dss_define_structure(pressureSolverHandle, opt, rowIndx, node_num, node_num, colIndx, nNonZero);
-    error = dss_define_structure(pressureSolverHandle, opt, rowIndx, node_num, node_num, colIndxLap, nNonZeroLap);
-
-    if (error != MKL_DSS_SUCCESS)
-    {
-        outstring << "ERROR: MKL couldn't create the laplacian matrix structure and exited with error code "<<error<< std::endl;
-        globals->Output->Write(ERR_MESSAGE, &outstring);
-        globals->Output->TerminateODIS();
-    }
-
-    // reorder the matrix to optimize the permutation order
-    opt = MKL_DSS_AUTO_ORDER;
-    error = dss_reorder(pressureSolverHandle, opt, 0);
-
-    if (error != MKL_DSS_SUCCESS)
-    {
-        outstring << "ERROR: MKL couldn't reorder the laplacian matrix and exited with error code "<<error<< std::endl;
-        globals->Output->Write(ERR_MESSAGE, &outstring);
-        globals->Output->TerminateODIS();
-    }
-
-    // LU factorize the matrix using the nzCoeffs for direct solution
-    opt = MKL_DSS_POSITIVE_DEFINITE;
-    // error = dss_factor_real(pressureSolverHandle, opt, nzCoeffs);
-    error = dss_factor_real(pressureSolverHandle, opt, nzCoeffsLap);
-
-    if (error != MKL_DSS_SUCCESS)
-    {
-        outstring << "ERROR: MKL couldn't factorize the laplacian matrix and exited with error code "<<error<< std::endl;
-        globals->Output->Write(ERR_MESSAGE, &outstring);
-        globals->Output->TerminateODIS();
-    }
-
-    delete pressure_matrix;
-
-    delete nzCoeffs_grad_x;
-    delete nzCoeffs_grad_y;
-    delete nzCoeffs_div_x;
-    delete nzCoeffs_div_y;
-
-    return 1;
-}
+//     return 1;
+// }
 
 
 // Function to read in text file containing mesh information
@@ -2793,8 +4157,8 @@ int Mesh::ReadMeshFile(void)
 //     double * rot_1D;
 //
 //     cellID_1D = new int[180/N_ll * 360/N_ll];
-//     vInv_1D = new double[node_num * 6 * 6];
-//     rot_1D = new double[node_num];
+//     vInv_1D = new double[NODE_NUM * 6 * 6];
+//     rot_1D = new double[NODE_NUM];
 //
 //     // Read in the data
 //     dset_cellID.read( cellID_1D, PredType::NATIVE_INT, mspace_cellID, fspace_cellID );
@@ -2802,7 +4166,7 @@ int Mesh::ReadMeshFile(void)
 //
 //     // Load Array classes with 1D dynamic arrays
 //     int count = 0;
-//     for (i=0; i<node_num; i++)
+//     for (i=0; i<NODE_NUM; i++)
 //     {
 //         for (j=0; j<6; j++)
 //         {
@@ -2823,7 +4187,7 @@ int Mesh::ReadMeshFile(void)
 //
 //     m = new double;
 //
-//     double test_solution_gg[node_num];
+//     double test_solution_gg[NODE_NUM];
 //     double test_solution_ll[180/N_ll][360/N_ll];
 //     r = 1.0;//globals->radius.Value();
 //
@@ -2871,102 +4235,124 @@ int Mesh::ReadMeshFile(void)
 //
 // };
 
-int Mesh::ReadWeightingFile(void)
-{
-    int i, N_ll;
+// int Mesh::ReadWeightingFile(void)
+// {
+//     int i, N_ll;
 
 
-    N_ll = (int)globals->dLat.Value();
+//     N_ll = (int)globals->dLat.Value();
 
-    const H5std_string DSET_cols("column index");
-    const H5std_string DSET_rows("row index");
-    const H5std_string DSET_data("weights");
+//     const H5std_string DSET_cols("column index");
+//     const H5std_string DSET_rows("row index");
+//     const H5std_string DSET_data("weights");
 
-    std::string file_str;
-    file_str = globals->path + SEP
-               + "input_files" + SEP
-               + "grid_l" + std::to_string(globals->geodesic_l.Value())
-               + '_' + std::to_string(N_ll)
-               + 'x' + std::to_string(N_ll)
-               + "_weights.h5";
+//     std::string file_str;
+//     file_str = globals->path + SEP
+//                + "input_files" + SEP
+//                + "grid_l" + std::to_string(globals->geodesic_l.Value())
+//                + '_' + std::to_string(N_ll)
+//                + 'x' + std::to_string(N_ll)
+//                + "_weights.h5";
 
-    // Define file name and open file
-    H5std_string FILE_NAME(file_str);
-    H5File file(FILE_NAME, H5F_ACC_RDONLY);
+//     // Define file name and open file
+//     H5std_string FILE_NAME(file_str);
+//     H5File file(FILE_NAME, H5F_ACC_RDONLY);
 
-    // Access dataspaces in latlon file
-    DataSet dset_cols = file.openDataSet(DSET_cols);
-    DataSet dset_rows = file.openDataSet(DSET_rows);
-    DataSet dset_data = file.openDataSet(DSET_data);
+//     // Access dataspaces in latlon file
+//     DataSet dset_cols = file.openDataSet(DSET_cols);
+//     DataSet dset_rows = file.openDataSet(DSET_rows);
+//     DataSet dset_data = file.openDataSet(DSET_data);
 
-    // Create filespaces for the correct rank and dimensions
-    DataSpace fspace_cols = dset_cols.getSpace();
-    DataSpace fspace_rows = dset_rows.getSpace();
-    DataSpace fspace_data = dset_data.getSpace();
+//     // Create filespaces for the correct rank and dimensions
+//     DataSpace fspace_cols = dset_cols.getSpace();
+//     DataSpace fspace_rows = dset_rows.getSpace();
+//     DataSpace fspace_data = dset_data.getSpace();
 
-    // Get number of dimensions in the files dataspace
-    int rank_cols = fspace_cols.getSimpleExtentNdims();
-    int rank_rows = fspace_rows.getSimpleExtentNdims();
-    int rank_data = fspace_data.getSimpleExtentNdims();
+//     // Get number of dimensions in the files dataspace
+//     int rank_cols = fspace_cols.getSimpleExtentNdims();
+//     int rank_rows = fspace_rows.getSimpleExtentNdims();
+//     int rank_data = fspace_data.getSimpleExtentNdims();
 
-    hsize_t dims_cols[1];    // length no of non-zero elements
-    hsize_t dims_rows[1];
-    hsize_t dims_data[1];    // length no of non-zero elements
+//     hsize_t dims_cols[1];    // length no of non-zero elements
+//     hsize_t dims_rows[1];
+//     hsize_t dims_data[1];    // length no of non-zero elements
 
-    // Get size of each dimension
-    rank_cols = fspace_cols.getSimpleExtentDims( dims_cols );
-    rank_rows = fspace_rows.getSimpleExtentDims( dims_rows );
-    rank_data = fspace_data.getSimpleExtentDims( dims_data );
+//     // Get size of each dimension
+//     rank_cols = fspace_cols.getSimpleExtentDims( dims_cols );
+//     rank_rows = fspace_rows.getSimpleExtentDims( dims_rows );
+//     rank_data = fspace_data.getSimpleExtentDims( dims_data );
 
-    // Create memoryspace to read the datasets
-    DataSpace mspace_cols(1, dims_cols);
-    DataSpace mspace_rows(1, dims_rows);
-    DataSpace mspace_data(1, dims_data);
+//     // Create memoryspace to read the datasets
+//     DataSpace mspace_cols(1, dims_cols);
+//     DataSpace mspace_rows(1, dims_rows);
+//     DataSpace mspace_data(1, dims_data);
 
-    // Create 1D arrays to store file data
-    interpCols =    new    int[ dims_cols[0] ];
-    interpRows =    new    int[ dims_rows[0] ];
-    interpWeights = new double[ dims_data[0] ];
+//     // Create 1D arrays to store file data
+//     interpCols =    new    int[ dims_cols[0] ];
+//     interpRows =    new    int[ dims_rows[0] ];
+//     interpWeights = new double[ dims_data[0] ];
 
-    // Read in the data
-    dset_cols.read( interpCols, PredType::NATIVE_INT, mspace_cols, fspace_cols );
-    dset_rows.read( interpRows, PredType::NATIVE_INT, mspace_rows, fspace_rows );
-    dset_data.read( interpWeights, PredType::NATIVE_DOUBLE, mspace_data, fspace_data );
-
-
-    // Create  matrix handle using loaded data
-    sparse_index_base_t index_type = SPARSE_INDEX_BASE_ZERO;     // we employ 0-based indexing.
-    sparse_status_t err;
-
-    int nrows = (360/N_ll)*(180/N_ll);
-    int ncols = 3*node_num;
-
-    interpMatrix = new sparse_matrix_t;
-    err = mkl_sparse_d_create_csr(interpMatrix, index_type, nrows, ncols, interpRows, interpRows+1, interpCols, interpWeights);
+//     // Read in the data
+//     dset_cols.read( interpCols, PredType::NATIVE_INT, mspace_cols, fspace_cols );
+//     dset_rows.read( interpRows, PredType::NATIVE_INT, mspace_rows, fspace_rows );
+//     dset_data.read( interpWeights, PredType::NATIVE_DOUBLE, mspace_data, fspace_data );
 
 
-    // Sparse interpolation matrix successfully created. Now we must provide
-    // additional information to the matrix handle for optimization purposes
+//     // Create  matrix handle using loaded data
+//     // sparse_index_base_t index_type = SPARSE_INDEX_BASE_ZERO;     // we employ 0-based indexing.
+//     // sparse_status_t err;
 
-    // Expected number of calls...?
-    // sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
-    matrix_descr descrp;
-    descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
-    descrp.mode = SPARSE_FILL_MODE_LOWER;
-    descrp.diag = SPARSE_DIAG_NON_UNIT;
+//     // sm1(rows,cols,nnz,outerIndexPtr, // read-write
+//     //                            innerIndices,values);
+    
 
-    sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
+//     int nrows = (360/N_ll)*(180/N_ll);
+//     int ncols = 3*NODE_NUM;
 
-    int numberOfExpectedCalls = 100000000;  // Expect a big number!
-    err = mkl_sparse_set_dotmv_hint(*interpMatrix, operation, descrp, numberOfExpectedCalls);
-    err = mkl_sparse_set_memory_hint (*interpMatrix, SPARSE_MEMORY_AGGRESSIVE);
-    if (err>0) {
-        std::cout<<"Intel matrix optimization error!"<<std::endl;
-    }
+//     interpMatrix = Eigen::Map<SpMat>(nrows, ncols, dims_data[0], interpRows, interpCols, interpWeights );
 
-    // Now optimize matrix
-    err = mkl_sparse_optimize(*interpMatrix);
 
-    return 1;
+//     // std::cout<<interpMatrix.cols()<<' '<<dims_data[0]<<std::endl;
 
-};
+//     // interpMatrix.makeCompressed();
+
+//     // interpMatrix = SpMat(nrows, ncols);
+
+
+
+//     // // Allocate memory for non-zero entries
+//     // interpMatrix.reserve(dims_data[0]);
+
+//     // std::vector<Triplet> coefficients;
+//     // coefficients.reserve(dims_data[0]);
+
+
+//     // interpMatrix = new sparse_matrix_t;
+//     // err = mkl_sparse_d_create_csr(interpMatrix, index_type, nrows, ncols, interpRows, interpRows+1, interpCols, interpWeights);
+
+
+//     // // Sparse interpolation matrix successfully created. Now we must provide
+//     // // additional information to the matrix handle for optimization purposes
+
+//     // // Expected number of calls...?
+//     // // sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
+//     // matrix_descr descrp;
+//     // descrp.type = SPARSE_MATRIX_TYPE_GENERAL;
+//     // descrp.mode = SPARSE_FILL_MODE_LOWER;
+//     // descrp.diag = SPARSE_DIAG_NON_UNIT;
+
+//     // sparse_operation_t operation = SPARSE_OPERATION_NON_TRANSPOSE;
+
+//     // int numberOfExpectedCalls = 100000000;  // Expect a big number!
+//     // err = mkl_sparse_set_dotmv_hint(*interpMatrix, operation, descrp, numberOfExpectedCalls);
+//     // err = mkl_sparse_set_memory_hint (*interpMatrix, SPARSE_MEMORY_AGGRESSIVE);
+//     // if (err>0) {
+//     //     std::cout<<"Intel matrix optimization error!"<<std::endl;
+//     // }
+
+//     // // Now optimize matrix
+//     // err = mkl_sparse_optimize(*interpMatrix);
+
+//     return 1;
+
+// };

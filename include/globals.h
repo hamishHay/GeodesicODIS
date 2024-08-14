@@ -15,18 +15,18 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
-#ifdef _WIN32
-#define SEP "\\"
+// #ifdef _WIN32
+// #define SEP "\\"
 
-#elif _WIN64
-#define SEP "\\"
+// #elif _WIN64
+// #define SEP "\\"
 
-#elif __linux__
+// #elif __linux__
 #define SEP "/"
 
-#else
-#error "OS not supported!"
-#endif
+// #else
+// #error "OS not supported!"
+// #endif
 
 #include <string>
 #include <array>
@@ -66,20 +66,24 @@ enum Potential {OBLIQ,      // Obliquity tide (Tyler 2011)
                 ECC_WEST,
                 ECC_EAST,
                 FULL,       // ECC_RAD + ECC_LIB + OBLIQ
+                FULL2,
                 TOTAL,      // Entire ecc and obliq potential to second order in Eccentricity and Obliquity
                 ECC_W3,     // Time-dependent degree-3 eccentricity tide // TODO - Add expressions to documentation
                 OBLIQ_W3,   // Time-dependent degree-3 obliquity tide
                 PLANET,     // Planet-planet tidal forcing
                 PLANET_OBL,
-                GENERAL};   // Generalised forcing
+                GENERAL,   // Generalised forcing
+                NONE};
 
+enum Init {INIT_NONE,            // No initial conditions
+           INIT_LOAD,            // Load from file
+           INIT_ANALYTICAL};     // Use analytical solution as initial condition
 
 //Class stores all global values
 class Globals {
 private:
   // Two member functions for setting all constants (default is for Titan)
   void SetDefault(void);
-  void OutputConsts(void); // Print all constants to output file.
 
 public:
   // Class containing functions to output errors and messages, or terminate ODIS.
@@ -95,6 +99,7 @@ public:
   Solver solver_type;
   Potential tide_type;
   Surface surface_type;
+  Init initial_condition;
 
   // Stringstream for composing outgoing messages, which is then passed to Output.
   std::ostringstream outstring;
@@ -135,8 +140,11 @@ public:
   GlobalVar<std::string> friction;      // string for drag type
   GlobalVar<std::string> surface;       // string for surface boundary condition
   GlobalVar<std::string> solver;        // string for type of time sovler
-  GlobalVar<bool> init;                 // boolean for using initial conditions
+//   GlobalVar<bool> init;                 // boolean for using initial conditions
+  GlobalVar<std::string> init;                  // initial conditions: 0=none, 1=load from file, 2=analytical
   GlobalVar<double> converge;           // convergence criteria for ODIS.
+  GlobalVar<bool> advection;            // switch for advection 
+  GlobalVar<double> rbf_eps;            // ϵ parameter for radial basis functions
 
   GlobalVar<int> freq;                  // Planet-planet freq
   GlobalVar<double> a20;                // Fourier coeffs for general forcing
@@ -151,6 +159,7 @@ public:
 
   GlobalVar<bool> field_displacement_output;
   GlobalVar<bool> field_velocity_output;
+  GlobalVar<bool> field_velocity_cart_output;
   GlobalVar<bool> field_pressure_output;
   GlobalVar<bool> field_diss_output;
   GlobalVar<bool> field_kinetic_output;
@@ -160,8 +169,10 @@ public:
 
   GlobalVar<int>  core_num;
 
+  GlobalVar<int> totalIter;
+
   // Time in fraction of orbital period for output of all parameters
-  GlobalVar<double> outputTime;
+  GlobalVar<int> outputTime;
 
   GlobalVar<std::string> grav_coeff_file;      // file name containing beta coeffs
   GlobalVar<std::string> forcing_coeff_file;   // file name containing upsilon coeffs
@@ -186,6 +197,8 @@ public:
 
   // Member function to read global variables from input.in file.
   int ReadGlobals(void);
+
+  void OutputConsts(void); // Print all constants to output file.
 
   int GetShellCoeffs(void);
 };

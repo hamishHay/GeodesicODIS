@@ -164,13 +164,13 @@ def update(i):
     data_u = in_file["east velocity"][n+i]
     data_v = in_file["north velocity"][n+i]
 
-    # (v_lon, v_lat, v_u, v_v, v_speed) = vector_scalar_to_grid(input_coord_system,     \
-    #                         this_plot_projection, \
-    #                         (20,10), \
-    #                         vel_lon, vel_lat, \
-    #                         data_u, \
-    #                         data_v, \
-    #                         data_v )
+    (v_lon, v_lat, v_u, v_v, v_speed) = vector_scalar_to_grid(input_coord_system,     \
+                            this_plot_projection, \
+                            (20,10), \
+                            vel_lon, vel_lat, \
+                            data_u, \
+                            data_v, \
+                            data_v )
    
     time = times[n+i] 
     # print(time)
@@ -187,14 +187,14 @@ def update(i):
     #     tp.remove()
 
     # c2[0] = ax1.tricontour(triang, U/1.3, levels=levels, colors=[(0.05, 0.05, 0.05)])
-    # Q = ax1.quiver(v_lon, v_lat, v_u, v_v)
+    Q = ax1.quiver(v_lon, v_lat, v_u, v_v)
 
-    # Q.set_UVC(v_u, v_v)
+    Q.set_UVC(v_u, v_v)
 
     ax1.set_xlim([-180,180])
     ax1.set_ylim([-90,90])
     # Q = ax1.quiver(tri_vel.x, tri_vel.y, data_u/mag, data_v/mag, scale=40.0,transform=ccrs.PlateCarree(),regrid_shape=17, pivot='mid', color=(0.1,0.1,0.1))
-    return  c1[0].collections#, Q#, c2[0].collections
+    return  c1[0].collections, Q#, c2[0].collections
 
 
 from matplotlib import animation
