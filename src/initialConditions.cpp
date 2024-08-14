@@ -517,8 +517,8 @@ int getInitialConditions(Globals * globals, Mesh * mesh,
             lat = mesh->node_pos_sph(i,0);
             lon = mesh->node_pos_sph(i,1);
 
-            p(i) = gaussian(lat, lon, lat0_1, lon0_1, r, 1.0) 
-                + gaussian(lat, lon, lat0_2, lon0_2, r, 1.0);
+            p(i) = gaussian(lat, lon, lat0_1, lon0_1, r, 0.001*h) 
+                + gaussian(lat, lon, lat0_2, lon0_2, r, 0.001*h);
             
         }
     }
