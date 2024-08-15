@@ -1147,6 +1147,78 @@ int Mesh::AssignFaces(void)
         vertex_area_r(i) = 1.0/area;
     }
 
+    // Need to now calculate barycentric interpolation weights for node quantities to face centers.
+    for (int i=0; i<FACE_NUM; i++)
+    {
+        // We will you the two nodes belonging to the face, but also the nearest of the two nodes
+        // in the other direction 
+
+        int face_ID = i;
+        int friend_ID;
+        int n1_ID, n2_ID, n3_ID;
+        int fnum = 6;
+        double sph1[2], sph2[2], sph3[2], sphf[2];
+        double area_total, area12, area23, area31; 
+        double r = 1.0;
+
+        n1_ID = face_nodes(face_ID, 0);
+        n2_ID = face_nodes(face_ID, 1);
+
+        sphf[0] = face_centre_pos_sph(face_ID, 0);
+        sphf[1] = face_centre_pos_sph(face_ID, 1);
+
+        sph1[0] = node_pos_sph(n1_ID, 0);
+        sph1[1] = node_pos_sph(n1_ID, 1);
+
+        sph2[0] = node_pos_sph(n2_ID, 0);
+        sph2[1] = node_pos_sph(n2_ID, 1);
+        
+        if (node_friends(n1_ID, 5) < 0) fnum--;
+        
+        // find the friend of n1 and n2 who forms a triangle around the face centre
+        for (int j=0; j<fnum; j++) {
+            
+            friend_ID = node_friends(n1_ID, j);
+
+            if (friend_ID == n2_ID) {
+                int f1, f2;
+
+                // Get friends from either side of the line n1--n2
+                f1 = node_friends(n1_ID, (j-1+fnum)%fnum );
+                f2 = node_friends(n1_ID, (j+1)%fnum      );
+
+                sph3[0] = node_pos_sph(f1, 0);
+                sph3[1] = node_pos_sph(f1, 1);
+
+                if (isInsideSphericalTriangle(sph1, sph2, sph3, sphf)) {
+                    n3_ID = f1;
+                    break;
+                }
+
+                sph3[0] = node_pos_sph(f2, 0);
+                sph3[1] = node_pos_sph(f2, 1);
+
+                if (isInsideSphericalTriangle(sph1, sph2, sph3, sphf)) {
+                    n3_ID = f2;
+                    break;
+                }
+                else {
+                    std::cout<<"Cannot find correct barycenter!"
+                    globals->Output->TerminateODIS();
+                }
+
+            }
+        }
+
+        triangularAreaSph2(area_total, sph1[0], sph2[0], sph3[0], sph1[1], sph2[1], sph3[1], r);
+
+        // Now get the subareas
+        triangularAreaSph2(area12, sph1[0], sph2[0], sphf[0], sph1[1], sph2[1], sphf[1], r);
+        triangularAreaSph2(area23, sph2[0], sphf[0], sph3[0], sph2[1], sphf[1], sph3[1], r);
+        triangularAreaSph2(area31, sphf[0], sph3[0], sph1[0], sphf[1], sph3[1], sph1[1], r);
+
+    }
+
     std::cout<<"FACE NUM: "<<face_count<<' '<<FACE_NUM<<std::endl;
     std::cout<<"NODE NUM: "<<NODE_NUM<<std::endl;
 
