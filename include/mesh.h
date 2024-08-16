@@ -186,6 +186,11 @@ public:
   Array2D<int> face_interp_friends;
   Array2D<double> face_interp_weights;
 
+  // Weights and mapping to interpolate quantities held at nodes 
+  // to the centre of each face
+  Array2D<int> node_to_face_interp_friends;
+  Array2D<double> node_to_face_interp_weights;
+
   // ArrayD<int> * faces;
 
   Array3D<double> trigMLon;

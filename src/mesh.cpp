@@ -86,6 +86,11 @@ Mesh::Mesh(Globals * Globals, int N, int face_N, int vertex_N, int N_ll, int l_m
     node_face_dir(NODE_NUM, 6),
     face_is_boundary(FACE_NUM),
 
+    // Weights and mapping to interpolate quantities held at nodes 
+    // to the centre of each face
+    node_to_face_interp_friends(FACE_NUM, 3),
+    node_to_face_interp_weights(FACE_NUM, 3),
+
     vertexes(NODE_NUM, 6),
     vertex_pos_sph(VERTEX_NUM, 2),
     vertex_R(VERTEX_NUM, 3),
