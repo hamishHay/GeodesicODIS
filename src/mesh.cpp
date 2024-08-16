@@ -1203,19 +1203,19 @@ int Mesh::AssignFaces(void)
                     break;
                 }
                 else {
-                    std::cout<<"Cannot find correct barycenter!"
+                    std::cout<<"Cannot find correct barycenter!"<<std::endl;
                     globals->Output->TerminateODIS();
                 }
 
             }
         }
 
-        triangularAreaSph2(area_total, sph1[0], sph2[0], sph3[0], sph1[1], sph2[1], sph3[1], r);
+        area_total = triangularAreaSph2(sph1[0], sph2[0], sph3[0], sph1[1], sph2[1], sph3[1], r);
 
         // Now get the subareas
-        triangularAreaSph2(area12, sph1[0], sph2[0], sphf[0], sph1[1], sph2[1], sphf[1], r);
-        triangularAreaSph2(area23, sph2[0], sphf[0], sph3[0], sph2[1], sphf[1], sph3[1], r);
-        triangularAreaSph2(area31, sphf[0], sph3[0], sph1[0], sphf[1], sph3[1], sph1[1], r);
+        area12 = triangularAreaSph2(sph1[0], sph2[0], sphf[0], sph1[1], sph2[1], sphf[1], r);
+        area23 = triangularAreaSph2(sph2[0], sphf[0], sph3[0], sph2[1], sphf[1], sph3[1], r);
+        area31 = triangularAreaSph2(sphf[0], sph3[0], sph1[0], sphf[1], sph3[1], sph1[1], r);
 
     }
 
