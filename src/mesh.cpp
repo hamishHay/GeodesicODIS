@@ -1155,7 +1155,7 @@ int Mesh::AssignFaces(void)
     // Need to now calculate barycentric interpolation weights for node quantities to face centers.
     for (int i=0; i<FACE_NUM; i++)
     {
-        // We will you the two nodes belonging to the face, but also the nearest of the two nodes
+        // We will need the two nodes belonging to the face, but also the nearest of the two nodes
         // in the other direction 
 
         int face_ID = i;
