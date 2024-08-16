@@ -1182,11 +1182,13 @@ int Mesh::AssignFaces(void)
         
         // find the friend of n1 and n2 who forms a triangle around the face centre
         for (int j=0; j<fnum; j++) {
-            
             friend_ID = node_friends(n1_ID, j);
 
             if (friend_ID == n2_ID) {
                 int f1, f2;
+                bool inside1 = false;
+                bool inside2 = false;
+                double err1, err2;
 
                 // Get friends from either side of the line n1--n2
                 f1 = node_friends(n1_ID, (j-1+fnum)%fnum );
@@ -1195,23 +1197,19 @@ int Mesh::AssignFaces(void)
                 sph3[0] = node_pos_sph(f1, 0);
                 sph3[1] = node_pos_sph(f1, 1);
 
-                if (isInsideSphericalTriangle(sph1, sph2, sph3, sphf)) {
-                    n3_ID = f1;
-                    break;
-                }
+                inside1 = isInsideSphericalTriangle(sph1, sph2, sph3, sphf, err1);
 
                 sph3[0] = node_pos_sph(f2, 0);
                 sph3[1] = node_pos_sph(f2, 1);
 
-                if (isInsideSphericalTriangle(sph1, sph2, sph3, sphf)) {
-                    n3_ID = f2;
-                    break;
-                }
-                else {
-                    std::cout<<"Cannot find correct barycenter!"<<std::endl;
-                    globals->Output->TerminateODIS();
-                }
+                inside2 = isInsideSphericalTriangle(sph1, sph2, sph3, sphf, err2);
 
+                if (inside1 && !inside2) n3_ID = f1;                            // Point 1 is inside
+                else if (inside2 && !inside1) n3_ID = f2;                       // Point 2 is inside
+                else if ((inside1 && inside2) || (!inside1 && !inside2)) {      // Both are inside or outside, so choose the best
+                    if (err1 < err2) n3_ID = f1;
+                    else n3_ID = f2;
+                }
             }
         }
 
@@ -1233,6 +1231,7 @@ int Mesh::AssignFaces(void)
         node_to_face_interp_weights(face_ID, 2) = area12 / area_total;
     }
 
+    globals->Output->TerminateODIS();
     std::cout<<"FACE NUM: "<<face_count<<' '<<FACE_NUM<<std::endl;
     std::cout<<"NODE NUM: "<<NODE_NUM<<std::endl;
 
