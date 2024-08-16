@@ -1222,6 +1222,15 @@ int Mesh::AssignFaces(void)
         area23 = triangularAreaSph2(sph2[0], sphf[0], sph3[0], sph2[1], sphf[1], sph3[1], r);
         area31 = triangularAreaSph2(sphf[0], sph3[0], sph1[0], sphf[1], sph3[1], sph1[1], r);
 
+        // Assign the nodes and interpolation to use in the interpolation
+        node_to_face_interp_friends(face_ID, 0) = n1_ID;
+        node_to_face_interp_weights(face_ID, 0) = area23 / area_total;
+        
+        node_to_face_interp_friends(face_ID, 1) = n2_ID;
+        node_to_face_interp_weights(face_ID, 1) = area31 / area_total;
+
+        node_to_face_interp_friends(face_ID, 2) = n3_ID;
+        node_to_face_interp_weights(face_ID, 2) = area12 / area_total;
     }
 
     std::cout<<"FACE NUM: "<<face_count<<' '<<FACE_NUM<<std::endl;
