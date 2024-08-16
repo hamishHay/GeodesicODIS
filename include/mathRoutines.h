@@ -428,6 +428,65 @@ inline void triangularAreaSph(double &area, double &lat1, double &lat2, double &
   area = pow(r,2.0) * fabs((A + B + C) - pi);
 }
 
+/* Calculate the area of a spherical triangle
+   
+   Better conditioned than the above as it only requires one angle (C) between two sides.
+
+   @inputs:
+     lat1-3: latitudes of triangle vertices
+     lon1-3: longitudes of triangle vertices
+     r:      radius of sphere
+
+   @returns:
+     area:   area of triangle
+*/
+inline double triangularAreaSph2(double &, double &, double &, double &, double &, double &, double &);
+inline double triangularAreaSph2(double &lat1, double &lat2, double &lat3, double &lon1, double &lon2, double &lon3, double &r)
+{
+  double a, b, c;
+  double C;
+  double area;
+
+  a = fabs(acos(sin(lat2) * sin(lat3) + cos(lat2) * cos(lat3) * cos(fabs(lon3-lon2))));
+  b = fabs(acos(sin(lat3) * sin(lat1) + cos(lat3) * cos(lat1) * cos(fabs(lon1-lon3))));
+  c = fabs(acos(sin(lat1) * sin(lat2) + cos(lat1) * cos(lat2) * cos(fabs(lon2-lon1))));
+  C = fabs(acos((cos(c) - cos(b)*cos(a))/(sin(b)*sin(a))));
+
+  area = tan(0.5*a) * tan(0.5*b) * sin(C) / (1 + tan(0.5*a)*tan(0.5*b)*cos(C));
+  area = 2*atan(area); // Calculate spherical excess
+
+  return fabs(area);
+}
+
+/* Test whether point lies within a spherical triangle.
+
+   The point lies within the triangle if the area of the triangle is equal to the sum 
+   of the triangle areas made by the point and each pair of vertices. 
+
+   @inputs: 
+     sph1-3: double arrays of length two containing lat-lon coords of triangle vertices
+     spht:   length 2 double array of lat-lon coords of testing point
+
+   @returns:
+     true if point spht lies inside triangle, false otherwise
+*/
+bool inline isInsideSphericalTriangle(double sph1[], double sph2[], double sph3[], double spht[]);
+bool inline isInsideSphericalTriangle(double sph1[], double sph2[], double sph3[], double spht[])
+{
+    double r=1.0;
+    double total_area, a1, a2, a3;
+    double tol = 1e-12;
+    
+    total_area = triangularAreaSph2(sph1[0], sph2[0], sph3[0], sph1[1], sph2[1], sph3[1], r);
+    a1 = triangularAreaSph2(sph1[0], sph2[0], spht[0], sph1[1], sph2[1], spht[1], r);
+    a2 = triangularAreaSph2(sph2[0], sph3[0], spht[0], sph2[1], sph3[1], spht[1], r);
+    a3 = triangularAreaSph2(sph3[0], sph1[0], spht[0], sph3[1], sph1[1], spht[1], r);
+
+    if (fabs(total_area - (a1 + a2 + a3)) < tol ) return true;
+    
+    return false;
+};
+
 inline double RBF(double dist, double eps);
 inline double RBF(double dist, double eps)
 {
