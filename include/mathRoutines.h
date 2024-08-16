@@ -469,20 +469,32 @@ inline double triangularAreaSph2(double &lat1, double &lat2, double &lat3, doubl
 
    @returns:
      true if point spht lies inside triangle, false otherwise
+     err:    the absolute error between the full and summed areas 
 */
-bool inline isInsideSphericalTriangle(double sph1[], double sph2[], double sph3[], double spht[]);
-bool inline isInsideSphericalTriangle(double sph1[], double sph2[], double sph3[], double spht[])
+bool inline isInsideSphericalTriangle(double sph1[], double sph2[], double sph3[], double spht[], double &err);
+bool inline isInsideSphericalTriangle(double sph1[], double sph2[], double sph3[], double spht[], double &err)
 {
     double r=1.0;
     double total_area, a1, a2, a3;
-    double tol = 1e-12;
+    double tol = 1e-10;
     
     total_area = triangularAreaSph2(sph1[0], sph2[0], sph3[0], sph1[1], sph2[1], sph3[1], r);
     a1 = triangularAreaSph2(sph1[0], sph2[0], spht[0], sph1[1], sph2[1], spht[1], r);
     a2 = triangularAreaSph2(sph2[0], sph3[0], spht[0], sph2[1], sph3[1], spht[1], r);
     a3 = triangularAreaSph2(sph3[0], sph1[0], spht[0], sph3[1], sph1[1], spht[1], r);
 
-    if (fabs(total_area - (a1 + a2 + a3)) < tol ) return true;
+    // If any of the areas give nans, this is probably because the point spht
+    // lies exactly on the line connecting two of the vertices. Treat this areas 
+    // as zero. 
+    if (isnan(a1)) a1 = 0.0;
+    if (isnan(a2)) a2 = 0.0;
+    if (isnan(a3)) a3 = 0.0;
+
+    err = fabs(total_area - (a1 + a2 + a3));
+
+    if (isnan(total_area)) return false;
+
+    if (err < tol ) return true;
     
     return false;
 };
