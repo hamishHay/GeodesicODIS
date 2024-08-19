@@ -9,12 +9,12 @@
 #if defined(TESTS)
     // #define TEST_SW1            // Advection of a cosine bell curve
     // #define TEST_SW2               // Steady-state solution to nonlinear eqs
-    #define TEST_GAUSS_HILLS
+    // #define TEST_GAUSS_HILLS
     // #define TEST_SW5
     // #define TEST_OPERATORS
 #endif
 
-constexpr int GRID_LVL = 8;
+constexpr int GRID_LVL = 6;
 
 constexpr int get_node_num(int glvl)
 {

@@ -253,3 +253,4 @@ InitialConditions/pres_init.txt
 InitialConditions*
 DATA*
 .vscode/c_cpp_properties.json
+.vscode

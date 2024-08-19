@@ -199,6 +199,8 @@ Globals::Globals(int action) {
     fourier_coeff_file.SetStringID("fourier coeff file");
     allGlobals.push_back(&forcing_coeff_file);
 
+    rbf_eps.SetStringID("rbf epsilon");
+    allGlobals.push_back(&rbf_eps);
 
     ReadGlobals(); //Read globals from input.in file
   }
@@ -565,6 +567,8 @@ void Globals::SetDefault(void)
   //Output time in fraction of orbital period. Default is set to output
   //every period.
   outputTime.SetValue(1);
+
+  rbf_eps.SetValue(0.25);
 };
 
 void Globals::OutputConsts(void)

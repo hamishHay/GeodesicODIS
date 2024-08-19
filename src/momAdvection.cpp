@@ -256,6 +256,10 @@ void calculateMomentumAdvection(Globals * globals,
     Eigen::Map<Eigen::VectorXd> dvdt_eig(&dvdt(0), FACE_NUM);
     Eigen::Map<Eigen::VectorXd> Ek_eig(&Ekin(0), NODE_NUM);
 
+#ifdef TEST_OPERATORS
+    dvdt_eig *= 0.0;
+#endif
+
     // Perform sparse matrix * vector operation
-    dvdt_eig -= mesh->operatorGradient * Ek_eig;
+    dvdt_eig += -mesh->operatorGradient * Ek_eig;
 };

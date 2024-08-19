@@ -259,7 +259,7 @@ int Mesh::CalcControlVolumeInterpMatrix(void)
         double sphfi[2], sphfj[2];
         double sph_n[3];
         double arc, phi, aij;
-        double eps = 1.1;  // If you change this, make sure you also change it in CalcRBFInterpMatrix2!!!!
+        double eps = globals->rbf_eps.Value();  
         double x1, x2, y1, y2;
         for (int i=0; i<NODE_NUM; i++) 
         {
@@ -2482,7 +2482,7 @@ int Mesh::CalcRBFInterpMatrix2(void)
     {
         int friend_num, f_IDj, f_IDi;
         double arc, phi, aij;
-        double eps = 1.1; // If you change this, make sure you also change it in CalcControlVolumeInterpMatrix!!!!
+        double eps = globals->rbf_eps.Value(); 
         double x1, x2, y1, y2;
         double xx, yy, xy, arc2, arc3, dphidr, d2phidr2;
         double coeff;
