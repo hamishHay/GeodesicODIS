@@ -336,24 +336,37 @@ int interpolateLSQFlux(Globals *globals,
     // This is the slowest operation in this function.
     Eigen::VectorXd d2(2*FACE_NUM);
     d2 = mesh->operatorDirectionalSecondDeriv * eig_node_scalar; 
-
   
 
     double diff=0.0;
+    double scalar_face_center;
+    double scalar_face_center2;
+    int n1_ID, n2_ID, n3_ID;
     for (int i=0; i<FACE_NUM; ++i) {
         dx = mesh->face_node_dist(i);
         dx2 = dx*dx*fact;
         vel = edge_vel(i);
         
-        inner_ID = mesh->face_nodes(i, 0);
-        outer_ID = mesh->face_nodes(i, 1);
+        // Barycentric interpolation of node scalar quantity to face center point
+        n1_ID = mesh->node_to_face_interp_friends(i, 0);
+        n2_ID = mesh->node_to_face_interp_friends(i, 1);
+        n3_ID = mesh->node_to_face_interp_friends(i, 2);
+        scalar_face_center =   node_scalar(n1_ID) * mesh->node_to_face_interp_weights(i,0) 
+                             + node_scalar(n2_ID) * mesh->node_to_face_interp_weights(i,1) 
+                             + node_scalar(n3_ID) * mesh->node_to_face_interp_weights(i,2); 
+
+        // Linear interpolation of node scalar quantity to face intersection with 
+        // node-node line
+        // inner_ID = mesh->face_nodes(i, 0);
+        // outer_ID = mesh->face_nodes(i, 1);
+        // scalar_face_center2 = 0.5 * (node_scalar(inner_ID) + node_scalar(outer_ID));
 
         d2_outer = d2(2*i+1);
         d2_inner = d2(2*i);
         
         // Calculate the high order flux (Eq. 11, Skamarock and Gassmann 2011)
         // beta = 1.0 is third order, beta = 0.0 is fourth order
-        flux(i) = vel*0.5 * ( node_scalar(inner_ID) + node_scalar(outer_ID) )
+        flux(i) = vel * scalar_face_center;
                 - dx2 * (d2_outer + d2_inner)*vel
                 + dx2*beta * fabs(vel) * (d2_outer - d2_inner);
 
