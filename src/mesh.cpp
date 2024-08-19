@@ -1213,12 +1213,19 @@ int Mesh::AssignFaces(void)
             }
         }
 
+        sph3[0] = node_pos_sph(n3_ID, 0);
+        sph3[1] = node_pos_sph(n3_ID, 1);
+
         area_total = triangularAreaSph2(sph1[0], sph2[0], sph3[0], sph1[1], sph2[1], sph3[1], r);
 
         // Now get the subareas
         area12 = triangularAreaSph2(sph1[0], sph2[0], sphf[0], sph1[1], sph2[1], sphf[1], r);
         area23 = triangularAreaSph2(sph2[0], sphf[0], sph3[0], sph2[1], sphf[1], sph3[1], r);
         area31 = triangularAreaSph2(sphf[0], sph3[0], sph1[0], sphf[1], sph3[1], sph1[1], r);
+
+        if (isnan(area12)) area12 = 0.0;
+        if (isnan(area23)) area23 = 0.0;
+        if (isnan(area31)) area31 = 0.0;
 
         // Assign the nodes and interpolation weights to use in the interpolation
         node_to_face_interp_friends(face_ID, 0) = n1_ID;
@@ -1229,9 +1236,9 @@ int Mesh::AssignFaces(void)
 
         node_to_face_interp_friends(face_ID, 2) = n3_ID;
         node_to_face_interp_weights(face_ID, 2) = area12 / area_total;
-    }
 
-    globals->Output->TerminateODIS();
+    }
+    
     std::cout<<"FACE NUM: "<<face_count<<' '<<FACE_NUM<<std::endl;
     std::cout<<"NODE NUM: "<<NODE_NUM<<std::endl;
 
