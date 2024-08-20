@@ -15,55 +15,13 @@
 
 void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, int forcing_type, double time, double ecc=0.1, double obl=0.1);
 
-// Degree 2 component of the eccentricity tide (see Tyler 2011, Matsuyama 2014)
-void deg2Ecc(Mesh * grid, Array2D<double> &, double simulationTime, double radius, double omega, double ecc);
+// WOMA function 
+// Get initial position and velocity of the impactor with initial distance r 
+void impact_pos_vel_b_v_c_r(double &x, double &y, double &t_out_, double r, double b, double vC, double Rt, double Ri, double Mt, double Mi);
 
-// Degree 2 component of the eccentricity libration tide (see Tyler 2011, Matsuyama 2014)
-void deg2EccLib(Mesh * grid, Array2D<double> &, double simulationTime, double radius, double omega, double ecc);
-
-// Degree 2 component of the eccentricity tide (see Tyler 2011, Matsuyama 2014)
-void deg2EccWest(Mesh * grid, Array2D<double> &, double simulationTime, double radius, double omega, double ecc);
-
-// Degree 2 component of the eccentricity tide (see Tyler 2011, Matsuyama 2014)
-void deg2EccEast(Mesh * grid, Array2D<double> &, double simulationTime, double radius, double omega, double ecc);
-
-// Degree 2 component of the eccentricity-radial tide (see Tyler 2011, Matsuyama 2014)
-void deg2EccRad(Mesh * grid, Array2D<double> &, double simulationTime, double radius, double omega, double ecc);
-
-// Degree 2 component of the obliquity tide (see Tyler 2011, Matsuyama 2014)
-void deg2Obliq(Mesh * grid, Array2D<double> &, double simulationTime, double radius, double omega, double theta);
-
-// Degree 2 component of the westward moving obliquity tide (see Tyler 2011, Matsuyama 2014)
-void deg2ObliqWest(Mesh * grid, Array2D<double> &, double simulationTime, double radius, double omega, double theta);
-
-// Degree 2 component of the eastward moving obliquity tide (see Tyler 2011, Matsuyama 2014)
-void deg2ObliqEast(Mesh * grid, Array2D<double> &, double simulationTime, double radius, double omega, double theta);
-
-void deg2Full(Mesh * grid, Array2D<double> &, double simulationTime, double radius, double omega, double theta, double ecc);
-
-void deg2EccTotal(Mesh * grid, Array2D<double> &, double simulationTime, double radius, double omega, double theta, double ecc);
-
-void deg2Planet(Mesh * grid, Array2D<double> &, Array1D<double> &, double simulationTime, double radius);
-
-void deg2General(Mesh * grid, Array2D<double> &, double simulationTime, double radius, Array1D<double> & scalar);
-
-void deg2PlanetObl(Mesh * grid, Array2D<double> &, double simulationTime, double radius, double obl);
-
-void deg2GiantImpact(Mesh * grid, Array2D<double> &, double simulationTime, double radius);
-
-
-//
-// // Degree 2 component of the eccentricity-libration tide (see Tyler 2011, Matsuyama 2014)
-// void deg2EccLib(Field * DUlat, Field * DUlon, double simulationTime, double radius, double omega, double ecc);
-//
-// // Degree 2 component of the obliquity tide (see Tyler 2011, Matsuyama 2014)
-// void deg2Obliq(Field * dUlat, Field * dUlon, double simulationTime, double radius, double omega, double theta);
-//
-// // Degree 3 component of the eccentricity tide (see docs)
-// void deg3Ecc(Field * DUlat, Field * DUlon, double simulationTime, double radius, double smAxis, double omega, double ecc);
-//
-// // Degree 3 component of the obliquity tide (see docs)
-// void deg3Obliq(Field * DUlat, Field * DUlon, double simulationTime, double radius, double smAxis, double omega, double theta);
-
+// WOMA function 
+// Get the position of the impactor at time t
+void impact_pos_vel_b_v_c_t(double &x, double &y, double simulationTime, double b, double vC, double Rt, double Ri, double Mt, double Mi, double rMaxFactor=100.0);
 
 #endif
+
