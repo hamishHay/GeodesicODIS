@@ -27,9 +27,9 @@ plt.rc('axes', labelsize=7)
 
 
 
-start = 675
+start = 687
 end   = start+1
-N=8
+N=6
 
 in_file = h5py.File("./DATA/data.h5", 'r')
 
@@ -59,8 +59,8 @@ ax2.tricontour(tri_face, d_v[0]/1e3, 11, colors="k", linewidths=0.4)
 cb2 = plt.colorbar(c2, orientation="horizontal")
 cb2.set_label(label="Northward velocity [km/s]", size=8)
 
-c3 = ax3.tricontourf(tri_node, d_h[0]/1e3, levels=np.linspace(-10, 10, 21), cmap=plt.cm.coolwarm)
-ax3.tricontour(tri_node, d_h[0]/1e3, levels=np.linspace(-10, 10, 21), colors="k", linewidths=0.4)
+c3 = ax3.tricontourf(tri_node, d_h[0]/1e3, cmap=plt.cm.coolwarm)
+ax3.tricontour(tri_node, d_h[0]/1e3, colors="k", linewidths=0.4)
 cb3 = plt.colorbar(c3, orientation="horizontal")
 cb3.set_label(label="Tidal height [km]", size=8)
 
