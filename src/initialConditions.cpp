@@ -407,7 +407,7 @@ int getInitialConditions(Globals * globals, Mesh * mesh,
         p(i) = p(i)/g - h;
     }
 
-#elif defined(TEST_SW5)
+#elif defined(TEST_SW6)
         // Get SW test initial conditions
     double a, ut, vt, u0, lat, lon, nx, ny;
     double r = globals->radius.Value();
