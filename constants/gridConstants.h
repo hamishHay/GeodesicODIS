@@ -14,7 +14,7 @@
     // #define TEST_OPERATORS
 #endif
 
-constexpr int GRID_LVL = 6;
+constexpr int GRID_LVL = 7;
 
 constexpr int get_node_num(int glvl)
 {

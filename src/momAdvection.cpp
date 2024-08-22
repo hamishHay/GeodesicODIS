@@ -84,17 +84,24 @@ void calculateMomentumAdvection(Globals * globals,
     Array1D<double> thickness_e(FACE_NUM);
     {
         int v1, v2;
-        int n1, n2;
+        int n1, n2, n3;
         for (int i=0; i<FACE_NUM; i++) {
             v1 = mesh->face_vertexes(i, 0);
             v2 = mesh->face_vertexes(i, 1);
 
             vorticity_e(i) = 0.5 * (vorticity_v(v1) + vorticity_v(v2) );
         
-            n1 = mesh->face_nodes(i, 0);
-            n2 = mesh->face_nodes(i, 1);
+            // n1 = mesh->face_nodes(i, 0);
+            // n2 = mesh->face_nodes(i, 1);
 
-            thickness_e(i) = 0.5 * (thickness_n(n1) + thickness_n(n2));
+            // thickness_e(i) = 0.5 * (thickness_n(n1) + thickness_n(n2));
+
+            n1 = mesh->node_to_face_interp_friends(i, 0);
+            n2 = mesh->node_to_face_interp_friends(i, 1);
+            n3 = mesh->node_to_face_interp_friends(i, 2);
+            thickness_e(i) =   thickness_n(n1) * mesh->node_to_face_interp_weights(i,0) 
+                             + thickness_n(n2) * mesh->node_to_face_interp_weights(i,1) 
+                             + thickness_n(n3) * mesh->node_to_face_interp_weights(i,2); 
         }
     }
 
@@ -178,7 +185,7 @@ void calculateMomentumAdvection(Globals * globals,
 
     }
 
-    // The below KE calculation seems to result in bad behaviour (SW5 fails), probably 
+    // The below KE calculation seems to result in bad behaviour (SW6 fails), probably 
     // because some Vandermonde matrices are ill-conditioned in the interpolation step. 
     
     // Array2D<double> vel_xyz(NODE_NUM, 3);

@@ -310,7 +310,7 @@ Globals::Globals(int action) {
     // mkl_set_num_threads(core_num.Value());
     // omp_set_num_threads(core_num.Value());
 
-#if defined(TEST_SW2) || defined(TEST_SW5)
+#if defined(TEST_SW2) || defined(TEST_SW6)
     surface_type = FREE;
     surface.SetValue("FREE");
 
