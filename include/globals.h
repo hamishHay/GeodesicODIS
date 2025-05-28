@@ -159,6 +159,8 @@ public:
   GlobalVar<double> mass_impactor;      // Mass of impactor 
   GlobalVar<double> mass_target;        // Mass of target 
   GlobalVar<double> radius_impactor;    // Radius of impactor 
+  GlobalVar<bool> field_tide_lon_output; // Longitude of tide-raiser
+  GlobalVar<bool> field_tide_dist_output; // Distance to the tide-raiser
 
   // Variables to switch on or off output of certain Variables
   // i.e., setting kinetic to true outputs global averaged kinetic energy

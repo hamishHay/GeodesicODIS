@@ -165,6 +165,12 @@ Globals::Globals(int action) {
     radius_impactor.SetStringID("impactor radius");
     allGlobals.push_back(&radius_impactor);
 
+    field_tide_lon_output.SetStringID("tide-raiser longitude output");
+    allGlobals.push_back(&field_tide_lon_output);
+
+    field_tide_dist_output.SetStringID("tide-raiser distance output");
+    allGlobals.push_back(&field_tide_dist_output);
+
     // --------------------------------------------
 
     diss_avg.SetStringID("dissipation avg output");
@@ -461,6 +467,10 @@ int Globals::ReadGlobals(void)
     if (kinetic_avg.Value())                out_tags.push_back(kinetic_avg.StringID());
     if (field_dummy1_output.Value())        out_tags.push_back(field_dummy1_output.StringID());
     if (field_dummy2_output.Value())        out_tags.push_back(field_dummy2_output.StringID());
+    if (field_tide_lon_output.Value())        out_tags.push_back(field_tide_lon_output.StringID());
+    if (field_tide_dist_output.Value())        out_tags.push_back(field_tide_dist_output.StringID());
+    
+    
     // if (work.Value())                       out_tags.push_back(work.StringID());
     // if (sh_coeff_output.Value())            out_tags.push_back(sh_coeff_output.StringID());
 
