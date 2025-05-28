@@ -273,9 +273,12 @@ int ab3Explicit(Globals * globals, Mesh * grid)
         iter ++;
         current_time = dt*iter;
 
+
+
         // Check for output
         if (iter%out_freq == 0)
         {
+            // std::cout<<iter<<' '<<out_freq<<' '<<dt*iter/3600.0<<std::endl;
             // for (int i=0; i<FACE_NUM; ++i)
             // {
             //     int node_in = grid->face_nodes(i, 0);
@@ -286,9 +289,10 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
             interpolateVelocityCartRBF(globals, grid, v_xyz, v_t0);
 
-            // outstring << std::fixed <<"DUMPING DATA AT "<<current_time/orbit_period;
-            outstring << std::fixed <<"DUMPING DATA AT "<<current_time/(60.0*60.0);
+            outstring << std::fixed <<"DUMPING DATA AT "<<current_time/orbit_period;
+            // outstring << std::fixed <<"DUMPING DATA AT "<<current_time/(60.0*60.0);
             outstring << " AVG DISS: "<<std::scientific<<*total_diss*4*pi*r*r/1e9<<" GW"<<out_count;
+            outstring <<" OUT ITER: "<<iter/out_freq;
 
             Output->Write(OUT_MESSAGE, &outstring);
 

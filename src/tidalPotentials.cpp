@@ -285,15 +285,12 @@ void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, int for
             double omegaT = omega*time;
             double cosphi, sinphi;
             double rx, ry, rmag;
-            double t = time/86400.0;
             double cosGam;
             double v_c = 1.0;       // Velocity at contact, in units of escape velocity 
             double b = 0.7;         // Impact parameter
-            double t_to_impact = 40*3600.0 - time;
+            double t_to_impact = 30*3600.0 - time;
 
-            // t_to_impact = 40*3600.0 - time;
             try {
-                // impact_pos_vel_b_v_c_t(rx, ry, t_to_impact, b, v_c, consts->radius.Value(), 3000e3, 6e24, M_impactor);
                 impact_pos_vel_b_v_c_t(rx, ry, t_to_impact, b, v_c, consts->radius.Value(), 3396.2e3, 5.972e24, M_impactor);
             }
             catch (const std::exception& ex) {
