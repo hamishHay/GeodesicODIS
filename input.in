@@ -41,5 +41,5 @@ velocity at contact;          1.0;              velocity at point of impact [esc
 impactor mass;          6.4171E23;              mass of the giant impactor;
 target   mass;           5.972E24;              mass of the target;
 impactor radius;         3396.2E3;              radius of the impactor;
-tide-raiser longitude output;   1;              output the longitude of the impactor;
-tide-raiser distance output;    1;              output the distance to the impactor;
+tide-raiser longitude output;   true;              output the longitude of the impactor;
+tide-raiser distance output;    true;              output the distance to the impactor;
