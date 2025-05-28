@@ -13,6 +13,7 @@
 #include "array2d.h"
 #include <math.h>
 
+void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, double & tide_lon, double & tide_dist, int forcing_type, double time, double ecc=0.1, double obl=0.1);
 void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, int forcing_type, double time, double ecc=0.1, double obl=0.1);
 
 // WOMA function 

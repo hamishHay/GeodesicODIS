@@ -152,6 +152,16 @@ public:
   GlobalVar<double> a22;
   GlobalVar<double> b22;
 
+  // Giant impact paramaters
+  GlobalVar<double> b;                  // Impact factor 
+  GlobalVar<double> time_to_impact;     // Time before impact at simulation start 
+  GlobalVar<double> v_c;                // Velocity at contact, in units of escape vel 
+  GlobalVar<double> mass_impactor;      // Mass of impactor 
+  GlobalVar<double> mass_target;        // Mass of target 
+  GlobalVar<double> radius_impactor;    // Radius of impactor 
+  GlobalVar<bool> field_tide_lon_output; // Longitude of tide-raiser
+  GlobalVar<bool> field_tide_dist_output; // Distance to the tide-raiser
+
   // Variables to switch on or off output of certain Variables
   // i.e., setting kinetic to true outputs global averaged kinetic energy
   GlobalVar<bool> diss_avg; // dissipated energy

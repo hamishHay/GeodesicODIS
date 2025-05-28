@@ -25,9 +25,22 @@
 
 
 
+
 void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, int forcing_type, double time, double ecc, double obl)
 {
+    double a = 0.0;
+    double b = 0.0;
+
+    forcing(consts, grid, potential, a, b, forcing_type, time, ecc, obl); 
+
+}
+
+void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, double & tide_lon, double & tide_dist, int forcing_type, double time, double ecc, double obl)
+{
+    
+    
     int i,j;
+    std::ostringstream outstring;
 
     double factor, factor2;
     double radius, omega;
@@ -281,20 +294,23 @@ void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, int for
 
         case GIANT_IMPACT:
         {
-            double M_impactor = 6.4171E23;
+            double M_impactor = consts->mass_impactor.Value();//6.4171E23;
             double omegaT = omega*time;
             double cosphi, sinphi;
             double rx, ry, rmag;
             double cosGam;
-            double v_c = 1.0;       // Velocity at contact, in units of escape velocity 
-            double b = 0.7;         // Impact parameter
-            double t_to_impact = 30*3600.0 - time;
+            double v_c = consts->v_c.Value(); //1.0      // Velocity at contact, in units of escape velocity 
+            double b = consts->b.Value();   //0.7      // Impact parameter
+            double t_to_impact = consts->time_to_impact.Value() - time; // 30*3600
 
             try {
                 impact_pos_vel_b_v_c_t(rx, ry, t_to_impact, b, v_c, consts->radius.Value(), 3396.2e3, 5.972e24, M_impactor);
             }
             catch (const std::exception& ex) {
                 // impactor has impacted!
+                outstring << "Impactor has reached target. Simulation terminating.";
+
+                consts->Output->Write(OUT_MESSAGE, &outstring);
                 consts->Output->TerminateODIS();
             }
             
@@ -303,6 +319,11 @@ void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, int for
 
             cosphi = (rx*cosM + ry*sinM)/rmag;
             sinphi = (-rx*sinM + ry*cosM)/rmag;
+
+            // Get longitude and position of tide-raiser
+            tide_lon = atan2(sinphi, cosphi)* 180.0 / pi;
+            tide_dist = rmag;
+
 
 
             double fac = 6.67e-11*M_impactor/rmag * pow(radius/rmag, 2.0); 

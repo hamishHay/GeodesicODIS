@@ -65,6 +65,8 @@ public:
   float * kinetic_avg_1D;
   float * dummy1_1D;
   float * dummy2_2D;
+  float * tide_lon_1D;
+  float * tide_dist_1D;
   // float * harm_coeff_1D;
 
   hsize_t rank_cv;
@@ -88,6 +90,8 @@ public:
   hid_t data_space_1D_kinetic_avg;
   hid_t data_space_dummy1;
   hid_t data_space_dummy2;
+  hid_t data_space_tide_lon;
+  hid_t data_space_tide_dist;
 
   // hid_t data_space_harm_coeff;
 
@@ -104,6 +108,8 @@ public:
   hid_t mem_space_1D_kinetic_avg;
   hid_t mem_space_dummy1;
   hid_t mem_space_dummy2;
+  hid_t mem_space_tide_lon;
+  hid_t mem_space_tide_dist;
   // hid_t mem_space_harm_coeff;
 
   hid_t data_set_eta;
@@ -119,6 +125,8 @@ public:
   hid_t data_set_1D_kinetic_avg;
   hid_t data_set_dummy1;
   hid_t data_set_dummy2;
+  hid_t data_set_tide_lon;
+  hid_t data_set_tide_dist;
   // hid_t data_set_harm_coeff;
 
   char * dataFilePath;

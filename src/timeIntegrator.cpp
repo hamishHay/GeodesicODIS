@@ -135,6 +135,8 @@ int ab3Explicit(Globals * globals, Mesh * grid)
     double * total_diss;
     total_diss = new double[1];
     double e_diss;
+    double tide_lon = 0.0;
+    double tide_dist = 0.0;
 
     outstring << "Defining arrays for Adams-Bashforth time integration..." << std::endl;
 
@@ -148,6 +150,8 @@ int ab3Explicit(Globals * globals, Mesh * grid)
         else if ((*tags)[i] == "dissipation avg output") pp[i] = &total_diss[0];
         else if ((*tags)[i] == "kinetic avg output")     pp[i] = &current_time;
         else if ((*tags)[i] == "dummy1 output")          pp[i] = &cv_mass(0);
+        else if ((*tags)[i] == "tide-raiser longitude output")          pp[i] = &tide_lon;
+        else if ((*tags)[i] == "tide-raiser distance output")          pp[i] = &tide_dist;
     }
 
     Eigen::Map<Eigen::VectorXd> div(&cv_mass(0), NODE_NUM);
@@ -214,7 +218,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
             for (i=0; i<FACE_NUM; ++i) dv_dt(i, 0) = dv_dt_t0(i);
 
             // Apply drag and forcing
-            forcing(globals, grid, forcing_potential, globals->tide_type, current_time+dt, globals->e.Value(), globals->theta.Value());
+            forcing(globals, grid, forcing_potential, tide_lon, tide_dist, globals->tide_type, current_time+dt, globals->e.Value(), globals->theta.Value());
             drag_term_eig = grid->operatorLinearDrag * v_t0_eig + grid->operatorGradient * forcing_potential_eig; 
 
             // // Implicit approach - does not work with advection yet!!
