@@ -145,6 +145,28 @@ Globals::Globals(int action) {
     init.SetStringID("initial conditions");
     allGlobals.push_back(&init);
 
+    // Giant impact paramaters --------------------
+
+    b.SetStringID("impact factor");
+    allGlobals.push_back(&b);
+
+    time_to_impact.SetStringID("time before impact");
+    allGlobals.push_back(&time_to_impact);
+
+    v_c.SetStringID("velocity at contact");
+    allGlobals.push_back(&v_c);
+    
+    mass_impactor.SetStringID("impactor mass");
+    allGlobals.push_back(&mass_impactor);
+
+    mass_target.SetStringID("target mass");
+    allGlobals.push_back(&mass_target);
+
+    radius_impactor.SetStringID("impactor radius");
+    allGlobals.push_back(&radius_impactor);
+
+    // --------------------------------------------
+
     diss_avg.SetStringID("dissipation avg output");
     allGlobals.push_back(&diss_avg);
 
