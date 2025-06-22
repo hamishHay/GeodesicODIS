@@ -27,7 +27,7 @@ plt.rc('axes', labelsize=7)
 
 
 
-start = 687
+start = int(sys.argv[1])
 end   = start+1
 N=6
 
@@ -66,11 +66,11 @@ cb3.set_label(label="Tidal height [km]", size=8)
 
 for ax in axes:
     ax.set_aspect("equal")
-    ax.set_xlabel("Longitude [°]", fontsize=8)
+    ax.set_xlabel("Longitude [°]", fontsize=time_to_impact.Value()8)
     ax.set_ylabel("Latitude [°]", fontsize=8)
 
-fig.suptitle("$h_0 = 4$ km, $Ω = 2.91×10^{-4}$ rad s$^{-1}$, $M_i = 6.42×10^{23}$ kg", fontsize=10,y=0.8)
+fig.suptitle("$h_0 = 4$ km, $Ω = 2.91×10^{-4}$ rad s$^{-1}$, $M_i = 6.42×10^{23}$ kg, $b=0.7$, $v_c = 1.0$", fontsize=10, y=0.8)
 
-fig.savefig("giant_impact_test.pdf",bbox_inches="tight")
+fig.savefig("giant_impact_test_tm00mins.png",dpi=600,bbox_inches="tight")
 
 plt.show()
