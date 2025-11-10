@@ -129,14 +129,14 @@ public:
   GlobalVar<double> a;                  //SemiMajor Axis
   GlobalVar<double> e;                  //Eccentricity
   GlobalVar<double> theta;              //Obliquity in degrees
-  GlobalVar<double> timeStep;           // Simulation timestep
+  GlobalVar<int> timeStep;           // Simulation timestep
   GlobalVar<double> alpha;              // drag coefficient
   GlobalVar<int> l_max;                 //Maximum spherical harmonic degree for expansions
   GlobalVar<double> dLat;               //NUMBER of cells in latitude
   GlobalVar<double> dLon;               //NUMBER of cells in longitude
   GlobalVar<int> geodesic_l;            //Geodesic grid level
-  GlobalVar<double> period;             // orbital period (=rotation period), assuming syncronous rotation.
-  GlobalVar<double> endTime;            // maximum simulation run time
+  GlobalVar<int> period;             // orbital period (=rotation period), assuming syncronous rotation.
+  GlobalVar<int> endTime;            // maximum simulation run time
   GlobalVar<std::string> potential;     // string for tidal potential type
   GlobalVar<std::string> friction;      // string for drag type
   GlobalVar<std::string> surface;       // string for surface boundary condition
@@ -188,6 +188,8 @@ public:
   GlobalVar<std::string> grav_coeff_file;      // file name containing beta coeffs
   GlobalVar<std::string> forcing_coeff_file;   // file name containing upsilon coeffs
   GlobalVar<std::string> fourier_coeff_file;   // file name containing upsilon coeffs
+  GlobalVar<std::string> sim_path;   // file name containing upsilon coeffs
+
 
   // GlobalVar<double> nu_shell;
   // GlobalVar< Array1D<double> > beta_shell;
@@ -201,8 +203,8 @@ public:
   double * b22q;
 
   // constructor to initialise and/or read all variables from input file.
-  Globals();
-  Globals(int action); // action is either 1 (use defaults) or 0 (read input)
+//   Globals();
+  Globals(std::string path2); // action is either 1 (use defaults) or 0 (read input)
   ~Globals();
 
 

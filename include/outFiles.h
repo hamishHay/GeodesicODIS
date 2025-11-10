@@ -38,7 +38,7 @@ public:
 
   std::vector<std::string> * tags;
 
-	OutFiles();
+	OutFiles(std::string test);
 
 	void Write(mess_type message, std::ostringstream * sstream);
 	void WelcomeMessage(void);

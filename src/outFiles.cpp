@@ -32,17 +32,22 @@ using namespace H5;
 #endif
 
 
-OutFiles::OutFiles() {
+OutFiles::OutFiles(std::string pp) {
 	char buffer[PATH];
 
     // OS-independent way to retrieve current filepath
-    path = std::filesystem::current_path();
-
+    path = pp;//std::filesystem::current_path();
+    
+    // std::cout<<pp<<std::endl;
+    // char result[ PATH ];
+    // ssize_t count = readlink( "/proc/self/exe", result, PATH );
+    // path = std::string( result, (count > 0) ? count : 0 );
+    // std::cout<<path<<std::endl;
     // path = "/Users/hamishhay/Research/GeodesicODIS";
 
-	outName = path + SEP + "DATA" + SEP + "OUTPUT.txt";
-	errName = path + SEP + "DATA" + SEP + "ERROR.txt";
-	dataPath = path + SEP + "DATA" + SEP + "data.h5";
+	outName = pp + SEP + "DATA" + SEP + "OUTPUT.txt";
+	errName = pp + SEP + "DATA" + SEP + "ERROR.txt";
+	dataPath = pp + SEP + "DATA" + SEP + "data.h5";
 
 
 	remove(&outName[0]); //Converts std::string to char array
@@ -146,7 +151,7 @@ void OutFiles::CreateHDF5Framework(Globals * globals)
   face_num = globals->face_num;
   l_max = globals->l_max.Value();
 
-  output_num = globals->outputTime.Value();
+  output_num = globals->period.Value() / globals->outputTime.Value();
   orbit_num = globals->endTime.Value();
 
   #if _WIN32

@@ -110,7 +110,8 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
 #endif
 
-    double end_time, current_time, dt, orbit_period;
+    double end_time, dt;
+    int orbit_period, current_time;
 
     double r = globals->radius.Value();
 
@@ -124,6 +125,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
     end_time     = globals->endTime.Value();
     dt           = globals->timeStep.Value();
+    // int dt_int   = (int)dt;
     orbit_period = globals->period.Value();
 
     Output = globals->Output;
@@ -148,7 +150,7 @@ int ab3Explicit(Globals * globals, Mesh * grid)
         else if ((*tags)[i] == "displacement output")    pp[i] = &p_t0(0);
         else if ((*tags)[i] == "dissipation output")     pp[i] = &energy_diss(0);
         else if ((*tags)[i] == "dissipation avg output") pp[i] = &total_diss[0];
-        else if ((*tags)[i] == "kinetic avg output")     pp[i] = &current_time;
+        // else if ((*tags)[i] == "kinetic avg output")     pp[i] = &current_time;
         else if ((*tags)[i] == "dummy1 output")          pp[i] = &cv_mass(0);
         else if ((*tags)[i] == "tide-raiser longitude output")          pp[i] = &tide_lon;
         else if ((*tags)[i] == "tide-raiser distance output")          pp[i] = &tide_dist;
@@ -188,9 +190,10 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
     out_count = 1;
     current_time = dt*iter;
-    int out_freq = globals->totalIter.Value() / globals->outputTime.Value();
+    // int out_freq = globals->totalIter.Value() / globals->outputTime.Value();
+    int out_freq = globals->outputTime.Value();
 
-    outstring << std::fixed << "DUMPING DATA AT " << current_time / orbit_period;
+    outstring << std::fixed << "DUMPING DATA AT " << (double)current_time / (double)orbit_period;
     outstring << " AVG DISS: " << std::scientific << *total_diss * 4 * pi * r * r / 1e9 << " GW" << out_count;
 
     Output->Write(OUT_MESSAGE, &outstring);
@@ -205,7 +208,8 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
     for (int i=0; i < NODE_NUM; i++) h_total(i) = h + p_t0(i);
 
-    while (iter < globals->totalIter.Value()*globals->endTime.Value())
+    std::cout<< globals->totalIter.Value()<<' '<<globals->endTime.Value()<<std::endl;
+    while (iter < globals->totalIter.Value())
     {
         if (globals->surface_type == FREE ||
             globals->surface_type == FREE_LOADING ||
@@ -280,7 +284,9 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
 
         // Check for output
-        if (iter%out_freq == 0)
+
+        // std::cout<<current_time<<' '<<out_freq<<' '<<current_time%out_freq<<std::endl;
+        if (current_time%out_freq == 0)
         {
             // std::cout<<iter<<' '<<out_freq<<' '<<dt*iter/3600.0<<std::endl;
             // for (int i=0; i<FACE_NUM; ++i)
@@ -293,10 +299,10 @@ int ab3Explicit(Globals * globals, Mesh * grid)
 
             interpolateVelocityCartRBF(globals, grid, v_xyz, v_t0);
 
-            outstring << std::fixed <<"DUMPING DATA AT "<<current_time/orbit_period;
+            outstring << std::fixed << "DUMPING DATA AT " << (double)current_time / (double)orbit_period;
             // outstring << std::fixed <<"DUMPING DATA AT "<<current_time/(60.0*60.0);
             outstring << " AVG DISS: "<<std::scientific<<*total_diss*4*pi*r*r/1e9<<" GW"<<out_count;
-            outstring <<" OUT ITER: "<<iter/out_freq;
+            outstring <<" OUT ITER: "<<iter;
 
             Output->Write(OUT_MESSAGE, &outstring);
 

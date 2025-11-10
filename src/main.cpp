@@ -39,17 +39,28 @@
 #include "solver.h"
 #include "tests.h"
 #include "gridConstants.h"
+#include <filesystem>
 
 
 #include <iostream>
 
-int main(void)
+int main(int argc, char** argv)
 {
+    // 
+    // std::cout<<argv[0]<<std::endl;
+    std::string path;
+    if (argc > 1) {
+        std::cout<<argv[1]<<std::endl;
+        path = argv[1];
+    }
+    else {
+        path = std::filesystem::current_path();
+    }
   // Read in global constants from input.in file with 0, and use defaults
   // with 1 (currently set to Titan parameters). All constants are stored in the
   // class "Globals".
 
-  Globals * constants = new Globals(0);
+  Globals * constants = new Globals(path);
 
   // Create the numerical grid using the minimum node spacing from "constants"
   // Globals instance.

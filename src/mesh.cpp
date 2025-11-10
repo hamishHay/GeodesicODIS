@@ -145,7 +145,7 @@ Mesh::Mesh(Globals * Globals, int N, int face_N, int vertex_N, int N_ll, int l_m
     // Evaluate trig functions at every node
     CalcTrigFunctions();
 
-    CalcMaxTimeStep();
+    // CalcMaxTimeStep();
 
     // // CalcLegendreFuncs();
 
@@ -1571,7 +1571,8 @@ int Mesh::CalcMaxTimeStep(void)
 {
   int i, j, f, friend_num;
   double dist;
-  double g, h_max, dt;
+  double g, h_max;
+  int dt;
 
   g = globals->g.Value();
   h_max = globals->h.Value();
@@ -1602,7 +1603,7 @@ int Mesh::CalcMaxTimeStep(void)
 //     //   dt *= 0.85;         // take some caution
 //   }
 
-  double target_dt = dt;
+  int target_dt = dt;
   int dt_num = 100;
 
   dt = globals->period.Value();
@@ -3300,7 +3301,7 @@ int Mesh::CalcFreeSurfaceSolver(void)
     double g, h, dt;
     g = globals->g.Value();
     h = globals->h.Value();
-    dt = globals->timeStep.Value();
+    dt = (double)globals->timeStep.Value();
 
     // DenseMat I = DenseMat::Identity(NODE_NUM);
     auto I = DenseMat::Identity(NODE_NUM,NODE_NUM);

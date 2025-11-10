@@ -29,23 +29,16 @@
 // #include <mkl.h>
 // #include <omp.h>
 
-// Points constructor to second, optional constructor. --> Not actually necessary?
-Globals::Globals() :Globals(1) {};
+// Points consmatructor to second, optional constructor. --> Not actually necessary?
+// Globals::Globals() :Globals(1) {};
 
-Globals::Globals(int action) {
+Globals::Globals(std::string path2) {
   // Constructor assings stringIDs and automatically reads from the input file.
-
-  Output = new OutFiles;
-
-  // set simulation path to that from the Output class.
-  path = Output->path;
-
-  // copy the string path to a character array
-  strcpy(cpath, path.c_str());
+    path = path2;
 
   // Yes, currently action is redundant.
-  if (action) SetDefault();
-  else {
+//   if (false) SetDefault();
+//   else {
     SetDefault();
 
     // Append variable IDs to all global variables, then add them to variable list.
@@ -230,21 +223,34 @@ Globals::Globals(int action) {
     rbf_eps.SetStringID("rbf epsilon");
     allGlobals.push_back(&rbf_eps);
 
+    sim_path.SetStringID("path");
+    allGlobals.push_back(&sim_path);
+
+    Output = new OutFiles(path);
+
+    // set simulation path to that from the Output class.
+    // path = Output->path;
+
+    // copy the string path to a character array
+    strcpy(cpath, path.c_str());
+
+
     ReadGlobals(); //Read globals from input.in file
-  }
+//   }
 
 
-  period.SetValue(2.*pi/angVel.Value());
+//   period.SetValue(2.*pi/angVel.Value());
 
-  int int_time = (int)round(period.Value() / 2) * 2;
+//   int int_time = (int)round(period.Value() / 2) * 2;
 
-  period.SetValue((double)int_time);
-  angVel.SetValue(2*pi/(double)int_time);
-  std::cout << int_time << ' ' << 2*pi/(double)int_time<< std::endl;
+//   period.SetValue((double)int_time);
+  angVel.SetValue(2*pi/(double)period.Value());
+//   std::cout << int_time << ' ' << 2*pi/(double)int_time<< std::endl;
 
   // Convert end time from units of orbital period to seconds.
   // endTime.SetValue(endTime.Value()*period.Value());
   endTime.SetValue(endTime.Value());
+  totalIter.SetValue(endTime.Value() * period.Value() / timeStep.Value());
 
   // geodesic node num expression (Lee and Macdonald, 2008)
   // node_num = 10 * pow(pow(2, geodesic_l.Value() - 1), 2) + 2;
@@ -453,7 +459,7 @@ int Globals::ReadGlobals(void)
     theta.SetValue(theta.Value()*pi/180.);
 
     // Overwrite period to match angular velocity
-    period.SetValue(2.*pi/angVel.Value());
+    // period.SetValue(2.*pi/angVel.Value());
 
 
     // Add all output tags to the string array out_tags

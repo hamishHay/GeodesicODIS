@@ -304,7 +304,9 @@ void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, double 
             double t_to_impact = consts->time_to_impact.Value() - time; // 30*3600
 
             try {
-                impact_pos_vel_b_v_c_t(rx, ry, t_to_impact, b, v_c, consts->radius.Value(), 3396.2e3, 5.972e24, M_impactor);
+                // std::cout<<"HERE"<<std::endl;
+                impact_pos_vel_b_v_c_t(rx, ry, t_to_impact, b, v_c, consts->radius.Value(), consts->radius_impactor.Value(), consts->mass_target.Value(), M_impactor, 5000.0);
+                // std::cout<<sqrt(rx*rx + ry*ry)<<std::endl;
             }
             catch (const std::exception& ex) {
                 // impactor has impacted!
@@ -324,6 +326,7 @@ void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, double 
             tide_lon = atan2(sinphi, cosphi)* 180.0 / pi;
             tide_dist = rmag;
 
+            
 
 
             double fac = 6.67e-11*M_impactor/rmag * pow(radius/rmag, 2.0); 
@@ -490,6 +493,7 @@ void impact_pos_vel_b_v_c_t(double &x_, double &y_, double t, double b, double v
         } catch (const std::exception& ex) {
             t_ = t * 2;  // Set t_ to a value ensuring r_max is reduced
             if (i >= i_max) {
+                
                 throw std::runtime_error("Failed to find r(t) after " + std::to_string(i) + " iterations");
             }
         }
@@ -502,9 +506,12 @@ void impact_pos_vel_b_v_c_t(double &x_, double &y_, double t, double b, double v
         }
 
         if (i >= i_max) {
+            std::cout<<"WOMA"<<std::endl;
             throw std::runtime_error("Failed to find r(t) after " + std::to_string(i) + " iterations");
         }
     }
+
+    
 
     // update x_ and y_ initial position and velocity
     impact_pos_vel_b_v_c_r(x_, y_, t_out, b, v_c, r, R_t, R_i, M_t, M_i);
