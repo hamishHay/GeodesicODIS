@@ -324,6 +324,7 @@ void forcing(Globals * consts, Mesh * grid, Array1D<double> & potential, double 
 
             // Get longitude and position of tide-raiser
             tide_lon = atan2(sinphi, cosphi)* 180.0 / pi;
+            // tide_lon = atan2(cosphi, sinphi)* 180.0 / pi;
             tide_dist = rmag;
 
             

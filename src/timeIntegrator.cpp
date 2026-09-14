@@ -303,6 +303,8 @@ int ab3Explicit(Globals * globals, Mesh * grid)
             // outstring << std::fixed <<"DUMPING DATA AT "<<current_time/(60.0*60.0);
             outstring << " AVG DISS: "<<std::scientific<<*total_diss*4*pi*r*r/1e9<<" GW"<<out_count;
             outstring <<" OUT ITER: "<<iter;
+            outstring<<" Impactor lon: "<<tide_lon;
+
 
             Output->Write(OUT_MESSAGE, &outstring);
 

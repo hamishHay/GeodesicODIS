@@ -65,8 +65,8 @@ public:
   float * kinetic_avg_1D;
   float * dummy1_1D;
   float * dummy2_2D;
-  float * tide_lon_1D;
-  float * tide_dist_1D;
+  double * tide_lon_1D;
+  double * tide_dist_1D;
   // float * harm_coeff_1D;
 
   hsize_t rank_cv;

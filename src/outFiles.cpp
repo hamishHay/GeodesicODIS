@@ -345,18 +345,18 @@ void OutFiles::CreateHDF5Framework(Globals * globals)
     }
     if (globals->field_tide_lon_output.Value())
     {
-        tide_lon_1D = new float[1];
+        tide_lon_1D = new double[1];
 
         data_space_tide_lon = H5Screate_simple(rank_1D, max_dims_1D_diss_avg, NULL);
-        data_set_tide_lon = H5Dcreate(file, "tide-raiser longitude", H5T_NATIVE_FLOAT, data_space_tide_lon, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        data_set_tide_lon = H5Dcreate(file, "tide-raiser longitude", H5T_NATIVE_DOUBLE, data_space_tide_lon, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         mem_space_tide_lon = H5Screate_simple(rank_1D, dims_1D_diss_avg, NULL);
     }
     if (globals->field_tide_dist_output.Value())
     {
-        tide_dist_1D = new float[1];
+        tide_dist_1D = new double[1];
 
         data_space_tide_dist = H5Screate_simple(rank_1D, max_dims_1D_diss_avg, NULL);
-        data_set_tide_dist = H5Dcreate(file, "tide-raiser distance", H5T_NATIVE_FLOAT, data_space_tide_dist, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        data_set_tide_dist = H5Dcreate(file, "tide-raiser distance", H5T_NATIVE_DOUBLE, data_space_tide_dist, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
         mem_space_tide_dist = H5Screate_simple(rank_1D, dims_1D_diss_avg, NULL);
     }
 
@@ -701,18 +701,18 @@ void OutFiles::DumpData(Globals * globals, int time_level, double ** data)
 
         else if ((*tags)[j] == "tide-raiser longitude output")
         {
-            tide_lon_1D[0] = (float)(*p);
+            tide_lon_1D[0] = (double)(*p);
 
             H5Sselect_hyperslab(data_space_tide_lon, H5S_SELECT_SET, start_1D, NULL, count_1D, NULL);
-            H5Dwrite(data_set_tide_lon, H5T_NATIVE_FLOAT, mem_space_tide_lon, data_space_tide_lon, H5P_DEFAULT, tide_lon_1D);
+            H5Dwrite(data_set_tide_lon, H5T_NATIVE_DOUBLE, mem_space_tide_lon, data_space_tide_lon, H5P_DEFAULT, tide_lon_1D);
         }
 
         else if ((*tags)[j] == "tide-raiser distance output")
         {
-            tide_dist_1D[0] = (float)(*p);
+            tide_dist_1D[0] = (double)(*p);
 
             H5Sselect_hyperslab(data_space_tide_dist, H5S_SELECT_SET, start_1D, NULL, count_1D, NULL);
-            H5Dwrite(data_set_tide_dist, H5T_NATIVE_FLOAT, mem_space_tide_dist, data_space_tide_dist, H5P_DEFAULT, tide_dist_1D);
+            H5Dwrite(data_set_tide_dist, H5T_NATIVE_DOUBLE, mem_space_tide_dist, data_space_tide_dist, H5P_DEFAULT, tide_dist_1D);
         }
     }
 
