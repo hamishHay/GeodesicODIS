@@ -26,6 +26,7 @@ private:
 
     int node_num;
     int face_num;
+    int PROC_ID;
 
 	void WriteMessage(std::ostringstream * sstream);
 	void WriteError(std::ostringstream * sstream);
@@ -48,7 +49,7 @@ public:
   void CreateHDF5Framework(Globals *);
 
   void DumpGridData(Mesh *);
-  void DumpData(Globals *, int, double **);
+  void DumpData(Globals *, int, double  **);
 
   //------------------------Objects for HDF5 Storage----------------------------
 
