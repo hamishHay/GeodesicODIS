@@ -25,8 +25,10 @@
 #include <unistd.h>
 #include <libgen.h>
 #include <filesystem>
-#include <mpi.h>
-#include <filesystem>
+
+#ifdef _MPI
+    #include <mpi.h>
+#endif
 
 #include <sys/stat.h>
 
@@ -43,15 +45,21 @@ OutFiles::OutFiles() {
 
     // path = "/Users/hamishhay/Research/GeodesicODIS";
 
-    int PROC_ID;
+    PROC_ID = 0;
+
+#ifdef _MPI
+    // Update processor ID
     MPI_Comm_rank(MPI_COMM_WORLD, &PROC_ID);
+#endif
 
     if (PROC_ID  == 0) {
         std::filesystem::remove_all(path + SEP + "DATA");               // Delete DATA directory
         std::filesystem::create_directory(path + SEP + "DATA" + SEP);   // Create new DATA directory 
     }
 
+#ifdef _MPI
     MPI_Barrier(MPI_COMM_WORLD);
+#endif
 
     std::stringstream pid; 
     pid << std::setfill('0') << std::setw(3)  << PROC_ID;
@@ -140,7 +148,7 @@ void OutFiles::TerminateODIS(void) {
 	std::ostringstream sstream;
 
 	sstream << "TERMINATING ODIS." << std::endl;
-  std::cout << "ODIS HAS FOUND AN ERROR. TERMINATING PROGRAM." << std::endl;
+    std::cout << "ODIS HAS FOUND AN ERROR IN PROCESS "<<PROC_ID<<". TERMINATING PROGRAM." << std::endl;
 	WriteError(&sstream);
 	std::exit(0);
 };
@@ -383,7 +391,7 @@ void OutFiles::DumpGridData(Mesh * mesh)
 
 };
 
-void OutFiles::DumpData(Globals * globals, int time_level, double ** data)
+void OutFiles::DumpData(Globals * globals, int time_level, double  ** data)
 {
     std::string out = std::to_string(time_level);
     unsigned int i, j;
@@ -402,7 +410,6 @@ void OutFiles::DumpData(Globals * globals, int time_level, double ** data)
     start_1D[0] = time_level - 1;
     count_1D[0] = 1;
 
-    std::cout<<"TAKE A DUMP AT "<<dataPath<<std::endl;
     for (j=0; j<tags->size(); j++)
     {
         p = data[j];
