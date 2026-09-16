@@ -16,9 +16,143 @@
 #include <algorithm>
 #include <cstring>
 #include <filesystem>
+#include <vector>
 
 #include "H5Cpp.h"
-#include "mpi.h"
+
+#ifdef _MPI
+    #include "mpi.h"
+
+    namespace {
+        enum : int {
+            TAG_NODE_COUNT   = 100,
+            TAG_NODE_IDS     = 101,
+            
+            TAG_FACE_COUNT   = 200,
+            TAG_FACE_IDS     = 201,
+            
+            TAG_VERTEX_COUNT = 300,
+            TAG_VERTEX_IDS   = 301
+        };
+
+
+        struct ElementConnectivity {
+            const char * name;              // for debug output, e.g. "NODE", "FACE", "VERTEX"
+
+            unsigned num_ng;                // index where ghosts start
+            unsigned num;                   // total count (owned + ghost)
+
+            Array2D<unsigned> & region_ID;  // (region, remote_local_id) per entity
+
+            std::vector<unsigned> & recv_regions;
+            std::vector<unsigned> & send_regions;
+
+            std::vector<std::vector<unsigned>> & receive_IDs;
+            std::vector<std::vector<unsigned>> & send_IDs;
+            std::vector<std::vector<unsigned>> & send_IDs_ordered;
+            std::vector<std::vector<unsigned>> & send_IDs_map;
+
+            int tag_count;
+            int tag_ids;
+        };
+
+        // Builds send/receive ID lists and region counts for an element type
+        // (nodes, faces, or vertices) for each process.
+        void FindElementConnectivity(ElementConnectivity & element, int proc_id, unsigned nproc,
+                                    std::ostringstream & outstring)
+        {
+            // std::vector<unsigned> ghost_num_in_region(nproc, 0);
+
+            for (unsigned k = 0; k < nproc; k++) element.recv_regions[k] = 0;
+
+            for (unsigned i = element.num_ng; i < element.num; i++) {
+                unsigned k = element.region_ID(i, 0);
+                // ghost_num_in_region[k] += 1;
+                element.recv_regions[k] += 1;
+            }
+
+            for (unsigned k = 0; k < nproc; k++) {
+                if (proc_id == (int)k) continue;
+
+                unsigned num_to_receive = element.recv_regions[k];//ghost_num_in_region[k];
+                unsigned num_to_send = 0;
+
+                MPI_Status status;
+                MPI_Sendrecv(
+                    &num_to_receive, 1, MPI_UNSIGNED, k, element.tag_count,
+                    &num_to_send,    1, MPI_UNSIGNED, k, element.tag_count,
+                    MPI_COMM_WORLD, &status
+                );
+
+                element.send_regions[k] = num_to_send;
+
+                outstring << "IN PROCESS " << proc_id << " THERE ARE " << num_to_receive
+                        << " GHOST " << element.name << "S FROM PROCESS " << k << std::endl;
+                outstring << "PROCESS " << proc_id << " WILL SEND " << num_to_send
+                        << " " << element.name << "S TO PROCESS " << k << std::endl;
+
+                std::vector<unsigned> IDs(num_to_receive);
+                std::vector<unsigned> IDs_to_request(num_to_receive);
+                std::vector<unsigned> IDs_to_send(num_to_send);
+
+                unsigned count = 0;
+                for (unsigned i = element.num_ng; i < element.num; i++) {
+                    if (element.region_ID(i, 0) == k) {
+                        IDs_to_request[count] = element.region_ID(i, 1);
+                        IDs[count++] = i;
+
+                        outstring << "    PROCESS " << proc_id << " WILL RECEIVE " << element.name
+                                << " WITH LOCAL ID " << i << " FROM PROCESS " << k
+                                << " (" << element.region_ID(i, 1) << ") " << std::endl;
+                    }
+                }
+
+                if (count != num_to_receive) {
+                    throw std::runtime_error(
+                        "FindEntityConnectivity: " + std::string(element.name) +
+                        " count mismatch on process " + std::to_string(proc_id) +
+                        " for region " + std::to_string(k));
+                }
+
+                element.receive_IDs[k] = IDs;
+
+                MPI_Sendrecv(
+                    IDs_to_request.data(), num_to_receive,  MPI_UNSIGNED, k, element.tag_ids,
+                    IDs_to_send.data(),    num_to_send,     MPI_UNSIGNED, k, element.tag_ids,
+                    MPI_COMM_WORLD, &status
+                );
+
+                for (unsigned i = 0; i < num_to_send; i++) {
+                    outstring << "    PROCESS " << proc_id << " WILL SEND " << element.name
+                            << " WITH LOCAL ID " << IDs_to_send[i] << " TO PROCESS " << k
+                            << " (" << i << ")   " << std::endl;
+                }
+
+                // Reorder send IDs ascending, for better memory access when packing buffers.
+                std::vector<unsigned> IDs_ordered(IDs_to_send);
+                std::vector<unsigned> index_map(IDs_to_send.size());
+
+                std::vector<std::pair<unsigned, unsigned>> pairs(IDs_to_send.size());
+                for (unsigned i = 0; i < pairs.size(); ++i) {
+                    pairs[i].first  = i;
+                    pairs[i].second = IDs_ordered[i];
+                }
+
+                std::sort(pairs.begin(), pairs.end(),
+                        [](auto & left, auto & right) { return left.second < right.second; });
+
+                for (unsigned i = 0; i < pairs.size(); ++i) {
+                    index_map[i]   = pairs[i].first;
+                    IDs_ordered[i] = pairs[i].second;
+                }
+
+                element.send_IDs[k]         = IDs_to_send;
+                element.send_IDs_ordered[k] = IDs_ordered;
+                element.send_IDs_map[k]     = index_map;
+            }
+        }
+    }
+#endif
 
 #include <Eigen/Sparse>
 
@@ -26,10 +160,21 @@
 using namespace H5;
 #endif
 
+
+
 // Constructor. Calls the series of tasks needed to contruct all information 
 // relevant to the grid.
 Mesh::Mesh(Globals *Globals)//, int N, int face_N, int vertex_N, int N_ll, int l_max)
 {
+
+#ifdef _MPI
+    MPI_Comm_size(MPI_COMM_WORLD, &NPROC);
+    MPI_Comm_rank(MPI_COMM_WORLD, &PROC_ID);
+#else
+    NPROC = 1;
+    PROC_ID = 0;
+#endif
+
     globals = Globals; // define reference to all constants
 
     // Read in grid file
@@ -48,76 +193,114 @@ Mesh::Mesh(Globals *Globals)//, int N, int face_N, int vertex_N, int N_ll, int l
     face_vertexes           = Array2D<int>(face_num_ng, 2);
     face_nodes              = Array2D<int>(face_num_ng, 2);
 
-    face_centre_pos_sph     = Array2D<double>(face_num, 2);
-    face_intercept_pos_sph  = Array2D<double>(face_num, 2);
+    face_centre_pos_sph     = Array2D<double >(face_num, 2);
+    face_intercept_pos_sph  = Array2D<double >(face_num, 2);
 
-    face_area               = Array1D<double>(face_num);
-    face_normal_vec_map     = Array2D<double>(face_num, 2);
-    face_normal_vec_xyz     = Array2D<double>(face_num, 3);
+    face_area               = Array1D<double >(face_num);
+    face_normal_vec_map     = Array2D<double >(face_num, 2);
+    face_normal_vec_xyz     = Array2D<double >(face_num, 3);
 
-    face_node_dist          = Array1D<double>(face_num);
-    face_node_dist_r        = Array1D<double>(face_num);
-    face_len                = Array1D<double>(face_num);
+    face_node_dist          = Array1D<double >(face_num);
+    face_node_dist_r        = Array1D<double >(face_num);
+    face_len                = Array1D<double >(face_num);
 
     face_friends            = Array3D<int>(face_num_ng, 2, 5);
-    face_interp_weights     = Array3D<double>(face_num_ng, 2, 5);
+    face_interp_weights     = Array3D<double >(face_num_ng, 2, 5);
     face_fnum               = Array2D<unsigned>(face_num_ng, 2);
-    
+    face_advection_coeffs  = Array3D<double>(face_num_ng, 2, 6);
+
     node_friends            = Array2D<int>(node_num_ng, 6);
     node_fnum               = Array1D<unsigned>(node_num_ng);
-    node_pos_sph            = Array2D<double>(node_num, 2);
-    node_pos_map            = Array3D<double>(node_num_ng, 7, 2);
-    cv_area_sph             = Array1D<double>(node_num);
-    cv_area_sph_r           = Array1D<double>(node_num);
+    node_pos_sph            = Array2D<double >(node_num, 2);
+    node_pos_map            = Array3D<double >(node_num_ng, 7, 2);
+    cv_area_sph             = Array1D<double >(node_num);
+    cv_area_sph_r           = Array1D<double >(node_num);
     node_face_dir           = Array2D<int>(node_num, 6);
 
 
     
-    node_vertex_area        = Array2D<double>(node_num_ng, 6); //???????
+    node_vertex_area        = Array2D<double >(node_num_ng, 6); //???????
 
     vertexes                = Array2D<int>(node_num_ng, 6);
     vertex_nodes            = Array2D<int>(vertex_num_ng, 6);
     vertex_faces            = Array2D<int>(vertex_num_ng, 6);
-    vertex_pos_sph          = Array2D<double>(vertex_num, 2);
-    vertex_area             = Array1D<double>(vertex_num);
-    vertex_area_r           = Array1D<double>(vertex_num);
+    vertex_pos_sph          = Array2D<double >(vertex_num, 2);
+    vertex_area             = Array1D<double >(vertex_num);
+    vertex_area_r           = Array1D<double >(vertex_num);
     vertex_face_dir         = Array2D<int>(vertex_num_ng, 3);
-    vertex_R                = Array2D<double>(vertex_num_ng, 3);
+    vertex_R                = Array2D<double >(vertex_num_ng, 3);
+    vertex_interp_weights   = Array2D<double >(vertex_num_ng, 3);
 
-    centroid_pos_map        = Array3D<double>(node_num_ng, 6, 2);
-    centroid_pos_sph        = Array3D<double>(node_num_ng, 6, 2);
+    centroid_pos_map        = Array3D<double >(node_num_ng, 6, 2);
+    centroid_pos_sph        = Array3D<double >(node_num_ng, 6, 2);
 
-    node_vel_trans          = Array3D<double>(node_num_ng, 7, 2);
-    face_node_vel_trans     = Array3D<double>(face_num_ng, 2, 2);
+    node_vel_trans          = Array3D<double >(node_num_ng, 7, 2);
+    face_node_vel_trans     = Array3D<double >(face_num_ng, 2, 2);
 
-    trigLat                 = Array2D<double>(node_num, 2);
-    trigLon                 = Array2D<double>(node_num, 2);
-    trig2Lat                = Array2D<double>(node_num, 2);
-    trig2Lon                = Array2D<double>(node_num, 2);
-    trigSqLat               = Array2D<double>(node_num, 2);
-    trigSqLon               = Array2D<double>(node_num, 2);
-    vertex_sinlat           = Array1D<double>(vertex_num);
+    trigLat                 = Array2D<double >(node_num, 2);
+    trigLon                 = Array2D<double >(node_num, 2);
+    trig2Lat                = Array2D<double >(node_num, 2);
+    trig2Lon                = Array2D<double >(node_num, 2);
+    trigSqLat               = Array2D<double >(node_num, 2);
+    trigSqLon               = Array2D<double >(node_num, 2);
+    vertex_sinlat           = Array1D<double >(vertex_num);
 
-    node_face_arc           = Array2D<double>(node_num_ng, 6); // angular distance between node and face center
-    node_face_RBF           = Array2D<double>(node_num_ng, 6);
-    face_centre_m           = Array2D<double>(face_num_ng, 2);
-    face_node_pos_map       = Array3D<double>(face_num_ng, 2, 2);
-    node_node_RBF           = Array2D<double>(node_num_ng, 7);
+    node_face_arc           = Array2D<double >(node_num_ng, 6); // angular distance between node and face center
+    node_face_RBF           = Array2D<double >(node_num_ng, 6);
+    face_centre_m           = Array2D<double >(face_num_ng, 2);
+    face_node_pos_map       = Array3D<double >(face_num_ng, 2, 2);
+    node_node_RBF           = Array2D<double >(node_num_ng, 7);
 
+#ifdef _MPI
+    node_region_ID          = Array2D<unsigned>(node_num, 2);
+    face_region_ID          = Array2D<unsigned>(face_num, 2);
+    vertex_region_ID        = Array2D<unsigned>(vertex_num, 2);
 
-    // std::cout<<"HERE"<<std::endl;
+    send_node_IDs.resize(NPROC);
+    receive_node_IDs.resize(NPROC);
+    send_node_IDs_ordered.resize(NPROC);
+    send_node_IDs_map.resize(NPROC);
+    send_node_regions.resize(NPROC);        // How many nodes to send to the kth region
+    recv_node_regions.resize(NPROC);        // How many nodes to receive from the kth region
+
+    send_face_IDs.resize(NPROC);
+    receive_face_IDs.resize(NPROC);
+    send_face_IDs_ordered.resize(NPROC);
+    send_face_IDs_map.resize(NPROC);
+    send_face_regions.resize(NPROC);        // How many faces to send to the kth region
+    recv_face_regions.resize(NPROC);   
+
+    send_vertex_IDs.resize(NPROC);
+    receive_vertex_IDs.resize(NPROC);
+    send_vertex_IDs_ordered.resize(NPROC);
+    send_vertex_IDs_map.resize(NPROC);
+    send_vertex_regions.resize(NPROC);        // How many vertexs to send to the kth region
+    recv_vertex_regions.resize(NPROC);  
+    
+    send_face_buffer_1.resize(NPROC);
+    send_face_buffer_2.resize(NPROC);
+
+    send_node_buffer_1.resize(NPROC);
+    send_node_buffer_2.resize(NPROC);
+    send_node_xyz_buffer.resize(NPROC);
+
+    send_vertex_buffer_1.resize(NPROC);
+    send_vertex_buffer_2.resize(NPROC);
+#endif
+    
     ReadGridFile();
+    
 
     CalcTrigFunctions();
     // // CalcLegendreFuncs();
     CalcMappingCoords();
     CalcVelocityTransformFactors();
-    // CalcTangentialVelocityWeights();
+    // // CalcTangentialVelocityWeights();
     CalcCartesianComponents();
 
     CalcGradOperatorCoeffs();
     CalcDivOperatorCoeffs();
-    // CalcCurlOperatorCoeffs();
+    CalcCurlOperatorCoeffs();
     CalcCoriolisOperatorCoeffs();
     CalcLinearDragOperatorCoeffs();
 
@@ -125,14 +308,492 @@ Mesh::Mesh(Globals *Globals)//, int N, int face_N, int vertex_N, int N_ll, int l
     CalcControlVolumeInterpMatrix();
 
     CalcRBFInterpMatrix();
-    // CalcRBFInterpMatrix2();
+    CalcRBFInterpMatrix2();
 
-    // CalcFreeSurfaceSolver();
+    CalcFTangentOperatorCoeffs();
 
-    // CalcMaxTimeStep();
+    // // CalcFreeSurfaceSolver();
+
+    CalcMaxTimeStep();
+
+#ifdef _MPI
+    FindInterconnectivity();
+#endif
 
     globals->Output->DumpGridData(this); // ?
 };
+
+
+int Mesh::FindInterconnectivity(void) {
+    std::ostringstream outstring;
+
+    ElementConnectivity node_conn {
+        "NODE", node_num_ng, node_num,
+        node_region_ID,
+        recv_node_regions, send_node_regions,
+        receive_node_IDs, send_node_IDs, send_node_IDs_ordered, send_node_IDs_map,
+        TAG_NODE_COUNT, TAG_NODE_IDS
+    };
+    FindElementConnectivity(node_conn, PROC_ID, NPROC, outstring);
+    MPI_Barrier(MPI_COMM_WORLD);
+
+#ifdef _DEBUG
+    globals->Output->Write(OUT_MESSAGE, &outstring);
+#endif
+
+    ElementConnectivity face_conn {
+        "FACE", face_num_ng, face_num,
+        face_region_ID,
+        recv_face_regions, send_face_regions,
+        receive_face_IDs, send_face_IDs, send_face_IDs_ordered, send_face_IDs_map,
+        TAG_FACE_COUNT, TAG_FACE_IDS
+    };
+    FindElementConnectivity(face_conn, PROC_ID, NPROC, outstring);
+    MPI_Barrier(MPI_COMM_WORLD);
+
+#ifdef _DEBUG
+    globals->Output->Write(OUT_MESSAGE, &outstring);
+#endif
+
+
+    ElementConnectivity vertex_conn {
+        "VERTEX", vertex_num_ng, vertex_num,
+        vertex_region_ID,
+        recv_vertex_regions, send_vertex_regions,
+        receive_vertex_IDs, send_vertex_IDs, send_vertex_IDs_ordered, send_vertex_IDs_map,
+        TAG_VERTEX_COUNT, TAG_VERTEX_IDS
+    };
+    FindElementConnectivity(vertex_conn, PROC_ID, NPROC, outstring);
+    MPI_Barrier(MPI_COMM_WORLD);
+
+#ifdef _DEBUG
+    globals->Output->Write(OUT_MESSAGE, &outstring);
+#endif
+
+    for (unsigned k = 0; k < NPROC; k++) {
+        if (PROC_ID == k) continue;
+
+        send_face_buffer_1[k] = std::vector<double>(send_face_regions[k]);
+        send_face_buffer_2[k] = std::vector<double>(send_face_regions[k]);
+
+        send_node_buffer_1[k]   = std::vector<double>(send_node_regions[k]);
+        send_node_buffer_2[k]   = std::vector<double>(send_node_regions[k]);
+        send_node_xyz_buffer[k] = std::vector<double>(3 * send_node_regions[k]);
+
+        send_vertex_buffer_1[k] = std::vector<double>(send_vertex_regions[k]);
+        send_vertex_buffer_2[k] = std::vector<double>(send_vertex_regions[k]);
+    }
+
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    return 1;
+}
+
+/*
+#ifdef _MPI
+int Mesh::FindInterconnectivity(void) {
+    // FInd the regions and region_IDs of all ghosts;
+    std::ostringstream outstring;
+
+    int tag_num_to_send = 1;
+    int tag_IDs_to_send = 2;
+
+    unsigned ghost_num_in_region[NPROC] = {0};  // initialize with zero
+    unsigned region = 0;
+    unsigned num_to_send = 0;
+    unsigned num_to_receive = 0;
+
+    int count;
+
+    MPI_Status status;
+
+    // --------------------------------------------------------------------------------
+    // SETUP NODE SEND/RECEIVE LISTS --------------------------------------------------
+    // --------------------------------------------------------------------------------
+
+    // Sum up total number of ghost nodes held in by this process per region
+    for (unsigned k=0; k<NPROC; k++) recv_node_regions[k] = 0;
+    for (unsigned i=node_num_ng; i<node_num; i++) {
+        unsigned k = node_region_ID(i, 0);      // Region/process where ghost node i resides
+        ghost_num_in_region[k] += 1;
+        // recv_node_regions.push_back(region);
+        // if (i > node_num_ng) 
+        //     if (region != node_region_ID(i-1, 0)) recv_node_loc.push_back(i);
+
+        // track the number of ghost nodes in the current process that are held in process k 
+        recv_node_regions[k] += 1; 
+    }
+    
+    // Find the ID's of the ghost nodes that correspond to the region where
+    // they are calculated
+    for (unsigned k=0; k<NPROC; k++) {
+        if (PROC_ID == k) {
+            continue; // Move on to next k
+        }
+        
+        num_to_receive = ghost_num_in_region[k];
+        num_to_send = 0;
+
+        MPI_Sendrecv(
+            &num_to_receive, 1, MPI_UNSIGNED,
+            k, TAG_NODE_COUNT,
+
+            &num_to_send, 1, MPI_UNSIGNED,
+            k, TAG_NODE_COUNT,
+
+            MPI_COMM_WORLD,
+            &status
+        );
+
+        // track number of ghost nodes to send to process k
+        send_node_regions[k] = num_to_send;
+        
+        outstring<<"IN PROCESS "<<PROC_ID<<" THERE ARE "<<num_to_receive<<" GHOSTS FROM PROCESS "<<k<<std::endl;
+        outstring<<"PROCESS "<<PROC_ID<<" WILL SEND "<<num_to_send<<" NODES TO PROCESS "<<k<<std::endl;
+
+        std::vector<unsigned> IDs(num_to_receive);              // Local index of ghost node in current process
+        std::vector<unsigned> IDs_to_request(num_to_receive);   // Index of same ghost node in process k
+        std::vector<unsigned> IDs_to_send(num_to_send);         // Local index of nodes to exchange with process k
+
+        count = 0;
+        for (unsigned i=node_num_ng; i<node_num; i++) {
+            region = node_region_ID(i, 0);
+            if (k == region) {
+                IDs_to_request[count] = node_region_ID(i, 1); 
+                IDs[count++] = i;
+
+                outstring<<"    PROCESS "<<PROC_ID<<" WILL RECEIVE NODE WITH LOCAL ID "<<i<<" FROM PROCESS "<<k<<" ("<<node_region_ID(i, 1)<<") "<<std::endl;
+            }
+            
+        }
+        assert(count == num_to_receive);
+
+        receive_node_IDs[k] = IDs;
+
+        // Send 
+        MPI_Sendrecv(
+            IDs_to_request.data(), num_to_receive, MPI_UNSIGNED,
+            k, TAG_NODE_IDS,
+
+            IDs_to_send.data(), num_to_send, MPI_UNSIGNED,
+            k, TAG_NODE_IDS,
+
+            MPI_COMM_WORLD,
+            &status
+        );
+
+
+        // IDs of nodes in the current grid to send to neighbour k...
+        for (unsigned i=0; i<num_to_send; i++) {
+            outstring<<"    PROCESS "<<PROC_ID<<" WILL SEND NODE WITH LOCAL ID "<<IDs_to_send[i]<<" TO PROCESS "<<k<<" ("<<i<<")   "<<std::endl;
+        }
+    
+        // IDs of nodes in the current grid to send to k, but ordered 
+        // from lowest to highest ID to improve memory access.
+        std::vector<unsigned> IDs_ordered(IDs_to_send);         // make copy of IDs
+        std::vector<unsigned> index_map(IDs_to_send.size());    // index vector to map between the sorted and unsorted ID vectors
+
+
+        std::vector<std::pair<unsigned, unsigned>> test(IDs_to_send.size());
+        for (unsigned i=0; i<test.size(); ++i) {
+            test[i].first  = i;
+            test[i].second = IDs_ordered[i]; }
+
+        std::sort(test.begin(), test.end(), [](auto &left, auto &right) {return left.second < right.second;} );
+
+        for (unsigned i=0; i<test.size(); ++i) {
+            index_map[i]   = test[i].first;
+            IDs_ordered[i] = test[i].second; }
+
+        send_node_IDs[k] = IDs_to_send;
+        send_node_IDs_ordered[k] = IDs_ordered;
+        send_node_IDs_map[k] = index_map;
+    }
+    
+
+#ifdef _DEBUG
+    globals->Output->Write(OUT_MESSAGE, &outstring);
+#endif
+
+
+    // Wait for all sending and receiving 
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    // --------------------------------------------------------------------------------
+    // FIND FACE SEND/RECEIVE LISTS ---------------------------------------------------
+    // --------------------------------------------------------------------------------
+
+    // reset ghost numbers
+    for (unsigned k=0; k<NPROC; k++) ghost_num_in_region[k] = 0;
+    for (unsigned k=0; k<NPROC; k++) recv_face_regions[k] = 0;
+    for (unsigned i=face_num_ng; i<face_num; i++) {
+        unsigned k = face_region_ID(i, 0);      // Region/process where ghost node i resides
+        ghost_num_in_region[k] += 1;
+        // recv_node_regions.push_back(region);
+       
+        // track the number of ghost nodes in the current process that are held in process k 
+        recv_face_regions[k] += 1; 
+    }
+    
+    // Find the ID's of the ghost nodes that correspond to the region where
+    // they are calculated
+    for (unsigned k=0; k<NPROC; k++) {
+        if (PROC_ID == k) {
+            continue; // Move on to next k
+        }
+        
+        num_to_receive = ghost_num_in_region[k];
+        num_to_send = 0;
+
+        MPI_Sendrecv(
+            &num_to_receive, 1, MPI_UNSIGNED,
+            k, TAG_FACE_COUNT,
+
+            &num_to_send, 1, MPI_UNSIGNED,
+            k, TAG_FACE_COUNT,
+
+            MPI_COMM_WORLD,
+            &status
+        );
+
+        // track number of ghost nodes to send to process k
+        send_face_regions[k] = num_to_send;
+        
+        outstring<<"IN PROCESS "<<PROC_ID<<" THERE ARE "<<num_to_receive<<" GHOST FACES FROM PROCESS "<<k<<std::endl;
+        outstring<<"PROCESS "<<PROC_ID<<" WILL SEND "<<num_to_send<<" FACES TO PROCESS "<<k<<std::endl;
+
+        std::vector<unsigned> IDs(num_to_receive);              // Local index of ghost node in current process
+        std::vector<unsigned> IDs_to_request(num_to_receive);   // Index of same ghost node in process k
+        std::vector<unsigned> IDs_to_send(num_to_send);         // Local index of nodes to exchange with process k
+
+        count = 0;
+        for (unsigned i=face_num_ng; i<face_num; i++) {
+            region = face_region_ID(i, 0);
+            if (k == region) {
+                IDs_to_request[count] = face_region_ID(i, 1); 
+                IDs[count++] = i;
+
+                outstring<<"    PROCESS "<<PROC_ID<<" WILL RECEIVE FACE WITH LOCAL ID "<<i<<" FROM PROCESS "<<k<<" ("<<face_region_ID(i, 1)<<") "<<std::endl;
+            }
+            
+        }
+        assert(count == num_to_receive);
+
+        receive_face_IDs[k] = IDs;
+
+        // Send 
+        MPI_Sendrecv(
+            IDs_to_request.data(), num_to_receive, MPI_UNSIGNED,
+            k, TAG_FACE_IDS,
+
+            IDs_to_send.data(), num_to_send, MPI_UNSIGNED,
+            k, TAG_FACE_IDS,
+
+            MPI_COMM_WORLD,
+            &status
+        );
+
+        // IDs of nodes in the current grid to send to neighbour k...
+        for (unsigned i=0; i<num_to_send; i++) {
+            outstring<<"    PROCESS "<<PROC_ID<<" WILL SEND FACE WITH LOCAL ID "<<IDs_to_send[i]<<" TO PROCESS "<<k<<" ("<<i<<")   "<<std::endl;
+        }
+    
+        // IDs of nodes in the current grid to send to k, but ordered 
+        // from lowest to highest ID to improve memory access.
+        std::vector<unsigned> IDs_ordered(IDs_to_send);         // make copy of IDs
+        std::vector<unsigned> index_map(IDs_to_send.size());    // index vector to map between the sorted and unsorted ID vectors
+
+        std::vector<std::pair<unsigned, unsigned>> test(IDs_to_send.size());
+        for (unsigned i=0; i<test.size(); ++i) {
+            test[i].first  = i;
+            test[i].second = IDs_ordered[i]; }
+
+        std::sort(test.begin(), test.end(), [](auto &left, auto &right) {return left.second < right.second;} );
+
+        for (unsigned i=0; i<test.size(); ++i) {
+            index_map[i]   = test[i].first;
+            IDs_ordered[i] = test[i].second; }
+
+        send_face_IDs[k] = IDs_to_send;
+        send_face_IDs_ordered[k] = IDs_ordered;
+        send_face_IDs_map[k] = index_map;
+    }
+
+#ifdef _DEBUG
+    globals->Output->Write(OUT_MESSAGE, &outstring);
+#endif
+
+
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    // --------------------------------------------------------------------------------
+    // FIND VERTEX SEND/RECEIVE LISTS ---------------------------------------------------
+    // --------------------------------------------------------------------------------
+    
+    // reset ghost numbers
+    for (unsigned k=0; k<NPROC; k++) ghost_num_in_region[k] = 0;
+    for (unsigned k=0; k<NPROC; k++) recv_vertex_regions[k] = 0;
+    for (unsigned i=vertex_num_ng; i<vertex_num; i++) {
+        unsigned k = vertex_region_ID(i, 0);      // Region/process where ghost node i resides
+        ghost_num_in_region[k] += 1;
+        // recv_node_regions.push_back(region);
+       
+        // track the number of ghost nodes in the current process that are held in process k 
+        recv_vertex_regions[k] += 1; 
+    }
+    
+    // Find the ID's of the ghost nodes that correspond to the region where
+    // they are calculated
+    for (unsigned k=0; k<NPROC; k++) {
+        if (PROC_ID == k) {
+            continue; // Move on to next k
+        }
+        
+        num_to_receive = ghost_num_in_region[k];
+        num_to_send = 0;
+
+        MPI_Sendrecv(
+            &num_to_receive, 1, MPI_UNSIGNED,
+            k, TAG_VERTEX_COUNT,
+
+            &num_to_send, 1, MPI_UNSIGNED,
+            k, TAG_VERTEX_COUNT,
+
+            MPI_COMM_WORLD,
+            &status
+        );
+
+        // track number of ghost nodes to send to process k
+        send_vertex_regions[k] = num_to_send;
+        
+        outstring<<"IN PROCESS "<<PROC_ID<<" THERE ARE "<<num_to_receive<<" GHOST VERTICES FROM PROCESS "<<k<<std::endl;
+        outstring<<"PROCESS "<<PROC_ID<<" WILL SEND "<<num_to_send<<" VERTICES TO PROCESS "<<k<<std::endl;
+
+        std::vector<unsigned> IDs(num_to_receive);              // Local index of ghost node in current process
+        std::vector<unsigned> IDs_to_request(num_to_receive);   // Index of same ghost node in process k
+        std::vector<unsigned> IDs_to_send(num_to_send);         // Local index of nodes to exchange with process k
+
+        count = 0;
+        for (unsigned i=vertex_num_ng; i<vertex_num; i++) {
+            region = vertex_region_ID(i, 0);
+            if (k == region) {
+                IDs_to_request[count] = vertex_region_ID(i, 1); 
+                IDs[count++] = i;
+
+                outstring<<"    PROCESS "<<PROC_ID<<" WILL RECEIVE VERTEX WITH LOCAL ID "<<i<<" FROM PROCESS "<<k<<" ("<<vertex_region_ID(i, 1)<<") "<<std::endl;
+            }
+            
+        }
+        assert(count == num_to_receive);
+
+        receive_vertex_IDs[k] = IDs;
+
+        // Send 
+        MPI_Sendrecv(
+            IDs_to_request.data(), num_to_receive, MPI_UNSIGNED, k, TAG_VERTEX_IDS,
+            IDs_to_send.data(), num_to_send, MPI_UNSIGNED, k, TAG_VERTEX_IDS,
+            MPI_COMM_WORLD,
+            &status
+        );
+
+
+        // IDs of nodes in the current grid to send to neighbour k...
+        for (unsigned i=0; i<num_to_send; i++) {
+            outstring<<"    PROCESS "<<PROC_ID<<" WILL SEND VERTEX WITH LOCAL ID "<<IDs_to_send[i]<<" TO PROCESS "<<k<<" ("<<i<<")   "<<std::endl;
+        }
+    
+        // IDs of nodes in the current grid to send to k, but ordered 
+        // from lowest to highest ID to improve memory access.
+        std::vector<unsigned> IDs_ordered(IDs_to_send);         // make copy of IDs
+        std::vector<unsigned> index_map(IDs_to_send.size());    // index vector to map between the sorted and unsorted ID vectors
+
+
+        std::vector<std::pair<unsigned, unsigned>> test(IDs_to_send.size());
+        for (unsigned i=0; i<test.size(); ++i) {
+            test[i].first  = i;
+            test[i].second = IDs_ordered[i]; }
+
+        std::sort(test.begin(), test.end(), [](auto &left, auto &right) {return left.second < right.second;} );
+
+        for (unsigned i=0; i<test.size(); ++i) {
+            index_map[i]   = test[i].first;
+            IDs_ordered[i] = test[i].second; }
+
+        send_vertex_IDs[k] = IDs_to_send;
+        send_vertex_IDs_ordered[k] = IDs_ordered;
+        send_vertex_IDs_map[k] = index_map;
+    }
+
+#ifdef _DEBUG
+    globals->Output->Write(OUT_MESSAGE, &outstring);
+#endif
+
+
+    
+
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    for (unsigned k=0; k<NPROC; k++) {
+        if (PROC_ID == k) {
+            continue; // Move on to next k
+        }
+
+        send_face_buffer_1[k]   = std::vector<double >(send_face_regions[k]); 
+        send_face_buffer_2[k]   = std::vector<double >(send_face_regions[k]); 
+
+        send_node_buffer_1[k]   = std::vector<double >(send_node_regions[k]); 
+        send_node_buffer_2[k]   = std::vector<double >(send_node_regions[k]);
+        send_node_xyz_buffer[k] = std::vector<double >(3*send_node_regions[k]); 
+
+        send_vertex_buffer_1[k]   = std::vector<double >(send_vertex_regions[k]); 
+        send_vertex_buffer_2[k]   = std::vector<double >(send_vertex_regions[k]); 
+    }
+
+
+    // unsigned total_size = 0;
+    // unsigned cnt = 0;
+    // for (unsigned &k : send_vertex_regions) total_size += send_vertex_buffer_1[k].size();
+
+    // send_vertex_buffer_test = Array2DJagged<double>(send_vertex_regions.size(), total_size);
+    // for (unsigned &k : send_vertex_regions) {
+    //     send_vertex_buffer_test.AssignColSize(cnt++, send_vertex_buffer_1[k].size());
+    // }
+    // send_vertex_buffer_test.Initialize();
+
+    // cnt = 0; total_size = 0;
+    // for (unsigned &k : send_face_regions) total_size += send_face_buffer_1[k].size();
+
+    // send_face_buffer_test = Array2DJagged<double>(send_face_regions.size(), total_size);
+    // for (unsigned &k : send_face_regions) {
+    //     send_face_buffer_test.AssignColSize(cnt++, send_face_buffer_1[k].size());
+    // }
+    // send_face_buffer_test.Initialize();
+
+    // cnt = 0; total_size = 0;
+    // for (unsigned &k : send_node_regions) total_size += send_node_buffer_1[k].size();
+
+    // send_node_buffer_test = Array2DJagged<double>(send_node_regions.size(), total_size);
+    // for (unsigned &k : send_node_regions) {
+    //     send_node_buffer_test.AssignColSize(cnt++, send_node_buffer_1[k].size());
+    // }
+    // send_node_buffer_test.Initialize();
+
+    // send_node_xyz_buffer_test = Array2DJagged<double>(send_node_regions.size(), 3*total_size);
+    // for (unsigned &k : send_node_regions) {
+    //     send_node_xyz_buffer_test.AssignColSize(cnt++, 3*send_node_buffer_1[k].size());
+    // }
+    // send_node_xyz_buffer_test.Initialize();
+
+#ifdef _DEBUG
+    globals->Output->Write(OUT_MESSAGE, &outstring);
+#endif    
+
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    return 1;
+};
+#endif
+*/
 
 // Function to convert and store normal vectors to cartesian components
 int Mesh::CalcCartesianComponents(void)
@@ -141,7 +802,7 @@ int Mesh::CalcCartesianComponents(void)
     double normal_vec_sph[2];
     double sph_pos[2];
     
-    for (unsigned i=0; i<FACE_NUM; i++) {
+    for (unsigned i=0; i<face_num; i++) {
         sph_pos[0] = face_centre_pos_sph(i, 0); // latitude 
         sph_pos[1] = face_centre_pos_sph(i, 1); // longitude
 
@@ -218,7 +879,7 @@ int Mesh::CalcControlVolumeInterpMatrix(void)
         double sphn[2];
         double sphfi[2], sphfj[2];
         double arc;
-        double eps = 0.125; // If you change this, make sure you also change it in CalcRBFInterpMatrix2!!!!
+        double eps = 1.0; // If you change this, make sure you also change it in CalcRBFInterpMatrix2!!!!
         double x1, x2, y1, y2;
         for (int i = 0; i < node_num_ng; i++)
         {
@@ -298,7 +959,9 @@ int Mesh::CalcControlVolumeInterpMatrix(void)
             node_node_RBF(i, 0) = 1.0;
 
             // // Compute the Cholesky decomposition of the interpolation matrix
-            // // interpSolvers[i].compute(matrix);
+            // interpSolvers[i].compute(matrix);
+
+            // if (PROC_ID==0) std::cout<<i<<' '<<node_pos_sph(i, 0)*180./pi<<' '<<node_pos_sph(i, 1)*180./pi<<'\n'<<matrix<<std::endl;
 
             // interpVandermondeScalar.push_back(matrix.completeOrthogonalDecomposition().pseudoInverse());
             interpVandermondeScalar.push_back(matrix);
@@ -528,7 +1191,7 @@ int Mesh::CalcMappingCoords(void)
     double *x, *y, *m, r;
     double lat1, lat2, lon1, lon2;
 
-    m = new double;
+    m = new double ;
 
     r = globals->radius.Value();
 
@@ -657,14 +1320,14 @@ int Mesh::CalcMaxTimeStep(void)
 
     dt = globals->period.Value();
 
-    std::cout << "TARGET DT: " << dt_target << std::endl;
+    // std::cout << "TARGET DT: " << dt_target << std::endl;
     while (dt > dt_target)
     {
-        dt = globals->period.Value() / (double)dt_num;
+        dt = globals->period.Value() / (double )dt_num;
 
         dt_num += 100;
 
-        std::cout << dt << ' ' << dt_num << std::endl;
+        // std::cout << dt << ' ' << dt_num << std::endl;
     }
     dt_num -= 100;
 
@@ -718,19 +1381,19 @@ int Mesh::CalcTrigFunctions(void)
     // int i, l, m, l_max;
     // double cosCoLat;
 
-    // Array2D<double> * temp_legendre;    // temp array for legendre polynomials
-    // Array2D<double> * temp_dlegendre;   // temp array for legendre polynomial derivs
+    // Array2D<double > * temp_legendre;    // temp array for legendre polynomials
+    // Array2D<double > * temp_dlegendre;   // temp array for legendre polynomial derivs
 
     // //-----------------------------
 
     // l_max = globals->l_max.Value();
 
-    // temp_legendre = new Array2D<double>(2 * (l_max+1), 2 * (l_max+1));
-    // temp_dlegendre = new Array2D<double>(2 * (l_max+1), 2 * (l_max+1));
+    // temp_legendre = new Array2D<double >(2 * (l_max+1), 2 * (l_max+1));
+    // temp_dlegendre = new Array2D<double >(2 * (l_max+1), 2 * (l_max+1));
 
-    // Array3D<double> Pbar_lm(NODE_NUM, l_max+1, l_max+1);
-    // Array3D<double> Pbar_cosMLon(NODE_NUM, l_max+1, l_max+1);
-    // Array3D<double> Pbar_sinMLon(NODE_NUM, l_max+1, l_max+1);
+    // Array3D<double > Pbar_lm(NODE_NUM, l_max+1, l_max+1);
+    // Array3D<double > Pbar_cosMLon(NODE_NUM, l_max+1, l_max+1);
+    // Array3D<double > Pbar_sinMLon(NODE_NUM, l_max+1, l_max+1);
 
     // for (i=0; i<NODE_NUM; ++i)
     // {
@@ -761,8 +1424,8 @@ int Mesh::CalcTrigFunctions(void)
     //     // calculate cos(m*longitude) and sin(m*longitude) for node i
     //     for (m=0; m < l_max+1; m++)
     //     {
-    //         trigMLon(i, m, 0) = cos( (double)m * node_pos_sph( i, 1 ) );
-    //         trigMLon(i, m, 1) = sin( (double)m * node_pos_sph( i, 1 ) );
+    //         trigMLon(i, m, 0) = cos( (double )m * node_pos_sph( i, 1 ) );
+    //         trigMLon(i, m, 1) = sin( (double )m * node_pos_sph( i, 1 ) );
     //     }
 
     //     // int count = 0;
@@ -932,9 +1595,17 @@ int Mesh::CalcRBFInterpMatrix2(void)
     // The other cells are hexagons with 6
     // faces. Therefore, the total number
     // of non-zero coefficients in our sparse matrix is given as:
-    int nNonZero = 6 * 6 * 12 + (NODE_NUM - 12) * 7 * 7;
+    int nNonZero = 0;//6 * 6 * 12 + (NODE_NUM - 12) * 7 * 7;
 
-    vandermondeInv = SpMat(12 * 6 + (NODE_NUM - 12) * 7, 12 * 6 + (NODE_NUM - 12) * 7);
+    int SIZE = 0;
+    for (unsigned i=0; i<node_num_ng; i++) {
+        nNonZero += (1+node_fnum(i))*(1+node_fnum(i));
+        SIZE += 1+node_fnum(i);
+    }   
+
+    // Matrix of all the radial basis function interpolation matrices 
+    // vandermondeInv = SpMat(12 * 6 + (NODE_NUM - 12) * 7, 12 * 6 + (NODE_NUM - 12) * 7);
+    vandermondeInv = SpMat(SIZE, SIZE);
     // vandermondeInv = SpMat(12*6 + (NODE_NUM - 12)*7, NODE_NUM);
 
     // Allocate memory for non-zero entries
@@ -950,7 +1621,7 @@ int Mesh::CalcRBFInterpMatrix2(void)
     int nh = 0;
     int np = 0;
 
-    for (int i = 0; i < NODE_NUM; ++i)
+    for (int i = 0; i < node_num_ng; ++i)
     {
         friend_num = node_fnum(i)+1;
 
@@ -980,10 +1651,15 @@ int Mesh::CalcRBFInterpMatrix2(void)
     vandermondeInv.setFromTriplets(coefficients.begin(), coefficients.end());
     vandermondeInv.makeCompressed();
 
-    nNonZero = (6 * 12 + (NODE_NUM - 12) * 7) * 3;
+    // nNonZero = (6 * 12 + (NODE_NUM - 12) * 7) * 3;
+    nNonZero = SIZE*3;
 
-    SpMat rbfDeriv2(3 * NODE_NUM, 12 * 6 + (NODE_NUM - 12) * 7);
-    // vandermondeInv = SpMat(12*6 + (NODE_NUM - 12)*7, NODE_NUM);
+    // SpMat rbfDeriv2(3 * NODE_NUM, 12 * 6 + (NODE_NUM - 12) * 7);
+
+    // Matrix to calculate the second derivatives in map space 
+    // from the radial basis functions
+    SpMat rbfDeriv2(3 * node_num_ng, SIZE);
+
 
     // Allocate memory for non-zero entries
     rbfDeriv2.reserve(nNonZero);
@@ -993,7 +1669,7 @@ int Mesh::CalcRBFInterpMatrix2(void)
 
     {
         double arc;
-        double eps = 0.125; // If you change this, make sure you also change it in CalcControlVolumeInterpMatrix!!!!
+        double eps = 1.0; // If you change this, make sure you also change it in CalcControlVolumeInterpMatrix!!!!
         double x1, y1;
         double xx, yy, xy, arc2, arc3, dphidr, d2phidr2;
         int row, col;
@@ -1001,7 +1677,7 @@ int Mesh::CalcRBFInterpMatrix2(void)
         // RBFSUM = DenseMat(3*NODE_NUM, 12*6 + (NODE_NUM - 12)*7);
         np = 0;
         nh = 0;
-        for (int i = 0; i < NODE_NUM; i++)
+        for (int i = 0; i < node_num_ng; i++)
         {
             // check if node is pentagon
             friend_num = node_fnum(i);
@@ -1059,12 +1735,21 @@ int Mesh::CalcRBFInterpMatrix2(void)
         rbfDeriv2.makeCompressed();
 
         // std::cout<<rbfDeriv2.nonZeros()<<std::endl;
+
         operatorSecondDeriv = r_recip * r_recip * rbfDeriv2 * vandermondeInv * node2nodeAdj;
+        // operatorSecondDeriv = vandermondeInv * node2nodeAdj;
     }
 
-    nNonZero = 2 * 9 * FACE_NUM;
+    
 
-    SpMat R(3 * 2 * FACE_NUM, 3 * NODE_NUM);
+    // OperatorSecondDeriv * node_scalar will return a vector of the three components
+    // of the second derivative of node_scalar at only the non-ghost nodes
+    // The second derivative at the ghost nodes will need to be passed by other 
+    // processes 
+
+    nNonZero = 2 * 9 * face_num_ng;
+
+    SpMat R(3 * 2 * face_num_ng, 3 * node_num);
 
     // Allocate memory for non-zero entries
     R.reserve(nNonZero);
@@ -1072,11 +1757,11 @@ int Mesh::CalcRBFInterpMatrix2(void)
     std::vector<Triplet> coefficients3;
     coefficients3.reserve(nNonZero);
 
-    nNonZero = 2 * 3 * FACE_NUM;
+    nNonZero = 2 * 3 * face_num_ng;
 
-    // SpMat operatorDirectionalSecondDeriv(2*FACE_NUM, 3*NODE_NUM);
+    // SpMat operatorDirectionalSecondDeriv(2*face_num_ng, 3*NODE_NUM);
 
-    SpMat N(2 * FACE_NUM, 2 * 3 * FACE_NUM);
+    SpMat N(2 * face_num_ng, 2 * 3 * face_num_ng);
 
     // Allocate memory for non-zero entries
     N.reserve(nNonZero);
@@ -1090,7 +1775,7 @@ int Mesh::CalcRBFInterpMatrix2(void)
         double nx, ny;
         double cosa, sina;
         int row, col;
-        for (int i = 0; i < FACE_NUM; i++)
+        for (int i = 0; i < face_num_ng; i++)
         {
             inner_ID = face_nodes(i, 0);
 
@@ -1199,22 +1884,32 @@ int Mesh::CalcRBFInterpMatrix2(void)
         }
     }
 
+
+    operatorDirectionalSecondDeriv = SpMat(2*face_num_ng, 3*node_num);
+
     R.setFromTriplets(coefficients3.begin(), coefficients3.end());
+    // operatorDirectionalSecondDeriv.setFromTriplets(coefficients3.begin(), coefficients3.end());
     N.setFromTriplets(coefficients4.begin(), coefficients4.end());
 
-    R.makeCompressed();
-    N.makeCompressed();
+    // R.makeCompressed();
+    // N.makeCompressed();
 
-    // operatorDirectionalSecondDeriv = SpMat(2*FACE_NUM, 3*NODE_NUM);
+    
 
     // operatorDirectionalSecondDeriv = N*R;
     // operatorDirectionalSecondDeriv.makeCompressed();
 
-    operatorDirectionalSecondDeriv = SpMat(2 * FACE_NUM, NODE_NUM);
-
+    // operatorDirectionalSecondDeriv = SpMat(2 * FACE_NUM, NODE_NUM);
+#ifdef _MPI
+    operatorDirectionalSecondDeriv = N * R;
+    // operatorDirectionalSecondDeriv = R;
+#else
     operatorDirectionalSecondDeriv = N * R * operatorSecondDeriv;
+#endif
     operatorDirectionalSecondDeriv.makeCompressed();
-    operatorDirectionalSecondDeriv.prune(0.0);
+    // operatorDirectionalSecondDeriv.prune(0.0);
+    
+    // std::cout<<"HERE"<<std::endl;
 
     return 1;
 }
@@ -1269,6 +1964,7 @@ int Mesh::CalcAdjacencyMatrix(void)
     // 6 and 7 here to include the central node itself
     // nNonZero = 12 * 6 + (NODE_NUM - 12) * 7;
 
+    nNonZero = 0;
     for (unsigned i=0; i<node_num_ng; i++) nNonZero += node_fnum(i) + 1;
 
     // Maps each regular node to *all* surrounding nodes
@@ -1313,7 +2009,6 @@ int Mesh::CalcCoriolisOperatorCoeffs(void)
     int fnum[2];
     int f_ID;
     double coeff;
-    int n1, n2;
 
     //--------------- Define objects to construct matrix -----------------------
 
@@ -1362,6 +2057,110 @@ int Mesh::CalcCoriolisOperatorCoeffs(void)
     // Fill the sparse operator with the list of triplets
     operatorCoriolis.setFromTriplets(coefficients.begin(), coefficients.end());
     operatorCoriolis.makeCompressed();
+
+    return 1;
+}
+
+int Mesh::CalcFTangentOperatorCoeffs(void)
+{
+    int fnum[2];
+    int f_ID;
+    double coeff;
+
+    //--------------- Define objects to construct matrix -----------------------
+
+    // Here we assign the number of non-zero matrix elements for each operator.
+    // There are 12 pentagons on the geodesic grid, each with 5 neighbours and
+    // one central node (total of 6). The other cells are hexagons with 6
+    // neighbours and one central node (total of 7). Additionally, there is a
+    // row for each variable (total 3). Therefore, the total number
+    // of non-zero coefficients in our sparse matrix is given as:
+    // int nNonZero = (12 * 5) * 9 + (FACE_NUM - 12 * 5) * 10;
+    int nNonZero = 0;
+    int SIZE = 0;
+
+    // To get the number of non-zero coefficients, we need to sum 
+    // the number of face friends each face has
+    for (unsigned i=0; i<face_num_ng; i++) {
+        nNonZero += (face_fnum(i, 0) + face_fnum(i, 1))*2;
+        SIZE += face_fnum(i, 0) + face_fnum(i, 1);
+    }
+
+                            // Rows      Cols
+    // operatorCoriolis = SpMat(FACE_NUM, FACE_NUM);
+    A = SpMat(SIZE, face_num);
+   
+
+    // Allocate memory for non-zero entries
+    A.reserve(nNonZero);
+
+    std::vector<Triplet> coefficients;
+    coefficients.reserve(nNonZero);
+
+    nNonZero = 0;
+    for (unsigned i=0; i<face_num_ng; i++) {
+        nNonZero += face_fnum(i, 0) + face_fnum(i, 1);
+    }
+
+    B = SpMat(SIZE, face_num);
+    B.reserve(nNonZero);
+    std::vector<Triplet> coefficients2;
+    coefficients2.reserve(nNonZero);
+
+    operatorFtan = SpMat(face_num_ng, SIZE);
+    operatorFtan.reserve(nNonZero);
+    std::vector<Triplet> coefficients3;
+    coefficients3.reserve(nNonZero);
+
+
+    int row = 0;
+    int col = 0;
+    for (int i = 0; i < face_num_ng; ++i)
+    {
+        fnum[0] = face_fnum(i, 0);
+        fnum[1] = face_fnum(i, 1);
+
+        // Loop through the faces adjacent to face i and use
+        // interpolation weights to find the tangential velocity component
+        for (unsigned k=0; k<2; k++) {
+            for (unsigned j = 0; j < fnum[k]; j++)
+            {
+                f_ID = face_friends(i, k, j);
+
+                coefficients.push_back(Triplet(row,    i, 1.0));
+                coefficients.push_back(Triplet(row, f_ID, 1.0));
+
+                coefficients2.push_back(Triplet(row, f_ID, 1.0));
+
+                double coeff = face_interp_weights(i, k, j) * face_len(f_ID) * 0.5 * face_node_dist_r(i);
+                coefficients3.push_back(Triplet(i, col, coeff));
+
+                face_advection_coeffs(i, k, j) = coeff;
+
+                row++;
+                col++;
+            }
+        }
+    }
+
+    // Fill the sparse operator with the list of triplets
+    A.setFromTriplets(coefficients.begin(), coefficients.end());
+    A.makeCompressed();
+
+    B.setFromTriplets(coefficients2.begin(), coefficients2.end());
+    B.makeCompressed();
+
+    operatorFtan.setFromTriplets(coefficients3.begin(), coefficients3.end());
+    operatorFtan.makeCompressed();
+
+    operatorFtan1 = operatorFtan*A;
+    operatorFtan2 = operatorFtan*B;
+
+    operatorFtan1.makeCompressed();
+    operatorFtan1.prune(0.0);
+
+    operatorFtan2.makeCompressed();
+    operatorFtan2.prune(0.0);
 
     return 1;
 }
@@ -1460,9 +2259,9 @@ int Mesh::CalcCurlOperatorCoeffs(void)
     // The curl operator is computed at each vertex using the velocity normal to
     // each adjoining face. Each vertex has three faces, so the total number of
     // non-zero coefficients is:
-    int nNonZeroCoeffs = VERTEX_NUM * 3;
+    int nNonZeroCoeffs = vertex_num_ng*3;//VERTEX_NUM * 3;
 
-    operatorCurl = SpMat(VERTEX_NUM, FACE_NUM);
+    operatorCurl = SpMat(vertex_num_ng, face_num);
 
     // Allocate memory for non-zero entries
     operatorCurl.reserve(nNonZeroCoeffs);
@@ -1471,7 +2270,7 @@ int Mesh::CalcCurlOperatorCoeffs(void)
     coefficients.reserve(nNonZeroCoeffs);
 
     // assign the non-zero coefficients
-    for (unsigned i = 0; i < VERTEX_NUM; i++)
+    for (unsigned i = 0; i < vertex_num_ng; i++)
     {
         area_r = vertex_area_r(i);
 
@@ -1488,7 +2287,7 @@ int Mesh::CalcCurlOperatorCoeffs(void)
             // curl at a vertex?)
             t_ev = vertex_face_dir(i, j);
 
-            coeff = node_dist * (double)t_ev * area_r;
+            coeff = node_dist * (double )t_ev * area_r;
 
             coefficients.push_back(Triplet(i, face_id, coeff));
         }
@@ -1571,10 +2370,6 @@ int Mesh::ReadGridFile()
 
     int count;
 
-
-    int PROC_ID;
-    MPI_Comm_rank(MPI_COMM_WORLD, &PROC_ID);
-
     std::string grid_num = std::to_string(PROC_ID);
     size_t num_zero = 3;
     auto new_str = std::string(num_zero - std::min(num_zero, grid_num.length()), '0') + grid_num;
@@ -1591,15 +2386,15 @@ int Mesh::ReadGridFile()
 
     // LATITUDE OF NODE
     unsigned n_lat_size=0;
-    double * n_lat_h5 = ReadHDF5Dataset<double>(&file_id, "/NODES/LAT/", H5T_NATIVE_DOUBLE, n_lat_size);
+    double * n_lat_h5 = ReadHDF5Dataset<double >(&file_id, "/NODES/LAT/", H5T_NATIVE_DOUBLE, n_lat_size);
 
     // LONGITUDE OF NODE
     unsigned n_lon_size=0;
-    double * n_lon_h5 = ReadHDF5Dataset<double>(&file_id, "/NODES/LON/", H5T_NATIVE_DOUBLE, n_lon_size);
+    double * n_lon_h5 = ReadHDF5Dataset<double >(&file_id, "/NODES/LON/", H5T_NATIVE_DOUBLE, n_lon_size);
 
     // AREA OF NODE
     unsigned n_area_size=0;
-    double * n_area_h5 = ReadHDF5Dataset<double>(&file_id, "/NODES/AREA/", H5T_NATIVE_DOUBLE, n_area_size);
+    double * n_area_h5 = ReadHDF5Dataset<double >(&file_id, "/NODES/AREA/", H5T_NATIVE_DOUBLE, n_area_size);
 
     // NUMBER OF NODES SURROUNDING NODE
     unsigned n_n_num_size=0;
@@ -1611,7 +2406,7 @@ int Mesh::ReadGridFile()
 
     // ARC DISTANCES BETWEEN NODE AND ITS SURROUNDING NODES
     unsigned n_n_arc_size=0;
-    double * n_n_arc_h5 = ReadHDF5Dataset<double>(&file_id, "/NODES/FRIENDS/NODES/DISTANCE/", H5T_NATIVE_DOUBLE, n_n_arc_size);
+    double * n_n_arc_h5 = ReadHDF5Dataset<double >(&file_id, "/NODES/FRIENDS/NODES/DISTANCE/", H5T_NATIVE_DOUBLE, n_n_arc_size);
 
     // ID'S OF FACES SURROUNDING NODE
     unsigned n_f_IDs_size=0;
@@ -1627,7 +2422,17 @@ int Mesh::ReadGridFile()
 
     // AREAS SUBTENDED BY NODE AND VERTEX (USED IN CORIOLIS OPERATOR)
     unsigned n_v_area_size=0;
-    double * n_v_area_h5 = ReadHDF5Dataset<double>(&file_id, "/NODES/FRIENDS/VERTICES/AREA/", H5T_NATIVE_DOUBLE, n_v_area_size);
+    double * n_v_area_h5 = ReadHDF5Dataset<double >(&file_id, "/NODES/FRIENDS/VERTICES/AREA/", H5T_NATIVE_DOUBLE, n_v_area_size);
+
+#ifdef _MPI
+    // NODE REGION 
+    unsigned n_region_size=0;
+    unsigned * n_region_h5 = ReadHDF5Dataset<unsigned>(&file_id, "/NODES/REGION/", H5T_NATIVE_UINT, n_region_size);
+
+    // NODE ID LOACL TO ITS PARENT REGION
+    unsigned n_region_ID_size=0;
+    unsigned * n_region_ID_h5 = ReadHDF5Dataset<unsigned>(&file_id, "/NODES/REGION_ID/", H5T_NATIVE_UINT, n_region_ID_size);
+#endif
 
 
     // Write node properties from the format in the hdf5 file to the appropriate arrays
@@ -1639,26 +2444,17 @@ int Mesh::ReadGridFile()
         cv_area_sph(i)      = n_area_h5[i]*rr;          // CONVERT TO METRES^2
         cv_area_sph_r(i)    = 1.0/cv_area_sph(i);
 
-        for (unsigned j=0; j<n_n_num_h5[i]; j++) {
-            // node_friends(i, j)      = n_n_IDs_h5[count];
-            // node_dists(i, j)        = n_n_arc_h5[count]*r;      // CONVERT TO METRES
-            // faces(i, j)             = n_f_IDs_h5[count];
-            // vertexes(i, j)          = n_v_IDs_h5[count];
-            // node_face_dir(i, j)     = n_f_dir_h5[count];
-            // node_vertex_area(i, j)  = n_v_area_h5[count]*rr;    // CONVERT OT METRES^2
+#ifdef _MPI
+        node_region_ID(i, 0) = n_region_h5[i];
+        node_region_ID(i, 1) = n_region_ID_h5[i];
+#endif
 
-            count++; 
-        }
     }
 
     // Loop through properties of only non-ghost nodes
     count = 0;
     for (unsigned i=0; i<node_num_ng; i++) {
-        // node_pos_sph(i, 0)  = n_lat_h5[i]*radConv;
-        // node_pos_sph(i, 1)  = n_lon_h5[i]*radConv;   
         node_fnum(i)        = n_n_num_h5[i];
-        // cv_area_sph(i)      = n_area_h5[i]*rr;          // CONVERT TO METRES^2
-        // cv_area_sph_r(i)    = 1.0/cv_area_sph(i);
 
         for (unsigned j=0; j<n_n_num_h5[i]; j++) {
             node_friends(i, j)      = n_n_IDs_h5[count];
@@ -1682,6 +2478,10 @@ int Mesh::ReadGridFile()
     delete[] n_f_dir_h5;
     delete[] n_v_area_h5;
     delete[] n_v_IDs_h5;
+#ifdef _MPI
+    delete[] n_region_h5;
+    delete[] n_region_ID_h5;
+#endif
 
     std::cout<<"GOT NODE INFO"<<std::endl;
 
@@ -1692,35 +2492,35 @@ int Mesh::ReadGridFile()
 
     // LATITUDE OF FACE CENTER
     unsigned f_lat_size=0;
-    double * f_lat_h5 = ReadHDF5Dataset<double>(&file_id, "/FACES/LAT/", H5T_NATIVE_DOUBLE, f_lat_size);
+    double * f_lat_h5 = ReadHDF5Dataset<double >(&file_id, "/FACES/LAT/", H5T_NATIVE_DOUBLE, f_lat_size);
 
     // LONGITUDE OF FACE CENTER
     unsigned f_lon_size=0;
-    double * f_lon_h5 = ReadHDF5Dataset<double>(&file_id, "/FACES/LON/", H5T_NATIVE_DOUBLE, f_lon_size);
+    double * f_lon_h5 = ReadHDF5Dataset<double >(&file_id, "/FACES/LON/", H5T_NATIVE_DOUBLE, f_lon_size);
 
     // ARC LENGTH OF FACE
     unsigned f_arc_size=0;
-    double * f_arc_h5 = ReadHDF5Dataset<double>(&file_id, "/FACES/LENGTH/", H5T_NATIVE_DOUBLE, f_arc_size);
+    double * f_arc_h5 = ReadHDF5Dataset<double >(&file_id, "/FACES/LENGTH/", H5T_NATIVE_DOUBLE, f_arc_size);
 
     // FACE NORMAL VEC: LONGITUDE COMPONENT
     unsigned f_nlon_size=0;
-    double * f_nlon_h5 = ReadHDF5Dataset<double>(&file_id, "/FACES/NORMAL_VEC_LON/", H5T_NATIVE_DOUBLE, f_nlon_size);
+    double * f_nlon_h5 = ReadHDF5Dataset<double >(&file_id, "/FACES/NORMAL_VEC_LON/", H5T_NATIVE_DOUBLE, f_nlon_size);
 
     // FACE NORMAL VEC: LATITUDE COMPONENT
     unsigned f_nlat_size=0;
-    double * f_nlat_h5 = ReadHDF5Dataset<double>(&file_id, "/FACES/NORMAL_VEC_LAT/", H5T_NATIVE_DOUBLE, f_nlat_size);
+    double * f_nlat_h5 = ReadHDF5Dataset<double >(&file_id, "/FACES/NORMAL_VEC_LAT/", H5T_NATIVE_DOUBLE, f_nlat_size);
 
     // INTERSECT LON WITH NODE-NODE ARC AND THE FACE
     unsigned f_lon_intersect_size=0;
-    double * f_lon_intersect_h5 = ReadHDF5Dataset<double>(&file_id, "/FACES/INTERSECT_LON/", H5T_NATIVE_DOUBLE, f_lon_intersect_size);
+    double * f_lon_intersect_h5 = ReadHDF5Dataset<double >(&file_id, "/FACES/INTERSECT_LON/", H5T_NATIVE_DOUBLE, f_lon_intersect_size);
 
     // INTERSECT LAT WITH NODE-NODE ARC AND THE FACE
     unsigned f_lat_intersect_size=0;
-    double * f_lat_intersect_h5 = ReadHDF5Dataset<double>(&file_id, "/FACES/INTERSECT_LAT/", H5T_NATIVE_DOUBLE, f_lat_intersect_size);
+    double * f_lat_intersect_h5 = ReadHDF5Dataset<double >(&file_id, "/FACES/INTERSECT_LAT/", H5T_NATIVE_DOUBLE, f_lat_intersect_size);
 
     // LENGTH OF NODE-NODE ARC
     unsigned f_intersect_arc_size=0;
-    double * f_intersect_arc_h5 = ReadHDF5Dataset<double>(&file_id, "/FACES/INTERSECT_LENGTH/", H5T_NATIVE_DOUBLE, f_intersect_arc_size);
+    double * f_intersect_arc_h5 = ReadHDF5Dataset<double >(&file_id, "/FACES/INTERSECT_LENGTH/", H5T_NATIVE_DOUBLE, f_intersect_arc_size);
 
     // IDS OF NODES EITHER SIDE OF FACE
     unsigned f_n_IDs_size=0;
@@ -1744,7 +2544,7 @@ int Mesh::ReadGridFile()
 
     // INTERPOLATION WEIGHTS OF PWIND FACES
     unsigned f_f_weight1_size=0;
-    double * f_f_weight1_h5 = ReadHDF5Dataset<double>(&file_id, "/FACES/FRIENDS/FACES1/WEIGHTS/", H5T_NATIVE_DOUBLE, f_f_weight1_size);
+    double * f_f_weight1_h5 = ReadHDF5Dataset<double >(&file_id, "/FACES/FRIENDS/FACES1/WEIGHTS/", H5T_NATIVE_DOUBLE, f_f_weight1_size);
 
     // IDS OF DOWNWIND FACES
     unsigned f_f_ID2_size=0;
@@ -1752,12 +2552,21 @@ int Mesh::ReadGridFile()
 
     // INTERPOLATION WEIGHTS OF DOWNWIND FACES
     unsigned f_f_weight2_size=0;
-    double * f_f_weight2_h5 = ReadHDF5Dataset<double>(&file_id, "/FACES/FRIENDS/FACES2/WEIGHTS/", H5T_NATIVE_DOUBLE, f_f_weight2_size);
-
+    double * f_f_weight2_h5 = ReadHDF5Dataset<double >(&file_id, "/FACES/FRIENDS/FACES2/WEIGHTS/", H5T_NATIVE_DOUBLE, f_f_weight2_size);
 
     // AREA OF FACE
     unsigned f_area_size=0;
-    double * f_area_h5 = ReadHDF5Dataset<double>(&file_id, "/FACES/AREA/", H5T_NATIVE_DOUBLE, f_area_size);
+    double * f_area_h5 = ReadHDF5Dataset<double >(&file_id, "/FACES/AREA/", H5T_NATIVE_DOUBLE, f_area_size);
+
+#ifdef _MPI
+    // FACE REGION 
+    unsigned f_region_size=0;
+    unsigned * f_region_h5 = ReadHDF5Dataset<unsigned>(&file_id, "/FACES/REGION/", H5T_NATIVE_UINT, f_region_size);
+
+    // FACE ID LOCAL TO ITS PARENT REGION
+    unsigned f_region_ID_size=0;
+    unsigned * f_region_ID_h5 = ReadHDF5Dataset<unsigned>(&file_id, "/FACES/REGION_ID/", H5T_NATIVE_UINT, f_region_ID_size);
+#endif
 
     
     // Write node properties from the format in the hdf5 file to the appropriate arrays
@@ -1784,6 +2593,10 @@ int Mesh::ReadGridFile()
 
         face_area(i)                    = f_area_h5[i]*rr;      // Convert to METRE^2
 
+#ifdef _MPI
+        face_region_ID(i, 0) = f_region_h5[i];
+        face_region_ID(i, 1) = f_region_ID_h5[i];
+#endif
         // Need two seperate counters as a face can 
         // neighbour both a hexagon and a pentagon
         // for (unsigned j=0; j<f_f_num1_h5[i]; j++) {
@@ -1859,6 +2672,10 @@ int Mesh::ReadGridFile()
     delete[] f_area_h5;
     delete[] f_f_weight1_h5;
     delete[] f_f_weight2_h5;
+#ifdef _MPI
+    delete[] f_region_h5;
+    delete[] f_region_ID_h5;
+#endif
 
     //-----------------------------------------------------------------------------------------
     //------------------------------ LOAD VERTEX INFO -----------------------------------------
@@ -1866,15 +2683,15 @@ int Mesh::ReadGridFile()
 
     // VERTEX LAT
     unsigned v_lat_size=0;
-    double * v_lat_h5 = ReadHDF5Dataset<double>(&file_id, "/VERTICES/LAT/", H5T_NATIVE_DOUBLE, v_lat_size);
+    double * v_lat_h5 = ReadHDF5Dataset<double >(&file_id, "/VERTICES/LAT/", H5T_NATIVE_DOUBLE, v_lat_size);
 
     // VERTEX LON
     unsigned v_lon_size=0;
-    double * v_lon_h5 = ReadHDF5Dataset<double>(&file_id, "/VERTICES/LON/", H5T_NATIVE_DOUBLE, v_lon_size);
+    double * v_lon_h5 = ReadHDF5Dataset<double >(&file_id, "/VERTICES/LON/", H5T_NATIVE_DOUBLE, v_lon_size);
 
     // VERTEX AREA
     unsigned v_area_size=0;
-    double * v_area_h5 = ReadHDF5Dataset<double>(&file_id, "/VERTICES/AREA/", H5T_NATIVE_DOUBLE, v_area_size);
+    double * v_area_h5 = ReadHDF5Dataset<double >(&file_id, "/VERTICES/AREA/", H5T_NATIVE_DOUBLE, v_area_size);
 
     // IDS OF FACES ATTACHED TO VERTEX
     unsigned v_f_IDs_size=0;
@@ -1890,7 +2707,23 @@ int Mesh::ReadGridFile()
 
     // SUBAREA THAT NODES SHARE WITH VERTEX
     unsigned v_n_subarea_size=0;
-    double * v_n_subarea_h5 = ReadHDF5Dataset<double>(&file_id, "/VERTICES/FRIENDS/NODES/SUBAREA/", H5T_NATIVE_DOUBLE, v_n_subarea_size);
+    double * v_n_subarea_h5 = ReadHDF5Dataset<double >(&file_id, "/VERTICES/FRIENDS/NODES/SUBAREA/", H5T_NATIVE_DOUBLE, v_n_subarea_size);
+
+    // BARYCENTRIC WEIGHT NODES SHARE WITH VERTEX
+    unsigned v_n_weight_size=0;
+    double * v_n_weight_h5 = ReadHDF5Dataset<double >(&file_id, "/VERTICES/FRIENDS/NODES/WEIGHT/", H5T_NATIVE_DOUBLE, v_n_weight_size);
+
+
+#ifdef _MPI
+    // VERTEX REGION 
+    unsigned v_region_size=0;
+    unsigned * v_region_h5 = ReadHDF5Dataset<unsigned>(&file_id, "/VERTICES/REGION/", H5T_NATIVE_UINT, v_region_size);
+
+    // VERTEX ID LOCAL TO ITS PARENT REGION
+    unsigned v_region_ID_size=0;
+    unsigned * v_region_ID_h5 = ReadHDF5Dataset<unsigned>(&file_id, "/VERTICES/REGION_ID/", H5T_NATIVE_UINT, v_region_ID_size);
+#endif
+
 
     // Write vertex properties from the format in the hdf5 file to the appropriate arrays
     count = 0;
@@ -1899,6 +2732,11 @@ int Mesh::ReadGridFile()
         vertex_area_r(i)           = 1.0/vertex_area(i);
         vertex_pos_sph(i, 0)       = v_lat_h5[i]*radConv;
         vertex_pos_sph(i, 1)       = v_lon_h5[i]*radConv;   
+
+#ifdef _MPI
+        vertex_region_ID(i, 0) = v_region_h5[i];
+        vertex_region_ID(i, 1) = v_region_ID_h5[i];
+#endif
 
         // for (unsigned j=0; j<3; j++) {
         //     vertex_faces(i, j)      = v_f_IDs_h5[count];
@@ -1926,6 +2764,7 @@ int Mesh::ReadGridFile()
 
             // Area that vertex shares with each node, normalised by the area of the control volume
             vertex_R(i, j)          = v_n_subarea_h5[count]* rr * cv_area_sph_r( vertex_nodes(i, j) ); 
+            vertex_interp_weights(i, j) = v_n_weight_h5[count];
 
             count++; 
         }
@@ -1945,12 +2784,20 @@ int Mesh::ReadGridFile()
         }    
     }
 
+    std::cout<<"GOT VERTEX INFO"<<std::endl;
+
     delete[] v_area_h5;
     delete[] v_lat_h5;
     delete[] v_lon_h5;
     delete[] v_f_IDs_h5;
     delete[] v_n_IDs_h5;
     delete[] v_f_dir_h5;
+    delete[] v_n_weight_h5;
+
+#ifdef _MPI
+    delete[] v_region_h5;
+    delete[] v_region_ID_h5;
+#endif
 
     H5Fclose(file_id);
    
@@ -1962,8 +2809,10 @@ T * Mesh::ReadHDF5Dataset(hid_t * file_id, char const *dataset_name, hid_t H5TYP
 {
     hsize_t dims[1];    // Size 1 as we are assuming that every dataset is 1D
 
-#ifdef DEBUG
-    std::cout<<"READING "<<dataset_name<<std::endl;
+#ifdef _DEBUG
+    std::ostringstream outstring;
+    outstring<<"READING "<<dataset_name;
+    globals->Output->Write(OUT_MESSAGE, &outstring);
 #endif 
     
     hid_t dset_id = H5Dopen(*file_id, dataset_name, H5P_DEFAULT);
@@ -2129,8 +2978,8 @@ int Mesh::ReadMeshFile(void)
 //     double * rot_1D;
 //
 //     cellID_1D = new int[180/N_ll * 360/N_ll];
-//     vInv_1D = new double[NODE_NUM * 6 * 6];
-//     rot_1D = new double[NODE_NUM];
+//     vInv_1D = new double [NODE_NUM * 6 * 6];
+//     rot_1D = new double [NODE_NUM];
 //
 //     // Read in the data
 //     dset_cellID.read( cellID_1D, PredType::NATIVE_INT, mspace_cellID, fspace_cellID );
@@ -2157,7 +3006,7 @@ int Mesh::ReadMeshFile(void)
 //     double *m, *x, *y;
 //     double r;
 //
-//     m = new double;
+//     m = new double ;
 //
 //     double test_solution_gg[NODE_NUM];
 //     double test_solution_ll[180/N_ll][360/N_ll];
@@ -2178,8 +3027,8 @@ int Mesh::ReadMeshFile(void)
 //             lon1 = node_pos_sph(ID,1);
 //
 //             // calculate regular lat-lon position in radians
-//             lat2 = (90.0 - (double)(i*N_ll))*radConv;
-//             lon2 = (double)(j*N_ll)*radConv;
+//             lat2 = (90.0 - (double )(i*N_ll))*radConv;
+//             lon2 = (double )(j*N_ll)*radConv;
 //
 //             // std::cout<<lat2/radConv<<' '<<lat1/radConv<<std::endl;
 //             // std::cout<<lat1/radConv<<' '<<lon2/radConv<<' '<<lon1/radConv<<std::endl;
@@ -2261,7 +3110,7 @@ int Mesh::ReadMeshFile(void)
 //     // Create 1D arrays to store file data
 //     interpCols =    new    int[ dims_cols[0] ];
 //     interpRows =    new    int[ dims_rows[0] ];
-//     interpWeights = new double[ dims_data[0] ];
+//     interpWeights = new double [ dims_data[0] ];
 
 //     // Read in the data
 //     dset_cols.read( interpCols, PredType::NATIVE_INT, mspace_cols, fspace_cols );
