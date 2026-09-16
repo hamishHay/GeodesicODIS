@@ -134,6 +134,7 @@ public:
     Array1D<double> vertex_area;//             = Array1D<double>(VERTEX_NUM);
     Array1D<double> vertex_area_r;//           = Array1D<double>(VERTEX_NUM);
     Array2D<double> vertex_R;//            = Array2D<double>(VERTEX_NUM, 3);
+    Array2D<double> vertex_interp_weights;//
 
     Array3D<double> centroid_pos_sph;// = Array3D<double>(NODE_NUM, 6, 2);     // Legacy 
     Array3D<double> centroid_pos_map;// = Array3D<double>(NODE_NUM, 6, 2);     // Legacy 
