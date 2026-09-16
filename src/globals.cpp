@@ -26,8 +26,11 @@
 #include <cstring>
 #include <math.h>
 #include <H5Cpp.h>
-#include <mpi.h>
 #include <filesystem>
+
+#ifdef _MPI
+#include <mpi.h>
+#endif
 
 // #include <mkl.h>
 // #include <omp.h>
@@ -38,11 +41,13 @@ Globals::Globals() :Globals(1) {};
 Globals::Globals(int action) {
   // Constructor assings stringIDs and automatically reads from the input file.
 
+  #ifdef _MPI
   int PROC_ID;
   MPI_Comm_rank(MPI_COMM_WORLD, &PROC_ID);
   // Read in global constants from input.in file with 0, and use defaults
   // with 1 (currently set to Titan parameters). All constants are stored in the
   // class "Globals".
+  #endif
 
 //   
   Output = new OutFiles;
@@ -218,28 +223,15 @@ Globals::Globals(int action) {
 
   int int_time = (int)round(period.Value() / 2) * 2;
 
-  period.SetValue((double)int_time);
-  angVel.SetValue(2*pi/(double)int_time);
-//   std::cout << int_time << ' ' << 2*pi/(double)int_time<< std::endl;
+  period.SetValue((double )int_time);
+  angVel.SetValue(2*pi/(double )int_time);
+//   std::cout << int_time << ' ' << 2*pi/(double )int_time<< std::endl;
 
   // Convert end time from units of orbital period to seconds.
   // endTime.SetValue(endTime.Value()*period.Value());
   endTime.SetValue(endTime.Value());
 
-  // geodesic node num expression (Lee and Macdonald, 2008)
-  // node_num = 10 * pow(pow(2, geodesic_l.Value() - 1), 2) + 2;
-  // face_num = ((node_num-12)*6 + 12*5)/2;
-  // vertex_num = ((node_num-12)*6 + 12*5)/3;
-
-  // TODO - these three variables are now processor specific. We need to know these 
-  // some other way. Read from a file? Define in a header?
-//   node_num = NODE_NUM;
-//   face_num = FACE_NUM;
-//   vertex_num = VERTEX_NUM;
-
-//   if (PROC_ID == 0) {
   Output->CreateHDF5Framework(this);
-//   }
 
     // identify friction type and select the corresponding enum value.
     if (friction.Value() == "LINEAR") fric_type = LINEAR;
@@ -303,18 +295,18 @@ Globals::Globals(int action) {
         Output->TerminateODIS();
     }
 
-    if (surface_type == FREE_LOADING) loading_factor = new double[l_max.Value() + 1];
+    if (surface_type == FREE_LOADING) loading_factor = new double [l_max.Value() + 1];
     else if (surface_type == LID_LOVE ||
              surface_type == LID_MEMBR)
     {
-        shell_factor_beta = new double[l_max.Value() + 1];
+        shell_factor_beta = new double [l_max.Value() + 1];
     }
 
     if (tide_type == GENERAL)
     {
-        a20q = new double[freq.Value()+1];
-        a22q = new double[freq.Value()+1];
-        b22q = new double[freq.Value()+1];
+        a20q = new double [freq.Value()+1];
+        a22q = new double [freq.Value()+1];
+        b22q = new double [freq.Value()+1];
     }
 
     applySurfaceBCs(this);
@@ -322,7 +314,7 @@ Globals::Globals(int action) {
     // mkl_set_num_threads(core_num.Value());
     // omp_set_num_threads(core_num.Value());
 
-#if defined(TEST_SW2) || defined(TEST_SW5)
+#if defined(TEST_SW2) || defined(TEST_SW5) || defined(TEST_GAUSS_HILLS)
     surface_type = FREE;
     surface.SetValue("FREE");
 
@@ -349,7 +341,7 @@ int Globals::ReadGlobals(void)
 
   // variables to store any inputs of specific types
   int valInt;
-  double valDouble;
+  double  valDouble;
   bool valBool = true;
   std::string valStr;
 
@@ -386,10 +378,10 @@ int Globals::ReadGlobals(void)
           // assign global variable to that in val based on type
           if (allGlobals[i]->IsType("double"))
           {
-            value >> valDouble; // converts stringstream to double
+            value >> valDouble; // converts stringstream to double 
             // casting required here to correctly access elements in allGlobals
             // vector.
-            ((GlobalVar<double > *) allGlobals[i])->SetValue(valDouble);
+            ((GlobalVar<double> *) allGlobals[i])->SetValue(valDouble);
             added = true;
             allGlobals[i]->Added(added);
           }
@@ -461,7 +453,7 @@ int Globals::ReadGlobals(void)
         outstring << "Using Titan value of ";
 
         if (allGlobals[i]->IsType("double")) {
-          outstring << ((GlobalVar<double > *) allGlobals[i])->Value() << std::endl << std::endl;
+          outstring << ((GlobalVar<double  > *) allGlobals[i])->Value() << std::endl << std::endl;
         }
         else if (allGlobals[i]->IsType("int")) {
           outstring << ((GlobalVar<int > *) allGlobals[i])->Value() << std::endl << std::endl;
@@ -487,8 +479,11 @@ int Globals::ReadGlobals(void)
 
   // GET GRID INFO
 
-    int PROC_ID;
+    int PROC_ID = 0;
+
+#ifdef _MPI
     MPI_Comm_rank(MPI_COMM_WORLD, &PROC_ID);
+#endif
     
     char gridFile[1024];
     std::string grid_num = std::to_string(PROC_ID);
@@ -500,13 +495,10 @@ int Globals::ReadGlobals(void)
     
     std::cout<<"READING GRID FILE "<<file_path<<std::endl;
 
-    // unsigned face_num, face_num_ng;
-    // unsigned node_num, node_num_ng;
-    // unsigned vertex_num, vertex_num_ng;
-
     hid_t file_id = H5Fopen(file_path.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
 
     hid_t group_id = H5Gopen(file_id, "FACES", H5P_DEFAULT);
+// #ifdef _MPI
     hid_t attr_id1 = H5Aopen(group_id, "FACE_NUM", H5P_DEFAULT);
     hid_t attr_id2 = H5Aopen(group_id, "FACE_NUM_NO_GHOSTS", H5P_DEFAULT);
 
@@ -515,9 +507,12 @@ int Globals::ReadGlobals(void)
 
     H5Aclose(attr_id1);
     H5Aclose(attr_id2);
+// #endif 
+
     H5Gclose(group_id);
 
     group_id = H5Gopen(file_id, "NODES", H5P_DEFAULT);
+// #ifdef _MPI
     attr_id1 = H5Aopen(group_id, "NODE_NUM", H5P_DEFAULT);
     attr_id2 = H5Aopen(group_id, "NODE_NUM_NO_GHOSTS", H5P_DEFAULT);
 
@@ -526,9 +521,12 @@ int Globals::ReadGlobals(void)
 
     H5Aclose(attr_id1);
     H5Aclose(attr_id2);
+// #endif
     H5Gclose(group_id);
 
+
     group_id = H5Gopen(file_id, "VERTICES", H5P_DEFAULT);
+// #ifdef _MPI
     attr_id1 = H5Aopen(group_id, "VERTEX_NUM", H5P_DEFAULT);
     attr_id2 = H5Aopen(group_id, "VERTEX_NUM_NO_GHOSTS", H5P_DEFAULT);
 
@@ -537,28 +535,16 @@ int Globals::ReadGlobals(void)
 
     H5Aclose(attr_id1);
     H5Aclose(attr_id2);
+// #endif 
     H5Gclose(group_id);
 
-
-
-    // hid_t aid2  = H5Screate(H5S_SCALAR);
-    // hid_t attr_id = H5Acreate2(file_id, "/FACES/FACE_NUM", H5T_NATIVE_UINT, aid2, H5P_DEFAULT, H5P_DEFAULT);
-
-    // H5Aopen
-
-    // herr_t H5Aread(hid_t attr_id, hid_t mem_type_id, void *buf)
-
-
     H5Fclose(file_id);
-
 
     outstring<<"PROCESSOR "<<PROC_ID<<" HAS "<<face_num<<" FACES."<<std::endl;
     outstring<<"PROCESSOR "<<PROC_ID<<" HAS "<<node_num<<" NODES."<<std::endl;
     outstring<<"PROCESSOR "<<PROC_ID<<" HAS "<<vertex_num<<" VERTICES."<<std::endl;
 
-    std::cout<<outstring.str();
-
-    // Output->Write(OUT_MESSAGE, &outstring);
+    Output->Write(OUT_MESSAGE, &outstring);
 
   return 0;
 };
@@ -664,8 +650,8 @@ void Globals::OutputConsts(void)
   for (unsigned int i = 0; i < allGlobals.size(); i++){
 
     outstring <<"\t\t "<<std::left<< std::setw(varWidth) << std::setfill(separator)<<allGlobals[i]->StringID();
-    if (allGlobals[i]->IsType("double")) {
-      outstring << ((GlobalVar<double > *) allGlobals[i])->Value();
+    if (allGlobals[i]->IsType("double ")) {
+      outstring << ((GlobalVar<double  > *) allGlobals[i])->Value();
     }
     else if (allGlobals[i]->IsType("int")) {
       outstring << ((GlobalVar<int > *) allGlobals[i])->Value();
