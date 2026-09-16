@@ -21,8 +21,8 @@ int updateEta(Globals * globals,
     
     if (globals->advection.Value()) 
     {
-        Array1D<double> hv(FACE_NUM);
-        Eigen::Map<Eigen::VectorXd> hvEigen(&hv(0), FACE_NUM);
+        Array1D<double > hv(grid->face_num);
+        Eigen::Map<Eigen::VectorXd> hvEigen(&hv(0), grid->face_num);
 
 
         // Get thickness flux normal to each face
@@ -38,6 +38,11 @@ int updateEta(Globals * globals,
         // Get divergence of velocity field to find dEta/dt
         detadtEigen = h * grid->operatorDivergence * hvEigen;   
     }
+
+    // Eigen::Map<Eigen::VectorXd> hvEigen(&v_t0(0), grid->face_num);
+
+    // // Get divergence of velocity field to find dEta/dt
+    // detadtEigen = h * grid->operatorDivergence * hvEigen;   
      
 
     return 1;
