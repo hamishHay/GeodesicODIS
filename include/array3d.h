@@ -55,7 +55,7 @@ template<typename T>
 inline
 T& Array3D<T>::operator() (unsigned row, unsigned col, unsigned depth)
 {
-#ifdef DEBUG
+#ifdef _DEBUG
   if (row >= rows_ || col >= cols_ || depth >= depth_)
     throw std::out_of_range("Array3D subscript out of bounds");
 #endif
@@ -68,7 +68,7 @@ template<typename T>
 inline
 T Array3D<T>::operator() (unsigned row, unsigned col, unsigned depth) const
 {
-#ifdef DEBUG
+#ifdef _DEBUG
   if (row >= rows_ || col >= cols_ || depth >= depth_)
     throw std::out_of_range("Array3D subscript out of bounds");
 #endif

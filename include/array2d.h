@@ -58,7 +58,7 @@ inline
 T& Array2D<T>::operator() (unsigned row, unsigned col)
 {
 
-#ifdef DEBUG
+#ifdef _DEBUG
   if (row >= rows_ || col >= cols_)
     throw std::out_of_range("Array2D subscript out of bounds");
 #endif
@@ -71,7 +71,7 @@ inline
 T Array2D<T>::operator() (unsigned row, unsigned col) const
 {
 
-#ifdef DEBUG
+#ifdef _DEBUG
   if (row >= rows_ || col >= cols_)
     throw std::out_of_range("Array2D subscript out of bounds");
 #endif
@@ -107,19 +107,6 @@ Array2D<T> & Array2D<T>::Array2D::operator=(const Array2D<T> &other_array)
   return *this;
 }
 
-
-// Element & Element::operator=(const Element &other_element)
-// {
-//   this->xyz_coords[0] = other_element.xyz_coords[0];
-//   this->xyz_coords[1] = other_element.xyz_coords[1];
-//   this->xyz_coords[2] = other_element.xyz_coords[2];
-
-//   // Maybe we shouldn't do this here?
-//   cart2sph(xyz_coords, sph_coords);
-//   // sph_coords[1] = pi*0.5 - sph_coords[1];
-
-//   return *this;
-// }
 
 
 #endif

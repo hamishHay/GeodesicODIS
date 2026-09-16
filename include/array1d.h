@@ -102,7 +102,7 @@ template<typename T>
 inline
 T& Array1D<T>::operator() (unsigned row)
 {
-#ifdef DEBUG
+#ifdef _DEBUG
   if (row >= rows_)
     throw std::out_of_range("Array1D subscript out of bounds");
 #endif
@@ -116,7 +116,7 @@ template<typename T>
 inline
 T Array1D<T>::operator() (unsigned row) const
 {
-#ifdef DEBUG
+#ifdef _DEBUG
   if (row >= rows_)
     throw std::out_of_range("Array1D subscript out of bounds");
 #endif
