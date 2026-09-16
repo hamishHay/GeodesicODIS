@@ -4,11 +4,14 @@
 #include "globals.h"
 #include "array1d.h"
 #include "array2d.h"
+#include "array2dJagged.h"
 #include "array3d.h"
 #include "mathRoutines.h"
 #include "sphericalHarmonics.h"
 #include "gridConstants.h"
+#include <map>
 #include "H5Cpp.h"
+#include <vector>
 
 //#include <mkl.h>
 //#include <mkl_spblas.h>
@@ -56,11 +59,16 @@ private:
     int CalcCoriolisOperatorCoeffs(void);
     int CalcLinearDragOperatorCoeffs(void);
     int CalcCurlOperatorCoeffs(void);
+    int CalcFTangentOperatorCoeffs(void);
     int CalcAdjacencyMatrix(void);
     int CalcRBFInterpMatrix(void);
     int CalcRBFInterpMatrix2(void);
     int CalcFreeSurfaceSolver(void);
     int GeneratePressureSolver(void);
+
+#ifdef _MPI
+    int FindInterconnectivity(void);
+#endif
 
 public:
     //	Mesh(); //constructor
@@ -76,6 +84,9 @@ public:
     int node_num_ng;
     int face_num_ng;
     int vertex_num_ng;
+
+    int NPROC;
+    int PROC_ID;
 
     // ---------------------------- Arrays to be read from file -------------------------------------------
 
@@ -131,7 +142,60 @@ public:
     // Index 5 here because as most number of faces is 6 in a cv,
     // then each face can only neighbour at most 5 in each node.
     Array3D<int> face_friends;//               = Array3D<int>(FACE_NUM, 2, 5);   //second index if for downwind vs upwind node
-    Array3D<double> face_interp_weights;//    = Array3D<double>(FACE_NUM, 2, 5);
+    Array3D<double> face_interp_weights;//    = Array3D<double >(FACE_NUM, 2, 5);
+    Array3D<double> face_advection_coeffs;
+
+#ifdef _MPI
+    Array2D<unsigned> node_region_ID;
+    Array2D<unsigned> face_region_ID;
+    Array2D<unsigned> vertex_region_ID;
+
+    std::vector<std::vector<unsigned>> send_face_IDs;
+    std::vector<std::vector<unsigned>> send_node_IDs;
+    std::vector<std::vector<unsigned>> send_vertex_IDs;
+
+    std::vector<std::vector<unsigned>> receive_face_IDs;
+    std::vector<std::vector<unsigned>> receive_node_IDs;
+    std::vector<std::vector<unsigned>> receive_vertex_IDs;
+
+
+    // TODO - rename these to recv_node_num or recv_node_count
+    std::vector<unsigned> recv_node_regions;
+    std::vector<unsigned> recv_face_regions;
+    std::vector<unsigned> recv_vertex_regions;
+
+    std::vector<unsigned> recv_node_loc;
+
+    std::vector<unsigned> send_node_regions;
+    std::vector<unsigned> send_face_regions;
+    std::vector<unsigned> send_vertex_regions;
+
+    std::vector<std::vector<unsigned>> send_node_IDs_ordered;
+    std::vector<std::vector<unsigned>> send_node_IDs_map;
+
+    std::vector<std::vector<unsigned>> send_face_IDs_ordered;
+    std::vector<std::vector<unsigned>> send_face_IDs_map;
+
+    std::vector<std::vector<unsigned>> send_vertex_IDs_ordered;
+    std::vector<std::vector<unsigned>> send_vertex_IDs_map;
+
+    std::vector< std::vector<double > > send_face_buffer_1;
+    std::vector< std::vector<double > > send_face_buffer_2;
+
+    std::vector< std::vector<double > > send_node_buffer_1;
+    std::vector< std::vector<double > > send_node_buffer_2;
+    std::vector< std::vector<double > > send_node_xyz_buffer;
+
+    std::vector< std::vector<double > > send_vertex_buffer_1;
+    std::vector< std::vector<double > > send_vertex_buffer_2;
+
+    Array2DJagged<double> send_vertex_buffer_test;
+    Array2DJagged<double> send_node_buffer_test;
+    Array2DJagged<double> send_node_xyz_buffer_test;
+    Array2DJagged<double> send_face_buffer_test;
+
+
+#endif
 
     // ---------------------------- Arrays to be calculated -------------------------------------------
 
@@ -203,10 +267,17 @@ public:
     SpMat operatorCurl;
     SpMat node2faceAdj;
     SpMat node2nodeAdj;
+    SpMat operatorFtan;
+    SpMat operatorFtan1;
+    SpMat operatorFtan2;
+    SpMat A;
+    SpMat B;
+
     SpMat operatorRBFinterp;
     // SpMat rbfDeriv2;
     SpMat operatorSecondDeriv;
     SpMat operatorDirectionalSecondDeriv;
+    SpMat operatorDirectionalSecondDerivMPI;
 
     SpMat interpMatrix;
     SpMat vandermondeInv;
