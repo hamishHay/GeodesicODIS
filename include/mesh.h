@@ -68,7 +68,20 @@ private:
 
 #ifdef _MPI
     int FindInterconnectivity(void);
+    std::vector<MPI_Request> mpi_requests;
 #endif
+
+    int ElementIrecv(Array1D<double> & field,                               // Field to exchange
+                     std::vector<unsigned> & recv_regions,                  // NUmber to receive from each region
+                     std::vector<std::vector<unsigned>> & receive_IDs,      // Local IDs of the receiived nodes
+                     int tag);                                              // type (e.g., node, face, vertex) tag
+
+    int ElementIsend(Array1D<double> & field,                               // Field to exchange
+                     std::vector<unsigned> & send_regions,                  // Number in each region to send to
+                     std::vector<std::vector<unsigned>> & send_IDs_ordered, // Indexes of ID's to send so that they are ordered for the receiver
+                     std::vector<std::vector<unsigned>> & send_IDs_map,     // Map between unordered and ordered IDs
+                     std::vector<std::vector<double>> & send_buffer,        // Buffer to store the send data
+                     int tag);                                              // type (e.g., node, face, vertex) tag
 
 public:
     //	Mesh(); //constructor
@@ -145,6 +158,14 @@ public:
     Array3D<int> face_friends;//               = Array3D<int>(FACE_NUM, 2, 5);   //second index if for downwind vs upwind node
     Array3D<double> face_interp_weights;//    = Array3D<double >(FACE_NUM, 2, 5);
     Array3D<double> face_advection_coeffs;
+
+    void IrecvNode(Array1D<double> & field);
+    void IsendFace(Array1D<double> & field);
+    void IrecvFace(Array1D<double> & field);
+    void IsendNode(Array1D<double> & field);
+    void IrecvVertex(Array1D<double> & field);
+    void IsendVertex(Array1D<double> & field);
+    void WaitAllExchanges(void);
 
 #ifdef _MPI
     Array2D<unsigned> node_region_ID;
